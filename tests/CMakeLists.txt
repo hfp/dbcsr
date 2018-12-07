@@ -78,17 +78,9 @@ if (USE_CUDA)
     libcusmm_timer_multiply
     )
 
-  set(CMAKE_CUDA_FLAGS "-arch=sm_${CUDA_ARCH_NUMBER} --cudart static")
-
   foreach (libcusmm_test ${LIBCUSMM_TESTS})
     add_executable(${libcusmm_test} ${libcusmm_test}.cu)
     target_link_libraries(${libcusmm_test} dbcsr)
-    # register unittest executable with CMake
-    if (USE_MPI)
-      add_test(NAME ${libcusmm_test} COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${num_ranks} ${MPIEXEC_PREFLAGS} ./${libcusmm_test} ${MPIEXEC_POSTFLAGS})
-    else ()
-      add_test(NAME ${libcusmm_test} COMMAND ./${libcusmm_test})
-    endif ()
-    set_tests_properties(${libcusmm_test} PROPERTIES ENVIRONMENT OMP_NUM_THREADS=${num_threads})
+    add_test(NAME ${libcusmm_test} COMMAND ./${libcusmm_test})
   endforeach ()
 endif ()

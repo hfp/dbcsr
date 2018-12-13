@@ -154,7 +154,7 @@
 !    Factors out the 4 combinations to remove branches from the inner loop.
 !    rs is the logical row size so it always remains the leading dimension.
      IF (.NOT. dst_tr .AND. .NOT. src_tr) THEN
-#if defined(__LIBXSMM_BLOCKOPS)
+#if defined(__LIBXSMM_BLOCKOPS) && 0
         CALL libxsmm_matcopy(libxsmm_ptr0(dst(dst_offset + dst_r_lb + (dst_c_lb - 1)*dst_rs)), &
                              libxsmm_ptr0(src(src_r_lb, src_c_lb)), &
                              ${typesize1[n]}$, nrow, ncol, SIZE(src, 1), dst_rs)
@@ -167,7 +167,7 @@
         END DO
 #endif
      ELSEIF (dst_tr .AND. .NOT. src_tr) THEN
-#if defined(__LIBXSMM_BLOCKOPS)
+#if defined(__LIBXSMM_BLOCKOPS) && 0
         CALL libxsmm_otrans(libxsmm_ptr0(dst(dst_offset + dst_c_lb + (dst_r_lb - 1)*dst_cs)), &
                             libxsmm_ptr0(src(src_r_lb, src_c_lb)), &
                             ${typesize1[n]}$, nrow, ncol, SIZE(src, 1), dst_cs)
@@ -180,7 +180,7 @@
         END DO
 #endif
      ELSEIF (.NOT. dst_tr .AND. src_tr) THEN
-#if defined(__LIBXSMM_BLOCKOPS)
+#if defined(__LIBXSMM_BLOCKOPS) && 0
         CALL libxsmm_otrans(libxsmm_ptr0(dst(dst_offset + dst_r_lb + (dst_c_lb - 1)*dst_rs)), &
                             libxsmm_ptr0(src(src_c_lb, src_r_lb)), &
                             ${typesize1[n]}$, nrow, ncol, SIZE(src, 2), dst_rs)
@@ -194,7 +194,7 @@
 #endif
      ELSE
         DBCSR_ASSERT(dst_tr .AND. src_tr)
-#if defined(__LIBXSMM_BLOCKOPS)
+#if defined(__LIBXSMM_BLOCKOPS) && 0
         CALL libxsmm_matcopy(libxsmm_ptr0(dst(dst_offset + dst_c_lb + (dst_r_lb - 1)*dst_cs)), &
                              libxsmm_ptr0(src(src_c_lb, src_r_lb)), &
                              ${typesize1[n]}$, nrow, ncol, SIZE(src, 2), dst_cs)
@@ -266,7 +266,7 @@
         END DO
 #endif
      ELSEIF (dst_tr .AND. .NOT. src_tr) THEN
-#if defined(__LIBXSMM_BLOCKOPS)
+#if defined(__LIBXSMM_BLOCKOPS) && 0
         CALL libxsmm_otrans(libxsmm_ptr0(dst(dst_c_lb, dst_r_lb)), &
                             libxsmm_ptr0(src(src_offset + src_r_lb + (src_c_lb - 1)*src_rs)), &
                             ${typesize1[n]}$, nrow, ncol, src_rs, SIZE(dst, 2))
@@ -279,7 +279,7 @@
         END DO
 #endif
      ELSEIF (.NOT. dst_tr .AND. src_tr) THEN
-#if defined(__LIBXSMM_BLOCKOPS)
+#if defined(__LIBXSMM_BLOCKOPS) && 0
         CALL libxsmm_otrans(libxsmm_ptr0(dst(dst_r_lb, dst_c_lb)), &
                             libxsmm_ptr0(src(src_offset + src_c_lb + (src_r_lb - 1)*src_cs)), &
                             ${typesize1[n]}$, nrow, ncol, src_cs, SIZE(dst, 1))
@@ -345,7 +345,7 @@
 !    Factors out the 4 combinations to remove branches from the inner loop.
 !    rs is the logical row size so it always remains the leading dimension.
      IF (.NOT. dst_tr .AND. .NOT. src_tr) THEN
-#if defined(__LIBXSMM_BLOCKOPS)
+#if defined(__LIBXSMM_BLOCKOPS) && 0
         CALL libxsmm_matcopy(libxsmm_ptr0(dst(dst_r_lb, dst_c_lb)), &
                              libxsmm_ptr0(src(src_r_lb, src_c_lb)), &
                              ${typesize1[n]}$, nrow, ncol, &
@@ -359,7 +359,7 @@
         END DO
 #endif
      ELSEIF (dst_tr .AND. .NOT. src_tr) THEN
-#if defined(__LIBXSMM_BLOCKOPS)
+#if defined(__LIBXSMM_BLOCKOPS) && 0
         CALL libxsmm_otrans(libxsmm_ptr0(dst(dst_c_lb, dst_r_lb)), &
                             libxsmm_ptr0(src(src_r_lb, src_c_lb)), &
                             ${typesize1[n]}$, nrow, ncol, &
@@ -373,7 +373,7 @@
         END DO
 #endif
      ELSEIF (.NOT. dst_tr .AND. src_tr) THEN
-#if defined(__LIBXSMM_BLOCKOPS)
+#if defined(__LIBXSMM_BLOCKOPS) && 0
         CALL libxsmm_otrans(libxsmm_ptr0(dst(dst_r_lb, dst_c_lb)), &
                             libxsmm_ptr0(src(src_c_lb, src_r_lb)), &
                             ${typesize1[n]}$, nrow, ncol, &
@@ -388,7 +388,7 @@
 #endif
      ELSE
         DBCSR_ASSERT(dst_tr .AND. src_tr)
-#if defined(__LIBXSMM_BLOCKOPS)
+#if defined(__LIBXSMM_BLOCKOPS) && 0
         CALL libxsmm_matcopy(libxsmm_ptr0(dst(dst_c_lb, dst_r_lb)), &
                              libxsmm_ptr0(src(src_c_lb, src_r_lb)), &
                              ${typesize1[n]}$, nrow, ncol, &

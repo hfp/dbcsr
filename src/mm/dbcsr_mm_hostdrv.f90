@@ -190,8 +190,7 @@
                                 b=libxsmm_ptr0(b_data(LBOUND(b_data,1))), &
                                 ldb=stack_descr%k, &
                                 beta=libxsmm_ptr0(one),  c=libxsmm_ptr0(c_data(LBOUND(c_data,1))), &
-                                ldc=stack_descr%m, index_base=1, &
-                                index_stride=KIND(params)*dbcsr_ps_width, &
+                                ldc=stack_descr%m, index_base=1, index_stride=dbcsr_ps_width, &
                                 stride_a=libxsmm_ptr0(params(p_a_first,1)), &
                                 stride_b=libxsmm_ptr0(params(p_b_first,1)), &
                                 stride_c=libxsmm_ptr0(params(p_c_first,1)), &

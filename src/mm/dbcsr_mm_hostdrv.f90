@@ -183,7 +183,7 @@
                                     routineP = moduleN//':'//routineN
 #if ${xsmm_supported[n]}$
      IF (stack_descr%defined_mnk) THEN ! homogeneous stack
-        CALL libxsmm_gemm_batch(LIBXSMM_GEMM_PRECISION, 'N', 'N', &
+        CALL libxsmm_gemm_batch(LIBXSMM_GEMM_PRECISION, LIBXSMM_GEMM_PRECISION, 'N', 'N', &
                                 m=stack_descr%m, n=stack_descr%n, k=stack_descr%k, &
                                 alpha=libxsmm_ptr0(one), a=libxsmm_ptr0(a_data(LBOUND(a_data,1))), &
                                 lda=stack_descr%m, &

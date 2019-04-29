@@ -969,7 +969,7 @@
 !>      mpi_allreduce
 ! *****************************************************************************
   SUBROUTINE mp_sum_${nametype1}$ (msg, gid)
-     ${type1}$, INTENT(INOUT)                   :: msg
+     ${type1}$, CONTIGUOUS, INTENT(INOUT)     :: msg
      INTEGER, INTENT(IN)                      :: gid
 
      CHARACTER(len=*), PARAMETER :: routineN = 'mp_sum_${nametype1}$', &

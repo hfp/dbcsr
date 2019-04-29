@@ -284,11 +284,11 @@ CONTAINS
 !> \param nblks ...
 ! **************************************************************************************************
    PURE SUBROUTINE dbcsr_expand_row_index(row_p, row_i, nrows, nblks)
-      INTEGER, INTENT(in)                                :: nrows, nblks
-      INTEGER, DIMENSION(1:nrows + 1), INTENT(IN)          :: row_p
-      INTEGER, DIMENSION(1:nblks), INTENT(out)           :: row_i
+      INTEGER, INTENT(in)                                   :: nrows, nblks
+      INTEGER, DIMENSION(1:nrows + 1), INTENT(IN)           :: row_p
+      INTEGER, DIMENSION(1:nblks), CONTIGUOUS, INTENT(out)  :: row_i
 
-      INTEGER                                            :: row
+      INTEGER                                               :: row
 
       DO row = 1, nrows
          row_i(row_p(row) + 1:row_p(row + 1)) = row

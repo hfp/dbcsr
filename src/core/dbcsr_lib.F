@@ -89,6 +89,9 @@ CONTAINS
 
 
     subroutine base_init(mp_comm, io_unit)
+#if defined(__LIBXSMM)
+      USE libxsmm, ONLY: libxsmm_init
+#endif
       INTEGER, INTENT(IN)  :: mp_comm
       integer, intent(in), optional :: io_unit
       integer ::  numnodes, mynode
@@ -102,6 +105,10 @@ CONTAINS
       ENDIF
 
       call dbcsr_mp_make_env(mp_env, default_group, mp_comm)
+
+#if defined(__LIBXSMM)
+      CALL libxsmm_init()
+#endif
     end subroutine
 ! **************************************************************************************************
 !> \brief Initialize timers
@@ -239,6 +246,9 @@ CONTAINS
 !> \param output_unit ...
 ! **************************************************************************************************
    SUBROUTINE dbcsr_finalize_lib()
+#if defined(__LIBXSMM)
+      USE libxsmm, ONLY: libxsmm_finalize
+#endif
       !INTEGER, INTENT(IN)                                :: group
       !INTEGER, INTENT(IN), OPTIONAL                      :: output_unit
 
@@ -280,6 +290,9 @@ CONTAINS
 
       call dbcsr_print_timer()
       call dbcsr_finalize_timer()
+#if defined(__LIBXSMM)
+      CALL libxsmm_finalize()
+#endif
    END SUBROUTINE dbcsr_finalize_lib
 
 ! **************************************************************************************************

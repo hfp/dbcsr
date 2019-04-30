@@ -258,7 +258,7 @@ CONTAINS
          CALL rm_timer_env()
          NULLIFY(logger)
       ELSE
-         CALL timestop(error_handle)      
+         CALL timestop(error_handle)
       ENDIF
       CALL dbcsr_mp_release(mp_env)
       CALL mp_comm_free(default_group)

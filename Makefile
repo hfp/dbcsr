@@ -497,7 +497,7 @@ FYPPFLAGS ?= -n
 	$(CXX) -c $(CXXFLAGS) $<
 
 libcusmm.o: libcusmm.cpp parameters.h cusmm_kernels.h
-	$(CXX) -c $(CXXFLAGS) $(CXXOMPFLAGS) -DARCH_NUMBER=$(ARCH_NUMBER) $<
+	$(CXX) -c $(CXXFLAGS) -DARCH_NUMBER=$(ARCH_NUMBER) $<
 
 %.o: %.cu
 	$(NVCC) -c $(NVFLAGS) -I'$(SRCDIR)' $<
@@ -508,7 +508,7 @@ libcusmm_benchmark.o: libcusmm_benchmark.cu parameters.h
 $(LIBDIR)/%:
 ifneq ($(LD_SHARED),)
 	@echo "Creating shared library $@"
-	@$(LD_SHARED) -o $(@:.a=.so) $^
+	@$(LD_SHARED) $(LDFLAGS) -o $(@:.a=.so) $^ $(LIBS)
 else
 	@echo "Updating archive $@"
 	@$(AR) $@ $?

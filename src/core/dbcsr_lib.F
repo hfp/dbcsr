@@ -58,6 +58,10 @@ MODULE dbcsr_lib
 
 !$ USE OMP_LIB, ONLY: omp_get_thread_num, omp_get_num_threads
 
+#if defined (__DBCSR_ACC)
+   USE ISO_C_BINDING, ONLY: C_INT
+#endif
+
    IMPLICIT NONE
    PRIVATE
 
@@ -76,6 +80,18 @@ MODULE dbcsr_lib
       MODULE PROCEDURE dbcsr_init_lib_def
       MODULE PROCEDURE dbcsr_init_lib_hooks
    END INTERFACE
+
+#if defined (__DBCSR_ACC)
+   INTERFACE
+      FUNCTION libsmm_acc_libcusmm_is_thread_safe_cu() &
+         RESULT(thread_safe) &
+         BIND(C, name="libsmm_acc_libcusmm_is_thread_safe")
+         IMPORT
+         INTEGER(KIND=C_INT)        :: thread_safe
+
+      END FUNCTION libsmm_acc_libcusmm_is_thread_safe_cu
+   END INTERFACE
+#endif
 
 CONTAINS
 
@@ -154,6 +170,10 @@ CONTAINS
 
       INTEGER :: numnodes, mynode
 
+#if defined(__DBCSR_ACC)
+      INTEGER :: dbcsr_thread_safe, libcusmm_thread_safe
+#endif
+
       IF (PRESENT(io_unit)) THEN
          ext_io_unit = io_unit
       ELSE
@@ -164,6 +184,22 @@ CONTAINS
       CALL dbcsr_mp_make_env(mp_env, default_group, mp_comm)
 #if defined(__LIBXSMM)
       CALL libxsmm_init()
+#endif
+
+#if defined(__DBCSR_ACC)
+      libcusmm_thread_safe = libsmm_acc_libcusmm_is_thread_safe_cu()  ! 0: not threaded, 1: threaded
+      dbcsr_thread_safe = 0  ! not threaded
+!$    dbcsr_thread_safe = 1  ! if DBCSR is compiled with openmp, set to threaded
+      ! Check whether DBCSR and libcusmm (GPU backend) have the same level of threading
+       IF (dbcsr_thread_safe /= libcusmm_thread_safe) then
+          IF (dbcsr_thread_safe /= 0) then
+              DBCSR_ABORT("DBCSR's and libcusmm's threading levels do not match. DBCSR is compiled
+with threading support while libcusmm is compiled without threading support.")
+          ELSE
+              DBCSR_ABORT("DBCSR's and libcusmm's threading levels do not match. DBCSR is compiled
+without threading support while libcusmm is compiled with threading support.")
+          ENDIF
+       ENDIF
 #endif
    END SUBROUTINE dbcsr_init_lib_pre
 

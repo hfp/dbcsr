@@ -77,6 +77,11 @@ MODULE dbcsr_index_operations
    PUBLIC :: dbcsr_addto_index_array, dbcsr_clearfrom_index_array, &
              dbcsr_repoint_index, dbcsr_make_index_exist
 
+   INTERFACE dbcsr_expand_row_index
+      MODULE PROCEDURE dbcsr_expand_row_index_1d, &
+         dbcsr_expand_row_index_2d
+   END INTERFACE
+
    INTERFACE dbcsr_count_row_index
       MODULE PROCEDURE dbcsr_count_row_index_copy, &
          dbcsr_count_row_index_inplace
@@ -244,7 +249,7 @@ CONTAINS
 ! **************************************************************************************************
    SUBROUTINE dbcsr_make_dbcsr_index(row_p, row_i, nrows, nblks)
       INTEGER, INTENT(in)                                :: nrows, nblks
-      INTEGER, DIMENSION(1:nrows + 1), INTENT(out)         :: row_p
+      INTEGER, DIMENSION(1:nrows + 1), INTENT(out)       :: row_p
       INTEGER, DIMENSION(1:nblks), INTENT(in)            :: row_i
 
       CHARACTER(len=*), PARAMETER :: routineN = 'dbcsr_make_dbcsr_index', &
@@ -283,17 +288,36 @@ CONTAINS
 !> \param nrows ...
 !> \param nblks ...
 ! **************************************************************************************************
-   PURE SUBROUTINE dbcsr_expand_row_index(row_p, row_i, nrows, nblks)
-      INTEGER, INTENT(in)                                   :: nrows, nblks
+   PURE SUBROUTINE dbcsr_expand_row_index_1d(row_p, row_i, nrows, nblks)
+      INTEGER, INTENT(IN)                                   :: nrows, nblks
       INTEGER, DIMENSION(1:nrows + 1), INTENT(IN)           :: row_p
-      INTEGER, DIMENSION(1:nblks), INTENT(out)              :: row_i
+      INTEGER, DIMENSION(1:nblks), INTENT(OUT)              :: row_i
 
       INTEGER                                               :: row
 
       DO row = 1, nrows
          row_i(row_p(row) + 1:row_p(row + 1)) = row
       ENDDO
-   END SUBROUTINE dbcsr_expand_row_index
+   END SUBROUTINE dbcsr_expand_row_index_1d
+
+! **************************************************************************************************
+!> \brief Expands a row_p index
+!> \param row_p ...
+!> \param row_i ...
+!> \param nrows ...
+!> \param nblks ...
+! **************************************************************************************************
+   PURE SUBROUTINE dbcsr_expand_row_index_2d(row_p, row_i, nrows, nblks)
+      INTEGER, INTENT(IN)                                   :: nrows, nblks
+      INTEGER, DIMENSION(1:nrows + 1), INTENT(IN)           :: row_p
+      INTEGER, DIMENSION(:,1:nblks), INTENT(OUT)            :: row_i
+
+      INTEGER                                               :: row
+
+      DO row = 1, nrows
+         row_i(1, row_p(row) + 1:row_p(row + 1)) = row
+      ENDDO
+   END SUBROUTINE dbcsr_expand_row_index_2d
 
 ! **************************************************************************************************
 !> \brief Counts columns-per-row count from row index array, in-place.
@@ -303,7 +327,7 @@ CONTAINS
 ! **************************************************************************************************
    PURE SUBROUTINE dbcsr_count_row_index_inplace(rows, nrows)
       INTEGER, INTENT(IN)                                :: nrows
-      INTEGER, DIMENSION(1:nrows + 1), INTENT(INOUT)       :: rows
+      INTEGER, DIMENSION(1:nrows + 1), INTENT(INOUT)     :: rows
 
       INTEGER                                            :: row
 
@@ -322,7 +346,7 @@ CONTAINS
    PURE SUBROUTINE dbcsr_count_row_index_copy(rows, counts, nrows)
       INTEGER, INTENT(IN)                                :: nrows
       INTEGER, DIMENSION(1:nrows), INTENT(OUT)           :: counts
-      INTEGER, DIMENSION(1:nrows + 1), INTENT(IN)          :: rows
+      INTEGER, DIMENSION(1:nrows + 1), INTENT(IN)        :: rows
 
       INTEGER                                            :: row
 
@@ -339,7 +363,7 @@ CONTAINS
 ! **************************************************************************************************
    PURE SUBROUTINE dbcsr_build_row_index_inplace(rows, nrows)
       INTEGER, INTENT(IN)                                :: nrows
-      INTEGER, DIMENSION(1:nrows + 1), INTENT(INOUT)       :: rows
+      INTEGER, DIMENSION(1:nrows + 1), INTENT(INOUT)     :: rows
 
       INTEGER                                            :: o, old_count, row
 
@@ -363,7 +387,7 @@ CONTAINS
 ! **************************************************************************************************
    PURE SUBROUTINE dbcsr_build_row_index_copy(counts, rows, nrows)
       INTEGER, INTENT(IN)                                :: nrows
-      INTEGER, DIMENSION(1:nrows + 1), INTENT(OUT)         :: rows
+      INTEGER, DIMENSION(1:nrows + 1), INTENT(OUT)       :: rows
       INTEGER, DIMENSION(1:nrows), INTENT(IN)            :: counts
 
 !WTF?!rows(1) = 0

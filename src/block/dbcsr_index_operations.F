@@ -310,10 +310,12 @@ CONTAINS
    PURE SUBROUTINE dbcsr_expand_row_index_2d(row_p, row_i, nrows, nblks)
       INTEGER, INTENT(IN)                                   :: nrows, nblks
       INTEGER, DIMENSION(1:nrows + 1), INTENT(IN)           :: row_p
-      INTEGER, DIMENSION(:,1:nblks), INTENT(OUT)            :: row_i
+      INTEGER, DIMENSION(:,:), INTENT(OUT)                  :: row_i
 
       INTEGER                                               :: row
 
+      MARK_USED(nblks)
+      ! DBCSR_ASSERT(SIZE(row_i,2) .LE. nblks)
       DO row = 1, nrows
          row_i(1, row_p(row) + 1:row_p(row + 1)) = row
       ENDDO

@@ -1299,7 +1299,7 @@ CONTAINS
       !
       nblks = matrix%nblks
       ALLOCATE (blki(3, nblks))
-      CALL dbcsr_expand_row_index(matrix%row_p, blki(1, :), nrows, nblks)
+      CALL dbcsr_expand_row_index(matrix%row_p, blki, nrows, nblks)
       IF (matrix%local_indexing) THEN
          ! If local indexing is enabled, then the rows but not the
          ! columns are already localized

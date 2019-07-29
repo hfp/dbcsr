@@ -109,7 +109,7 @@ MODULE dbcsr_config
 #else
       LOGICAL  :: mm_densification = .FALSE.
 #endif
-      INTEGER  :: multrec_limit = 512
+      INTEGER  :: multrec_limit = 256
       INTEGER  :: accdrv_priority_streams = 4
       INTEGER  :: accdrv_priority_buffers = 40
       INTEGER  :: accdrv_posterior_streams = 4

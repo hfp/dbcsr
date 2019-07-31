@@ -1808,7 +1808,7 @@ CONTAINS
       ALLOCATE (flags(SIZE(requests)))
       DO i = 1, SIZE(requests)
          CALL mpi_test(requests(i), flags(i), MPI_STATUS_IGNORE, ierr)
-         IF (ierr /= 0) CALL mp_stop(ierr, "mpi_testall @ mp_testall_tv")
+         IF (ierr /= 0) CALL mp_stop(ierr, "mpi_test @ mp_testall_tv")
          flag = flag .AND. flags(i)
       END DO
       DEALLOCATE (flags)
@@ -2644,7 +2644,7 @@ CONTAINS
 #if __MPI_VERSION > 2
       IF (msglen .GT. 0) THEN
          CALL mpi_iallreduce(MPI_IN_PLACE, msg, msglen, MPI_LOGICAL, MPI_LOR, gid, request, ierr)
-         IF (ierr /= 0) CALL mp_stop(ierr, "mpi_allreduce @ "//routineN)
+         IF (ierr /= 0) CALL mp_stop(ierr, "mpi_iallreduce @ "//routineN)
       ELSE
          request = mp_request_null
       ENDIF
@@ -4779,7 +4779,7 @@ CONTAINS
       CALL mpi_igatherv(sendbuf, sendcount, ${mpi_type1}$, &
                         recvbuf, recvcounts, displs, ${mpi_type1}$, &
                         root, comm, request, ierr)
-      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_gatherv @ "//routineN)
+      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_igatherv @ "//routineN)
       CALL add_perf(perf_id=24, &
                     count=1, &
                     msg_size=sendcount*${bytes1}$)
@@ -4922,7 +4922,7 @@ CONTAINS
       CALL MPI_IALLGATHER(msgout, scount, ${mpi_type1}$, &
                           msgin, rcount, ${mpi_type1}$, &
                           gid, request, ierr)
-      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_allgather @ "//routineN)
+      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_iallgather @ "//routineN)
 #else
       MARK_USED(gid)
       MARK_USED(msgin)

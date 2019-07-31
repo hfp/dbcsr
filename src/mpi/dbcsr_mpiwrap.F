@@ -2014,9 +2014,9 @@ CONTAINS
                             subgroup_min_size, n_subgroups, group_partition, stride)
       INTEGER, INTENT(in)                      :: comm
       INTEGER, INTENT(out)                     :: sub_comm, ngroups
-      INTEGER, DIMENSION(0:)                    :: group_distribution
+      INTEGER, DIMENSION(0:)                   :: group_distribution
       INTEGER, INTENT(in), OPTIONAL            :: subgroup_min_size, n_subgroups
-      INTEGER, DIMENSION(0:), OPTIONAL          :: group_partition
+      INTEGER, DIMENSION(0:), OPTIONAL         :: group_partition
       INTEGER, OPTIONAL                        :: stride
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_comm_split', &
@@ -3509,9 +3509,9 @@ CONTAINS
    SUBROUTINE mp_alltoall_${nametype1}$44(sb, rb, count, group)
 
       ${type1}$, DIMENSION(:, :, :, :), &
-         INTENT(IN)                             :: sb
+         INTENT(IN)                            :: sb
       ${type1}$, DIMENSION(:, :, :, :), &
-         INTENT(OUT)                            :: rb
+         INTENT(OUT)                           :: rb
       INTEGER, INTENT(IN)                      :: count, group
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_alltoall_${nametype1}$44', &
@@ -3552,7 +3552,7 @@ CONTAINS
 !>      mpi_send
 ! *****************************************************************************
    SUBROUTINE mp_send_${nametype1}$ (msg, dest, tag, gid)
-      ${type1}$                                  :: msg
+      ${type1}$                                :: msg
       INTEGER                                  :: dest, tag, gid
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_send_${nametype1}$', &
@@ -3588,7 +3588,7 @@ CONTAINS
 !> \note see mp_send_${nametype1}$
 ! *****************************************************************************
    SUBROUTINE mp_send_${nametype1}$v(msg, dest, tag, gid)
-      ${type1}$                                  :: msg(:)
+      ${type1}$                                :: msg(:)
       INTEGER                                  :: dest, tag, gid
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_send_${nametype1}$v', &
@@ -3625,7 +3625,7 @@ CONTAINS
 !>      mpi_send
 ! *****************************************************************************
    SUBROUTINE mp_recv_${nametype1}$ (msg, source, tag, gid)
-      ${type1}$, INTENT(INOUT)                   :: msg
+      ${type1}$, INTENT(INOUT)                 :: msg
       INTEGER, INTENT(INOUT)                   :: source, tag
       INTEGER, INTENT(IN)                      :: gid
 
@@ -3669,7 +3669,7 @@ CONTAINS
 !> \note see mp_recv_${nametype1}$
 ! *****************************************************************************
    SUBROUTINE mp_recv_${nametype1}$v(msg, source, tag, gid)
-      ${type1}$, INTENT(INOUT)                   :: msg(:)
+      ${type1}$, INTENT(INOUT)                 :: msg(:)
       INTEGER, INTENT(INOUT)                   :: source, tag
       INTEGER, INTENT(IN)                      :: gid
 
@@ -3713,7 +3713,7 @@ CONTAINS
 !>      mpi_bcast
 ! *****************************************************************************
    SUBROUTINE mp_bcast_${nametype1}$ (msg, source, gid)
-      ${type1}$                                  :: msg
+      ${type1}$                                :: msg
       INTEGER                                  :: source, gid
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_bcast_${nametype1}$', &
@@ -3746,7 +3746,7 @@ CONTAINS
 !>      mpi_bcast
 ! *****************************************************************************
    SUBROUTINE mp_ibcast_${nametype1}$ (msg, source, gid, request)
-      ${type1}$                                  :: msg
+      ${type1}$                                :: msg
       INTEGER                                  :: source, gid
       INTEGER, INTENT(INOUT)                   :: request
 
@@ -3788,7 +3788,7 @@ CONTAINS
 !> \note see mp_bcast_${nametype1}$1
 ! *****************************************************************************
    SUBROUTINE mp_bcast_${nametype1}$v(msg, source, gid)
-      ${type1}$                                  :: msg(:)
+      ${type1}$                                :: msg(:)
       INTEGER                                  :: source, gid
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_bcast_${nametype1}$v', &
@@ -3819,7 +3819,7 @@ CONTAINS
 !> \note see mp_bcast_${nametype1}$1
 ! *****************************************************************************
    SUBROUTINE mp_ibcast_${nametype1}$v(msg, source, gid, request)
-      ${type1}$                                  :: msg(:)
+      ${type1}$                                :: msg(:)
       INTEGER                                  :: source, gid
       INTEGER, INTENT(INOUT)                   :: request
 
@@ -3859,7 +3859,7 @@ CONTAINS
 !> \note see mp_bcast_${nametype1}$1
 ! *****************************************************************************
    SUBROUTINE mp_bcast_${nametype1}$m(msg, source, gid)
-      ${type1}$                                  :: msg(:, :)
+      ${type1}$                                :: msg(:, :)
       INTEGER                                  :: source, gid
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_bcast_im', &
@@ -3986,7 +3986,7 @@ CONTAINS
 !> \note see mp_sum_${nametype1}$
 ! *****************************************************************************
    SUBROUTINE mp_isum_${nametype1}$v(msg, gid, request)
-      ${type1}$, INTENT(INOUT)                   :: msg(:)
+      ${type1}$, INTENT(INOUT)                 :: msg(:)
       INTEGER, INTENT(IN)                      :: gid
       INTEGER, INTENT(INOUT)                   :: request
 
@@ -4276,7 +4276,7 @@ CONTAINS
 !>      mpi_allreduce
 ! *****************************************************************************
    SUBROUTINE mp_max_${nametype1}$ (msg, gid)
-      ${type1}$, INTENT(INOUT)                   :: msg
+      ${type1}$, INTENT(INOUT)                 :: msg
       INTEGER, INTENT(IN)                      :: gid
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_max_${nametype1}$', &
@@ -4308,7 +4308,7 @@ CONTAINS
 !> \note see mp_max_${nametype1}$
 ! *****************************************************************************
    SUBROUTINE mp_max_${nametype1}$v(msg, gid)
-      ${type1}$, INTENT(INOUT)                   :: msg(:)
+      ${type1}$, INTENT(INOUT)                 :: msg(:)
       INTEGER, INTENT(IN)                      :: gid
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_max_${nametype1}$v', &
@@ -4339,7 +4339,7 @@ CONTAINS
 !>      mpi_allreduce
 ! *****************************************************************************
    SUBROUTINE mp_min_${nametype1}$ (msg, gid)
-      ${type1}$, INTENT(INOUT)                   :: msg
+      ${type1}$, INTENT(INOUT)                 :: msg
       INTEGER, INTENT(IN)                      :: gid
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_min_${nametype1}$', &
@@ -4437,8 +4437,8 @@ CONTAINS
 !>      mpi_scatter
 ! *****************************************************************************
    SUBROUTINE mp_scatter_${nametype1}$v(msg_scatter, msg, root, gid)
-      ${type1}$, INTENT(IN)                      :: msg_scatter(:)
-      ${type1}$, INTENT(OUT)                     :: msg(:)
+      ${type1}$, INTENT(IN)                    :: msg_scatter(:)
+      ${type1}$, INTENT(OUT)                   :: msg(:)
       INTEGER, INTENT(IN)                      :: root, gid
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_scatter_${nametype1}$v', &
@@ -4472,8 +4472,8 @@ CONTAINS
 !>      mpi_scatter
 ! *****************************************************************************
    SUBROUTINE mp_iscatter_${nametype1}$ (msg_scatter, msg, root, gid, request)
-      ${type1}$, INTENT(IN)                      :: msg_scatter(:)
-      ${type1}$, INTENT(INOUT)                   :: msg
+      ${type1}$, INTENT(IN)                    :: msg_scatter(:)
+      ${type1}$, INTENT(INOUT)                 :: msg
       INTEGER, INTENT(IN)                      :: root, gid
       INTEGER, INTENT(INOUT)                   :: request
 
@@ -4518,8 +4518,8 @@ CONTAINS
 !>      mpi_scatter
 ! *****************************************************************************
    SUBROUTINE mp_iscatter_${nametype1}$v2(msg_scatter, msg, root, gid, request)
-      ${type1}$, INTENT(IN)                      :: msg_scatter(:, :)
-      ${type1}$, INTENT(INOUT)                   :: msg(:)
+      ${type1}$, INTENT(IN)                    :: msg_scatter(:, :)
+      ${type1}$, INTENT(INOUT)                 :: msg(:)
       INTEGER, INTENT(IN)                      :: root, gid
       INTEGER, INTENT(INOUT)                   :: request
 
@@ -4564,9 +4564,9 @@ CONTAINS
 !>      mpi_scatter
 ! *****************************************************************************
    SUBROUTINE mp_iscatterv_${nametype1}$v(msg_scatter, sendcounts, displs, msg, recvcount, root, gid, request)
-      ${type1}$, INTENT(IN)                      :: msg_scatter(:)
+      ${type1}$, INTENT(IN)                    :: msg_scatter(:)
       INTEGER, INTENT(IN)                      :: sendcounts(:), displs(:)
-      ${type1}$, INTENT(INOUT)                   :: msg(:)
+      ${type1}$, INTENT(INOUT)                 :: msg(:)
       INTEGER, INTENT(IN)                      :: recvcount, root, gid
       INTEGER, INTENT(INOUT)                   :: request
 
@@ -4617,8 +4617,8 @@ CONTAINS
 !>      mpi_gather
 ! *****************************************************************************
    SUBROUTINE mp_gather_${nametype1}$ (msg, msg_gather, root, gid)
-      ${type1}$, INTENT(IN)                      :: msg
-      ${type1}$, INTENT(OUT)                     :: msg_gather(:)
+      ${type1}$, INTENT(IN)                    :: msg
+      ${type1}$, INTENT(OUT)                   :: msg_gather(:)
       INTEGER, INTENT(IN)                      :: root, gid
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_gather_${nametype1}$', &
@@ -4656,8 +4656,8 @@ CONTAINS
 !> \note see mp_gather_${nametype1}$
 ! *****************************************************************************
    SUBROUTINE mp_gather_${nametype1}$v(msg, msg_gather, root, gid)
-      ${type1}$, INTENT(IN)                      :: msg(:)
-      ${type1}$, INTENT(OUT)                     :: msg_gather(:)
+      ${type1}$, INTENT(IN)                    :: msg(:)
+      ${type1}$, INTENT(OUT)                   :: msg_gather(:)
       INTEGER, INTENT(IN)                      :: root, gid
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_gather_${nametype1}$v', &
@@ -4695,8 +4695,8 @@ CONTAINS
 !> \note see mp_gather_${nametype1}$
 ! *****************************************************************************
    SUBROUTINE mp_gather_${nametype1}$m(msg, msg_gather, root, gid)
-      ${type1}$, INTENT(IN)                      :: msg(:, :)
-      ${type1}$, INTENT(OUT)                     :: msg_gather(:, :)
+      ${type1}$, INTENT(IN)                    :: msg(:, :)
+      ${type1}$, INTENT(OUT)                   :: msg_gather(:, :)
       INTEGER, INTENT(IN)                      :: root, gid
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_gather_${nametype1}$m', &
@@ -4738,8 +4738,8 @@ CONTAINS
 ! *****************************************************************************
    SUBROUTINE mp_gatherv_${nametype1}$v(sendbuf, recvbuf, recvcounts, displs, root, comm)
 
-      ${type1}$, DIMENSION(:), INTENT(IN)        :: sendbuf
-      ${type1}$, DIMENSION(:), INTENT(OUT)       :: recvbuf
+      ${type1}$, DIMENSION(:), INTENT(IN)      :: sendbuf
+      ${type1}$, DIMENSION(:), INTENT(OUT)     :: recvbuf
       INTEGER, DIMENSION(:), INTENT(IN)        :: recvcounts, displs
       INTEGER, INTENT(IN)                      :: root, comm
 
@@ -4788,8 +4788,8 @@ CONTAINS
 !>      mpi_gather
 ! *****************************************************************************
    SUBROUTINE mp_igatherv_${nametype1}$v(sendbuf, sendcount, recvbuf, recvcounts, displs, root, comm, request)
-      ${type1}$, DIMENSION(:), INTENT(IN)        :: sendbuf
-      ${type1}$, DIMENSION(:), INTENT(OUT)       :: recvbuf
+      ${type1}$, DIMENSION(:), INTENT(IN)      :: sendbuf
+      ${type1}$, DIMENSION(:), INTENT(OUT)     :: recvbuf
       INTEGER, DIMENSION(:), INTENT(IN)        :: recvcounts, displs
       INTEGER, INTENT(IN)                      :: sendcount, root, comm
       INTEGER, INTENT(INOUT)                   :: request
@@ -4845,8 +4845,8 @@ CONTAINS
 !>      mpi_allgather
 ! *****************************************************************************
    SUBROUTINE mp_allgather_${nametype1}$ (msgout, msgin, gid)
-      ${type1}$, INTENT(IN)                      :: msgout
-      ${type1}$, INTENT(OUT)                     :: msgin(:)
+      ${type1}$, INTENT(IN)                    :: msgout
+      ${type1}$, INTENT(OUT)                   :: msgin(:)
       INTEGER, INTENT(IN)                      :: gid
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_allgather_${nametype1}$', &
@@ -4886,8 +4886,8 @@ CONTAINS
 !>      mpi_allgather
 ! *****************************************************************************
    SUBROUTINE mp_allgather_${nametype1}$2(msgout, msgin, gid)
-      ${type1}$, INTENT(IN)                      :: msgout
-      ${type1}$, INTENT(OUT)                     :: msgin(:, :)
+      ${type1}$, INTENT(IN)                    :: msgout
+      ${type1}$, INTENT(OUT)                   :: msgin(:, :)
       INTEGER, INTENT(IN)                      :: gid
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_allgather_${nametype1}$2', &
@@ -4927,8 +4927,8 @@ CONTAINS
 !>      mpi_allgather
 ! *****************************************************************************
    SUBROUTINE mp_iallgather_${nametype1}$ (msgout, msgin, gid, request)
-      ${type1}$, INTENT(IN)                      :: msgout
-      ${type1}$, INTENT(OUT)                     :: msgin(:)
+      ${type1}$, INTENT(IN)                    :: msgout
+      ${type1}$, INTENT(OUT)                   :: msgin(:)
       INTEGER, INTENT(IN)                      :: gid
       INTEGER, INTENT(INOUT)                   :: request
 
@@ -4980,8 +4980,8 @@ CONTAINS
 !>      mpi_allgather
 ! *****************************************************************************
    SUBROUTINE mp_allgather_${nametype1}$12(msgout, msgin, gid)
-      ${type1}$, INTENT(IN)                      :: msgout(:)
-      ${type1}$, INTENT(OUT)                     :: msgin(:, :)
+      ${type1}$, INTENT(IN)                    :: msgout(:)
+      ${type1}$, INTENT(OUT)                   :: msgin(:, :)
       INTEGER, INTENT(IN)                      :: gid
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_allgather_${nametype1}$12', &
@@ -5018,8 +5018,8 @@ CONTAINS
 !> \note see mp_allgather_${nametype1}$12
 ! *****************************************************************************
    SUBROUTINE mp_allgather_${nametype1}$23(msgout, msgin, gid)
-      ${type1}$, INTENT(IN)                      :: msgout(:, :)
-      ${type1}$, INTENT(OUT)                     :: msgin(:, :, :)
+      ${type1}$, INTENT(IN)                    :: msgout(:, :)
+      ${type1}$, INTENT(OUT)                   :: msgin(:, :, :)
       INTEGER, INTENT(IN)                      :: gid
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_allgather_${nametype1}$23', &
@@ -5056,8 +5056,8 @@ CONTAINS
 !> \note see mp_allgather_${nametype1}$12
 ! *****************************************************************************
    SUBROUTINE mp_allgather_${nametype1}$34(msgout, msgin, gid)
-      ${type1}$, INTENT(IN)                      :: msgout(:, :, :)
-      ${type1}$, INTENT(OUT)                     :: msgin(:, :, :, :)
+      ${type1}$, INTENT(IN)                    :: msgout(:, :, :)
+      ${type1}$, INTENT(OUT)                   :: msgin(:, :, :, :)
       INTEGER, INTENT(IN)                      :: gid
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_allgather_${nametype1}$34', &
@@ -5094,8 +5094,8 @@ CONTAINS
 !> \note see mp_allgather_${nametype1}$12
 ! *****************************************************************************
    SUBROUTINE mp_allgather_${nametype1}$22(msgout, msgin, gid)
-      ${type1}$, INTENT(IN)                      :: msgout(:, :)
-      ${type1}$, INTENT(OUT)                     :: msgin(:, :)
+      ${type1}$, INTENT(IN)                    :: msgout(:, :)
+      ${type1}$, INTENT(OUT)                   :: msgin(:, :)
       INTEGER, INTENT(IN)                      :: gid
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_allgather_${nametype1}$22', &
@@ -5133,8 +5133,8 @@ CONTAINS
 !> \note see mp_allgather_${nametype1}$11
 ! *****************************************************************************
    SUBROUTINE mp_iallgather_${nametype1}$11(msgout, msgin, gid, request)
-      ${type1}$, INTENT(IN)                      :: msgout(:)
-      ${type1}$, INTENT(OUT)                     :: msgin(:)
+      ${type1}$, INTENT(IN)                    :: msgout(:)
+      ${type1}$, INTENT(OUT)                   :: msgin(:)
       INTEGER, INTENT(IN)                      :: gid
       INTEGER, INTENT(OUT)                     :: request
 
@@ -5184,8 +5184,8 @@ CONTAINS
 !> \note see mp_allgather_${nametype1}$12
 ! *****************************************************************************
    SUBROUTINE mp_iallgather_${nametype1}$13(msgout, msgin, gid, request)
-      ${type1}$, INTENT(IN)                      :: msgout(:)
-      ${type1}$, INTENT(OUT)                     :: msgin(:, :, :)
+      ${type1}$, INTENT(IN)                    :: msgout(:)
+      ${type1}$, INTENT(OUT)                   :: msgin(:, :, :)
       INTEGER, INTENT(IN)                      :: gid
       INTEGER, INTENT(OUT)                     :: request
 
@@ -5235,8 +5235,8 @@ CONTAINS
 !> \note see mp_allgather_${nametype1}$12
 ! *****************************************************************************
    SUBROUTINE mp_iallgather_${nametype1}$22(msgout, msgin, gid, request)
-      ${type1}$, INTENT(IN)                      :: msgout(:, :)
-      ${type1}$, INTENT(OUT)                     :: msgin(:, :)
+      ${type1}$, INTENT(IN)                    :: msgout(:, :)
+      ${type1}$, INTENT(OUT)                   :: msgin(:, :)
       INTEGER, INTENT(IN)                      :: gid
       INTEGER, INTENT(OUT)                     :: request
 
@@ -5286,8 +5286,8 @@ CONTAINS
 !> \note see mp_allgather_${nametype1}$12
 ! *****************************************************************************
    SUBROUTINE mp_iallgather_${nametype1}$24(msgout, msgin, gid, request)
-      ${type1}$, INTENT(IN)                      :: msgout(:, :)
-      ${type1}$, INTENT(OUT)                     :: msgin(:, :, :, :)
+      ${type1}$, INTENT(IN)                    :: msgout(:, :)
+      ${type1}$, INTENT(OUT)                   :: msgin(:, :, :, :)
       INTEGER, INTENT(IN)                      :: gid
       INTEGER, INTENT(OUT)                     :: request
 
@@ -5337,8 +5337,8 @@ CONTAINS
 !> \note see mp_allgather_${nametype1}$12
 ! *****************************************************************************
    SUBROUTINE mp_iallgather_${nametype1}$33(msgout, msgin, gid, request)
-      ${type1}$, INTENT(IN)                      :: msgout(:, :, :)
-      ${type1}$, INTENT(OUT)                     :: msgin(:, :, :)
+      ${type1}$, INTENT(IN)                    :: msgout(:, :, :)
+      ${type1}$, INTENT(OUT)                   :: msgin(:, :, :)
       INTEGER, INTENT(IN)                      :: gid
       INTEGER, INTENT(OUT)                     :: request
 
@@ -5396,8 +5396,8 @@ CONTAINS
 !>      mpi_allgather
 ! *****************************************************************************
    SUBROUTINE mp_allgatherv_${nametype1}$v(msgout, msgin, rcount, rdispl, gid)
-      ${type1}$, INTENT(IN)                      :: msgout(:)
-      ${type1}$, INTENT(OUT)                     :: msgin(:)
+      ${type1}$, INTENT(IN)                    :: msgout(:)
+      ${type1}$, INTENT(OUT)                   :: msgin(:)
       INTEGER, INTENT(IN)                      :: rcount(:), rdispl(:), gid
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_allgatherv_${nametype1}$v', &
@@ -5443,8 +5443,8 @@ CONTAINS
 !>      mpi_allgather
 ! *****************************************************************************
    SUBROUTINE mp_iallgatherv_${nametype1}$v(msgout, msgin, rcount, rdispl, gid, request)
-      ${type1}$, INTENT(IN)                      :: msgout(:)
-      ${type1}$, INTENT(OUT)                     :: msgin(:)
+      ${type1}$, INTENT(IN)                    :: msgout(:)
+      ${type1}$, INTENT(OUT)                   :: msgin(:)
       INTEGER, INTENT(IN)                      :: rcount(:), rdispl(:), gid
       INTEGER, INTENT(INOUT)                   :: request
 
@@ -5502,8 +5502,8 @@ CONTAINS
 !>      mpi_allgather
 ! *****************************************************************************
    SUBROUTINE mp_iallgatherv_${nametype1}$v2(msgout, msgin, rcount, rdispl, gid, request)
-      ${type1}$, INTENT(IN)                      :: msgout(:)
-      ${type1}$, INTENT(OUT)                     :: msgin(:)
+      ${type1}$, INTENT(IN)                    :: msgout(:)
+      ${type1}$, INTENT(OUT)                   :: msgin(:)
       INTEGER, INTENT(IN)                      :: rcount(:, :), rdispl(:, :), gid
       INTEGER, INTENT(INOUT)                   :: request
 
@@ -5575,8 +5575,8 @@ CONTAINS
 !> \param[in] gid             Message passing environment identifier
 ! *****************************************************************************
    SUBROUTINE mp_sum_scatter_${nametype1}$v(msgout, msgin, rcount, gid)
-      ${type1}$, INTENT(IN)                      :: msgout(:)
-      ${type1}$, INTENT(OUT)                     :: msgin(:)
+      ${type1}$, INTENT(IN)                    :: msgout(:)
+      ${type1}$, INTENT(OUT)                   :: msgin(:)
       INTEGER, INTENT(IN)                      :: rcount(:), gid
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_sum_scatter_${nametype1}$v', &
@@ -5611,9 +5611,9 @@ CONTAINS
 !> \param[in] comm            Message passing environment identifier
 ! *****************************************************************************
    SUBROUTINE mp_sendrecv_${nametype1}$v(msgin, dest, msgout, source, comm)
-      ${type1}$, INTENT(IN)                      :: msgin(:)
+      ${type1}$, INTENT(IN)                    :: msgin(:)
       INTEGER, INTENT(IN)                      :: dest
-      ${type1}$, INTENT(OUT)                     :: msgout(:)
+      ${type1}$, INTENT(OUT)                   :: msgout(:)
       INTEGER, INTENT(IN)                      :: source, comm
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_sendrecv_${nametype1}$v', &
@@ -5664,9 +5664,9 @@ CONTAINS
 ! *****************************************************************************
    SUBROUTINE mp_isendrecv_${nametype1}$ (msgin, dest, msgout, source, comm, send_request, &
                                           recv_request, tag)
-      ${type1}$                                  :: msgin
+      ${type1}$                                :: msgin
       INTEGER, INTENT(IN)                      :: dest
-      ${type1}$                                  :: msgout
+      ${type1}$                                :: msgout
       INTEGER, INTENT(IN)                      :: source, comm
       INTEGER, INTENT(out)                     :: send_request, recv_request
       INTEGER, INTENT(in), OPTIONAL            :: tag
@@ -5726,9 +5726,9 @@ CONTAINS
 ! *****************************************************************************
    SUBROUTINE mp_isendrecv_${nametype1}$v(msgin, dest, msgout, source, comm, send_request, &
                                           recv_request, tag)
-      ${type1}$, DIMENSION(:)                    :: msgin
+      ${type1}$, DIMENSION(:)                  :: msgin
       INTEGER, INTENT(IN)                      :: dest
-      ${type1}$, DIMENSION(:)                    :: msgout
+      ${type1}$, DIMENSION(:)                  :: msgout
       INTEGER, INTENT(IN)                      :: source, comm
       INTEGER, INTENT(out)                     :: send_request, recv_request
       INTEGER, INTENT(in), OPTIONAL            :: tag
@@ -5739,7 +5739,7 @@ CONTAINS
       INTEGER                                  :: handle, ierr
 #if defined(__parallel)
       INTEGER                                  :: msglen, my_tag
-      ${type1}$                                  :: foo
+      ${type1}$                                :: foo
 #endif
 
       ierr = 0
@@ -5797,7 +5797,7 @@ CONTAINS
 !>      arrays can be pointers or assumed shape, but they must be contiguous!
 ! *****************************************************************************
    SUBROUTINE mp_isend_${nametype1}$v(msgin, dest, comm, request, tag)
-      ${type1}$, DIMENSION(:)                    :: msgin
+      ${type1}$, DIMENSION(:)                  :: msgin
       INTEGER, INTENT(IN)                      :: dest, comm
       INTEGER, INTENT(out)                     :: request
       INTEGER, INTENT(in), OPTIONAL            :: tag
@@ -5808,7 +5808,7 @@ CONTAINS
       INTEGER                                  :: handle, ierr
 #if defined(__parallel)
       INTEGER                                  :: msglen, my_tag
-      ${type1}$                                  :: foo(1)
+      ${type1}$                                :: foo(1)
 #endif
 
       ierr = 0
@@ -5858,7 +5858,7 @@ CONTAINS
 !>      arrays can be pointers or assumed shape, but they must be contiguous!
 ! *****************************************************************************
    SUBROUTINE mp_isend_${nametype1}$m2(msgin, dest, comm, request, tag)
-      ${type1}$, DIMENSION(:, :)                 :: msgin
+      ${type1}$, DIMENSION(:, :)               :: msgin
       INTEGER, INTENT(IN)                      :: dest, comm
       INTEGER, INTENT(out)                     :: request
       INTEGER, INTENT(in), OPTIONAL            :: tag
@@ -5869,7 +5869,7 @@ CONTAINS
       INTEGER                                  :: handle, ierr
 #if defined(__parallel)
       INTEGER                                  :: msglen, my_tag
-      ${type1}$                                  :: foo(1)
+      ${type1}$                                :: foo(1)
 #endif
 
       ierr = 0
@@ -5918,7 +5918,7 @@ CONTAINS
 !>      arrays can be pointers or assumed shape, but they must be contiguous!
 ! *****************************************************************************
    SUBROUTINE mp_irecv_${nametype1}$v(msgout, source, comm, request, tag)
-      ${type1}$, DIMENSION(:)                    :: msgout
+      ${type1}$, DIMENSION(:)                  :: msgout
       INTEGER, INTENT(IN)                      :: source, comm
       INTEGER, INTENT(out)                     :: request
       INTEGER, INTENT(in), OPTIONAL            :: tag
@@ -5929,7 +5929,7 @@ CONTAINS
       INTEGER                                  :: handle, ierr
 #if defined(__parallel)
       INTEGER                                  :: msglen, my_tag
-      ${type1}$                                  :: foo(1)
+      ${type1}$                                :: foo(1)
 #endif
 
       ierr = 0
@@ -5978,7 +5978,7 @@ CONTAINS
 !>      arrays can be pointers or assumed shape, but they must be contiguous!
 ! *****************************************************************************
    SUBROUTINE mp_irecv_${nametype1}$m2(msgout, source, comm, request, tag)
-      ${type1}$, DIMENSION(:, :)                 :: msgout
+      ${type1}$, DIMENSION(:, :)               :: msgout
       INTEGER, INTENT(IN)                      :: source, comm
       INTEGER, INTENT(out)                     :: request
       INTEGER, INTENT(in), OPTIONAL            :: tag
@@ -5989,7 +5989,7 @@ CONTAINS
       INTEGER                                  :: handle, ierr
 #if defined(__parallel)
       INTEGER                                  :: msglen, my_tag
-      ${type1}$                                  :: foo(1)
+      ${type1}$                                :: foo(1)
 #endif
 
       ierr = 0
@@ -6033,17 +6033,17 @@ CONTAINS
 !>      arrays can be pointers or assumed shape, but they must be contiguous!
 ! *****************************************************************************
    SUBROUTINE mp_win_create_${nametype1}$v(base, comm, win)
-      ${type1}$, DIMENSION(:)          :: base
+      ${type1}$, DIMENSION(:)        :: base
       INTEGER, INTENT(IN)            :: comm
       INTEGER, INTENT(INOUT)         :: win
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_win_create_${nametype1}$v', &
                                      routineP = moduleN//':'//routineN
 
-      INTEGER                                  :: ierr, handle
+      INTEGER                        :: ierr, handle
 #if defined(__parallel)
-      INTEGER(kind=mpi_address_kind)           :: len
-      ${type1}$                                  :: foo(1)
+      INTEGER(kind=mpi_address_kind) :: len
+      ${type1}$                      :: foo(1)
 #endif
 
       ierr = 0
@@ -6080,9 +6080,9 @@ CONTAINS
 ! *****************************************************************************
    SUBROUTINE mp_rget_${nametype1}$v(base, source, win, win_data, myproc, disp, request, &
                                      origin_datatype, target_datatype)
-      ${type1}$, DIMENSION(:)                               :: base
+      ${type1}$, DIMENSION(:)                             :: base
       INTEGER, INTENT(IN)                                 :: source, win
-      ${type1}$, DIMENSION(:)                               :: win_data
+      ${type1}$, DIMENSION(:)                             :: win_data
       INTEGER, INTENT(IN), OPTIONAL                       :: myproc, disp
       INTEGER, INTENT(OUT)                                :: request
       TYPE(mp_type_descriptor_type), INTENT(IN), OPTIONAL :: origin_datatype, target_datatype
@@ -6184,9 +6184,9 @@ CONTAINS
 ! ***************************************************************************
    FUNCTION mp_type_indexed_make_${nametype1}$ (count, lengths, displs) &
       RESULT(type_descriptor)
-      INTEGER, INTENT(IN)                      :: count
+      INTEGER, INTENT(IN)                              :: count
       INTEGER, DIMENSION(1:count), INTENT(IN), TARGET  :: lengths, displs
-      TYPE(mp_type_descriptor_type)            :: type_descriptor
+      TYPE(mp_type_descriptor_type)                    :: type_descriptor
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_type_indexed_make_${nametype1}$', &
                                      routineP = moduleN//':'//routineN
@@ -6226,7 +6226,7 @@ CONTAINS
 !> \author UB
 ! *****************************************************************************
    SUBROUTINE mp_allocate_${nametype1}$ (DATA, len, stat)
-      ${type1}$, DIMENSION(:), POINTER      :: DATA
+      ${type1}$, DIMENSION(:), POINTER    :: DATA
       INTEGER, INTENT(IN)                 :: len
       INTEGER, INTENT(OUT), OPTIONAL      :: stat
 
@@ -6260,7 +6260,7 @@ CONTAINS
 !> \author UB
 ! *****************************************************************************
    SUBROUTINE mp_deallocate_${nametype1}$ (DATA, stat)
-      ${type1}$, DIMENSION(:), POINTER      :: DATA
+      ${type1}$, DIMENSION(:), POINTER    :: DATA
       INTEGER, INTENT(OUT), OPTIONAL      :: stat
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_deallocate_${nametype1}$', &
@@ -6328,7 +6328,7 @@ CONTAINS
 !> \param msg ...
 ! *****************************************************************************
    SUBROUTINE mp_file_write_at_${nametype1}$ (fh, offset, msg)
-      ${type1}$, INTENT(IN)               :: msg
+      ${type1}$, INTENT(IN)                      :: msg
       INTEGER, INTENT(IN)                        :: fh
       INTEGER(kind=file_offset), INTENT(IN)      :: offset
 
@@ -6388,7 +6388,7 @@ CONTAINS
 !> \param msg ...
 ! *****************************************************************************
    SUBROUTINE mp_file_write_at_all_${nametype1}$ (fh, offset, msg)
-      ${type1}$, INTENT(IN)               :: msg
+      ${type1}$, INTENT(IN)                      :: msg
       INTEGER, INTENT(IN)                        :: fh
       INTEGER(kind=file_offset), INTENT(IN)      :: offset
 
@@ -6449,7 +6449,7 @@ CONTAINS
 !> \param msg ...
 ! *****************************************************************************
    SUBROUTINE mp_file_read_at_${nametype1}$ (fh, offset, msg)
-      ${type1}$, INTENT(OUT)               :: msg
+      ${type1}$, INTENT(OUT)                     :: msg
       INTEGER, INTENT(IN)                        :: fh
       INTEGER(kind=file_offset), INTENT(IN)      :: offset
 
@@ -6508,7 +6508,7 @@ CONTAINS
 !> \param msg ...
 ! *****************************************************************************
    SUBROUTINE mp_file_read_at_all_${nametype1}$ (fh, offset, msg)
-      ${type1}$, INTENT(OUT)               :: msg
+      ${type1}$, INTENT(OUT)                     :: msg
       INTEGER, INTENT(IN)                        :: fh
       INTEGER(kind=file_offset), INTENT(IN)      :: offset
 
@@ -6537,7 +6537,7 @@ CONTAINS
    FUNCTION mp_type_make_${nametype1}$ (ptr, &
                                         vector_descriptor, index_descriptor) &
       RESULT(type_descriptor)
-      ${type1}$, DIMENSION(:), POINTER                    :: ptr
+      ${type1}$, DIMENSION(:), POINTER                  :: ptr
       INTEGER, DIMENSION(2), INTENT(IN), OPTIONAL       :: vector_descriptor
       TYPE(mp_indexing_meta_type), INTENT(IN), OPTIONAL :: index_descriptor
       TYPE(mp_type_descriptor_type)                     :: type_descriptor
@@ -6574,7 +6574,7 @@ CONTAINS
 !> \param[out] stat      (optional) allocation status result
 ! *****************************************************************************
    SUBROUTINE mp_alloc_mem_${nametype1}$ (DATA, len, stat)
-      ${type1}$, DIMENSION(:), POINTER           :: DATA
+      ${type1}$, DIMENSION(:), POINTER         :: DATA
       INTEGER, INTENT(IN)                      :: len
       INTEGER, INTENT(OUT), OPTIONAL           :: stat
 
@@ -6614,7 +6614,7 @@ CONTAINS
 ! *****************************************************************************
    SUBROUTINE mp_free_mem_${nametype1}$ (DATA, stat)
       ${type1}$, DIMENSION(:), &
-         POINTER                                :: DATA
+         POINTER                               :: DATA
       INTEGER, INTENT(OUT), OPTIONAL           :: stat
 
 #if defined(__parallel)

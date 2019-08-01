@@ -195,7 +195,9 @@ MODULE dbcsr_mpiwrap
              mp_type_indexed_make_c, mp_type_indexed_make_z
 
    ! misc
-   PUBLIC :: mp_get_library_version, mp_get_processor_name
+   PUBLIC :: mp_get_library_version, &
+             mp_get_processor_name, &
+             mp_pcontrol
 
    ! assumed to be private
 
@@ -824,6 +826,29 @@ CONTAINS
 #endif
 
    END SUBROUTINE mp_world_finalize
+
+! **************************************************************************************************
+!> \brief controls profiling
+!> \param level region of interest (ROI), positive ID opens a scope, negative ID closes the scope
+!> \param description description which may denote the name of the routine or region of interest
+!> \note
+!>      Shall be outermost such that other timers are called inside of the scope.
+!>      mp_pcontrol(+1, "Region of Interest")
+!>         mp_pcontrol(+2, "Nested ROI")
+!>         mp_pcontrol(-2, "Nested ROI")
+!>      mp_pcontrol(-1, "Region of Interest")
+! **************************************************************************************************
+   SUBROUTINE mp_pcontrol(level, description)
+      INTEGER, INTENT(IN)                       :: level
+      CHARACTER(LEN=*), INTENT(IN), OPTIONAL    :: description
+      ! specification of MPI_Pcontrol is a bit brittle wrt Fortran (no ierr!)
+#if defined(__parallel)
+      CALL MPI_Pcontrol(level, TRIM(description)//CHAR(0))
+#else
+      MARK_USED(level)
+      MARK_USED(description)
+#endif
+   END SUBROUTINE mp_pcontrol
 
 ! all the following routines should work for a given communicator, not MPI_WORLD
 

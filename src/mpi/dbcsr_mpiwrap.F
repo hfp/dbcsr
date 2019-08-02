@@ -2701,11 +2701,11 @@ CONTAINS
 
 ! **************************************************************************************************
 !> \brief Get a unique specifier for the actual (as opposed to virtual) node (MPI 2.1)
-!> \param[out] name           Name of processor, declared as CHARACTER(LEN=mp_max_processor_name)
-!> \param[out] resultlen      Length (in characters) of the name (INTEGER)
+!> \param[out] procname       Name of processor, declared as CHARACTER(LEN=mp_max_processor_name)
+!> \param[out] resultlen      Length (in characters) of procname (INTEGER)
 ! **************************************************************************************************
-   SUBROUTINE mp_get_processor_name(version, resultlen)
-      CHARACTER(LEN=*), INTENT(OUT)                      :: name
+   SUBROUTINE mp_get_processor_name(procname, resultlen)
+      CHARACTER(LEN=*), INTENT(OUT)                      :: procname
       INTEGER, INTENT(OUT)                               :: resultlen
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_get_processor_name', &
@@ -2714,13 +2714,13 @@ CONTAINS
       INTEGER                                            :: ierr
 
       ierr = 0
-      name = ''
+      procname = ''
 
 #if defined(__parallel)
-      CALL mpi_get_processor_name(name, resultlen, ierr)
+      CALL mpi_get_processor_name(procname, resultlen, ierr)
       IF (ierr /= 0) CALL mp_stop(ierr, "mpi_get_processor_name @ "//routineN)
 #else
-      MARK_USED(name)
+      MARK_USED(procname)
       resultlen = 0
 #endif
    END SUBROUTINE mp_get_processor_name

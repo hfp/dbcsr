@@ -6,16 +6,15 @@
  * For further information please visit https://dbcsr.cp2k.org                                    *
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
-
 #include <stddef.h>
 
 #ifdef __cplusplus
- extern "C" {
+extern "C" {
 #endif
 
 /** types */
-typedef void* acc_event_t;
 typedef void* acc_stream_t;
+typedef void* acc_event_t;
 
 /** initialization and finalization */
 int acc_init(void);
@@ -53,5 +52,5 @@ int acc_memset_zero(void* dev_mem, size_t offset, size_t length, acc_stream_t st
 int acc_dev_mem_info(size_t* free, size_t* avail);
 
 #ifdef __cplusplus
- }
+}
 #endif

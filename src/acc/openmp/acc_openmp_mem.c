@@ -1,0 +1,118 @@
+/*------------------------------------------------------------------------------------------------*
+ * Copyright (C) by the DBCSR developers group - All rights reserved                              *
+ * This file is part of the DBCSR library.                                                        *
+ *                                                                                                *
+ * For information on the license, see the LICENSE file.                                          *
+ * For further information please visit https://dbcsr.cp2k.org                                    *
+ * SPDX-License-Identifier: GPL-2.0+                                                              *
+ *------------------------------------------------------------------------------------------------*/
+#include "acc_openmp.h"
+#include <stdlib.h>
+
+#if defined(ACC_OPENMP_VERSION) && (50 <= ACC_OPENMP_VERSION)
+# define ACC_OPENMP_MEM_ALLOCATOR omp_null_allocator
+#endif
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
+int acc_dev_mem_allocate(void** dev_mem, size_t n)
+{
+  return EXIT_FAILURE;
+}
+
+
+int acc_dev_mem_deallocate(void* dev_mem)
+{
+  return EXIT_FAILURE;
+}
+
+
+int acc_dev_mem_set_ptr(void** dev_mem, void* other, size_t lb)
+{
+  return EXIT_FAILURE;
+}
+
+
+int acc_host_mem_allocate(void** host_mem, size_t n, acc_stream_t stream)
+{
+  int result;
+#if !defined(ACC_OPENMP)
+  (void)(host_mem); (void)(n); (void)(stream); /* unused */
+#else
+  if (NULL != host_mem || 0 == n) {
+    if (NULL != host_mem) {
+# if (50 <= ACC_OPENMP_VERSION)
+      *host_mem = omp_alloc(n, ACC_OPENMP_MEM_ALLOCATOR);
+# else
+      *host_mem = malloc(n);
+# endif
+    }
+    result = EXIT_SUCCESS;
+  }
+  else
+#endif
+  {
+    result = EXIT_FAILURE;
+  }
+  return result;
+}
+
+
+int acc_host_mem_deallocate(void* host_mem, acc_stream_t stream)
+{
+  int result;
+#if defined(ACC_OPENMP)
+# if (50 <= ACC_OPENMP_VERSION)
+  omp_free(host_mem, ACC_OPENMP_MEM_ALLOCATOR);
+# else
+  free(host_mem);
+# endif
+  result = EXIT_SUCCESS;
+#else
+  (void)(host_mem); (void)(stream); /* unused */
+  result = EXIT_FAILURE;
+#endif
+  return result;
+}
+
+
+int acc_memcpy(const void* src, void* dst, size_t size, acc_stream_t stream)
+{
+  return EXIT_FAILURE;
+}
+
+
+int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t count, acc_stream_t stream)
+{
+  return acc_memcpy(host_mem, dev_mem, count, stream);
+}
+
+
+int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t count, acc_stream_t stream)
+{
+  return acc_memcpy(dev_mem, host_mem, count, stream);
+}
+
+
+int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t count, acc_stream_t stream)
+{
+  return acc_memcpy(devmem_src, devmem_dst, count, stream);
+}
+
+
+int acc_memset_zero(void* dev_mem, size_t offset, size_t length, acc_stream_t stream)
+{
+  return EXIT_FAILURE;
+}
+
+
+int acc_dev_mem_info(size_t* free, size_t* avail)
+{
+  return EXIT_FAILURE;
+}
+
+#if defined(__cplusplus)
+}
+#endif

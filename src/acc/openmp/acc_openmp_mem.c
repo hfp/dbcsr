@@ -19,19 +19,40 @@ extern "C" {
 
 int acc_dev_mem_allocate(void** dev_mem, size_t n)
 {
-  return EXIT_FAILURE;
+  int result;
+#if defined(ACC_OPENMP)
+  result = EXIT_FAILURE; /* TODO */
+#else
+  (void)(dev_mem); (void)(n); /* unused */
+  result = EXIT_FAILURE;
+#endif
+  return result;
 }
 
 
 int acc_dev_mem_deallocate(void* dev_mem)
 {
-  return EXIT_FAILURE;
+  int result;
+#if defined(ACC_OPENMP)
+  result = EXIT_FAILURE; /* TODO */
+#else
+  (void)(dev_mem); /* unused */
+  result = EXIT_FAILURE;
+#endif
+  return result;
 }
 
 
 int acc_dev_mem_set_ptr(void** dev_mem, void* other, size_t lb)
 {
-  return EXIT_FAILURE;
+  int result;
+#if defined(ACC_OPENMP)
+  result = EXIT_FAILURE; /* TODO */
+#else
+  (void)(dev_mem); (void)(other); (void)(lb); /* unused */
+  result = EXIT_FAILURE;
+#endif
+  return result;
 }
 
 
@@ -80,7 +101,14 @@ int acc_host_mem_deallocate(void* host_mem, acc_stream_t stream)
 
 int acc_memcpy(const void* src, void* dst, size_t size, acc_stream_t stream)
 {
-  return EXIT_FAILURE;
+  int result;
+#if defined(ACC_OPENMP)
+  result = EXIT_FAILURE; /* TODO */
+#else
+  (void)(src); (void)(dst); (void)(size); (void)(stream); /* unused */
+  result = EXIT_FAILURE;
+#endif
+  return result;
 }
 
 
@@ -104,13 +132,36 @@ int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t count, acc_s
 
 int acc_memset_zero(void* dev_mem, size_t offset, size_t length, acc_stream_t stream)
 {
-  return EXIT_FAILURE;
+  int result;
+#if defined(ACC_OPENMP)
+  result = EXIT_FAILURE; /* TODO */
+#else
+  (void)(dev_mem); (void)(offset); (void)(length); (void)(stream); /* unused */
+  result = EXIT_FAILURE;
+#endif
+  return result;
 }
 
 
-int acc_dev_mem_info(size_t* free, size_t* avail)
+int acc_dev_mem_info(size_t* mem_free, size_t* mem_avail)
 {
-  return EXIT_FAILURE;
+  int result;
+#if !defined(ACC_OPENMP)
+  (void)(mem_free); (void)(mem_avail); /* unused */
+#else
+  if (NULL != mem_free || NULL != mem_avail) {
+    if (NULL != mem_free) {
+    }
+    if (NULL != mem_avail) {
+    }
+    result = EXIT_FAILURE; /* TODO */
+  }
+  else
+#endif
+  {
+    result = EXIT_FAILURE;
+  }
+  return result;
 }
 
 #if defined(__cplusplus)

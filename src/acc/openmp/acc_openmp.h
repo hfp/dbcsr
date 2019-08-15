@@ -11,8 +11,8 @@
 
 #include "../include/acc.h"
 
-#if !defined(ACC_OPENMP_STRING_MAXLEN)
-# define ACC_OPENMP_STRING_MAXLEN 32
+#if !defined(ACC_OPENMP_STREAM_MAXPENDING)
+# define ACC_OPENMP_STREAM_MAXPENDING 256
 #endif
 #if !defined(ACC_OPENMP_STREAM_MAXCOUNT)
 # define ACC_OPENMP_STREAM_MAXCOUNT 16
@@ -48,8 +48,9 @@
 #endif
 
 ACC_OPENMP_EXPORT typedef struct acc_openmp_stream_t {
-  char name[ACC_OPENMP_STRING_MAXLEN];
-  int priority;
+  /* address of each character is also forms OpenMP task dependencies */
+  char name[ACC_OPENMP_STREAM_MAXPENDING];
+  int pending, priority;
 } acc_openmp_stream_t;
 
 ACC_OPENMP_EXPORT typedef struct acc_openmp_event_t {

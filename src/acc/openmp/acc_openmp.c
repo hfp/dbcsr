@@ -10,6 +10,10 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#if !defined(ACC_OPENMP_MALLOC) && 0
+# define ACC_OPENMP_MALLOC
+#endif
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -95,7 +99,7 @@ int acc_set_active_device(int device_id)
     }
 # if !defined(NDEBUG)
     else {
-      result = EXIT_FAILURE;      
+      result = EXIT_FAILURE;
     }
 # endif
   }
@@ -114,25 +118,24 @@ void* acc_openmp_alloc(int typesize, void* storage, void** pointer, int* counter
   void* result;
 #if defined(ACC_OPENMP)
   int i;
-  assert(NULL != storage && NULL != pointer && NULL != counter); /* no runtime check */
-  if (0 < maxcount) {
-#   pragma omp atomic capture
-    i = (*counter)++;
-    if (i < maxcount) {
-      result = pointer[i];
-      if (NULL == result) {
-        result = (char*)storage + i * typesize;
-      }
+  assert(NULL != storage && NULL != pointer && NULL != counter && 0 < maxcount); /* no runtime check */
+# if defined(ACC_OPENMP_MALLOC)
+  result = malloc(typesize);
+# else /* fast allocation */
+# pragma omp atomic capture
+  i = (*counter)++;
+  if (i < maxcount) {
+    result = pointer[i];
+    if (NULL == result) {
+      result = (char*)storage + i * typesize;
     }
-    else { /* out of space */
-#     pragma omp atomic
-      --*counter;
-      result = NULL;
-    }    
   }
-  else {
-    result = malloc(typesize);
+  else { /* out of space */
+#   pragma omp atomic
+    --*counter;
+    result = NULL;
   }
+# endif
 #else
   (void)(typesize); (void)(storage); (void)(pointer); (void)(counter); (void)(maxcount); /* unused */
   result = NULL;
@@ -147,31 +150,30 @@ int acc_openmp_dealloc(void* item, int typesize, void* storage, void** pointer, 
   int result;
 #if defined(ACC_OPENMP)
   int i;
-  assert(NULL != storage && NULL != pointer && NULL != counter); /* no runtime check */
-  if (0 < maxcount) {
-    if (NULL != item) {
-#     pragma omp atomic capture
-      i = (*counter)--;
-      if (0 <= i && i < maxcount && storage <= item /* check if item came from storage */
-        && ((const char*)item) < ((const char*)storage + maxcount * typesize))
-      {
-        result = EXIT_SUCCESS;
-        pointer[i] = item;
-      }
-      else { /* invalid free */
-        result = EXIT_FAILURE;
-#       pragma omp atomic
-        ++*counter;
-      }
-    }
-    else {
+  assert(NULL != storage && NULL != pointer && NULL != counter && 0 < maxcount); /* no runtime check */
+# if defined(ACC_OPENMP_MALLOC)
+  result = EXIT_SUCCESS;
+  free(item);
+# else /* fast allocation */
+  if (NULL != item) {
+#   pragma omp atomic capture
+    i = (*counter)--;
+    if (0 <= i && i < maxcount && storage <= item /* check if item came from storage */
+      && ((const char*)item) < ((const char*)storage + maxcount * typesize))
+    {
       result = EXIT_SUCCESS;
+      pointer[i] = item;
+    }
+    else { /* invalid free */
+      result = EXIT_FAILURE;
+#     pragma omp atomic
+      ++*counter;
     }
   }
   else {
     result = EXIT_SUCCESS;
-    free(item);
   }
+# endif
 #else
   (void)(item); (void)(typesize); (void)(storage); (void)(pointer); (void)(counter); (void)(maxcount); /* unused */
   result = EXIT_FAILURE;

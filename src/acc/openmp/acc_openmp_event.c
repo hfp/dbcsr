@@ -13,9 +13,11 @@
 extern "C" {
 #endif
 
+#if defined(ACC_OPENMP)
 acc_openmp_event_t  acc_openmp_events[ACC_OPENMP_EVENT_MAXCOUNT];
 acc_openmp_event_t* acc_openmp_eventp[ACC_OPENMP_EVENT_MAXCOUNT];
 int acc_openmp_event_count;
+#endif
 
 
 int acc_event_create(acc_event_t* event_p)
@@ -51,26 +53,47 @@ int acc_event_destroy(acc_event_t event)
 #else
   (void)(event); /* unused */
   result = EXIT_FAILURE;
-#endif  
+#endif
   return result;
 }
 
 
 int acc_event_record(acc_event_t event, acc_stream_t stream)
 {
-  return EXIT_FAILURE;
+  int result;
+#if defined(ACC_OPENMP)
+  result = EXIT_FAILURE; /* TODO */
+#else
+  (void)(event); (void)(stream); /* unused */
+  result = EXIT_FAILURE;
+#endif
+  return result;
 }
 
 
 int acc_event_query(acc_event_t event, int* has_occurred)
 {
-  return EXIT_FAILURE;
+  int result;
+#if defined(ACC_OPENMP)
+  result = EXIT_FAILURE; /* TODO */
+#else
+  (void)(event); (void)(has_occurred); /* unused */
+  result = EXIT_FAILURE;
+#endif
+  return result;
 }
 
 
 int acc_event_synchronize(acc_event_t event)
 {
-  return EXIT_FAILURE;
+  int result;
+#if defined(ACC_OPENMP)
+  result = EXIT_FAILURE; /* TODO */
+#else
+  (void)(event); /* unused */
+  result = EXIT_FAILURE;
+#endif
+  return result;
 }
 
 #if defined(__cplusplus)

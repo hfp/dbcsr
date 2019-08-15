@@ -20,6 +20,9 @@
 #if !defined(ACC_OPENMP_EVENT_MAXCOUNT)
 # define ACC_OPENMP_EVENT_MAXCOUNT (16*ACC_OPENMP_STREAM_MAXCOUNT)
 #endif
+#if !defined(ACC_OPENMP_DEVICE_MAXCOUNT) && 1
+# define ACC_OPENMP_DEVICE_MAXCOUNT 0
+#endif
 
 #if defined(__cplusplus)
 # define ACC_OPENMP_EXTERN extern "C"

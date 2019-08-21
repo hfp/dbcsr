@@ -99,7 +99,7 @@ int acc_host_mem_deallocate(void* host_mem, acc_stream_t stream)
 }
 
 
-int acc_memcpy(const void* src, void* dst, size_t size, acc_stream_t stream)
+int acc_openmp_memcpy(const void* src, void* dst, size_t size, acc_stream_t stream)
 {
   int result;
 #if defined(ACC_OPENMP)
@@ -114,19 +114,19 @@ int acc_memcpy(const void* src, void* dst, size_t size, acc_stream_t stream)
 
 int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t count, acc_stream_t stream)
 {
-  return acc_memcpy(host_mem, dev_mem, count, stream);
+  return acc_openmp_memcpy(host_mem, dev_mem, count, stream);
 }
 
 
 int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t count, acc_stream_t stream)
 {
-  return acc_memcpy(dev_mem, host_mem, count, stream);
+  return acc_openmp_memcpy(dev_mem, host_mem, count, stream);
 }
 
 
 int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t count, acc_stream_t stream)
 {
-  return acc_memcpy(devmem_src, devmem_dst, count, stream);
+  return acc_openmp_memcpy(devmem_src, devmem_dst, count, stream);
 }
 
 

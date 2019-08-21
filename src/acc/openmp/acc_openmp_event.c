@@ -30,7 +30,7 @@ int acc_event_create(acc_event_t* event_p)
     sizeof(acc_openmp_event_t), acc_openmp_events, (void**)acc_openmp_eventp,
     &acc_openmp_event_count, ACC_OPENMP_EVENT_MAXCOUNT);
   if (NULL != event) {
-    event->dummy = 0;
+    event->has_occurred = 0;
     *event_p = event;
     result = EXIT_SUCCESS;
   }

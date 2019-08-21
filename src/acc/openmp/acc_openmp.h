@@ -50,21 +50,31 @@
 # include <omp.h>
 #endif
 
+#define ACC_OPENMP_DEPEND_IN(DEPEND)  depend(in: *((DEPEND).in))
+#define ACC_OPENMP_DEPEND_OUT(DEPEND) depend(out:*((DEPEND).out))
+
+
 ACC_OPENMP_EXPORT typedef struct acc_openmp_stream_t {
-  /* address of each character is also forms OpenMP task dependencies */
+  /* address of each character is (side-)used to form OpenMP task dependencies */
   char name[ACC_OPENMP_STREAM_MAXPENDING];
   int pending, priority;
 } acc_openmp_stream_t;
 
 ACC_OPENMP_EXPORT typedef struct acc_openmp_event_t {
-  int dummy;
+  int has_occurred;
 } acc_openmp_event_t;
+
+ACC_OPENMP_EXPORT typedef struct acc_openmp_depend_t {
+  const char *in, *out;
+} acc_openmp_depend_t;
 
 /** Helper function for lock-free allocation of preallocated items such as streams or events. */
 ACC_OPENMP_EXPORT void* acc_openmp_alloc(int typesize, void* storage, void** pointer, int* counter, int maxcount);
 /** Helper function for lock-free deallocation (companion of acc_openmp_alloc). */
 ACC_OPENMP_EXPORT int acc_openmp_dealloc(void* item, int typesize, void* storage, void** pointer, int* counter, int maxcount);
-/** OpenMP does not distinct between H2H, H2D, D2H, or D2D. This common form is used for OpenMP backend. */
-ACC_OPENMP_EXPORT int acc_memcpy(const void* src, void* dst, size_t size, acc_stream_t stream);
+/** OpenMP does not distinct between H2H, H2D, D2H, or D2D. This common form is in the OpenMP backend. */
+ACC_OPENMP_EXPORT int acc_openmp_memcpy(const void* src, void* dst, size_t size, acc_stream_t stream);
+/** Generate dependency for given stream; in/out value must be dereferenced inside of depend-clause. */
+ACC_OPENMP_EXPORT int acc_openmp_stream_depend(acc_stream_t stream, acc_openmp_depend_t* depend);
 
 #endif /*ACC_OPENMP_H*/

@@ -22,6 +22,32 @@ int acc_openmp_stream_count;
 #endif
 
 
+int acc_openmp_stream_depend(acc_stream_t stream, acc_openmp_depend_t* depend)
+{
+  int result;
+#if !defined(ACC_OPENMP)
+  (void)(stream); /* unused */
+#else
+  acc_openmp_stream_t *const s = (acc_openmp_stream_t*)stream;
+  assert(NULL == s || (acc_openmp_streams <= s && s < acc_openmp_streams + ACC_OPENMP_STREAM_MAXCOUNT));
+  if (NULL != stream && NULL != depend) {
+    static const char dummy = 0;
+    int index;
+#   pragma omp atomic capture
+    index = s->pending++;
+    depend->out = s->name + index % ACC_OPENMP_STREAM_MAXPENDING;
+    depend->in = (s->name < depend->out ? (depend->out - 1) : &dummy);
+    result = EXIT_SUCCESS;
+  }
+  else
+#endif
+  {
+    result = EXIT_FAILURE;
+  }
+  return result;
+}
+
+
 int acc_stream_create(acc_stream_t* stream_p, const char* name, int priority)
 {
   int result;
@@ -54,7 +80,7 @@ int acc_stream_destroy(acc_stream_t stream)
 #if defined(ACC_OPENMP)
   acc_openmp_stream_t *const s = (acc_openmp_stream_t*)stream;
   assert(NULL == s || (acc_openmp_streams <= s && s < acc_openmp_streams + ACC_OPENMP_STREAM_MAXCOUNT));
-  result = ((NULL != stream && 0 < s->pending) ? result = acc_stream_sync(stream) : EXIT_SUCCESS);
+  result = ((NULL != stream && 0 < s->pending) ? acc_stream_sync(stream) : EXIT_SUCCESS);
   if (EXIT_SUCCESS == result) {
     result = acc_openmp_dealloc(stream,
       sizeof(acc_openmp_stream_t), acc_openmp_streams, (void**)acc_openmp_streamp,

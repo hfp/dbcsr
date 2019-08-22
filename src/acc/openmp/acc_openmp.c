@@ -139,6 +139,7 @@ int acc_get_ndevices(int* n_devices)
 #if !defined(ACC_OPENMP)
   (void)(n_devices); /* unused */
 #else
+# pragma omp single
   if (NULL != n_devices) {
 # if !defined(ACC_OPENMP_DEVICE_MAXCOUNT) || (0 != ACC_OPENMP_DEVICE_MAXCOUNT)
     *n_devices = omp_get_num_devices();
@@ -168,6 +169,7 @@ int acc_set_active_device(int device_id)
 #if !defined(ACC_OPENMP)
   (void)(device_id); /* unused */
 #else
+# pragma omp master
   if (0 <= device_id) {
 # if !defined(NDEBUG)
     int ndevices;

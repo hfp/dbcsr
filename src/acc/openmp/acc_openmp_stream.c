@@ -22,21 +22,25 @@ int acc_openmp_stream_count;
 #endif
 
 
-int acc_openmp_stream_depend(acc_stream_t stream, acc_openmp_depend_t* depend)
+int acc_openmp_stream_depend(acc_stream_t stream, acc_openmp_depend_t* in, acc_openmp_depend_t* out)
 {
   int result;
 #if !defined(ACC_OPENMP)
-  (void)(stream); /* unused */
+  (void)(stream); (void)(in); (void)(out); /* unused */
 #else
   acc_openmp_stream_t *const s = (acc_openmp_stream_t*)stream;
   assert(NULL == s || (acc_openmp_streams <= s && s < acc_openmp_streams + ACC_OPENMP_STREAM_MAXCOUNT));
-  if (NULL != stream && NULL != depend) {
-    static const char dummy = 0;
-    int index;
-#   pragma omp atomic capture
-    index = s->pending++;
-    depend->out = s->name + index % ACC_OPENMP_STREAM_MAXPENDING;
-    depend->in = (s->name < depend->out ? (depend->out - 1) : &dummy);
+  if (NULL != stream && (NULL != in || NULL != out)) {
+    if (NULL != out) {
+      int index;
+#     pragma omp atomic capture
+      index = s->pending++;
+      *out = s->name + index % ACC_OPENMP_STREAM_MAXPENDING;
+    }
+    if (NULL != in) {
+      static const char dummy = 0;
+      *in = ((NULL != out && s->name < *out) ? (*out - 1) : &dummy);
+    }
     result = EXIT_SUCCESS;
   }
   else
@@ -62,6 +66,7 @@ int acc_stream_create(acc_stream_t* stream_p, const char* name, int priority)
     stream->name[ACC_OPENMP_STREAM_MAXPENDING-1] = 0;
     stream->priority = priority;
     stream->pending = 0;
+    stream->status = 0;
     *stream_p = stream;
     result = EXIT_SUCCESS;
   }

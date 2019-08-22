@@ -8,6 +8,7 @@
  *------------------------------------------------------------------------------------------------*/
 #include "acc_openmp.h"
 #include <stdlib.h>
+#include <assert.h>
 
 #if defined(ACC_OPENMP_VERSION) && (50 <= ACC_OPENMP_VERSION)
 # define ACC_OPENMP_MEM_ALLOCATOR omp_null_allocator
@@ -99,34 +100,66 @@ int acc_host_mem_deallocate(void* host_mem, acc_stream_t stream)
 }
 
 
-int acc_openmp_memcpy(const void* src, void* dst, size_t size, acc_stream_t stream)
+int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t count, acc_stream_t stream)
 {
-  int result;
-#if defined(ACC_OPENMP)
-  result = EXIT_FAILURE; /* TODO */
+  acc_openmp_depend_t in, out;
+  int result = acc_openmp_stream_depend(stream, &in, &out);
+#if !defined(ACC_OPENMP)
+  (void)(host_mem); (void)(dev_mem); (void)(count); /* unused */
 #else
-  (void)(src); (void)(dst); (void)(size); (void)(stream); /* unused */
-  result = EXIT_FAILURE;
+# pragma omp master
+  if (EXIT_SUCCESS == result) {
+    /* capture current default device before spawning task (acc_set_active_device) */
+    const int dev_src = omp_get_initial_device(), dev_dst = omp_get_default_device();
+    acc_openmp_stream_t *const s = (acc_openmp_stream_t*)stream; assert(NULL != s);
+#   pragma omp task ACC_OPENMP_DEPEND_IN(in) ACC_OPENMP_DEPEND_OUT(out)
+    s->status |= omp_target_memcpy(dev_mem, (void*)host_mem, count,
+      0/*dst_offset*/, 0/*src_offset*/, dev_dst, dev_src);
+  }
 #endif
   return result;
 }
 
 
-int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t count, acc_stream_t stream)
-{
-  return acc_openmp_memcpy(host_mem, dev_mem, count, stream);
-}
-
-
 int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t count, acc_stream_t stream)
 {
-  return acc_openmp_memcpy(dev_mem, host_mem, count, stream);
+  acc_openmp_depend_t in, out;
+  int result = acc_openmp_stream_depend(stream, &in, &out);
+#if !defined(ACC_OPENMP)
+  (void)(dev_mem); (void)(host_mem); (void)(count); /* unused */
+#else
+# pragma omp master
+  if (EXIT_SUCCESS == result) {
+    /* capture current default device before spawning task (acc_set_active_device) */
+    const int dev_src = omp_get_default_device(), dev_dst = omp_get_initial_device();
+    acc_openmp_stream_t *const s = (acc_openmp_stream_t*)stream; assert(NULL != s);
+#   pragma omp task ACC_OPENMP_DEPEND_IN(in) ACC_OPENMP_DEPEND_OUT(out)
+    s->status |= omp_target_memcpy(host_mem, (void*)dev_mem, count,
+      0/*dst_offset*/, 0/*src_offset*/, dev_dst, dev_src);
+  }
+#endif
+  return result;
 }
 
 
 int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t count, acc_stream_t stream)
 {
-  return acc_openmp_memcpy(devmem_src, devmem_dst, count, stream);
+  acc_openmp_depend_t in, out;
+  int result = acc_openmp_stream_depend(stream, &in, &out);
+#if !defined(ACC_OPENMP)
+  (void)(devmem_src); (void)(devmem_dst); (void)(count); /* unused */
+#else
+# pragma omp master
+  if (EXIT_SUCCESS == result) {
+    /* capture current default device before spawning task (acc_set_active_device) */
+    const int dev_src = omp_get_default_device(), dev_dst = dev_src;
+    acc_openmp_stream_t *const s = (acc_openmp_stream_t*)stream; assert(NULL != s);
+#   pragma omp task ACC_OPENMP_DEPEND_IN(in) ACC_OPENMP_DEPEND_OUT(out)
+    s->status |= omp_target_memcpy(devmem_dst, (void*)devmem_src, count,
+      0/*dst_offset*/, 0/*src_offset*/, dev_dst, dev_src);
+  }
+#endif
+  return result;
 }
 
 

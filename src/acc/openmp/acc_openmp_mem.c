@@ -231,7 +231,7 @@ int acc_dev_mem_info(size_t* mem_free, size_t* mem_total)
     }
     if (size_free <= size_total) { /* EXIT_SUCCESS != result is ok */
       if (NULL != mem_total) *mem_total = size_total;
-      if (NULL != mem_free) *mem_free = size_free;      
+      if (NULL != mem_free) *mem_free = size_free;
     }
     else if (EXIT_SUCCESS == result) {
       result = EXIT_FAILURE;

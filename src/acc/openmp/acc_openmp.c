@@ -45,7 +45,7 @@ void* acc_openmp_alloc(int typesize, void* storage, void** pointer, int* counter
 # endif
       --*counter;
       result = NULL;
-    }    
+    }
   }
 #endif
   assert(0 < acc_openmp_initialized);

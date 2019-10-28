@@ -10,6 +10,12 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#if defined(_WIN32)
+# include <Windows.h>
+#else
+# include <unistd.h>
+#endif
+
 #if defined(ACC_OPENMP_VERSION) && (50 <= ACC_OPENMP_VERSION)
 # define ACC_OPENMP_MEM_ALLOCATOR omp_null_allocator
 #endif
@@ -176,23 +182,60 @@ int acc_memset_zero(void* dev_mem, size_t offset, size_t length, acc_stream_t st
 }
 
 
-int acc_dev_mem_info(size_t* mem_free, size_t* mem_avail)
+int acc_dev_mem_info(size_t* mem_free, size_t* mem_total)
 {
-  int result;
-#if !defined(ACC_OPENMP)
-  (void)(mem_free); (void)(mem_avail); /* unused */
+  int ndevices, result = (NULL != mem_free || NULL != mem_total)
+    ? acc_get_ndevices(&ndevices) : EXIT_FAILURE;
+  if (EXIT_SUCCESS == result) {
+    size_t size_free = 0, size_total = 0;
+    /* There is no OpenMP function that returns memory statistics of a device.
+     * Instead, the free/available host memory divided by the number of devices
+     * is used as a proxy value.
+     */
+    if (0 < ndevices) {
+#if defined(_WIN32)
+      MEMORYSTATUSEX mem_status;
+      mem_status.dwLength = sizeof(mem_status);
+      if (GlobalMemoryStatusEx(&mem_status)) {
+        size_total = (size_t)mem_status.ullTotalPhys;
+        size_free = (size_t)mem_status.ullAvailPhys;
+      }
+      else result = EXIT_FAILURE;
 #else
-  if (NULL != mem_free || NULL != mem_avail) {
-    if (NULL != mem_free) {
-    }
-    if (NULL != mem_avail) {
-    }
-    result = EXIT_FAILURE; /* TODO */
-  }
-  else
+# if defined(_SC_PAGE_SIZE)
+      const long page_size = sysconf(_SC_PAGE_SIZE);
+# else
+      const long page_size = 4096;
+# endif
+# if defined(_SC_AVPHYS_PAGES)
+      const long pages_free = sysconf(_SC_AVPHYS_PAGES);
+# else
+      const long pages_free = 0;
+# endif
+# if defined(_SC_PHYS_PAGES)
+      const long pages_total = sysconf(_SC_PHYS_PAGES);
+# else
+      const long pages_total = pages_free;
+# endif
+      if (0 < page_size && 0 <= pages_free && 0 <= pages_total) {
+        const size_t size_page = (size_t)page_size;
+        size_total = (size_page * (size_t)pages_total);
+        size_free = (size_page * (size_t)pages_free);
+      }
+      else result = EXIT_FAILURE;
 #endif
-  {
-    result = EXIT_FAILURE;
+      if (EXIT_SUCCESS == result) {
+        size_total /= ndevices;
+        size_free /= ndevices;
+      }
+    }
+    if (size_free <= size_total) { /* EXIT_SUCCESS != result is ok */
+      if (NULL != mem_total) *mem_total = size_total;
+      if (NULL != mem_free) *mem_free = size_free;      
+    }
+    else if (EXIT_SUCCESS == result) {
+      result = EXIT_FAILURE;
+    }
   }
   return result;
 }

@@ -21,33 +21,32 @@ extern "C" {
 int acc_openmp_initialized;
 
 
-
 void* acc_openmp_alloc(int typesize, void* storage, void** pointer, int* counter, int maxcount)
 {
   void* result;
-#if defined(ACC_OPENMP)
-  int i;
   assert(NULL != storage && NULL != pointer && NULL != counter && 0 < maxcount); /* no runtime check */
-# if defined(ACC_OPENMP_MALLOC)
+#if defined(ACC_OPENMP_MALLOC)
   result = malloc(typesize);
-# else /* fast allocation */
-# pragma omp atomic capture
-  i = (*counter)++;
-  if (i < maxcount) {
-    result = pointer[i];
-    if (NULL == result) {
-      result = (char*)storage + i * typesize;
-    }
-  }
-  else { /* out of space */
-#   pragma omp atomic
-    --*counter;
-    result = NULL;
-  }
+#else /* fast allocation */
+  { int i;
+# if defined(ACC_OPENMP)
+#   pragma omp atomic capture
 # endif
-#else
-  (void)(typesize); (void)(storage); (void)(pointer); (void)(counter); (void)(maxcount); /* unused */
-  result = NULL;
+    i = (*counter)++;
+    if (i < maxcount) {
+      result = pointer[i];
+      if (NULL == result) {
+        result = (char*)storage + i * typesize;
+      }
+    }
+    else { /* out of space */
+# if defined(ACC_OPENMP)
+#     pragma omp atomic
+# endif
+      --*counter;
+      result = NULL;
+    }    
+  }
 #endif
   assert(0 < acc_openmp_initialized);
   return result;
@@ -57,15 +56,15 @@ void* acc_openmp_alloc(int typesize, void* storage, void** pointer, int* counter
 int acc_openmp_dealloc(void* item, int typesize, void* storage, void** pointer, int* counter, int maxcount)
 {
   int result;
-#if defined(ACC_OPENMP)
-  int i;
   assert(NULL != storage && NULL != pointer && NULL != counter && 0 < maxcount); /* no runtime check */
-# if defined(ACC_OPENMP_MALLOC)
-  result = EXIT_SUCCESS;
+#if defined(ACC_OPENMP_MALLOC)
   free(item);
-# else /* fast allocation */
+#else /* fast allocation */
   if (NULL != item) {
+    int i;
+# if defined(ACC_OPENMP)
 #   pragma omp atomic capture
+# endif
     i = (*counter)--;
     if (0 <= i && i < maxcount && storage <= item /* check if item came from storage */
       && ((const char*)item) < ((const char*)storage + maxcount * typesize))
@@ -75,18 +74,17 @@ int acc_openmp_dealloc(void* item, int typesize, void* storage, void** pointer, 
     }
     else { /* invalid free */
       result = EXIT_FAILURE;
+# if defined(ACC_OPENMP)
 #     pragma omp atomic
+# endif
       ++*counter;
     }
   }
-  else {
+  else
+#endif
+  {
     result = EXIT_SUCCESS;
   }
-# endif
-#else
-  (void)(item); (void)(typesize); (void)(storage); (void)(pointer); (void)(counter); (void)(maxcount); /* unused */
-  result = EXIT_FAILURE;
-#endif
   assert(0 < acc_openmp_initialized);
   return result;
 }
@@ -94,68 +92,55 @@ int acc_openmp_dealloc(void* item, int typesize, void* storage, void** pointer, 
 
 int acc_init(void)
 {
-  int result;
 #if defined(ACC_OPENMP)
 # pragma omp atomic
-  ++acc_openmp_initialized;
-  result = EXIT_SUCCESS;
-#else
-  result = EXIT_FAILURE;
 #endif
-  return result;
+  ++acc_openmp_initialized;
+  return 1 == acc_openmp_initialized
+    ? EXIT_SUCCESS
+    : EXIT_FAILURE;
 }
 
 
 int acc_finalize(void)
 {
-  int result;
 #if defined(ACC_OPENMP)
 # pragma omp atomic
-  --acc_openmp_initialized;
-  result = EXIT_SUCCESS;
-#else
-  result = EXIT_FAILURE;
 #endif
-  return result;
+  --acc_openmp_initialized;
+  return 0 == acc_openmp_initialized
+    ? EXIT_SUCCESS
+    : EXIT_FAILURE;
 }
 
 
 int acc_clear_errors(void)
 {
-  int result;
-#if defined(ACC_OPENMP)
-  result = EXIT_SUCCESS;
-#else
-  result = EXIT_FAILURE;
-#endif
-  assert(0 < acc_openmp_initialized);
-  return result;
+  return (0 < acc_openmp_initialized ? EXIT_SUCCESS : EXIT_FAILURE);
 }
 
 
 int acc_get_ndevices(int* n_devices)
 {
   int result;
-#if !defined(ACC_OPENMP)
-  (void)(n_devices); /* unused */
-#else
+#if defined(ACC_OPENMP)
 # pragma omp single
+#endif
   if (NULL != n_devices) {
-# if !defined(ACC_OPENMP_DEVICE_MAXCOUNT) || (0 != ACC_OPENMP_DEVICE_MAXCOUNT)
+#if defined(ACC_OPENMP) && (!defined(ACC_OPENMP_DEVICE_MAXCOUNT) || (0 != ACC_OPENMP_DEVICE_MAXCOUNT))
     *n_devices = omp_get_num_devices();
-#   if defined(ACC_OPENMP_DEVICE_MAXCOUNT) && (0 < ACC_OPENMP_DEVICE_MAXCOUNT)
+# if defined(ACC_OPENMP_DEVICE_MAXCOUNT) && (0 < ACC_OPENMP_DEVICE_MAXCOUNT)
     if (ACC_OPENMP_DEVICE_MAXCOUNT < *n_devices) {
       *n_devices = ACC_OPENMP_DEVICE_MAXCOUNT;
     }
-#   endif
-# else
-    *n_devices = 0;
 # endif
+#else
+    *n_devices = 0;
+#endif
+    assert(0 <= *n_devices);
     result = EXIT_SUCCESS;
   }
-  else
-#endif
-  {
+  else {
     result = EXIT_FAILURE;
   }
   assert(0 < acc_openmp_initialized);

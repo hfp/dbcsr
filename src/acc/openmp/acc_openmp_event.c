@@ -13,19 +13,14 @@
 extern "C" {
 #endif
 
-#if defined(ACC_OPENMP)
 acc_openmp_event_t  acc_openmp_events[ACC_OPENMP_EVENT_MAXCOUNT];
 acc_openmp_event_t* acc_openmp_eventp[ACC_OPENMP_EVENT_MAXCOUNT];
 int acc_openmp_event_count;
-#endif
 
 
 int acc_event_create(acc_event_t* event_p)
 {
   int result;
-#if !defined(ACC_OPENMP)
-  (void)(event_p); /* unused */
-#else
   acc_openmp_event_t *const event = (acc_openmp_event_t*)acc_openmp_alloc(
     sizeof(acc_openmp_event_t), acc_openmp_events, (void**)acc_openmp_eventp,
     &acc_openmp_event_count, ACC_OPENMP_EVENT_MAXCOUNT);
@@ -34,9 +29,7 @@ int acc_event_create(acc_event_t* event_p)
     *event_p = event;
     result = EXIT_SUCCESS;
   }
-  else
-#endif
-  {
+  else {
     result = EXIT_FAILURE;
   }
   return result;
@@ -45,16 +38,9 @@ int acc_event_create(acc_event_t* event_p)
 
 int acc_event_destroy(acc_event_t event)
 {
-  int result;
-#if defined(ACC_OPENMP)
-  result = acc_openmp_dealloc(event,
+  return acc_openmp_dealloc(event,
     sizeof(acc_openmp_event_t), acc_openmp_events, (void**)acc_openmp_eventp,
     &acc_openmp_event_count, ACC_OPENMP_EVENT_MAXCOUNT);
-#else
-  (void)(event); /* unused */
-  result = EXIT_FAILURE;
-#endif
-  return result;
 }
 
 

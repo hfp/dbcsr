@@ -15,11 +15,9 @@
 extern "C" {
 #endif
 
-#if defined(ACC_OPENMP)
 acc_openmp_stream_t  acc_openmp_streams[ACC_OPENMP_STREAM_MAXCOUNT];
 acc_openmp_stream_t* acc_openmp_streamp[ACC_OPENMP_STREAM_MAXCOUNT];
 int acc_openmp_stream_count;
-#endif
 
 
 int acc_openmp_stream_depend(acc_stream_t stream, acc_openmp_depend_t* in, acc_openmp_depend_t* out)
@@ -55,9 +53,6 @@ int acc_openmp_stream_depend(acc_stream_t stream, acc_openmp_depend_t* in, acc_o
 int acc_stream_create(acc_stream_t* stream_p, const char* name, int priority)
 {
   int result;
-#if !defined(ACC_OPENMP)
-  (void)(stream_p); (void)(name); (void)(priority); /* unused */
-#else
   acc_openmp_stream_t *const stream = (acc_openmp_stream_t*)acc_openmp_alloc(
     sizeof(acc_openmp_stream_t), acc_openmp_streams, (void**)acc_openmp_streamp,
     &acc_openmp_stream_count, ACC_OPENMP_STREAM_MAXCOUNT);
@@ -70,9 +65,7 @@ int acc_stream_create(acc_stream_t* stream_p, const char* name, int priority)
     *stream_p = stream;
     result = EXIT_SUCCESS;
   }
-  else
-#endif
-  {
+  else {
     result = EXIT_FAILURE;
   }
   return result;
@@ -82,7 +75,6 @@ int acc_stream_create(acc_stream_t* stream_p, const char* name, int priority)
 int acc_stream_destroy(acc_stream_t stream)
 {
   int result;
-#if defined(ACC_OPENMP)
   acc_openmp_stream_t *const s = (acc_openmp_stream_t*)stream;
   assert(NULL == s || (acc_openmp_streams <= s && s < acc_openmp_streams + ACC_OPENMP_STREAM_MAXCOUNT));
   result = ((NULL != stream && 0 < s->pending) ? acc_stream_sync(stream) : EXIT_SUCCESS);
@@ -91,10 +83,6 @@ int acc_stream_destroy(acc_stream_t stream)
       sizeof(acc_openmp_stream_t), acc_openmp_streams, (void**)acc_openmp_streamp,
       &acc_openmp_stream_count, ACC_OPENMP_STREAM_MAXCOUNT);
   }
-#else
-  (void)(stream); /* unused */
-  result = EXIT_FAILURE;
-#endif
   return result;
 }
 
@@ -102,9 +90,6 @@ int acc_stream_destroy(acc_stream_t stream)
 int acc_stream_priority_range(int* least, int* greatest)
 {
   int result;
-#if !defined(ACC_OPENMP)
-  (void)(least); (void)(greatest); /* unused */
-#else
   if (NULL != least || NULL != greatest) {
     if (NULL != least) {
       *least = -1;
@@ -114,9 +99,7 @@ int acc_stream_priority_range(int* least, int* greatest)
     }
     result = EXIT_SUCCESS;
   }
-  else
-#endif
-  {
+  else {
     result = EXIT_FAILURE;
   }
   return result;
@@ -126,7 +109,6 @@ int acc_stream_priority_range(int* least, int* greatest)
 int acc_stream_sync(acc_stream_t stream)
 {
   int result;
-#if defined(ACC_OPENMP)
   acc_openmp_stream_t *const s = (acc_openmp_stream_t*)stream;
   assert(NULL == s || (acc_openmp_streams <= s && s < acc_openmp_streams + ACC_OPENMP_STREAM_MAXCOUNT));
   if (NULL != stream && 0 < s->pending) {
@@ -135,10 +117,6 @@ int acc_stream_sync(acc_stream_t stream)
   else {
     result = EXIT_SUCCESS;
   }
-#else
-  (void)(stream); /* unused */
-  result = EXIT_FAILURE;
-#endif
   return result;
 }
 
@@ -146,14 +124,9 @@ int acc_stream_sync(acc_stream_t stream)
 int acc_stream_wait_event(acc_stream_t stream, acc_event_t event)
 {
   int result;
-#if defined(ACC_OPENMP)
   acc_openmp_stream_t *const s = (acc_openmp_stream_t*)stream;
   assert(NULL == s || (acc_openmp_streams <= s && s < acc_openmp_streams + ACC_OPENMP_STREAM_MAXCOUNT));
   result = EXIT_FAILURE; /* TODO */
-#else
-  (void)(stream); (void)(event); /* unused */
-  result = EXIT_FAILURE;
-#endif
   return result;
 }
 

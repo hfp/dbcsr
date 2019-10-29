@@ -39,7 +39,7 @@ int acc_openmp_stream_depend(acc_stream_t stream, acc_openmp_depend_t* in, acc_o
       *in = ((NULL != out && s->name < *out) ? (*out - 1) : &dummy);
     }
 #if defined(ACC_OPENMP) && !defined(NDEBUG)
-    if (omp_get_default_device() != stream->device_id) {
+    if (omp_get_default_device() != s->device_id) {
       result = EXIT_FAILURE;
     }
     else

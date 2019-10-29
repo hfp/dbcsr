@@ -1,3 +1,5 @@
+CFLAGS += -Wall -Wextra -pedantic
+
 ifneq (0,$(SYM))
   CFLAGS += -g
 endif

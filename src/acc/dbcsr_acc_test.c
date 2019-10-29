@@ -8,6 +8,7 @@
  *------------------------------------------------------------------------------------------------*/
 #include "include/acc.h"
 #include <stdlib.h>
+#include <string.h>
 #if !defined(NDEBUG)
 # include <inttypes.h>
 # include <assert.h>
@@ -57,12 +58,15 @@
 int main(int argc, char* argv[])
 {
   const int device = (1 < argc ? atoi(argv[1]) : 0);
-  acc_stream_t stream[ACC_STREAM_MAXCOUNT];
-  acc_event_t event[ACC_EVENT_MAXCOUNT];
+  acc_stream_t stream[ACC_STREAM_MAXCOUNT], s;
+  acc_event_t event[ACC_EVENT_MAXCOUNT], e;
   int priority[ACC_STREAM_MAXCOUNT];
   int randnums[ACC_EVENT_MAXCOUNT];
-  int ndevices, priomin, priomax, prange, i;
+  int priomin, priomax, priospan;
+  int ndevices, has_occurred, i;
+  const size_t mem_alloc = (16 << 20); /*MB*/
   size_t mem_free, mem_total;
+  void *host_mem, *dev_mem;
 
   for (i = 0; i < ACC_EVENT_MAXCOUNT; ++i) {
     randnums[i] = rand();
@@ -82,12 +86,12 @@ int main(int argc, char* argv[])
     (uintptr_t)mem_free, (uintptr_t)mem_total);
 
   ACC_CHECK(acc_stream_priority_range(&priomin, &priomax));
-  prange = 1 + priomax - priomin;
-  ACC_CHECK(0 < prange ? EXIT_SUCCESS : EXIT_FAILURE);
+  priospan = 1 + priomax - priomin;
+  ACC_CHECK(0 < priospan ? EXIT_SUCCESS : EXIT_FAILURE);
   PRINTF("stream priority: min=%i max=%i\n", priomin, priomax);
 
   for (i = 0; i < ACC_STREAM_MAXCOUNT; ++i) {
-    priority[i] = priomin + (randnums[i%ACC_STREAM_MAXCOUNT] % prange);
+    priority[i] = priomin + (randnums[i%ACC_STREAM_MAXCOUNT] % priospan);
     stream[i] = NULL;
   }
   for (i = 0; i < ACC_EVENT_MAXCOUNT; ++i) {
@@ -137,8 +141,35 @@ int main(int argc, char* argv[])
     ACC_CHECK(acc_event_destroy(event[i]));
   }
 
+  ACC_CHECK(acc_stream_create(&s, "stream", priomin));
+  ACC_CHECK(acc_host_mem_allocate(&host_mem, mem_alloc, s));
+  ACC_CHECK(acc_dev_mem_allocate(&dev_mem, mem_alloc));
+  ACC_CHECK(acc_event_create(&e));
+  ACC_CHECK(acc_stream_sync(s)); /* wait for completion */
+  memset(host_mem, 0xFF, mem_alloc); /* non-zero pattern */
+  ACC_CHECK(acc_memset_zero(dev_mem, 0/*offset*/, mem_alloc, s));
+  ACC_CHECK(acc_memcpy_d2h(dev_mem, host_mem, mem_alloc, s));
+#if 0 /* TODO */
+  ACC_CHECK(acc_event_record(e, s));
+  ACC_CHECK(acc_event_query(e, &has_occurred));
+  if (0 == has_occurred) ACC_CHECK(acc_event_synchronize(e));
+  ACC_CHECK(acc_event_query(e, &has_occurred));
+  ACC_CHECK(0 != has_occurred ? EXIT_SUCCESS : EXIT_FAILURE);
+  ACC_CHECK(acc_stream_wait_event(s, e)); /* superfluous */
+#endif
+  for (i = 0; i < (int)mem_alloc; ++i) {
+    ACC_CHECK(0 == ((char*)dev_mem)[i] ? EXIT_SUCCESS : EXIT_FAILURE);
+  }
+  ACC_CHECK(acc_event_destroy(e));
+  ACC_CHECK(acc_dev_mem_deallocate(dev_mem));
+  ACC_CHECK(acc_host_mem_deallocate(host_mem, s));
+#if 0 /* TODO */
+  ACC_CHECK(acc_stream_destroy(s));
+#endif
   ACC_CHECK(acc_clear_errors());
+#if 0 /* TODO */
   ACC_CHECK(acc_finalize());
+#endif
 
   return EXIT_SUCCESS;
 }

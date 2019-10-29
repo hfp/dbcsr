@@ -58,6 +58,9 @@ ACC_OPENMP_EXPORT typedef struct acc_openmp_stream_t {
   /* address of each character is (side-)used to form OpenMP task dependencies */
   char name[ACC_OPENMP_STREAM_MAXPENDING];
   int pending, priority, status;
+#if defined(ACC_OPENMP) && !defined(NDEBUG)
+  int device_id; /* should match active device as set by acc_set_active_device */
+#endif
 } acc_openmp_stream_t;
 
 ACC_OPENMP_EXPORT typedef struct acc_openmp_event_t {

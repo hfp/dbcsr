@@ -23,15 +23,14 @@ int acc_openmp_stream_count;
 int acc_openmp_stream_depend(acc_stream_t stream, acc_openmp_depend_t* in, acc_openmp_depend_t* out)
 {
   int result;
-#if !defined(ACC_OPENMP)
-  (void)(stream); (void)(in); (void)(out); /* unused */
-#else
   acc_openmp_stream_t *const s = (acc_openmp_stream_t*)stream;
   assert(NULL == s || (acc_openmp_streams <= s && s < acc_openmp_streams + ACC_OPENMP_STREAM_MAXCOUNT));
   if (NULL != stream && (NULL != in || NULL != out)) {
     if (NULL != out) {
       int index;
+#if defined(ACC_OPENMP)
 #     pragma omp atomic capture
+#endif
       index = s->pending++;
       *out = s->name + index % ACC_OPENMP_STREAM_MAXPENDING;
     }
@@ -39,11 +38,15 @@ int acc_openmp_stream_depend(acc_stream_t stream, acc_openmp_depend_t* in, acc_o
       static const char dummy = 0;
       *in = ((NULL != out && s->name < *out) ? (*out - 1) : &dummy);
     }
+#if defined(ACC_OPENMP) && !defined(NDEBUG)
+    if (omp_get_default_device() != stream->device_id) {
+      result = EXIT_FAILURE;
+    }
+    else
+#endif
     result = EXIT_SUCCESS;
   }
-  else
-#endif
-  {
+  else {
     result = EXIT_FAILURE;
   }
   return result;
@@ -62,6 +65,9 @@ int acc_stream_create(acc_stream_t* stream_p, const char* name, int priority)
     stream->priority = priority;
     stream->pending = 0;
     stream->status = 0;
+#if defined(ACC_OPENMP) && !defined(NDEBUG)
+    stream->device_id = omp_get_default_device();
+#endif
     *stream_p = stream;
     result = EXIT_SUCCESS;
   }

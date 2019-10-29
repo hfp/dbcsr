@@ -147,16 +147,21 @@ int main(int argc, char* argv[])
   ACC_CHECK(acc_event_create(&e));
   ACC_CHECK(acc_stream_sync(s)); /* wait for completion */
   memset(host_mem, 0xFF, mem_alloc); /* non-zero pattern */
-  ACC_CHECK(acc_memset_zero(dev_mem, 0/*offset*/, mem_alloc, s));
-  ACC_CHECK(acc_memcpy_d2h(dev_mem, host_mem, mem_alloc, s));
-#if 0 /* TODO */
-  ACC_CHECK(acc_event_record(e, s));
-  ACC_CHECK(acc_event_query(e, &has_occurred));
-  if (0 == has_occurred) ACC_CHECK(acc_event_synchronize(e));
-  ACC_CHECK(acc_event_query(e, &has_occurred));
-  ACC_CHECK(0 != has_occurred ? EXIT_SUCCESS : EXIT_FAILURE);
-  ACC_CHECK(acc_stream_wait_event(s, e)); /* superfluous */
+#if defined(_OPENMP)
+# pragma omp parallel
 #endif
+  {
+    ACC_CHECK(acc_memset_zero(dev_mem, 0/*offset*/, mem_alloc, s));
+    ACC_CHECK(acc_memcpy_d2h(dev_mem, host_mem, mem_alloc, s));
+#if 0 /* TODO */
+    ACC_CHECK(acc_event_record(e, s));
+    ACC_CHECK(acc_event_query(e, &has_occurred));
+    if (0 == has_occurred) ACC_CHECK(acc_event_synchronize(e));
+    ACC_CHECK(acc_event_query(e, &has_occurred));
+    ACC_CHECK(0 != has_occurred ? EXIT_SUCCESS : EXIT_FAILURE);
+    ACC_CHECK(acc_stream_wait_event(s, e)); /* superfluous */
+#endif
+  }
   for (i = 0; i < (int)mem_alloc; ++i) {
     ACC_CHECK(0 == ((char*)dev_mem)[i] ? EXIT_SUCCESS : EXIT_FAILURE);
   }

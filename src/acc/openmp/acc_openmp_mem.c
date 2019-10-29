@@ -28,7 +28,7 @@ extern "C" {
 
 int acc_host_mem_allocate(void** host_mem, size_t n, acc_stream_t stream)
 {
-  int result;
+  int result = EXIT_SUCCESS;
   /* Allocation is not enqueued because other function signature
    * taking host memory expect a pointer rather than a pointer
    * to a pointer, which would allow for asynchronous delivery.
@@ -46,14 +46,13 @@ int acc_host_mem_allocate(void** host_mem, size_t n, acc_stream_t stream)
 #endif
     result = ((NULL != *host_mem || 0 == n) ? EXIT_SUCCESS : EXIT_FAILURE);
   }
-  else result = EXIT_SUCCESS;
   return result;
 }
 
 
 int acc_host_mem_deallocate(void* host_mem, acc_stream_t stream)
 {
-  int result;
+  int result = EXIT_SUCCESS;
 #if defined(ACC_OPENMP)
 # pragma omp master
 #endif
@@ -70,7 +69,6 @@ int acc_host_mem_deallocate(void* host_mem, acc_stream_t stream)
 #endif
     }
   }
-  else result = EXIT_SUCCESS;
   return result;
 }
 
@@ -124,7 +122,7 @@ int acc_dev_mem_set_ptr(void** dev_mem, void* other, size_t lb)
 
 int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t count, acc_stream_t stream)
 {
-  int result;
+  int result = EXIT_SUCCESS;
   assert((NULL != host_mem && NULL != dev_mem) || 0 == count);
 #if defined(ACC_OPENMP)
 # pragma omp master
@@ -145,14 +143,13 @@ int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t count, acc_stream
 #endif
     }
   }
-  else result = EXIT_SUCCESS;
   return result;
 }
 
 
 int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t count, acc_stream_t stream)
 {
-  int result;
+  int result = EXIT_SUCCESS;
   assert((NULL != dev_mem && NULL != host_mem) || 0 == count);
 #if defined(ACC_OPENMP)
 # pragma omp master
@@ -173,14 +170,13 @@ int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t count, acc_stream
 #endif
     }
   }
-  else result = EXIT_SUCCESS;
   return result;
 }
 
 
 int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t count, acc_stream_t stream)
 {
-  int result;
+  int result = EXIT_SUCCESS;
   assert((NULL != devmem_src && NULL != devmem_dst) || 0 == count);
 #if defined(ACC_OPENMP)
 # pragma omp master
@@ -201,14 +197,13 @@ int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t count, acc_s
 #endif
     }
   }
-  else result = EXIT_SUCCESS;
   return result;
 }
 
 
 int acc_memset_zero(void* dev_mem, size_t offset, size_t length, acc_stream_t stream)
 {
-  int result;
+  int result = EXIT_SUCCESS;
   assert(NULL != dev_mem || 0 == length);
 #if defined(ACC_OPENMP)
 # pragma omp master
@@ -227,7 +222,6 @@ int acc_memset_zero(void* dev_mem, size_t offset, size_t length, acc_stream_t st
       for (i = 0; i < length; ++i) dst[i] = '\0';
     }
   }
-  else result = EXIT_SUCCESS;
   return result;
 }
 

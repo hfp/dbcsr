@@ -154,13 +154,12 @@ int acc_get_ndevices(int* n_devices)
 
 int acc_set_active_device(int device_id)
 {
-  int result;
-#if !defined(ACC_OPENMP)
-  (void)(device_id); /* unused */
-#else
+  int result = (0 <= device_id ? EXIT_SUCCESS : EXIT_FAILURE);
+#if defined(ACC_OPENMP)
 # pragma omp master
-  if (0 <= device_id) {
-# if !defined(NDEBUG)
+#endif
+  if (EXIT_SUCCESS == result) {
+#if !defined(NDEBUG)
     int ndevices;
 # if !defined(ACC_OPENMP_DEVICE_MAXCOUNT) || (0 != ACC_OPENMP_DEVICE_MAXCOUNT)
     ndevices = omp_get_num_devices();
@@ -173,23 +172,18 @@ int acc_set_active_device(int device_id)
     ndevices = 0;
 # endif
     if (device_id < ndevices)
-# endif
+#endif
     {
-# if !defined(ACC_OPENMP_DEVICE_MAXCOUNT) || (0 != ACC_OPENMP_DEVICE_MAXCOUNT)
+#if !defined(ACC_OPENMP_DEVICE_MAXCOUNT) || (0 != ACC_OPENMP_DEVICE_MAXCOUNT)
       omp_set_default_device(device_id);
-# endif
+#endif
       result = EXIT_SUCCESS;
     }
-# if !defined(NDEBUG)
+#if !defined(NDEBUG)
     else {
       result = EXIT_FAILURE;
     }
-# endif
-  }
-  else
 #endif
-  {
-    result = EXIT_FAILURE;
   }
   assert(0 < acc_openmp_initialized);
   return result;

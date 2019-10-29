@@ -104,13 +104,17 @@ int acc_init(void)
 
 int acc_finalize(void)
 {
+  extern int acc_openmp_stream_count;
+  extern int acc_openmp_event_count;
 #if defined(ACC_OPENMP)
 # pragma omp atomic
 #endif
   --acc_openmp_initialized;
-  return 0 == acc_openmp_initialized
-    ? EXIT_SUCCESS
-    : EXIT_FAILURE;
+  return (0 == acc_openmp_initialized
+    && 0 == acc_openmp_stream_count
+    && 0 == acc_openmp_event_count)
+      ? EXIT_SUCCESS
+      : EXIT_FAILURE;
 }
 
 

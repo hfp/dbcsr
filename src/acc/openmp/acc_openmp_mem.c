@@ -79,10 +79,14 @@ int acc_dev_mem_allocate(void** dev_mem, size_t n)
 {
   assert(NULL != dev_mem);
 #if defined(ACC_OPENMP)
-  *dev_mem = omp_target_alloc(n, omp_get_default_device());
-#else
-  *dev_mem = malloc(n);
+  if (0 < omp_get_num_devices()) {
+    *dev_mem = omp_target_alloc(n, omp_get_default_device());
+  }
+  else
 #endif
+  {
+    *dev_mem = malloc(n);
+  }
   return (NULL != *dev_mem ? EXIT_SUCCESS : EXIT_FAILURE);
 }
 
@@ -91,10 +95,14 @@ int acc_dev_mem_deallocate(void* dev_mem)
 {
   if (NULL != dev_mem) {
 #if defined(ACC_OPENMP)
-    omp_target_free(dev_mem, omp_get_default_device());
-#else
-    free(dev_mem);
+    if (0 < omp_get_num_devices()) {
+      omp_target_free(dev_mem, omp_get_default_device());
+    }
+    else
 #endif
+    {
+      free(dev_mem);
+    }
   }
   return EXIT_SUCCESS;
 }

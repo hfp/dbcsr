@@ -1,7 +1,7 @@
 CFLAGS += -Wall -Wextra -pedantic
 
-SYM ?= 0
-DBG ?= $(SYM)
+DBG ?= 0
+SYM ?= $(DBG)
 
 ifneq (0,$(SYM))
   CFLAGS += -g

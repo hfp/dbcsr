@@ -2,8 +2,8 @@ CFLAGS = -Wall -Wextra -pedantic
 SRCFILES = $(wildcard *.c)
 OBJFILES = $(SRCFILES:.c=.o)
 
-SYM ?= 0
-DBG ?= $(SYM)
+DBG ?= 0
+SYM ?= $(DBG)
 
 ifneq (0,$(SYM))
   CFLAGS += -g

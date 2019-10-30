@@ -1,5 +1,8 @@
 CFLAGS += -Wall -Wextra -pedantic
 
+SYM ?= 0
+DBG ?= $(SYM)
+
 ifneq (0,$(SYM))
   CFLAGS += -g
 endif
@@ -9,11 +12,12 @@ else
   CFLAGS += -O2
 endif
 ifneq (0,$(OMP))
+  LDFLAGS += -fopenmp
   CFLAGS += -fopenmp
 endif
 
 dbcsr_acc_test: dbcsr_acc_test.o openmp/libacc_openmp.a
-	$(CC) $(CFLAGS) $^ -o $@
+	$(CC) $(LDFLAGS) $^ -o $@
 
 %.o: %.c Makefile
 	$(CC) $(CFLAGS) -c $< -o $@

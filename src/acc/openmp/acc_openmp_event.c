@@ -13,8 +13,10 @@
 extern "C" {
 #endif
 
+#if defined(ACC_OPENMP_EVENT_MAXCOUNT) && (0 < ACC_OPENMP_EVENT_MAXCOUNT)
 acc_openmp_event_t  acc_openmp_events[ACC_OPENMP_EVENT_MAXCOUNT];
 acc_openmp_event_t* acc_openmp_eventp[ACC_OPENMP_EVENT_MAXCOUNT];
+#endif
 int acc_openmp_event_count;
 
 

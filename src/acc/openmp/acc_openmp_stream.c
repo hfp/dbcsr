@@ -15,8 +15,10 @@
 extern "C" {
 #endif
 
+#if defined(ACC_OPENMP_STREAM_MAXCOUNT) && (0 < ACC_OPENMP_STREAM_MAXCOUNT)
 acc_openmp_stream_t  acc_openmp_streams[ACC_OPENMP_STREAM_MAXCOUNT];
 acc_openmp_stream_t* acc_openmp_streamp[ACC_OPENMP_STREAM_MAXCOUNT];
+#endif
 int acc_openmp_stream_count;
 
 
@@ -24,7 +26,9 @@ int acc_openmp_stream_depend(acc_stream_t stream, acc_openmp_depend_t* in, acc_o
 {
   int result;
   acc_openmp_stream_t *const s = (acc_openmp_stream_t*)stream;
+#if defined(ACC_OPENMP_STREAM_MAXCOUNT) && (0 < ACC_OPENMP_STREAM_MAXCOUNT)
   assert(NULL == s || (acc_openmp_streams <= s && s < (acc_openmp_streams + ACC_OPENMP_STREAM_MAXCOUNT)));
+#endif
   if (NULL != stream && (NULL != in || NULL != out)) {
     if (NULL != out) {
       int index;
@@ -82,7 +86,9 @@ int acc_stream_destroy(acc_stream_t stream)
 {
   int result;
   acc_openmp_stream_t *const s = (acc_openmp_stream_t*)stream;
+#if defined(ACC_OPENMP_STREAM_MAXCOUNT) && (0 < ACC_OPENMP_STREAM_MAXCOUNT)
   assert(NULL == s || (acc_openmp_streams <= s && s < (acc_openmp_streams + ACC_OPENMP_STREAM_MAXCOUNT)));
+#endif
   result = ((NULL != stream && 0 < s->pending) ? acc_stream_sync(stream) : EXIT_SUCCESS);
   if (EXIT_SUCCESS == result) {
     result = acc_openmp_dealloc(stream,
@@ -116,7 +122,9 @@ int acc_stream_sync(acc_stream_t stream)
 {
   int result;
   acc_openmp_stream_t *const s = (acc_openmp_stream_t*)stream;
+#if defined(ACC_OPENMP_STREAM_MAXCOUNT) && (0 < ACC_OPENMP_STREAM_MAXCOUNT)
   assert(NULL == s || (acc_openmp_streams <= s && s < (acc_openmp_streams + ACC_OPENMP_STREAM_MAXCOUNT)));
+#endif
   if (NULL != stream && 0 < s->pending) {
     result = EXIT_FAILURE; /* TODO */
   }
@@ -131,7 +139,9 @@ int acc_stream_wait_event(acc_stream_t stream, acc_event_t event)
 {
   int result;
   acc_openmp_stream_t *const s = (acc_openmp_stream_t*)stream;
+#if defined(ACC_OPENMP_STREAM_MAXCOUNT) && (0 < ACC_OPENMP_STREAM_MAXCOUNT)
   assert(NULL == s || (acc_openmp_streams <= s && s < (acc_openmp_streams + ACC_OPENMP_STREAM_MAXCOUNT)));
+#endif
   result = EXIT_FAILURE; /* TODO */
   return result;
 }

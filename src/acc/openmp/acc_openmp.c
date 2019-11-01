@@ -121,7 +121,7 @@ int acc_finalize(void)
 
 int acc_clear_errors(void)
 {
-  return (0 < acc_openmp_initialized ? EXIT_SUCCESS : EXIT_FAILURE);
+  return (0 < acc_openmp_initialized ? acc_openmp_stream_clear_errors() : EXIT_FAILURE);
 }
 
 

@@ -103,6 +103,21 @@ int acc_stream_destroy(acc_stream_t stream)
 }
 
 
+int acc_openmp_stream_clear_errors(void)
+{
+#if defined(ACC_OPENMP_STREAM_MAXCOUNT) && (0 < ACC_OPENMP_STREAM_MAXCOUNT)
+  int i = 0;
+  for (; i < ACC_OPENMP_STREAM_MAXCOUNT; ++i) {
+# if defined(ACC_OPENMP)
+#   pragma omp atomic write
+# endif
+    acc_openmp_streams[i].status = EXIT_SUCCESS;
+  }
+#endif
+  return EXIT_SUCCESS;
+}
+
+
 int acc_stream_priority_range(int* least, int* greatest)
 {
   int result;

@@ -23,7 +23,7 @@ int acc_openmp_event_count;
 int acc_event_create(acc_event_t* event_p)
 {
   acc_openmp_event_t* event;
-  int result = acc_openmp_alloc((void**)&event,
+  const int result = acc_openmp_alloc((void**)&event,
     sizeof(acc_openmp_event_t), &acc_openmp_event_count,
 #if defined(ACC_OPENMP_EVENT_MAXCOUNT) && (0 < ACC_OPENMP_EVENT_MAXCOUNT)
     ACC_OPENMP_EVENT_MAXCOUNT, acc_openmp_events, (void**)acc_openmp_eventp);

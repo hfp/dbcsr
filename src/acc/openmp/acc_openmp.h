@@ -105,5 +105,7 @@ ACC_OPENMP_EXPORT int acc_openmp_alloc(void** item, int typesize, int* counter, 
 ACC_OPENMP_EXPORT int acc_openmp_dealloc(void* item, int typesize, int* counter, int maxcount, void* storage, void** pointer);
 /** Generate dependency for given stream; in/out value must be dereferenced inside of depend-clause. */
 ACC_OPENMP_EXPORT int acc_openmp_stream_depend(acc_stream_t stream, acc_openmp_depend_t* in, acc_openmp_depend_t* out);
+/** Clears status of all streams (if possible). */
+ACC_OPENMP_EXPORT int acc_openmp_stream_clear_errors(void);
 
 #endif /*ACC_OPENMP_H*/

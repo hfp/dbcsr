@@ -1,5 +1,6 @@
 CFLAGS = -Wall -Wextra -pedantic
-SRCFILES = $(wildcard *.c)
+INCFILES = $(wildcard *.h*)
+SRCFILES = $(wildcard *.c*)
 OBJFILES = $(SRCFILES:.c=.o)
 
 DBG ?= 0
@@ -33,7 +34,7 @@ endif
 libacc_openmp.a: $(OBJFILES)
 	$(AR) -rs $@ $^
 
-%.o: %.c Makefile
+%.o: %.c $(INCFILES) Makefile
 	$(CC) $(CFLAGS) -c $< -o $@
 
 .PHONE: clean

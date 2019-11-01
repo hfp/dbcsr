@@ -163,7 +163,7 @@ int main(int argc, char* argv[])
 #endif
   }
   for (i = 0; i < (int)mem_alloc; ++i) {
-    ACC_CHECK(0 == ((char*)dev_mem)[i] ? EXIT_SUCCESS : EXIT_FAILURE);
+    ACC_CHECK(0 == ((char*)host_mem)[i] ? EXIT_SUCCESS : EXIT_FAILURE);
   }
   ACC_CHECK(acc_event_destroy(e));
   ACC_CHECK(acc_dev_mem_deallocate(dev_mem));

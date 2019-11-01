@@ -39,10 +39,10 @@
     const int acc_check_result_ = (RESULT); \
     if (EXIT_SUCCESS != acc_check_result_) exit(acc_check_result_) \
   } while(0)
-# define PRINTF(...)
+# define PRINTF(A, ...)
 #else /* debug */
 # define ACC_CHECK(RESULT) assert(EXIT_SUCCESS == (RESULT))
-# define PRINTF(...) printf(__VA_ARGS__)
+# define PRINTF(A, ...) printf(A, __VA_ARGS__)
 #endif
 
 

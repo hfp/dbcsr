@@ -22,13 +22,14 @@ void* acc_openmp_alloc(int typesize, int* counter, int maxcount, void* storage, 
 {
   void* result;
   int i;
-  assert(0 < acc_openmp_initialized && 0 < typesize && NULL != counter && NULL != storage && NULL != pointer);
+  assert(0 < acc_openmp_initialized && 0 < typesize && NULL != counter);
 #if defined(ACC_OPENMP)
 # pragma omp atomic capture
 #endif
   i = (*counter)++;
   if (0 < maxcount) { /* fast allocation */
     if (i < maxcount) {
+      assert(NULL != storage && NULL != pointer);
       result = pointer[i];
       if (NULL == result) {
         result = (char*)storage + i * typesize;
@@ -59,7 +60,7 @@ void* acc_openmp_alloc(int typesize, int* counter, int maxcount, void* storage, 
 int acc_openmp_dealloc(void* item, int typesize, int* counter, int maxcount, void* storage, void** pointer)
 {
   int result;
-  assert(0 < acc_openmp_initialized && 0 < typesize && NULL != counter && NULL != storage && NULL != pointer);
+  assert(0 < acc_openmp_initialized && 0 < typesize && NULL != counter);
   if (NULL != item) {
     int i;
 #if defined(ACC_OPENMP)
@@ -67,6 +68,7 @@ int acc_openmp_dealloc(void* item, int typesize, int* counter, int maxcount, voi
 #endif
     i = (*counter)--;
     if (0 < maxcount) { /* fast allocation */
+      assert(NULL != storage && NULL != pointer);
       result = ((0 <= i && i < maxcount && storage <= item && /* check if item came from storage */
           ((const char*)item) < ((const char*)storage + maxcount * typesize))
         ? EXIT_SUCCESS : EXIT_FAILURE);

@@ -213,7 +213,7 @@ int acc_memset_zero(void* dev_mem, size_t offset, size_t length, acc_stream_t st
     result = acc_openmp_stream_depend(stream, &in, &out);
     if (EXIT_SUCCESS == result) {
       /* OpenMP specification: pointer arithmetic may not be valid */
-      char *const dst = (char*)dev_mem + offset;
+      char */*const*/ dst = (char*)dev_mem + offset;
       size_t i;
 #if defined(ACC_OPENMP) /*private(i)*/
       ACC_OPENMP_PRAGMA(omp target teams distribute parallel for simd ACC_OPENMP_DEPEND_IN(in) ACC_OPENMP_DEPEND_OUT(out) nowait is_device_ptr(dst))

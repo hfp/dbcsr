@@ -6,7 +6,9 @@ SYM ?= $(DBG)
 INTEL ?= 0
 IBM ?= 0
 
-ifneq (0,$(IBM))
+ifneq (0,$(INTEL))
+  CC := icc
+else ifneq (0,$(IBM))
   CC := xlc
 endif
 
@@ -19,7 +21,10 @@ else
   CFLAGS += -O2
 endif
 ifneq (0,$(OMP))
-ifneq (0,$(IBM))
+ifneq (0,$(INTEL))
+  LDFLAGS += -qopenmp -qoffload
+  CFLAGS += -qopenmp -qoffload
+else ifneq (0,$(IBM))
   LDFLAGS += -qsmp=omp -qoffload
   CFLAGS += -qsmp=omp -qoffload
 else

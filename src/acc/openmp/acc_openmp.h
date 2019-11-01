@@ -32,6 +32,10 @@
 # define ACC_OPENMP_EXPORT
 #endif
 
+#if !defined(ACC_OPENMP_BASELINE)
+# define ACC_OPENMP_BASELINE 45
+#endif
+
 #if defined(_OPENMP)
 # if   (201811 <= _OPENMP/*v5.0*/)
 #   define ACC_OPENMP_VERSION 50
@@ -40,8 +44,10 @@
 # elif (201307 <= _OPENMP/*v4.0*/)
 #   define ACC_OPENMP_VERSION 40
 # endif
-# if defined(ACC_OPENMP_VERSION) && \
-    (45 <= ACC_OPENMP_VERSION) /*baseline*/
+# if defined(ACC_OPENMP_VERSION) && (ACC_OPENMP_BASELINE <= ACC_OPENMP_VERSION)
+#   define ACC_OPENMP
+# elif !defined(ACC_OPENMP_VERSION) /* xlc */
+#   define ACC_OPENMP_VERSION ACC_OPENMP_BASELINE
 #   define ACC_OPENMP
 # endif
 #endif

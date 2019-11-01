@@ -10,7 +10,6 @@
 #include <stdlib.h>
 #include <string.h>
 #if !defined(NDEBUG)
-# include <inttypes.h>
 # include <assert.h>
 # include <stdio.h>
 #endif
@@ -82,8 +81,8 @@ int main(int argc, char* argv[])
 
   ACC_CHECK(acc_dev_mem_info(&mem_free, &mem_total));
   ACC_CHECK(mem_free <= mem_total ? EXIT_SUCCESS : EXIT_FAILURE);
-  PRINTF("device memory: free=%" PRIuPTR " total=%" PRIuPTR "\n",
-    (uintptr_t)mem_free, (uintptr_t)mem_total);
+  PRINTF("device memory: free=%i MB total=%i MB\n",
+    (int)(mem_free >> 20), (int)(mem_total >> 20));
 
   ACC_CHECK(acc_stream_priority_range(&priomin, &priomax));
   priospan = 1 + priomax - priomin;

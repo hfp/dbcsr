@@ -18,11 +18,11 @@ extern "C" {
 int acc_openmp_initialized;
 
 
-void* acc_openmp_alloc(int typesize, void* storage, void** pointer, int* counter, int maxcount)
+void* acc_openmp_alloc(int typesize, int* counter, int maxcount, void* storage, void** pointer)
 {
   void* result;
   int i;
-  assert(0 < acc_openmp_initialized && 0 < typesize && NULL != storage && NULL != pointer && NULL != counter);
+  assert(0 < acc_openmp_initialized && 0 < typesize && NULL != counter && NULL != storage && NULL != pointer);
 #if defined(ACC_OPENMP)
 # pragma omp atomic capture
 #endif
@@ -41,7 +41,7 @@ void* acc_openmp_alloc(int typesize, void* storage, void** pointer, int* counter
 #endif
       --(*counter);
       result = NULL;
-    }    
+    }
   }
   else {
     result = malloc(typesize);
@@ -56,10 +56,10 @@ void* acc_openmp_alloc(int typesize, void* storage, void** pointer, int* counter
 }
 
 
-int acc_openmp_dealloc(void* item, int typesize, void* storage, void** pointer, int* counter, int maxcount)
+int acc_openmp_dealloc(void* item, int typesize, int* counter, int maxcount, void* storage, void** pointer)
 {
   int result;
-  assert(0 < acc_openmp_initialized && 0 < typesize && NULL != storage && NULL != pointer && NULL != counter);
+  assert(0 < acc_openmp_initialized && 0 < typesize && NULL != counter && NULL != storage && NULL != pointer);
   if (NULL != item) {
     int i;
 #if defined(ACC_OPENMP)

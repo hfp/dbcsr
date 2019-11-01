@@ -61,8 +61,12 @@ int acc_stream_create(acc_stream_t* stream_p, const char* name, int priority)
 {
   int result;
   acc_openmp_stream_t *const stream = (acc_openmp_stream_t*)acc_openmp_alloc(
-    sizeof(acc_openmp_stream_t), acc_openmp_streams, (void**)acc_openmp_streamp,
-    &acc_openmp_stream_count, ACC_OPENMP_STREAM_MAXCOUNT);
+    sizeof(acc_openmp_stream_t), &acc_openmp_stream_count,
+#if defined(ACC_OPENMP_STREAM_MAXCOUNT) && (0 < ACC_OPENMP_STREAM_MAXCOUNT)
+    ACC_OPENMP_STREAM_MAXCOUNT, acc_openmp_streams, (void**)acc_openmp_streamp);
+#else
+    0, NULL, NULL);
+#endif
   if (NULL != stream) {
     strncpy(stream->name, name, ACC_OPENMP_STREAM_MAXPENDING);
     stream->name[ACC_OPENMP_STREAM_MAXPENDING-1] = 0;
@@ -91,9 +95,12 @@ int acc_stream_destroy(acc_stream_t stream)
 #endif
   result = ((NULL != stream && 0 < s->pending) ? acc_stream_sync(stream) : EXIT_SUCCESS);
   if (EXIT_SUCCESS == result) {
-    result = acc_openmp_dealloc(stream,
-      sizeof(acc_openmp_stream_t), acc_openmp_streams, (void**)acc_openmp_streamp,
-      &acc_openmp_stream_count, ACC_OPENMP_STREAM_MAXCOUNT);
+    result = acc_openmp_dealloc(stream, sizeof(acc_openmp_stream_t), &acc_openmp_stream_count,
+#if defined(ACC_OPENMP_STREAM_MAXCOUNT) && (0 < ACC_OPENMP_STREAM_MAXCOUNT)
+      ACC_OPENMP_STREAM_MAXCOUNT, acc_openmp_streams, (void**)acc_openmp_streamp);
+#else
+      0, NULL, NULL);
+#endif
   }
   return result;
 }

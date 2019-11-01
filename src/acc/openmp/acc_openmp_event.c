@@ -24,8 +24,12 @@ int acc_event_create(acc_event_t* event_p)
 {
   int result;
   acc_openmp_event_t *const event = (acc_openmp_event_t*)acc_openmp_alloc(
-    sizeof(acc_openmp_event_t), acc_openmp_events, (void**)acc_openmp_eventp,
-    &acc_openmp_event_count, ACC_OPENMP_EVENT_MAXCOUNT);
+    sizeof(acc_openmp_event_t), &acc_openmp_event_count,
+#if defined(ACC_OPENMP_EVENT_MAXCOUNT) && (0 < ACC_OPENMP_EVENT_MAXCOUNT)
+    ACC_OPENMP_EVENT_MAXCOUNT, acc_openmp_events, (void**)acc_openmp_eventp);
+#else
+    0, NULL, NULL);
+#endif
   if (NULL != event) {
     event->has_occurred = 0;
     *event_p = event;
@@ -40,9 +44,12 @@ int acc_event_create(acc_event_t* event_p)
 
 int acc_event_destroy(acc_event_t event)
 {
-  return acc_openmp_dealloc(event,
-    sizeof(acc_openmp_event_t), acc_openmp_events, (void**)acc_openmp_eventp,
-    &acc_openmp_event_count, ACC_OPENMP_EVENT_MAXCOUNT);
+  return acc_openmp_dealloc(event, sizeof(acc_openmp_event_t), &acc_openmp_event_count,
+#if defined(ACC_OPENMP_EVENT_MAXCOUNT) && (0 < ACC_OPENMP_EVENT_MAXCOUNT)
+    ACC_OPENMP_EVENT_MAXCOUNT, acc_openmp_events, (void**)acc_openmp_eventp);
+#else
+    0, NULL, NULL);
+#endif
 }
 
 

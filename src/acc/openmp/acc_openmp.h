@@ -70,9 +70,9 @@ ACC_OPENMP_EXPORT typedef struct acc_openmp_event_t {
 typedef const char* acc_openmp_depend_t;
 
 /** Helper function for lock-free allocation of preallocated items such as streams or events. */
-ACC_OPENMP_EXPORT void* acc_openmp_alloc(int typesize, void* storage, void** pointer, int* counter, int maxcount);
+ACC_OPENMP_EXPORT void* acc_openmp_alloc(int typesize, int* counter, int maxcount, void* storage, void** pointer);
 /** Helper function for lock-free deallocation (companion of acc_openmp_alloc). */
-ACC_OPENMP_EXPORT int acc_openmp_dealloc(void* item, int typesize, void* storage, void** pointer, int* counter, int maxcount);
+ACC_OPENMP_EXPORT int acc_openmp_dealloc(void* item, int typesize, int* counter, int maxcount, void* storage, void** pointer);
 /** Generate dependency for given stream; in/out value must be dereferenced inside of depend-clause. */
 ACC_OPENMP_EXPORT int acc_openmp_stream_depend(acc_stream_t stream, acc_openmp_depend_t* in, acc_openmp_depend_t* out);
 

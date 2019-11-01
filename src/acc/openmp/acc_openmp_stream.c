@@ -60,17 +60,18 @@ int acc_openmp_stream_depend(acc_stream_t stream, acc_openmp_depend_t* in, acc_o
 int acc_stream_create(acc_stream_t* stream_p, const char* name, int priority)
 {
   acc_openmp_stream_t* stream;
-  int result = acc_openmp_alloc((void**)&stream,
+  const int result = acc_openmp_alloc((void**)&stream,
     sizeof(acc_openmp_stream_t), &acc_openmp_stream_count,
 #if defined(ACC_OPENMP_STREAM_MAXCOUNT) && (0 < ACC_OPENMP_STREAM_MAXCOUNT)
     ACC_OPENMP_STREAM_MAXCOUNT, acc_openmp_streams, (void**)acc_openmp_streamp);
 #else
     0, NULL, NULL);
 #endif
+  assert(NULL != stream_p);
   if (EXIT_SUCCESS == result) {
     assert(NULL != stream);
     strncpy(stream->name, name, ACC_OPENMP_STREAM_MAXPENDING);
-    stream->name[ACC_OPENMP_STREAM_MAXPENDING-1] = 0;
+    stream->name[ACC_OPENMP_STREAM_MAXPENDING-1] = '\0';
     stream->priority = priority;
     stream->pending = 0;
     stream->status = 0;

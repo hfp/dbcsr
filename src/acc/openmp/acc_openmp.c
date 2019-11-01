@@ -18,11 +18,10 @@ extern "C" {
 int acc_openmp_initialized;
 
 
-void* acc_openmp_alloc(int typesize, int* counter, int maxcount, void* storage, void** pointer)
+int acc_openmp_alloc(void** item, int typesize, int* counter, int maxcount, void* storage, void** pointer)
 {
-  void* result;
-  int i;
-  assert(0 < acc_openmp_initialized && 0 < typesize && NULL != counter);
+  int result, i;
+  assert(0 < acc_openmp_initialized && NULL != item && 0 < typesize && NULL != counter);
 #if defined(ACC_OPENMP)
 # pragma omp atomic capture
 #endif
@@ -30,23 +29,29 @@ void* acc_openmp_alloc(int typesize, int* counter, int maxcount, void* storage, 
   if (0 < maxcount) { /* fast allocation */
     if (i < maxcount) {
       assert(NULL != storage && NULL != pointer);
-      result = pointer[i];
-      if (NULL == result) {
-        result = (char*)storage + i * typesize;
+      *item = pointer[i];
+      if (NULL == *item) {
+        *item = (char*)storage + i * typesize;
       }
-      assert(NULL != result);
+      assert(NULL != *item);
+      result = EXIT_SUCCESS;
     }
     else { /* out of space */
+      result = EXIT_FAILURE;
 #if defined(ACC_OPENMP)
 #     pragma omp atomic
 #endif
       --(*counter);
-      result = NULL;
+      *item = NULL;
     }
   }
   else {
-    result = malloc(typesize);
-    if (NULL == result) {
+    *item = malloc(typesize);
+    if (NULL != *item) {
+      result = EXIT_SUCCESS;
+    }
+    else {
+      result = EXIT_FAILURE;
 #if defined(ACC_OPENMP)
 #     pragma omp atomic
 #endif

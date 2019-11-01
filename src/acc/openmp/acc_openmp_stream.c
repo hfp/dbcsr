@@ -59,15 +59,16 @@ int acc_openmp_stream_depend(acc_stream_t stream, acc_openmp_depend_t* in, acc_o
 
 int acc_stream_create(acc_stream_t* stream_p, const char* name, int priority)
 {
-  int result;
-  acc_openmp_stream_t *const stream = (acc_openmp_stream_t*)acc_openmp_alloc(
+  acc_openmp_stream_t* stream;
+  int result = acc_openmp_alloc((void**)&stream,
     sizeof(acc_openmp_stream_t), &acc_openmp_stream_count,
 #if defined(ACC_OPENMP_STREAM_MAXCOUNT) && (0 < ACC_OPENMP_STREAM_MAXCOUNT)
     ACC_OPENMP_STREAM_MAXCOUNT, acc_openmp_streams, (void**)acc_openmp_streamp);
 #else
     0, NULL, NULL);
 #endif
-  if (NULL != stream) {
+  if (EXIT_SUCCESS == result) {
+    assert(NULL != stream);
     strncpy(stream->name, name, ACC_OPENMP_STREAM_MAXPENDING);
     stream->name[ACC_OPENMP_STREAM_MAXPENDING-1] = 0;
     stream->priority = priority;
@@ -77,10 +78,6 @@ int acc_stream_create(acc_stream_t* stream_p, const char* name, int priority)
     stream->device_id = omp_get_default_device();
 #endif
     *stream_p = stream;
-    result = EXIT_SUCCESS;
-  }
-  else {
-    result = EXIT_FAILURE;
   }
   return result;
 }
@@ -88,12 +85,11 @@ int acc_stream_create(acc_stream_t* stream_p, const char* name, int priority)
 
 int acc_stream_destroy(acc_stream_t stream)
 {
-  int result;
   acc_openmp_stream_t *const s = (acc_openmp_stream_t*)stream;
+  int result = ((NULL != s && 0 < s->pending) ? acc_stream_sync(stream) : EXIT_SUCCESS);
 #if defined(ACC_OPENMP_STREAM_MAXCOUNT) && (0 < ACC_OPENMP_STREAM_MAXCOUNT)
   assert(NULL == s || (acc_openmp_streams <= s && s < (acc_openmp_streams + ACC_OPENMP_STREAM_MAXCOUNT)));
 #endif
-  result = ((NULL != stream && 0 < s->pending) ? acc_stream_sync(stream) : EXIT_SUCCESS);
   if (EXIT_SUCCESS == result) {
     result = acc_openmp_dealloc(stream, sizeof(acc_openmp_stream_t), &acc_openmp_stream_count,
 #if defined(ACC_OPENMP_STREAM_MAXCOUNT) && (0 < ACC_OPENMP_STREAM_MAXCOUNT)

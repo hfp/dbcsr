@@ -22,21 +22,17 @@ int acc_openmp_event_count;
 
 int acc_event_create(acc_event_t* event_p)
 {
-  int result;
-  acc_openmp_event_t *const event = (acc_openmp_event_t*)acc_openmp_alloc(
+  acc_openmp_event_t* event;
+  int result = acc_openmp_alloc((void**)&event,
     sizeof(acc_openmp_event_t), &acc_openmp_event_count,
 #if defined(ACC_OPENMP_EVENT_MAXCOUNT) && (0 < ACC_OPENMP_EVENT_MAXCOUNT)
     ACC_OPENMP_EVENT_MAXCOUNT, acc_openmp_events, (void**)acc_openmp_eventp);
 #else
     0, NULL, NULL);
 #endif
-  if (NULL != event) {
+  if (EXIT_SUCCESS == result) {
     event->has_occurred = 0;
     *event_p = event;
-    result = EXIT_SUCCESS;
-  }
-  else {
-    result = EXIT_FAILURE;
   }
   return result;
 }

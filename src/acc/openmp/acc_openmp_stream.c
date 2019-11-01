@@ -133,7 +133,7 @@ int acc_stream_sync(acc_stream_t stream)
   assert(NULL == s || (acc_openmp_streams <= s && s < (acc_openmp_streams + ACC_OPENMP_STREAM_MAXCOUNT)));
 #endif
   if (NULL != stream && 0 < s->pending) {
-    result = EXIT_FAILURE; /* TODO */
+    result = EXIT_SUCCESS; /* TODO */
   }
   else {
     result = EXIT_SUCCESS;
@@ -149,7 +149,7 @@ int acc_stream_wait_event(acc_stream_t stream, acc_event_t event)
 #if defined(ACC_OPENMP_STREAM_MAXCOUNT) && (0 < ACC_OPENMP_STREAM_MAXCOUNT)
   assert(NULL == s || (acc_openmp_streams <= s && s < (acc_openmp_streams + ACC_OPENMP_STREAM_MAXCOUNT)));
 #endif
-  result = EXIT_FAILURE; /* TODO */
+  result = EXIT_SUCCESS; /* TODO */
   return result;
 }
 

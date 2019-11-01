@@ -5,6 +5,13 @@ OBJFILES = $(SRCFILES:.c=.o)
 DBG ?= 0
 SYM ?= $(DBG)
 
+INTEL ?= 0
+IBM ?= 0
+
+ifneq (0,$(IBM))
+  CC := xlc
+endif
+
 ifneq (0,$(SYM))
   CFLAGS += -g
 endif
@@ -14,8 +21,13 @@ else
   CFLAGS += -O2
 endif
 ifneq (0,$(OMP))
+ifneq (0,$(IBM))
+  LDFLAGS += -qsmp=omp -qoffload
+  CFLAGS += -qsmp=omp -qoffload
+else
   LDFLAGS += -fopenmp
   CFLAGS += -fopenmp
+endif
 endif
 
 libacc_openmp.a: $(OBJFILES)

@@ -117,6 +117,12 @@ int main(int argc, char* argv[])
 # pragma omp parallel for private(i)
 #endif
   for (i = 0; i < ACC_STREAM_MAXCOUNT; ++i) {
+    if (NULL == stream[i]) {
+      char name[ACC_STRING_MAXLEN]; /* thread-local */
+      const int n = sprintf(name, "%i", i);
+      ACC_CHECK((0 <= n && n < ACC_STRING_MAXLEN) ? EXIT_SUCCESS : EXIT_FAILURE);
+      ACC_CHECK(acc_stream_create(stream + i, name, priority[i]));
+    }
     ACC_CHECK(acc_stream_destroy(stream[i]));
   }
 
@@ -137,6 +143,9 @@ int main(int argc, char* argv[])
 # pragma omp parallel for private(i)
 #endif
   for (i = 0; i < ACC_EVENT_MAXCOUNT; ++i) {
+    if (NULL == event[i]) {
+      ACC_CHECK(acc_event_create(event + i));
+    }
     ACC_CHECK(acc_event_destroy(event[i]));
   }
 

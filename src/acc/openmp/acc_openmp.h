@@ -9,8 +9,6 @@
 #ifndef ACC_OPENMP_H
 #define ACC_OPENMP_H
 
-#include "../include/acc.h"
-
 #if !defined(ACC_OPENMP_STREAM_MAXPENDING)
 # define ACC_OPENMP_STREAM_MAXPENDING 256
 #endif
@@ -22,6 +20,26 @@
 #endif
 #if !defined(ACC_OPENMP_DEVICE_MAXCOUNT) && 0
 # define ACC_OPENMP_DEVICE_MAXCOUNT 0
+#endif
+
+#if defined(__INTEL_COMPILER)
+# if !defined(__INTEL_COMPILER_UPDATE)
+#   define ACC_OPENMP_INTEL_COMPILER __INTEL_COMPILER
+# else
+#   define ACC_OPENMP_INTEL_COMPILER (__INTEL_COMPILER + __INTEL_COMPILER_UPDATE)
+# endif
+#elif defined(__INTEL_COMPILER_BUILD_DATE)
+# define ACC_OPENMP_INTEL_COMPILER ((__INTEL_COMPILER_BUILD_DATE / 10000 - 2000) * 100)
+#endif
+
+#if defined(__STDC_VERSION__) && (199901L <= __STDC_VERSION__) /*C99*/
+# define ACC_OPENMP_PRAGMA(DIRECTIVE) _Pragma(ACC_OPENMP_STRINGIFY(DIRECTIVE))
+#else
+# if defined(ACC_OPENMP_INTEL_COMPILER) || defined(_MSC_VER)
+#   define ACC_OPENMP_PRAGMA(DIRECTIVE) __pragma(ACC_OPENMP_EXPAND(DIRECTIVE))
+# else
+#   define ACC_OPENMP_PRAGMA(DIRECTIVE)
+# endif
 #endif
 
 #if defined(__cplusplus)
@@ -46,12 +64,13 @@
 # endif
 # if defined(ACC_OPENMP_VERSION) && (ACC_OPENMP_BASELINE <= ACC_OPENMP_VERSION)
 #   define ACC_OPENMP
-# elif !defined(ACC_OPENMP_VERSION) /* xlc */
+# elif !defined(ACC_OPENMP_VERSION) && !defined(_MSC_VER)
 #   define ACC_OPENMP_VERSION ACC_OPENMP_BASELINE
 #   define ACC_OPENMP
 # endif
 #endif
 
+#include "../include/acc.h"
 #if defined(ACC_OPENMP)
 # include <omp.h>
 #endif
@@ -59,27 +78,6 @@
 #define ACC_OPENMP_EXPAND(SYMBOL) SYMBOL
 #define ACC_OPENMP_STRINGIFY2(SYMBOL) #SYMBOL
 #define ACC_OPENMP_STRINGIFY(SYMBOL) ACC_OPENMP_STRINGIFY2(SYMBOL)
-
-#if defined(__INTEL_COMPILER)
-# if !defined(__INTEL_COMPILER_UPDATE)
-#   define ACC_OPENMP_INTEL_COMPILER __INTEL_COMPILER
-# else
-#   define ACC_OPENMP_INTEL_COMPILER (__INTEL_COMPILER + __INTEL_COMPILER_UPDATE)
-# endif
-#elif defined(__INTEL_COMPILER_BUILD_DATE)
-# define ACC_OPENMP_INTEL_COMPILER ((__INTEL_COMPILER_BUILD_DATE / 10000 - 2000) * 100)
-#endif
-
-#if defined(__STDC_VERSION__) && (199901L <= __STDC_VERSION__) /*C99*/
-# define ACC_OPENMP_PRAGMA(DIRECTIVE) _Pragma(ACC_OPENMP_STRINGIFY(DIRECTIVE))
-#else
-# if defined(ACC_OPENMP_INTEL_COMPILER) || defined(_MSC_VER)
-#   define ACC_OPENMP_PRAGMA(DIRECTIVE) __pragma(ACC_OPENMP_EXPAND(DIRECTIVE))
-# else
-#   define ACC_OPENMP_PRAGMA(DIRECTIVE)
-# endif
-#endif
-
 #define ACC_OPENMP_DEPEND_IN(DEPEND) depend(in:DEPEND[0])
 #define ACC_OPENMP_DEPEND_OUT(DEPEND) depend(out:DEPEND[0])
 

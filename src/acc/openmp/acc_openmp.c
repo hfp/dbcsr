@@ -162,7 +162,7 @@ int acc_set_active_device(int device_id)
   if (EXIT_SUCCESS == result) {
 #if !defined(NDEBUG)
     int ndevices;
-# if !defined(ACC_OPENMP_DEVICE_MAXCOUNT) || (0 != ACC_OPENMP_DEVICE_MAXCOUNT)
+# if defined(ACC_OPENMP) && (!defined(ACC_OPENMP_DEVICE_MAXCOUNT) || (0 != ACC_OPENMP_DEVICE_MAXCOUNT))
     ndevices = omp_get_num_devices();
 #   if defined(ACC_OPENMP_DEVICE_MAXCOUNT) && (0 < ACC_OPENMP_DEVICE_MAXCOUNT)
     if (ACC_OPENMP_DEVICE_MAXCOUNT < ndevices) {
@@ -175,7 +175,7 @@ int acc_set_active_device(int device_id)
     if (device_id < ndevices)
 #endif
     {
-#if !defined(ACC_OPENMP_DEVICE_MAXCOUNT) || (0 != ACC_OPENMP_DEVICE_MAXCOUNT)
+#if defined(ACC_OPENMP) && (!defined(ACC_OPENMP_DEVICE_MAXCOUNT) || (0 != ACC_OPENMP_DEVICE_MAXCOUNT))
       omp_set_default_device(device_id);
 #endif
       result = EXIT_SUCCESS;

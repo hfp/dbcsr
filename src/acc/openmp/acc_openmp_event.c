@@ -51,9 +51,41 @@ int acc_event_destroy(acc_event_t event)
 
 int acc_event_record(acc_event_t event, acc_stream_t stream)
 {
-  int result;
-  (void)(event); (void)(stream); /* unused */
-  result = EXIT_FAILURE;
+  int result = EXIT_SUCCESS;
+  if (NULL != event && NULL != stream) {
+    acc_openmp_depend_t* deps;
+    result = acc_openmp_stream_depend(stream, &deps);
+    if (EXIT_SUCCESS == result) {
+      acc_openmp_event_t *const e = (acc_openmp_event_t*)event;
+      e->has_occurred = 0; /* reset if re-enqueued */
+      deps->args[0].ptr = event;
+#if defined(_OPENMP)
+#     pragma omp barrier
+#     pragma omp master
+#endif
+      { int tid = 0, nthreads = 1;
+#if defined(_OPENMP)
+        nthreads = omp_get_num_threads();
+#endif
+        for (; tid < nthreads; ++tid) {
+          acc_openmp_depend_t *const di = &deps[tid];
+          acc_openmp_event_t *const ei = (acc_openmp_event_t*)di->args[0].ptr;
+          int *const has_occurred = &ei->has_occurred;
+#if defined(ACC_OPENMP_OFFLOAD)
+          const char* const id = di->in, * const od = di->out;
+          (void)(id); (void)(od); /* suppress incorrect warning */
+#         pragma omp target depend(in:id[0]) depend(out:od[0]) nowait map(from:has_occurred[0:1])
+#endif
+          *has_occurred = 1;
+        }
+      }
+#if defined(_OPENMP)
+#     pragma omp barrier
+#endif
+
+    }
+  }
+  else result = (NULL == event ? acc_stream_sync(stream) : EXIT_FAILURE);
   return result;
 }
 

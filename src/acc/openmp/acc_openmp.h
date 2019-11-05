@@ -73,7 +73,7 @@
 # endif
 # if defined(ACC_OPENMP_VERSION) && (ACC_OPENMP_BASELINE <= ACC_OPENMP_VERSION)
 #   define ACC_OPENMP_OFFLOAD
-# elif !defined(ACC_OPENMP_VERSION) && !defined(_MSC_VER)
+# elif !defined(ACC_OPENMP_VERSION) && defined(__ibmxl__)
 #   define ACC_OPENMP_VERSION ACC_OPENMP_BASELINE
 #   define ACC_OPENMP_OFFLOAD
 # endif

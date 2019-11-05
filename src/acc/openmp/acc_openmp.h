@@ -80,6 +80,7 @@
 #endif
 
 #include "../include/acc.h"
+#include <stdint.h>
 #if defined(_OPENMP)
 # include <omp.h>
 #endif
@@ -87,7 +88,7 @@
 #define ACC_OPENMP_EXPAND(SYMBOL) SYMBOL
 #define ACC_OPENMP_STRINGIFY2(SYMBOL) #SYMBOL
 #define ACC_OPENMP_STRINGIFY(SYMBOL) ACC_OPENMP_STRINGIFY2(SYMBOL)
-#define ACC_OPENMP_UP2(N, NPOT) ((((unsigned long long)N) + ((NPOT) - 1)) & ~((NPOT) - 1))
+#define ACC_OPENMP_UP2(N, NPOT) ((((uint64_t)N) + ((NPOT) - 1)) & ~((NPOT) - 1))
 
 
 ACC_OPENMP_EXPORT typedef struct acc_openmp_stream_t {
@@ -105,9 +106,11 @@ ACC_OPENMP_EXPORT typedef struct acc_openmp_event_t {
 
 ACC_OPENMP_EXPORT typedef union acc_openmp_any_t {
   const void* const_ptr; void* ptr;
-  unsigned long long i64;
+  uint64_t u64;
+  int64_t i64;
   size_t size;
-  int i32;
+  uint32_t u32;
+  int32_t i32;
 } acc_openmp_any_t;
 
 ACC_OPENMP_EXPORT typedef struct acc_openmp_depend_t {

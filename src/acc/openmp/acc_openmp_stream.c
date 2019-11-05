@@ -15,6 +15,7 @@
 extern "C" {
 #endif
 
+acc_openmp_depend_t acc_openmp_stream_call[ACC_OPENMP_THREADS_MAXCOUNT];
 #if defined(ACC_OPENMP_STREAM_MAXCOUNT) && (0 < ACC_OPENMP_STREAM_MAXCOUNT)
 acc_openmp_stream_t  acc_openmp_streams[ACC_OPENMP_STREAM_MAXCOUNT];
 acc_openmp_stream_t* acc_openmp_streamp[ACC_OPENMP_STREAM_MAXCOUNT];
@@ -22,36 +23,45 @@ acc_openmp_stream_t* acc_openmp_streamp[ACC_OPENMP_STREAM_MAXCOUNT];
 int acc_openmp_stream_count;
 
 
-int acc_openmp_stream_depend(acc_stream_t stream, acc_openmp_depend_t* in, acc_openmp_depend_t* out)
+int acc_openmp_stream_depend(acc_stream_t stream, acc_openmp_depend_t** depend)
 {
   int result;
   acc_openmp_stream_t *const s = (acc_openmp_stream_t*)stream;
 #if defined(ACC_OPENMP_STREAM_MAXCOUNT) && (0 < ACC_OPENMP_STREAM_MAXCOUNT)
   assert(NULL == s || (acc_openmp_streams <= s && s < (acc_openmp_streams + ACC_OPENMP_STREAM_MAXCOUNT)));
 #endif
-  if (NULL != stream && (NULL != in || NULL != out)) {
-    if (NULL != out) {
-      int index;
-#if defined(ACC_OPENMP)
-#     pragma omp atomic capture
+#if defined(ACC_OPENMP_OFFLOAD) && !defined(NDEBUG)
+  assert(omp_get_default_device() == s->device_id);
 #endif
-      index = s->pending++;
-      *out = s->name + index % ACC_OPENMP_STREAM_MAXPENDING;
-    }
-    if (NULL != in) {
-      static const char dummy = 0;
-      *in = ((NULL != out && s->name < *out) ? (*out - 1) : &dummy);
-    }
-#if defined(ACC_OPENMP) && !defined(NDEBUG)
-    if (omp_get_default_device() != s->device_id) {
-      result = EXIT_FAILURE;
-    }
-    else
+  assert(NULL != depend);
+  if (NULL != s && EXIT_SUCCESS == s->status) {
+    static const char dummy = 0;
+    int index;
+#if !defined(_OPENMP)
+    acc_openmp_depend_t *const d = acc_openmp_stream_call;
+#else
+    acc_openmp_depend_t *const d = &acc_openmp_stream_call[omp_get_thread_num()];
+# if defined(_OPENMP) && (200805 <= _OPENMP) /* OpenMP 3.0 */
+#   pragma omp atomic capture
+# else
+#   pragma omp critical(acc_openmp_stream_depend_critical)
+# endif
 #endif
+    index = s->pending++;
+    assert(NULL != d);
+#if !defined(NDEBUG)
+    memset(d->args, 0, ACC_OPENMP_ARGUMENTS_MAXCOUNT * sizeof(acc_openmp_any_t));
+#endif
+    d->out = s->name + index % ACC_OPENMP_STREAM_MAXPENDING;
+    d->in = (s->name < d->out ? (d->out - 1) : &dummy);
+    *depend = d;
     result = EXIT_SUCCESS;
   }
   else {
-    result = EXIT_FAILURE;
+#if !defined(NDEBUG) /* user checks return value */
+    *depend = NULL;
+#endif
+    result = (NULL != s ? s->status : EXIT_SUCCESS);
   }
   return result;
 }
@@ -75,7 +85,7 @@ int acc_stream_create(acc_stream_t* stream_p, const char* name, int priority)
     stream->priority = priority;
     stream->pending = 0;
     stream->status = 0;
-#if defined(ACC_OPENMP) && !defined(NDEBUG)
+#if defined(ACC_OPENMP_OFFLOAD) && !defined(NDEBUG)
     stream->device_id = omp_get_default_device();
 #endif
     *stream_p = stream;
@@ -107,10 +117,10 @@ int acc_openmp_stream_clear_errors(void)
 {
 #if defined(ACC_OPENMP_STREAM_MAXCOUNT) && (0 < ACC_OPENMP_STREAM_MAXCOUNT)
   int i = 0;
-  for (; i < ACC_OPENMP_STREAM_MAXCOUNT; ++i) {
-# if defined(ACC_OPENMP)
-#   pragma omp atomic write
+# if defined(_OPENMP)
+# pragma omp critical
 # endif
+  for (; i < ACC_OPENMP_STREAM_MAXCOUNT; ++i) {
     acc_openmp_streams[i].status = EXIT_SUCCESS;
   }
 #endif

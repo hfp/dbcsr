@@ -9,6 +9,15 @@
 #ifndef ACC_OPENMP_H
 #define ACC_OPENMP_H
 
+#if !defined(ACC_OPENMP_THREADS_MAXCOUNT)
+# define ACC_OPENMP_THREADS_MAXCOUNT 8192
+#endif
+#if !defined(ACC_OPENMP_CACHELINE_NBYTES)
+# define ACC_OPENMP_CACHELINE_NBYTES 64
+#endif
+#if !defined(ACC_OPENMP_ARGUMENTS_MAXCOUNT)
+# define ACC_OPENMP_ARGUMENTS_MAXCOUNT 6
+#endif
 #if !defined(ACC_OPENMP_STREAM_MAXPENDING)
 # define ACC_OPENMP_STREAM_MAXPENDING 256
 #endif
@@ -63,30 +72,29 @@
 #   define ACC_OPENMP_VERSION 40
 # endif
 # if defined(ACC_OPENMP_VERSION) && (ACC_OPENMP_BASELINE <= ACC_OPENMP_VERSION)
-#   define ACC_OPENMP
+#   define ACC_OPENMP_OFFLOAD
 # elif !defined(ACC_OPENMP_VERSION) && !defined(_MSC_VER)
 #   define ACC_OPENMP_VERSION ACC_OPENMP_BASELINE
-#   define ACC_OPENMP
+#   define ACC_OPENMP_OFFLOAD
 # endif
 #endif
 
 #include "../include/acc.h"
-#if defined(ACC_OPENMP)
+#if defined(_OPENMP)
 # include <omp.h>
 #endif
 
 #define ACC_OPENMP_EXPAND(SYMBOL) SYMBOL
 #define ACC_OPENMP_STRINGIFY2(SYMBOL) #SYMBOL
 #define ACC_OPENMP_STRINGIFY(SYMBOL) ACC_OPENMP_STRINGIFY2(SYMBOL)
-#define ACC_OPENMP_DEPEND_IN(DEPEND) depend(in:DEPEND[0])
-#define ACC_OPENMP_DEPEND_OUT(DEPEND) depend(out:DEPEND[0])
+#define ACC_OPENMP_UP2(N, NPOT) ((((unsigned long long)N) + ((NPOT) - 1)) & ~((NPOT) - 1))
 
 
 ACC_OPENMP_EXPORT typedef struct acc_openmp_stream_t {
   /* address of each character is (side-)used to form OpenMP task dependencies */
   char name[ACC_OPENMP_STREAM_MAXPENDING];
   int pending, priority, status;
-#if defined(ACC_OPENMP) && !defined(NDEBUG)
+#if defined(ACC_OPENMP_OFFLOAD) && !defined(NDEBUG)
   int device_id; /* should match active device as set by acc_set_active_device */
 #endif
 } acc_openmp_stream_t;
@@ -95,14 +103,27 @@ ACC_OPENMP_EXPORT typedef struct acc_openmp_event_t {
   int has_occurred;
 } acc_openmp_event_t;
 
-typedef const char* acc_openmp_depend_t;
+ACC_OPENMP_EXPORT typedef union acc_openmp_any_t {
+  const void* const_ptr; void* ptr;
+  unsigned long long i64;
+  size_t size;
+  int i32;
+} acc_openmp_any_t;
+
+ACC_OPENMP_EXPORT typedef struct acc_openmp_depend_t {
+  char data[ACC_OPENMP_UP2(ACC_OPENMP_ARGUMENTS_MAXCOUNT*sizeof(acc_openmp_any_t)+2*sizeof(void*),ACC_OPENMP_CACHELINE_NBYTES)];
+  /** Used to record the arguments/signature of each OpenMP-offload/call on a per-thread basis. */
+  acc_openmp_any_t args[ACC_OPENMP_ARGUMENTS_MAXCOUNT];
+  /** The in/out-pointer must be dereferenced (depend clause expects value; due to syntax issues use in[0]/out[0]). */
+  const char *in, *out;
+} acc_openmp_depend_t;
 
 /** Helper function for lock-free allocation of preallocated items such as streams or events. */
 ACC_OPENMP_EXPORT int acc_openmp_alloc(void** item, int typesize, int* counter, int maxcount, void* storage, void** pointer);
 /** Helper function for lock-free deallocation (companion of acc_openmp_alloc). */
 ACC_OPENMP_EXPORT int acc_openmp_dealloc(void* item, int typesize, int* counter, int maxcount, void* storage, void** pointer);
-/** Generate dependency for given stream; in/out value must be dereferenced inside of depend-clause. */
-ACC_OPENMP_EXPORT int acc_openmp_stream_depend(acc_stream_t stream, acc_openmp_depend_t* in, acc_openmp_depend_t* out);
+/** Generate dependency for given stream. */
+ACC_OPENMP_EXPORT int acc_openmp_stream_depend(acc_stream_t stream, acc_openmp_depend_t** depend);
 /** Clears status of all streams (if possible). */
 ACC_OPENMP_EXPORT int acc_openmp_stream_clear_errors(void);
 

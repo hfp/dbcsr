@@ -52,12 +52,8 @@ int acc_event_destroy(acc_event_t event)
 int acc_event_record(acc_event_t event, acc_stream_t stream)
 {
   int result;
-#if defined(ACC_OPENMP)
-  result = EXIT_FAILURE; /* TODO */
-#else
   (void)(event); (void)(stream); /* unused */
   result = EXIT_FAILURE;
-#endif
   return result;
 }
 
@@ -65,12 +61,8 @@ int acc_event_record(acc_event_t event, acc_stream_t stream)
 int acc_event_query(acc_event_t event, int* has_occurred)
 {
   int result;
-#if defined(ACC_OPENMP)
-  result = EXIT_FAILURE; /* TODO */
-#else
   (void)(event); (void)(has_occurred); /* unused */
   result = EXIT_FAILURE;
-#endif
   return result;
 }
 
@@ -78,12 +70,8 @@ int acc_event_query(acc_event_t event, int* has_occurred)
 int acc_event_synchronize(acc_event_t event)
 {
   int result;
-#if defined(ACC_OPENMP)
-  result = EXIT_FAILURE; /* TODO */
-#else
   (void)(event); /* unused */
   result = EXIT_FAILURE;
-#endif
   return result;
 }
 

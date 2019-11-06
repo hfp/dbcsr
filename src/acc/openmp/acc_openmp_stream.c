@@ -149,10 +149,13 @@ int acc_stream_priority_range(int* least, int* greatest)
 
 int acc_stream_sync(acc_stream_t stream)
 { /* Blocks the host-thread. */
-  int result = acc_event_record(NULL/*event*/, stream), npause = 1;
+  int result = (NULL != stream ? EXIT_SUCCESS : EXIT_FAILURE), npause = 1;
   if (EXIT_SUCCESS == result) {
-    acc_openmp_stream_t *const s = (acc_openmp_stream_t*)stream;
-    assert(NULL != s); ACC_OPENMP_WAIT(s->pending, npause);
+    result = acc_event_record(NULL/*event*/, stream);
+    if (EXIT_SUCCESS == result) {
+      acc_openmp_stream_t* const s = (acc_openmp_stream_t*)stream;
+      ACC_OPENMP_WAIT(s->pending, npause);
+    }
   }
   return result;
 }

@@ -63,7 +63,7 @@ int acc_event_record(acc_event_t event, acc_stream_t stream)
       acc_openmp_depend_t* deps;
       result = acc_openmp_stream_depend(stream, &deps);
       if (EXIT_SUCCESS == result) {
-        e->dependency = deps->out; /* reset if re-enqueued */
+        if (NULL != e) e->dependency = deps->out; /* reset if re-enqueued */
         deps->args[0].ptr = event;
 #       pragma omp barrier
 #       pragma omp master

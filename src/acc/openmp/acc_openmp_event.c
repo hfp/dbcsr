@@ -53,35 +53,39 @@ int acc_event_record(acc_event_t event, acc_stream_t stream)
 {
   int result;
   if (NULL != event && NULL != stream) {
-    acc_openmp_depend_t* deps;
-    result = acc_openmp_stream_depend(stream, &deps);
-    if (EXIT_SUCCESS == result) {
-      acc_openmp_event_t *const e = (acc_openmp_event_t*)event;
-      e->dependency = deps->out; /* reset if re-enqueued */
-      deps->args[0].ptr = event;
-#if defined(_OPENMP)
-#     pragma omp barrier
-#     pragma omp master
-#endif
-      { int tid = 0, nthreads = 1;
-#if defined(_OPENMP)
-        nthreads = omp_get_num_threads();
-#endif
-        for (; tid < nthreads; ++tid) {
-          acc_openmp_depend_t *const di = &deps[tid];
-          acc_openmp_event_t *const ei = (acc_openmp_event_t*)di->args[0].ptr;
-          const char* *const has_occurred = &ei->dependency;
-#if defined(ACC_OPENMP_OFFLOAD)
-          const char *const id = di->in, *const od = di->out;
-          (void)(id); (void)(od); /* suppress incorrect warning */
-#         pragma omp target depend(in:id[0]) depend(out:od[0]) nowait map(from:has_occurred[0:1])
-#endif
-          *has_occurred = NULL;
+    acc_openmp_event_t *const e = (acc_openmp_event_t*)event;
+#if !defined(ACC_OPENMP_OFFLOAD)
+    (void)(stream); /* unused */
+#else /* implies _OPENMP */
+    const int ndevices = omp_get_num_devices();
+    if (0 < ndevices) {
+      acc_openmp_depend_t* deps;
+      result = acc_openmp_stream_depend(stream, &deps);
+      if (EXIT_SUCCESS == result) {
+        e->dependency = deps->out; /* reset if re-enqueued */
+        deps->args[0].ptr = event;
+#       pragma omp barrier
+#       pragma omp master
+        { const int nthreads = omp_get_num_threads();
+          int tid = 0;
+          for (; tid < nthreads; ++tid) {
+            acc_openmp_depend_t *const di = &deps[tid];
+            acc_openmp_event_t *const ei = (acc_openmp_event_t*)di->args[0].ptr;
+            const char *volatile *const has_occurred = &ei->dependency;
+            const char *const id = di->in, *const od = di->out;
+            (void)(id); (void)(od); /* suppress incorrect warning */
+#           pragma omp target depend(in:id[0]) depend(out:od[0]) nowait map(from:has_occurred[0:1])
+            *has_occurred = NULL;
+          }
         }
+#       pragma omp barrier
       }
-#if defined(_OPENMP)
-#     pragma omp barrier
+    }
+    else
 #endif
+    {
+      e->dependency = NULL;
+      result = EXIT_SUCCESS;
     }
   }
   else result = (NULL == event ? EXIT_SUCCESS : EXIT_FAILURE);
@@ -102,22 +106,27 @@ int acc_event_query(acc_event_t event, int* has_occurred)
 
 int acc_event_synchronize(acc_event_t event)
 { /* Waits on the host-side. */
-  const acc_openmp_event_t *const e = (const acc_openmp_event_t*)event;
-  int npause = 1;
-  while (NULL != e->dependency) {
-    do {
-      int counter = 0;
-      for (; counter < npause; ++counter) ACC_OPENMP_PAUSE;
-      if (npause < ACC_OPENMP_PAUSE_MAXCOUNT) {
-        npause *= 2;
-      }
-      else {
-        npause = ACC_OPENMP_PAUSE_MAXCOUNT;
-        /* TODO: yield? */
-      }
-    } while (NULL != e->dependency);
+  int result;
+  if (NULL != event) {
+    const acc_openmp_event_t *const e = (const acc_openmp_event_t*)event;
+    int npause = 1;
+    while (NULL != e->dependency) {
+      do {
+        int counter = 0;
+        for (; counter < npause; ++counter) ACC_OPENMP_PAUSE;
+        if (npause < ACC_OPENMP_PAUSE_MAXCOUNT) {
+          npause *= 2;
+        }
+        else {
+          npause = ACC_OPENMP_PAUSE_MAXCOUNT;
+          /* TODO: yield? */
+        }
+      } while (NULL != e->dependency);
+    }
+    result = EXIT_SUCCESS;
   }
-  return EXIT_SUCCESS;
+  else result = EXIT_FAILURE;
+  return result;
 }
 
 #if defined(__cplusplus)

@@ -168,35 +168,37 @@ int acc_stream_wait_event(acc_stream_t stream, acc_event_t event)
 { /* Waits (device-side) for an event (potentially recorded on a different stream). */
   int result;
   if (NULL != stream && NULL != event) {
-#if defined(ACC_OPENMP_OFFLOAD)
-    acc_openmp_depend_t* deps;
-    result = acc_openmp_stream_depend(stream, &deps);
-    if (EXIT_SUCCESS == result) {
-      const acc_openmp_event_t *const e = (const acc_openmp_event_t*)event;
-      deps->args[0].const_ptr = event;
-# if defined(_OPENMP)
-#     pragma omp barrier
-#     pragma omp master
-# endif
-      { int tid = 0, nthreads = 1;
-# if defined(_OPENMP)
-        nthreads = omp_get_num_threads();
-# endif
-        for (; tid < nthreads; ++tid) {
-          const acc_openmp_depend_t *const di = &deps[tid];
-          const acc_openmp_event_t *const ei = (const acc_openmp_event_t*)di->args[0].const_ptr;
-          const char *const id = di->in, *const ie = ei->dependency, *const od = di->out;
-          (void)(id); (void)(ie); (void)(od); /* suppress incorrect warning */
-#         pragma omp target depend(in:id[0],ie[0]) depend(out:od[0]) nowait if(0)
+#if !defined(ACC_OPENMP_OFFLOAD)
+    (void)(stream); /* unused */
+#else /* implies _OPENMP */
+    const int ndevices = omp_get_num_devices();
+    if (0 < ndevices) {
+      acc_openmp_depend_t* deps;
+      result = acc_openmp_stream_depend(stream, &deps);
+      if (EXIT_SUCCESS == result) {
+        deps->args[0].const_ptr = event;
+#       pragma omp barrier
+#       pragma omp master
+        { const int nthreads = omp_get_num_threads();
+          int tid = 0;
+          for (; tid < nthreads; ++tid) {
+            const acc_openmp_depend_t *const di = &deps[tid];
+            const acc_openmp_event_t *const ei = (const acc_openmp_event_t*)di->args[0].const_ptr;
+            const char *const ie = ei->dependency;
+            if (NULL != ie) { /* still pending */
+              const char *const id = di->in, *const od = di->out;
+              (void)(id); (void)(od); /* suppress incorrect warning */
+#             pragma omp target depend(in:id[0],ie[0]) depend(out:od[0]) nowait if(0)
+              {}
+            }
+          }
         }
+#       pragma omp barrier
       }
-# if defined(_OPENMP)
-#     pragma omp barrier
-# endif
     }
-#else
-    result = acc_event_synchronize(event);
+    else
 #endif
+    result = acc_event_synchronize(event);
   }
   else result = (NULL == event ? EXIT_SUCCESS : EXIT_FAILURE);
   return result;

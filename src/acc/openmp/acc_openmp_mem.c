@@ -63,33 +63,34 @@ int acc_host_mem_deallocate(void* host_mem, acc_stream_t stream)
 {
   int result = EXIT_SUCCESS;
   if (NULL != host_mem) {
-    acc_openmp_depend_t* deps;
-    result = acc_openmp_stream_depend(stream, &deps);
-    if (EXIT_SUCCESS == result) {
-      assert(NULL != deps);
-      deps->args[0].ptr = host_mem;
-#if defined(_OPENMP)
-#     pragma omp barrier
-#     pragma omp master
-#endif
-      { int tid = 0, nthreads = 1;
-#if defined(_OPENMP)
-        nthreads = omp_get_num_threads();
-#endif
-        for (; tid < nthreads; ++tid) {
-          acc_openmp_depend_t *const di = &deps[tid];
-#if defined(ACC_OPENMP_OFFLOAD)
-          const char *const id = di->in, *const od = di->out;
-          (void)(id); (void)(od); /* suppress incorrect warning */
-#         pragma omp task depend(in:id[0]) depend(out:od[0])
-#endif
-          ACC_OPENMP_MEM_FREE(di->args[0].ptr);
+#if !defined(ACC_OPENMP_OFFLOAD)
+    (void)(stream); /* unused */
+#else /* implies _OPENMP */
+    const int ndevices = omp_get_num_devices();
+    if (0 < ndevices) {
+      acc_openmp_depend_t* deps;
+      result = acc_openmp_stream_depend(stream, &deps);
+      if (EXIT_SUCCESS == result) {
+        assert(NULL != deps);
+        deps->args[0].ptr = host_mem;
+#       pragma omp barrier
+#       pragma omp master
+        { const int nthreads = omp_get_num_threads();
+          int tid = 0;
+          for (; tid < nthreads; ++tid) {
+            acc_openmp_depend_t *const di = &deps[tid];
+            const char *const id = di->in, *const od = di->out;
+            (void)(id); (void)(od); /* suppress incorrect warning */
+#           pragma omp task depend(in:id[0]) depend(out:od[0])
+            ACC_OPENMP_MEM_FREE(di->args[0].ptr);
+          }
         }
+#       pragma omp barrier
       }
-#if defined(_OPENMP)
-#     pragma omp barrier
-#endif
     }
+    else
+#endif
+    ACC_OPENMP_MEM_FREE(host_mem);
   }
   return result;
 }
@@ -147,28 +148,26 @@ int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t count, acc_stream
   int result = EXIT_SUCCESS;
   assert((NULL != host_mem && NULL != dev_mem) || 0 == count);
   if (0 != count) {
-    acc_openmp_depend_t* deps;
-    result = acc_openmp_stream_depend(stream, &deps);
-    if (EXIT_SUCCESS == result) {
-      deps->args[0].const_ptr = host_mem;
-      deps->args[1].ptr = dev_mem;
-      deps->args[2].size = count;
-      deps->args[3].ptr = stream;
-#if defined(_OPENMP)
-#     pragma omp barrier
-#     pragma omp master
-#endif
-      { int tid = 0, nthreads = 1;
-#if defined(ACC_OPENMP_OFFLOAD)
-        /* capture current default device before spawning task (acc_set_active_device) */
-        const int dev_src = omp_get_initial_device(), dev_dst = omp_get_default_device();
-        const int ndevices = omp_get_num_devices();
-        nthreads = omp_get_num_threads();
-#endif
-        for (; tid < nthreads; ++tid) {
-          acc_openmp_depend_t *const di = &deps[tid];
-#if defined(ACC_OPENMP_OFFLOAD)
-          if (0 < ndevices) {
+#if !defined(ACC_OPENMP_OFFLOAD)
+    (void)(stream); /* unused */
+#else /* implies _OPENMP */
+    const int ndevices = omp_get_num_devices();
+    if (0 < ndevices) {
+      acc_openmp_depend_t* deps;
+      result = acc_openmp_stream_depend(stream, &deps);
+      if (EXIT_SUCCESS == result) {
+        deps->args[0].const_ptr = host_mem;
+        deps->args[1].ptr = dev_mem;
+        deps->args[2].size = count;
+        deps->args[3].ptr = stream;
+#       pragma omp barrier
+#       pragma omp master
+        { const int nthreads = omp_get_num_threads();
+          /* capture current default device before spawning task (acc_set_active_device) */
+          const int dev_src = omp_get_initial_device(), dev_dst = omp_get_default_device();
+          int tid = 0;
+          for (; tid < nthreads; ++tid) {
+            acc_openmp_depend_t *const di = &deps[tid];
             const char *const id = di->in, *const od = di->out;
             acc_openmp_stream_t *const s = (acc_openmp_stream_t*)di->args[3].ptr; assert(NULL != s);
             (void)(id); (void)(od); /* suppress incorrect warning */
@@ -176,15 +175,13 @@ int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t count, acc_stream
             s->status |= omp_target_memcpy(di->args[1].ptr, di->args[0]./*const_*/ptr, di->args[2].size,
               0/*dst_offset*/, 0/*src_offset*/, dev_dst, dev_src);
           }
-          else
-#endif
-          memcpy(di->args[1].ptr, di->args[0].const_ptr, di->args[2].size);
         }
+#       pragma omp barrier
       }
-#if defined(_OPENMP)
-#     pragma omp barrier
-#endif
     }
+    else
+#endif
+    memcpy(dev_mem, host_mem, count);
   }
   return result;
 }
@@ -195,28 +192,26 @@ int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t count, acc_stream
   int result = EXIT_SUCCESS;
   assert((NULL != dev_mem && NULL != host_mem) || 0 == count);
   if (0 != count) {
-    acc_openmp_depend_t* deps;
-    result = acc_openmp_stream_depend(stream, &deps);
-    if (EXIT_SUCCESS == result) {
-      deps->args[0].const_ptr = dev_mem;
-      deps->args[1].ptr = host_mem;
-      deps->args[2].size = count;
-      deps->args[3].ptr = stream;
-#if defined(_OPENMP)
-#     pragma omp barrier
-#     pragma omp master
-#endif
-      { int tid = 0, nthreads = 1;
-#if defined(ACC_OPENMP_OFFLOAD)
-        /* capture current default device before spawning task (acc_set_active_device) */
-        const int dev_src = omp_get_default_device(), dev_dst = omp_get_initial_device();
-        const int ndevices = omp_get_num_devices();
-        nthreads = omp_get_num_threads();
-#endif
-        for (; tid < nthreads; ++tid) {
-          acc_openmp_depend_t *const di = &deps[tid];
-#if defined(ACC_OPENMP_OFFLOAD)
-          if (0 < ndevices) {
+#if !defined(ACC_OPENMP_OFFLOAD)
+    (void)(stream); /* unused */
+#else /* implies _OPENMP */
+    const int ndevices = omp_get_num_devices();
+    if (0 < ndevices) {
+      acc_openmp_depend_t* deps;
+      result = acc_openmp_stream_depend(stream, &deps);
+      if (EXIT_SUCCESS == result) {
+        deps->args[0].const_ptr = dev_mem;
+        deps->args[1].ptr = host_mem;
+        deps->args[2].size = count;
+        deps->args[3].ptr = stream;
+#       pragma omp barrier
+#       pragma omp master
+        { const int nthreads = omp_get_num_threads();
+          /* capture current default device before spawning task (acc_set_active_device) */
+          const int dev_src = omp_get_default_device(), dev_dst = omp_get_initial_device();
+          int tid = 0;
+          for (; tid < nthreads; ++tid) {
+            acc_openmp_depend_t *const di = &deps[tid];
             const char *const id = di->in, *const od = di->out;
             acc_openmp_stream_t *const s = (acc_openmp_stream_t*)di->args[3].ptr; assert(NULL != s);
             (void)(id); (void)(od); /* suppress incorrect warning */
@@ -224,15 +219,13 @@ int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t count, acc_stream
             s->status |= omp_target_memcpy(di->args[1].ptr, di->args[0]./*const_*/ptr, di->args[2].size,
               0/*dst_offset*/, 0/*src_offset*/, dev_dst, dev_src);
           }
-          else
-#endif
-          memcpy(di->args[1].ptr, di->args[0].const_ptr, di->args[2].size);
         }
+#       pragma omp barrier
       }
-#if defined(_OPENMP)
-#     pragma omp barrier
-#endif
     }
+    else
+#endif
+    memcpy(host_mem, dev_mem, count);
   }
   return result;
 }
@@ -243,28 +236,26 @@ int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t count, acc_s
   int result = EXIT_SUCCESS;
   assert((NULL != devmem_src && NULL != devmem_dst) || 0 == count);
   if (0 != count) {
-    acc_openmp_depend_t* deps;
-    result = acc_openmp_stream_depend(stream, &deps);
-    if (EXIT_SUCCESS == result) {
-      deps->args[0].const_ptr = devmem_src;
-      deps->args[1].ptr = devmem_dst;
-      deps->args[2].size = count;
-      deps->args[3].ptr = stream;
-#if defined(_OPENMP)
-#     pragma omp barrier
-#     pragma omp master
-#endif
-      { int tid = 0, nthreads = 1;
-#if defined(ACC_OPENMP_OFFLOAD)
-        /* capture current default device before spawning task (acc_set_active_device) */
-        const int dev_src = omp_get_default_device(), dev_dst = dev_src;
-        const int ndevices = omp_get_num_devices();
-        nthreads = omp_get_num_threads();
-#endif
-        for (; tid < nthreads; ++tid) {
-          acc_openmp_depend_t *const di = &deps[tid];
-#if defined(ACC_OPENMP_OFFLOAD)
-          if (0 < ndevices) {
+#if !defined(ACC_OPENMP_OFFLOAD)
+    (void)(stream); /* unused */
+#else /* implies _OPENMP */
+    const int ndevices = omp_get_num_devices();
+    if (0 < ndevices) {
+      acc_openmp_depend_t* deps;
+      result = acc_openmp_stream_depend(stream, &deps);
+      if (EXIT_SUCCESS == result) {
+        deps->args[0].const_ptr = devmem_src;
+        deps->args[1].ptr = devmem_dst;
+        deps->args[2].size = count;
+        deps->args[3].ptr = stream;
+#       pragma omp barrier
+#       pragma omp master
+        { const int nthreads = omp_get_num_threads();
+          /* capture current default device before spawning task (acc_set_active_device) */
+          const int dev_src = omp_get_default_device(), dev_dst = dev_src;
+          int tid = 0;
+          for (; tid < nthreads; ++tid) {
+            acc_openmp_depend_t *const di = &deps[tid];
             const char *const id = di->in, *const od = di->out;
             acc_openmp_stream_t *const s = (acc_openmp_stream_t*)di->args[3].ptr; assert(NULL != s);
             (void)(id); (void)(od); /* suppress incorrect warning */
@@ -272,15 +263,13 @@ int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t count, acc_s
             s->status |= omp_target_memcpy(di->args[1].ptr, di->args[0]./*const_*/ptr, di->args[2].size,
               0/*dst_offset*/, 0/*src_offset*/, dev_dst, dev_src);
           }
-          else
-#endif
-          memcpy(di->args[1].ptr, di->args[0].const_ptr, di->args[2].size);
         }
+#       pragma omp barrier
       }
-#if defined(_OPENMP)
-#     pragma omp barrier
-#endif
     }
+    else
+#endif
+    memcpy(devmem_dst, devmem_src, count);
   }
   return result;
 }
@@ -291,39 +280,39 @@ int acc_memset_zero(void* dev_mem, size_t offset, size_t length, acc_stream_t st
   int result = EXIT_SUCCESS;
   assert(NULL != dev_mem || 0 == length);
   if (0 != length) {
-    acc_openmp_depend_t* deps;
-    result = acc_openmp_stream_depend(stream, &deps);
-    if (EXIT_SUCCESS == result) {
-      deps->args[0].ptr = dev_mem;
-      deps->args[1].size = offset;
-      deps->args[2].size = length;
-#if defined(_OPENMP)
-#     pragma omp barrier
-#     pragma omp master
-#endif
-      { int tid = 0, nthreads = 1;
-#if defined(_OPENMP)
-        nthreads = omp_get_num_threads();
-#endif
-        for (; tid < nthreads; ++tid) {
-          acc_openmp_depend_t *const di = &deps[tid];
-          /* OpenMP specification: pointer arithmetic may not be valid */
-          char * /*const*/ dst = (char*)di->args[0].ptr + di->args[1].size;
-          const size_t size = di->args[2].size; /* length */
-          size_t i;
-#if defined(ACC_OPENMP_OFFLOAD) /*private(i)*/
-          const char *const id = di->in, *const od = di->out;
-          (void)(id); (void)(od); /* suppress incorrect warning */
-#         pragma omp target teams distribute parallel for simd depend(in:id[0]) depend(out:od[0]) nowait is_device_ptr(dst)
-#endif
-          for (i = 0; i < size; ++i) dst[i] = '\0';
+#if !defined(ACC_OPENMP_OFFLOAD)
+    (void)(stream); /* unused */
+#else /* implies _OPENMP */
+    const int ndevices = omp_get_num_devices();
+    if (0 < ndevices) {
+      acc_openmp_depend_t* deps;
+      result = acc_openmp_stream_depend(stream, &deps);
+      if (EXIT_SUCCESS == result) {
+        deps->args[0].ptr = dev_mem;
+        deps->args[1].size = offset;
+        deps->args[2].size = length;
+#       pragma omp barrier
+#       pragma omp master
+        { const int nthreads = omp_get_num_threads();
+          int tid = 0;
+          for (; tid < nthreads; ++tid) {
+            acc_openmp_depend_t *const di = &deps[tid];
+            /* OpenMP specification: pointer arithmetic may not be valid */
+            char * /*const*/ dst = (char*)di->args[0].ptr + di->args[1].size;
+            const size_t size = di->args[2].size; /* length */
+            const char *const id = di->in, *const od = di->out;
+            (void)(id); (void)(od); /* suppress incorrect warning */
+            size_t i; /* private(i) */
+#           pragma omp target teams distribute parallel for simd depend(in:id[0]) depend(out:od[0]) nowait is_device_ptr(dst)
+            for (i = 0; i < size; ++i) dst[i] = '\0';
+          }
         }
+#       pragma omp barrier
       }
-#if defined(_OPENMP)
-#     pragma omp barrier
-#endif
-
     }
+    else
+#endif
+    memset((char*)dev_mem + offset, 0, length);
   }
   return result;
 }

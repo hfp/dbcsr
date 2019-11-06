@@ -27,6 +27,9 @@
 #if !defined(ACC_OPENMP_EVENT_MAXCOUNT)
 # define ACC_OPENMP_EVENT_MAXCOUNT (16*ACC_OPENMP_STREAM_MAXCOUNT)
 #endif
+#if !defined(ACC_OPENMP_PAUSE_MAXCOUNT)
+# define ACC_OPENMP_PAUSE_MAXCOUNT 4096
+#endif
 #if !defined(ACC_OPENMP_DEVICE_MAXCOUNT) && 0
 # define ACC_OPENMP_DEVICE_MAXCOUNT 0
 #endif
@@ -49,6 +52,12 @@
 # else
 #   define ACC_OPENMP_PRAGMA(DIRECTIVE)
 # endif
+#endif
+
+#if !defined(ACC_OPENMP_PAUSE) && defined(__GNUC__)
+# define ACC_OPENMP_PAUSE __asm__ __volatile__("pause" ::: "memory")
+#else
+# define ACC_OPENMP_PAUSE
 #endif
 
 #if defined(__cplusplus)

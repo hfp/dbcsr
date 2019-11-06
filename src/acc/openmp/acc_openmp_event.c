@@ -102,11 +102,23 @@ int acc_event_query(acc_event_t event, int* has_occurred)
 
 
 int acc_event_synchronize(acc_event_t event)
-{
-  int result;
-  (void)(event); /* unused */
-  result = EXIT_FAILURE;
-  return result;
+{ /* Waits on the host-side. */
+  const acc_openmp_event_t *const e = (acc_openmp_event_t*)event;
+  int npause = 1;
+  while (0 == e->has_occurred) {
+    do {
+      int counter = 0;
+      for (; counter < npause; ++counter) ACC_OPENMP_PAUSE;
+      if (npause < ACC_OPENMP_PAUSE_MAXCOUNT) {
+        npause *= 2;
+      }
+      else {
+        npause = ACC_OPENMP_PAUSE_MAXCOUNT;
+        /* TODO: yield? */
+      }
+    } while (0 == e->has_occurred);
+  }
+  return EXIT_SUCCESS;
 }
 
 #if defined(__cplusplus)

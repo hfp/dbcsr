@@ -149,16 +149,10 @@ int acc_stream_priority_range(int* least, int* greatest)
 
 int acc_stream_sync(acc_stream_t stream)
 { /* Blocks the host-thread. */
-  int result;
-  acc_openmp_stream_t *const s = (acc_openmp_stream_t*)stream;
-#if defined(ACC_OPENMP_STREAM_MAXCOUNT) && (0 < ACC_OPENMP_STREAM_MAXCOUNT)
-  assert(NULL == s || (acc_openmp_streams <= s && s < (acc_openmp_streams + ACC_OPENMP_STREAM_MAXCOUNT)));
-#endif
-  if (NULL != stream && 0 < s->pending) {
-    result = EXIT_SUCCESS; /* TODO */
-  }
-  else {
-    result = EXIT_SUCCESS;
+  int result = acc_event_record(NULL/*event*/, stream), npause = 1;
+  if (EXIT_SUCCESS == result) {
+    acc_openmp_stream_t *const s = (acc_openmp_stream_t*)stream;
+    assert(NULL != s); ACC_OPENMP_WAIT(s->pending, npause);
   }
   return result;
 }

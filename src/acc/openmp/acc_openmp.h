@@ -54,16 +54,26 @@
 # endif
 #endif
 
-#if !defined(ACC_OPENMP_PAUSE) && defined(__GNUC__) && ( \
+#if (defined(__GNUC__) && ( \
     (defined(__x86_64__) && 0 != (__x86_64__)) || \
     (defined(__amd64__) && 0 != (__amd64__)) || \
     (defined(_M_X64) || defined(_M_AMD64)) || \
     (defined(__i386__) && 0 != (__i386__)) || \
-    (defined(_M_IX86)))
+    (defined(_M_IX86))))
 # define ACC_OPENMP_PAUSE __asm__ __volatile__("pause" ::: "memory")
 #else
 # define ACC_OPENMP_PAUSE
 #endif
+#define ACC_OPENMP_WAIT(CONDITION, COUNTER) do { \
+  while (CONDITION) { int counter = 0; \
+    for (; counter <= (COUNTER); ++counter) ACC_OPENMP_PAUSE; \
+    if ((COUNTER) < ACC_OPENMP_PAUSE_MAXCOUNT) { \
+      (COUNTER) = 2 * (0 < (COUNTER) ? (COUNTER) : 1); \
+    } else { /* yield? */ \
+      (COUNTER) = ACC_OPENMP_PAUSE_MAXCOUNT; \
+    } \
+  } \
+} while (CONDITION)
 
 #if defined(__cplusplus)
 # define ACC_OPENMP_EXTERN extern "C"
@@ -108,7 +118,8 @@
 ACC_OPENMP_EXPORT typedef struct acc_openmp_stream_t {
   /* address of each character is (side-)used to form OpenMP task dependencies */
   char name[ACC_OPENMP_STREAM_MAXPENDING];
-  int pending, priority, status;
+  volatile int pending, status;
+  int priority;
 #if defined(ACC_OPENMP_OFFLOAD) && !defined(NDEBUG)
   int device_id; /* should match active device as set by acc_set_active_device */
 #endif

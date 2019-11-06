@@ -52,7 +52,8 @@ int acc_event_destroy(acc_event_t event)
 int acc_event_record(acc_event_t event, acc_stream_t stream)
 {
   int result;
-  if (NULL != event && NULL != stream) {
+  if (NULL != stream) {
+    acc_openmp_stream_t *const s = (acc_openmp_stream_t*)stream;
     acc_openmp_event_t *const e = (acc_openmp_event_t*)event;
 #if !defined(ACC_OPENMP_OFFLOAD)
     (void)(stream); /* unused */
@@ -71,11 +72,18 @@ int acc_event_record(acc_event_t event, acc_stream_t stream)
           for (; tid < nthreads; ++tid) {
             acc_openmp_depend_t *const di = &deps[tid];
             acc_openmp_event_t *const ei = (acc_openmp_event_t*)di->args[0].ptr;
-            const char *volatile *const has_occurred = &ei->dependency;
             const char *const id = di->in, *const od = di->out;
             (void)(id); (void)(od); /* suppress incorrect warning */
-#           pragma omp target depend(in:id[0]) depend(out:od[0]) nowait map(from:has_occurred[0:1])
-            *has_occurred = NULL;
+            if (NULL != ei) {
+              const char *volatile *const sig = &ei->dependency;
+#             pragma omp target depend(in:id[0]) depend(out:od[0]) nowait map(from:sig[0:1])
+              *sig = NULL;
+            }
+            else {
+              volatile int *const sig = &s->pending;
+#             pragma omp target depend(in:id[0]) depend(out:od[0]) nowait map(from:sig[0:1])
+              *sig = 0;
+            }
           }
         }
 #       pragma omp barrier
@@ -83,8 +91,12 @@ int acc_event_record(acc_event_t event, acc_stream_t stream)
     }
     else
 #endif
-    {
+    if (NULL != e) {
       e->dependency = NULL;
+      result = EXIT_SUCCESS;
+    }
+    else {
+      s->pending;
       result = EXIT_SUCCESS;
     }
   }
@@ -110,19 +122,7 @@ int acc_event_synchronize(acc_event_t event)
   if (NULL != event) {
     const acc_openmp_event_t *const e = (const acc_openmp_event_t*)event;
     int npause = 1;
-    while (NULL != e->dependency) {
-      do {
-        int counter = 0;
-        for (; counter < npause; ++counter) ACC_OPENMP_PAUSE;
-        if (npause < ACC_OPENMP_PAUSE_MAXCOUNT) {
-          npause *= 2;
-        }
-        else {
-          npause = ACC_OPENMP_PAUSE_MAXCOUNT;
-          /* TODO: yield? */
-        }
-      } while (NULL != e->dependency);
-    }
+    ACC_OPENMP_WAIT(NULL != e->dependency, npause);
     result = EXIT_SUCCESS;
   }
   else result = EXIT_FAILURE;

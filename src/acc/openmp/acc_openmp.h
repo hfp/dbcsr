@@ -110,7 +110,7 @@ ACC_OPENMP_EXPORT typedef struct acc_openmp_stream_t {
 } acc_openmp_stream_t;
 
 ACC_OPENMP_EXPORT typedef struct acc_openmp_event_t {
-  int has_occurred;
+  const char* dependency;
 } acc_openmp_event_t;
 
 ACC_OPENMP_EXPORT typedef union acc_openmp_any_t {

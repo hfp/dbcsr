@@ -31,7 +31,7 @@ int acc_event_create(acc_event_t* event_p)
     0, NULL, NULL);
 #endif
   if (EXIT_SUCCESS == result) {
-    event->has_occurred = 0;
+    event->dependency = NULL;
     *event_p = event;
   }
   return result;
@@ -57,7 +57,7 @@ int acc_event_record(acc_event_t event, acc_stream_t stream)
     result = acc_openmp_stream_depend(stream, &deps);
     if (EXIT_SUCCESS == result) {
       acc_openmp_event_t *const e = (acc_openmp_event_t*)event;
-      e->has_occurred = 0; /* reset if re-enqueued */
+      e->dependency = deps->out; /* reset if re-enqueued */
       deps->args[0].ptr = event;
 #if defined(_OPENMP)
 #     pragma omp barrier
@@ -70,22 +70,21 @@ int acc_event_record(acc_event_t event, acc_stream_t stream)
         for (; tid < nthreads; ++tid) {
           acc_openmp_depend_t *const di = &deps[tid];
           acc_openmp_event_t *const ei = (acc_openmp_event_t*)di->args[0].ptr;
-          int *const has_occurred = &ei->has_occurred;
+          const char* *const has_occurred = &ei->dependency;
 #if defined(ACC_OPENMP_OFFLOAD)
-          const char* const id = di->in, * const od = di->out;
+          const char *const id = di->in, *const od = di->out;
           (void)(id); (void)(od); /* suppress incorrect warning */
 #         pragma omp target depend(in:id[0]) depend(out:od[0]) nowait map(from:has_occurred[0:1])
 #endif
-          *has_occurred = 1;
+          *has_occurred = NULL;
         }
       }
 #if defined(_OPENMP)
 #     pragma omp barrier
 #endif
-
     }
   }
-  else result = (NULL == event ? acc_stream_sync(stream) : EXIT_FAILURE);
+  else result = (NULL == event ? EXIT_SUCCESS : EXIT_FAILURE);
   return result;
 }
 
@@ -95,7 +94,7 @@ int acc_event_query(acc_event_t event, int* has_occurred)
   const int result = ((NULL != event && NULL != has_occurred) ? EXIT_SUCCESS : EXIT_FAILURE);
   if (EXIT_SUCCESS == result) {
     const acc_openmp_event_t *const e = (acc_openmp_event_t*)event;
-    *has_occurred = e->has_occurred;
+    *has_occurred = (NULL == e->dependency);
   }
   return result;
 }
@@ -103,9 +102,9 @@ int acc_event_query(acc_event_t event, int* has_occurred)
 
 int acc_event_synchronize(acc_event_t event)
 { /* Waits on the host-side. */
-  const acc_openmp_event_t *const e = (acc_openmp_event_t*)event;
+  const acc_openmp_event_t *const e = (const acc_openmp_event_t*)event;
   int npause = 1;
-  while (0 == e->has_occurred) {
+  while (NULL != e->dependency) {
     do {
       int counter = 0;
       for (; counter < npause; ++counter) ACC_OPENMP_PAUSE;
@@ -116,7 +115,7 @@ int acc_event_synchronize(acc_event_t event)
         npause = ACC_OPENMP_PAUSE_MAXCOUNT;
         /* TODO: yield? */
       }
-    } while (0 == e->has_occurred);
+    } while (NULL != e->dependency);
   }
   return EXIT_SUCCESS;
 }

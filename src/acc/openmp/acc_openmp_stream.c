@@ -148,7 +148,7 @@ int acc_stream_priority_range(int* least, int* greatest)
 
 
 int acc_stream_sync(acc_stream_t stream)
-{
+{ /* Blocks the host-thread. */
   int result;
   acc_openmp_stream_t *const s = (acc_openmp_stream_t*)stream;
 #if defined(ACC_OPENMP_STREAM_MAXCOUNT) && (0 < ACC_OPENMP_STREAM_MAXCOUNT)
@@ -165,13 +165,40 @@ int acc_stream_sync(acc_stream_t stream)
 
 
 int acc_stream_wait_event(acc_stream_t stream, acc_event_t event)
-{
+{ /* Waits (device-side) for an event (potentially recorded on a different stream). */
   int result;
-  acc_openmp_stream_t *const s = (acc_openmp_stream_t*)stream;
-#if defined(ACC_OPENMP_STREAM_MAXCOUNT) && (0 < ACC_OPENMP_STREAM_MAXCOUNT)
-  assert(NULL == s || (acc_openmp_streams <= s && s < (acc_openmp_streams + ACC_OPENMP_STREAM_MAXCOUNT)));
+  if (NULL != stream && NULL != event) {
+#if defined(ACC_OPENMP_OFFLOAD)
+    acc_openmp_depend_t* deps;
+    result = acc_openmp_stream_depend(stream, &deps);
+    if (EXIT_SUCCESS == result) {
+      const acc_openmp_event_t *const e = (const acc_openmp_event_t*)event;
+      deps->args[0].const_ptr = event;
+# if defined(_OPENMP)
+#     pragma omp barrier
+#     pragma omp master
+# endif
+      { int tid = 0, nthreads = 1;
+# if defined(_OPENMP)
+        nthreads = omp_get_num_threads();
+# endif
+        for (; tid < nthreads; ++tid) {
+          const acc_openmp_depend_t *const di = &deps[tid];
+          const acc_openmp_event_t *const ei = (const acc_openmp_event_t*)di->args[0].const_ptr;
+          const char *const id = di->in, *const ie = ei->dependency, *const od = di->out;
+          (void)(id); (void)(ie); (void)(od); /* suppress incorrect warning */
+#         pragma omp target depend(in:id[0],ie[0]) depend(out:od[0]) nowait if(0)
+        }
+      }
+# if defined(_OPENMP)
+#     pragma omp barrier
+# endif
+    }
+#else
+    result = acc_event_synchronize(event);
 #endif
-  result = EXIT_SUCCESS; /* TODO */
+  }
+  else result = (NULL == event ? EXIT_SUCCESS : EXIT_FAILURE);
   return result;
 }
 

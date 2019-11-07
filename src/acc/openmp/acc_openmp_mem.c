@@ -301,10 +301,10 @@ int acc_memset_zero(void* dev_mem, size_t offset, size_t length, acc_stream_t st
             char * /*const*/ dst = (char*)di->args[0].ptr + di->args[1].size;
             const size_t size = di->args[2].size; /* length */
             const char *const id = di->in, *const od = di->out;
-            (void)(id); (void)(od); /* suppress incorrect warning */
             size_t i; /* private(i) */
 #           pragma omp target teams distribute parallel for simd depend(in:id[0]) depend(out:od[0]) nowait is_device_ptr(dst)
             for (i = 0; i < size; ++i) dst[i] = '\0';
+            (void)(id); (void)(od); /* suppress incorrect warning */
           }
         }
 #       pragma omp barrier

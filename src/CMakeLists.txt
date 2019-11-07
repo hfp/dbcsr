@@ -128,6 +128,10 @@ if (BLAS_LIBRARIES MATCHES "mkl_")
   target_compile_definitions(dbcsr PRIVATE __MKL)
 endif ()
 
+if ((MPI_Fortran_LIBRARY_VERSION_STRING MATCHES "Intel") AND (NOT ${CMAKE_Fortran_COMPILER_ID} MATCHES "Intel"))
+  target_compile_definitions(dbcsr PRIVATE __HAS_NO_MPI_MOD)
+endif ()
+
 # adapted from https://cliutils.gitlab.io/modern-cmake/chapters/packages/CUDA.html:
 # replaces in the Fortran and CXX targets the interface compile options by a more differentiated version
 # for Fortran, CXX and CUDA, where the CXX and CUDA options are taken from the CXX target

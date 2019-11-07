@@ -54,6 +54,7 @@ find_package(PkgConfig)
 if (USE_MPI)
   get_property(REQUIRED_MPI_COMPONENTS GLOBAL PROPERTY ENABLED_LANGUAGES)
   list(REMOVE_ITEM REQUIRED_MPI_COMPONENTS CUDA)  # CUDA does not have a MPI component
+  set(MPI_DETERMINE_LIBRARY_VERSION true)  # prior to find_package
   find_package(MPI COMPONENTS ${REQUIRED_MPI_COMPONENTS} REQUIRED)
 endif ()
 

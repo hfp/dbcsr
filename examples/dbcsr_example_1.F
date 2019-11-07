@@ -12,14 +12,18 @@
 !>          This example shows how to create a dbcsr matrix
 ! **************************************************************************************************
 PROGRAM dbcsr_example_1
+#if !defined(__HAS_NO_MPI_MOD)
    USE mpi
+#endif
    USE dbcsr_api,                       ONLY: &
         dbcsr_create, dbcsr_distribution_new, dbcsr_distribution_release, dbcsr_distribution_type, &
         dbcsr_finalize, dbcsr_finalize_lib, dbcsr_init_lib, dbcsr_print, dbcsr_release, &
         dbcsr_type, dbcsr_type_no_symmetry, dbcsr_type_real_8
 
    IMPLICIT NONE
-
+#if defined(__HAS_NO_MPI_MOD)
+   INCLUDE "mpif.h"
+#endif
    TYPE(dbcsr_type)                         :: matrix_a
 
    INTEGER, DIMENSION(:), POINTER           :: col_blk_sizes, row_blk_sizes

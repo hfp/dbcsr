@@ -12,7 +12,9 @@
 !>          This example shows how to multiply two dbcsr matrices
 ! **************************************************************************************************
 PROGRAM dbcsr_example_3
+#if !defined(__HAS_NO_MPI_MOD)
    USE mpi
+#endif
    USE dbcsr_api,                       ONLY: &
         dbcsr_create, dbcsr_distribution_get, dbcsr_distribution_new, dbcsr_distribution_release, &
         dbcsr_distribution_type, dbcsr_finalize, dbcsr_finalize_lib, dbcsr_get_stored_coordinates, &
@@ -20,7 +22,9 @@ PROGRAM dbcsr_example_3
         dbcsr_put_block, dbcsr_release, dbcsr_type, dbcsr_type_no_symmetry, dbcsr_type_real_8
 
    IMPLICIT NONE
-
+#if defined(__HAS_NO_MPI_MOD)
+   INCLUDE "mpif.h"
+#endif
    TYPE(dbcsr_type)                         :: matrix_a, matrix_b, matrix_c
 
    INTEGER, DIMENSION(:), POINTER           :: col_blk_sizes, row_blk_sizes

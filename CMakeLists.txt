@@ -103,9 +103,9 @@ foreach(line ${VERSION_INFO})
 endforeach()
 
 # must be global since modified FLAGS apply to other subdirectories as well, e.g., examples
-# must be after include(CompilerConfiguration) due to modifiying CMAKE_Fortran_FLAGS
+# must be after include(CompilerConfiguration) due to modifying CMAKE_Fortran_FLAGS
 if (MPI_FOUND AND (MPI_Fortran_LIBRARY_VERSION_STRING MATCHES "Intel") AND (NOT ${CMAKE_Fortran_COMPILER_ID} MATCHES "Intel"))
-  STRING(REGEX REPLACE "-std=.[^ ]*" "" CMAKE_Fortran_FLAGS ${CMAKE_Fortran_FLAGS})
+  STRING(REGEX REPLACE "-std=.[^ ]*" "-D__HAS_NO_MPI_MOD" CMAKE_Fortran_FLAGS ${CMAKE_Fortran_FLAGS})
 endif ()
 
 add_subdirectory(src)

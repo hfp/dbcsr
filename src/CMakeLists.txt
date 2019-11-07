@@ -232,7 +232,6 @@ if (MPI_FOUND)
   target_link_libraries(dbcsr PUBLIC MPI::MPI_Fortran)
 
   if ((MPI_Fortran_LIBRARY_VERSION_STRING MATCHES "Intel") AND (NOT ${CMAKE_Fortran_COMPILER_ID} MATCHES "Intel"))
-    #set_source_files_properties(mpi/dbcsr_mpiwrap.F PROPERTIES COMPILE_DEFINITIONS __HAS_NO_MPI_MOD)
     target_compile_definitions(dbcsr PRIVATE __HAS_NO_MPI_MOD)
   endif ()
 endif ()

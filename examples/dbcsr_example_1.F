@@ -7,11 +7,10 @@
 ! SPDX-License-Identifier: GPL-2.0+                                                                !
 !--------------------------------------------------------------------------------------------------!
 
-! **************************************************************************************************
-!> \brief   DBCSR example 1
-!>          This example shows how to create a dbcsr matrix
-! **************************************************************************************************
 PROGRAM dbcsr_example_1
+   !! DBCSR example 1
+   !! This example shows how to create a dbcsr matrix
+
 #if !defined(__HAS_NO_MPI_MOD)
    USE mpi
 #endif
@@ -21,6 +20,7 @@ PROGRAM dbcsr_example_1
         dbcsr_type, dbcsr_type_no_symmetry, dbcsr_type_real_8
 
    IMPLICIT NONE
+
 #if defined(__HAS_NO_MPI_MOD)
    INCLUDE "mpif.h"
 #endif
@@ -137,12 +137,6 @@ PROGRAM dbcsr_example_1
 
 CONTAINS
 
-! **************************************************************************************************
-!> \brief ...
-!> \param dist_array ...
-!> \param dist_size ...
-!> \param nbins ...
-! **************************************************************************************************
    SUBROUTINE random_dist(dist_array, dist_size, nbins)
       INTEGER, DIMENSION(:), INTENT(out), POINTER        :: dist_array
       INTEGER, INTENT(in)                                :: dist_size, nbins

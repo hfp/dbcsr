@@ -7,11 +7,10 @@
 ! SPDX-License-Identifier: GPL-2.0+                                                                !
 !--------------------------------------------------------------------------------------------------!
 
-! **************************************************************************************************
-!> \brief   DBCSR example 3
-!>          This example shows how to multiply two dbcsr matrices
-! **************************************************************************************************
 PROGRAM dbcsr_example_3
+   !! DBCSR example 3
+   !! This example shows how to multiply two dbcsr matrices
+
 #if !defined(__HAS_NO_MPI_MOD)
    USE mpi
 #endif
@@ -22,6 +21,7 @@ PROGRAM dbcsr_example_3
         dbcsr_put_block, dbcsr_release, dbcsr_type, dbcsr_type_no_symmetry, dbcsr_type_real_8
 
    IMPLICIT NONE
+
 #if defined(__HAS_NO_MPI_MOD)
    INCLUDE "mpif.h"
 #endif
@@ -202,12 +202,6 @@ PROGRAM dbcsr_example_3
 
 CONTAINS
 
-! **************************************************************************************************
-!> \brief ...
-!> \param dist_array ...
-!> \param dist_size ...
-!> \param nbins ...
-! **************************************************************************************************
    SUBROUTINE random_dist(dist_array, dist_size, nbins)
       INTEGER, DIMENSION(:), INTENT(out), POINTER        :: dist_array
       INTEGER, INTENT(in)                                :: dist_size, nbins

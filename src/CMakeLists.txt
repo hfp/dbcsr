@@ -223,6 +223,7 @@ if (OpenMP_FOUND)
     target_sources(dbcsr PRIVATE $<TARGET_OBJECTS:dbcsr_offload>)
     add_subdirectory(acc/libsmm_acc/libsmm)
     target_sources(dbcsr PRIVATE $<TARGET_OBJECTS:dbcsr_libsmm>)
+    target_compile_definitions(dbcsr PRIVATE __DBCSR_ACC)
   endif ()
 endif ()
 

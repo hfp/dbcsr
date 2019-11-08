@@ -12,4 +12,10 @@
 #include "../include/libsmm_acc.h"
 #include "../../openmp/acc_openmp.h"
 
+typedef enum dbcsr_datatype {
+  DBCSR_DATATYPE_F64 = 3,
+  DBCSR_DATATYPE_F32 = 1,
+  DBCSR_DATATYPE_UNSUPPORTED = -1
+} dbcsr_datatype;
+
 #endif /*DBCSR_ACC_LIBSMM_H*/

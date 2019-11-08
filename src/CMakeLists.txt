@@ -216,6 +216,12 @@ set_target_properties(dbcsr PROPERTIES LINKER_LANGUAGE Fortran)
 
 if (OpenMP_FOUND)
   target_link_libraries(dbcsr PRIVATE OpenMP::OpenMP_Fortran)
+
+  # OpenMP/offload backend is written in pure C
+  if (USE_OFFLOAD AND OpenMP_C_FOUND)
+    add_subdirectory(acc/openmp)
+    target_sources(dbcsr PRIVATE $<TARGET_OBJECTS:dbcsr_offload>)
+  endif ()
 endif ()
 
 if (MPI_FOUND)

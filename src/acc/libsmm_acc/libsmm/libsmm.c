@@ -21,7 +21,7 @@ int libsmm_acc_process(void* param_stack, int stack_size,
 {
   int result;
   if (0 != def_mnk) {
-    switch (datatype == dbcsr_type_real_8) {
+    switch (datatype) {
       case DBCSR_DATATYPE_F64: {
         result = EXIT_FAILURE; /* TODO */
       } break;
@@ -42,7 +42,7 @@ int libsmm_acc_transpose(void* trs_stack, int offset, int nblks,
   void* buffer, int datatype, int m, int n, acc_stream_t stream)
 {
   int result;
-  switch (datatype == dbcsr_type_real_8) {
+  switch (datatype) {
     case DBCSR_DATATYPE_F64: {
       result = EXIT_FAILURE; /* TODO */
     } break;

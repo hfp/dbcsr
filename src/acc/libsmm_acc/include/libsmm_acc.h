@@ -6,6 +6,8 @@
  * For further information please visit https://dbcsr.cp2k.org                                    *
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
+#ifndef DBCSR_ACC_LIBSMM_H
+#define DBCSR_ACC_LIBSMM_H
 
 #ifdef __cplusplus
  extern "C" {
@@ -23,3 +25,5 @@ int libsmm_acc_libcusmm_is_thread_safe (void);
 #ifdef __cplusplus
  }
 #endif
+
+#endif /*DBCSR_ACC_LIBSMM_H*/

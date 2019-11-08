@@ -6,6 +6,9 @@
  * For further information please visit https://dbcsr.cp2k.org                                    *
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
+#ifndef DBCSR_ACC_H
+#define DBCSR_ACC_H
+
 #include <stddef.h>
 
 #ifdef __cplusplus
@@ -54,3 +57,5 @@ int acc_dev_mem_info(size_t* mem_free, size_t* mem_total);
 #ifdef __cplusplus
 }
 #endif
+
+#endif /*DBCSR_ACC_H*/

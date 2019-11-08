@@ -9,6 +9,7 @@ include(CMakeDependentOption)
 
 option(USE_MPI "Build with MPI support" ON)
 option(USE_OPENMP "Build with OpenMP support" ON)
+cmake_dependent_option(USE_OFFLOAD "Offload to devices if OpenMP is enabled" OFF "USE_OPENMP" ON)
 cmake_dependent_option(WITH_C_API "Build the C API (ISO_C_BINDINGS)" ON "USE_MPI" OFF) # the ISO_C_BINDINGS require MPI unconditionally
 cmake_dependent_option(WITH_EXAMPLES "Build the examples" ON "USE_MPI" OFF) # all examples require MPI
 

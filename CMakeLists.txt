@@ -9,7 +9,9 @@ include(CMakeDependentOption)
 
 option(USE_MPI "Build with MPI support" ON)
 option(USE_OPENMP "Build with OpenMP support" ON)
-cmake_dependent_option(USE_OFFLOAD "Offload to devices if OpenMP is enabled" OFF "USE_OPENMP" ON)
+cmake_dependent_option(USE_OFFLOAD "Offloading to devices if OpenMP is enabled" OFF "USE_OPENMP" ON)
+set(WITH_OFFLOAD_FLAGS "" CACHE STRING "Additional flag(s) if OpenMP/offload is enabled")
+set(WITH_OPENMP_FLAGS "" CACHE STRING "To replace OpenMP default flag, e.g., to replace -fopenmp")
 cmake_dependent_option(WITH_C_API "Build the C API (ISO_C_BINDINGS)" ON "USE_MPI" OFF) # the ISO_C_BINDINGS require MPI unconditionally
 cmake_dependent_option(WITH_EXAMPLES "Build the examples" ON "USE_MPI" OFF) # all examples require MPI
 
@@ -66,7 +68,7 @@ elseif (USE_SMM MATCHES "libxsmm")
   pkg_check_modules(deps REQUIRED IMPORTED_TARGET GLOBAL libxsmmf)
   message("-- Using libxsmm for Small Matrix Multiplication")
 else()
-  message(FATAL_ERROR "Unknown SMM library specified" )
+  message(FATAL_ERROR "Unknown SMM library specified")
 endif ()
 
 if (USE_CUBLAS)
@@ -79,6 +81,30 @@ endif ()
 
 if (USE_OPENMP)
   find_package(OpenMP REQUIRED)
+
+  # necessarily a starting point; ultimately the OpenMP module/package must to be extended
+  if (USE_OFFLOAD AND WITH_OPENMP_FLAGS)
+    if (OpenMP_Fortran_FOUND)
+      set(OpenMP_Fortran_FLAGS ${WITH_OPENMP_FLAGS})
+    endif ()
+    if (OpenMP_CXX_FOUND)
+      set(OpenMP_CXX_FLAGS ${WITH_OPENMP_FLAGS})
+    endif ()
+    if (OpenMP_C_FOUND)
+      set(OpenMP_C_FLAGS ${WITH_OPENMP_FLAGS})
+    endif ()
+  endif ()
+  if (USE_OFFLOAD AND WITH_OFFLOAD_FLAGS)
+    if (OpenMP_Fortran_FOUND)
+      set(OpenMP_Fortran_FLAGS "${OpenMP_Fortran_FLAGS} ${WITH_OFFLOAD_FLAGS}")
+    endif ()
+    if (OpenMP_CXX_FOUND)
+      set(OpenMP_CXX_FLAGS "${OpenMP_CXX_FLAGS} ${WITH_OFFLOAD_FLAGS}")
+    endif ()
+    if (OpenMP_C_FOUND)
+      set(OpenMP_C_FLAGS "${OpenMP_C_FLAGS} ${WITH_OFFLOAD_FLAGS}")
+    endif ()
+  endif ()
 endif ()
 
 # make sure that the default is a RELEASE

@@ -11,6 +11,10 @@ foreach (dbcsr_program_src ${DBCSR_PROGRAM_SRCS})
   add_executable(${dbcsr_program_name} ${dbcsr_program_src})
   target_link_libraries(${dbcsr_program_name} dbcsr)
 
+  # with the Intel compiler CMake 3.12 seems to forget that the source is actually Fortran
+  # and needs to be told explicitly:
+  set_target_properties(${dbcsr_program_name} PROPERTIES LINKER_LANGUAGE Fortran)
+
   # __HAS_NO_MPI_MOD controls whether mpi.mod is used or if mpi.f is included; mpi.f may not accept flags about strict Fortran standard
   if (MPI_FOUND AND (MPI_Fortran_LIBRARY_VERSION_STRING MATCHES "Intel") AND (NOT ${CMAKE_Fortran_COMPILER_ID} MATCHES "Intel"))
     target_compile_definitions(${dbcsr_program_name} PRIVATE __HAS_NO_MPI_MOD)

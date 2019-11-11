@@ -151,7 +151,7 @@ ACC_OPENMP_EXPORT int acc_openmp_alloc(void** item, int typesize, int* counter, 
 /** Helper function for lock-free deallocation (companion of acc_openmp_alloc). */
 ACC_OPENMP_EXPORT int acc_openmp_dealloc(void* item, int typesize, int* counter, int maxcount, void* storage, void** pointer);
 /** Generate dependency for given stream. */
-ACC_OPENMP_EXPORT int acc_openmp_stream_depend(acc_stream_t stream, acc_openmp_depend_t** depend);
+ACC_OPENMP_EXPORT int acc_openmp_stream_depend(acc_stream_t* stream, acc_openmp_depend_t** depend);
 /** Clears status of all streams (if possible). */
 ACC_OPENMP_EXPORT int acc_openmp_stream_clear_errors(void);
 

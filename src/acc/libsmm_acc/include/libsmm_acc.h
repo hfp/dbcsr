@@ -15,12 +15,17 @@
 extern "C" {
 #endif
 
-int libsmm_acc_process(void* param_stack, int stack_size,
-    int nparams, int datatype, void* a_data, void* b_data, void* c_data,
-    int m_max, int n_max, int k_max, int def_mnk, acc_stream_t stream);
+typedef struct libsmm_acc_stack_descriptor_type {
+  int m, n, k, max_m, max_n, max_k;
+  acc_bool_t defined_mnk;
+} libsmm_acc_stack_descriptor_type;
+
+int libsmm_acc_process(libsmm_acc_stack_descriptor_type* param_stack, int stack_size,
+    int nparams, acc_data_t datatype, void* a_data, void* b_data, void* c_data,
+    int m_max, int n_max, int k_max, acc_bool_t def_mnk, acc_stream_t* stream);
 
 int libsmm_acc_transpose(void* trs_stack, int offset, int nblks,
-    void* buffer, int datatype, int m, int n, acc_stream_t stream);
+    void* buffer, acc_data_t datatype, int m, int n, acc_stream_t* stream);
 
 int libsmm_acc_libcusmm_is_thread_safe(void);
 

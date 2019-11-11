@@ -57,15 +57,14 @@
 int main(int argc, char* argv[])
 {
   const int device = (1 < argc ? atoi(argv[1]) : 0);
-  acc_stream_t stream[ACC_STREAM_MAXCOUNT], s;
-  acc_event_t event[ACC_EVENT_MAXCOUNT], e;
-  int priority[ACC_STREAM_MAXCOUNT];
-  int randnums[ACC_EVENT_MAXCOUNT];
-  int priomin, priomax, priospan;
-  int ndevices, has_occurred, i;
+  int priority[ACC_STREAM_MAXCOUNT], priomin, priomax, priospan;
+  int randnums[ACC_EVENT_MAXCOUNT], ndevices, i;
+  acc_stream_t *stream[ACC_STREAM_MAXCOUNT], *s;
+  acc_event_t *event[ACC_EVENT_MAXCOUNT], *e;
   const size_t mem_alloc = (16 << 20); /*MB*/
   size_t mem_free, mem_total;
   void *host_mem, *dev_mem;
+  acc_bool_t has_occurred;
 
   for (i = 0; i < ACC_EVENT_MAXCOUNT; ++i) {
     randnums[i] = rand();

@@ -23,7 +23,7 @@ acc_openmp_stream_t* acc_openmp_streamp[ACC_OPENMP_STREAM_MAXCOUNT];
 int acc_openmp_stream_count;
 
 
-int acc_openmp_stream_depend(acc_stream_t stream, acc_openmp_depend_t** depend)
+int acc_openmp_stream_depend(acc_stream_t* stream, acc_openmp_depend_t** depend)
 {
   int result;
   acc_openmp_stream_t *const s = (acc_openmp_stream_t*)stream;
@@ -67,7 +67,7 @@ int acc_openmp_stream_depend(acc_stream_t stream, acc_openmp_depend_t** depend)
 }
 
 
-int acc_stream_create(acc_stream_t* stream_p, const char* name, int priority)
+int acc_stream_create(acc_stream_t** stream_p, const char* name, int priority)
 {
   acc_openmp_stream_t* stream;
   const int result = acc_openmp_alloc((void**)&stream,
@@ -94,7 +94,7 @@ int acc_stream_create(acc_stream_t* stream_p, const char* name, int priority)
 }
 
 
-int acc_stream_destroy(acc_stream_t stream)
+int acc_stream_destroy(acc_stream_t* stream)
 {
   acc_openmp_stream_t *const s = (acc_openmp_stream_t*)stream;
   int result = ((NULL != s && 0 < s->pending) ? acc_stream_sync(stream) : EXIT_SUCCESS);
@@ -147,7 +147,7 @@ int acc_stream_priority_range(int* least, int* greatest)
 }
 
 
-int acc_stream_sync(acc_stream_t stream)
+int acc_stream_sync(acc_stream_t* stream)
 { /* Blocks the host-thread. */
   int result = (NULL != stream ? EXIT_SUCCESS : EXIT_FAILURE), npause = 1;
   if (EXIT_SUCCESS == result) {
@@ -161,7 +161,7 @@ int acc_stream_sync(acc_stream_t stream)
 }
 
 
-int acc_stream_wait_event(acc_stream_t stream, acc_event_t event)
+int acc_stream_wait_event(acc_stream_t* stream, acc_event_t* event)
 { /* Waits (device-side) for an event (potentially recorded on a different stream). */
   int result;
   if (NULL != stream && NULL != event) {

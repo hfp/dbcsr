@@ -20,7 +20,7 @@ acc_openmp_event_t* acc_openmp_eventp[ACC_OPENMP_EVENT_MAXCOUNT];
 int acc_openmp_event_count;
 
 
-int acc_event_create(acc_event_t* event_p)
+int acc_event_create(acc_event_t** event_p)
 {
   acc_openmp_event_t* event;
   const int result = acc_openmp_alloc((void**)&event,
@@ -38,7 +38,7 @@ int acc_event_create(acc_event_t* event_p)
 }
 
 
-int acc_event_destroy(acc_event_t event)
+int acc_event_destroy(acc_event_t* event)
 {
   return acc_openmp_dealloc(event, sizeof(acc_openmp_event_t), &acc_openmp_event_count,
 #if defined(ACC_OPENMP_EVENT_MAXCOUNT) && (0 < ACC_OPENMP_EVENT_MAXCOUNT)
@@ -49,7 +49,7 @@ int acc_event_destroy(acc_event_t event)
 }
 
 
-int acc_event_record(acc_event_t event, acc_stream_t stream)
+int acc_event_record(acc_event_t* event, acc_stream_t* stream)
 {
   int result;
   if (NULL != stream) {
@@ -105,7 +105,7 @@ int acc_event_record(acc_event_t event, acc_stream_t stream)
 }
 
 
-int acc_event_query(acc_event_t event, int* has_occurred)
+int acc_event_query(acc_event_t* event, acc_bool_t* has_occurred)
 {
   const int result = ((NULL != event && NULL != has_occurred) ? EXIT_SUCCESS : EXIT_FAILURE);
   if (EXIT_SUCCESS == result) {
@@ -116,7 +116,7 @@ int acc_event_query(acc_event_t event, int* has_occurred)
 }
 
 
-int acc_event_synchronize(acc_event_t event)
+int acc_event_synchronize(acc_event_t* event)
 { /* Waits on the host-side. */
   int result;
   if (NULL != event) {

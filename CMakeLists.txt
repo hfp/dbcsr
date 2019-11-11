@@ -52,6 +52,10 @@ endif ()
 # we're always using at least C++11
 set(CMAKE_CXX_STANDARD 11)
 
+# compiler config may impact package discovery
+include(CompilerConfiguration)
+include(CheckCompilerSupport)
+
 # PACKAGE DISCOVERY:
 
 find_package(BLAS REQUIRED)
@@ -109,6 +113,10 @@ if (USE_OPENMP)
       set(OpenMP_C_FLAGS "${OpenMP_C_FLAGS} ${WITH_OFFLOAD_FLAGS}")
     endif ()
   endif ()
+
+  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${OpenMP_Fortran_FLAGS}")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 endif ()
 
 # make sure that the default is a RELEASE
@@ -117,9 +125,6 @@ if (NOT CMAKE_BUILD_TYPE)
     "Choose the type of build, options are: Debug Release Coverage."
     FORCE)
 endif ()
-
-include(CompilerConfiguration)
-include(CheckCompilerSupport)
 
 file(STRINGS VERSION VERSION_INFO)
 foreach(line ${VERSION_INFO})

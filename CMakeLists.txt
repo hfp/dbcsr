@@ -9,7 +9,7 @@ include(CMakeDependentOption)
 
 option(USE_MPI "Build with MPI support" ON)
 option(USE_OPENMP "Build with OpenMP support" ON)
-cmake_dependent_option(USE_OFFLOAD "Offloading to devices if OpenMP is enabled" OFF "USE_OPENMP" ON)
+cmake_dependent_option(USE_OFFLOAD "Offloading to devices if OpenMP is enabled" OFF "USE_OPENMP" OFF)
 set(WITH_OFFLOAD_FLAGS "" CACHE STRING "Additional flag(s) if OpenMP/offload is enabled")
 set(WITH_OPENMP_FLAGS "" CACHE STRING "To replace OpenMP default flag, e.g., to replace -fopenmp")
 cmake_dependent_option(WITH_C_API "Build the C API (ISO_C_BINDINGS)" ON "USE_MPI" OFF) # the ISO_C_BINDINGS require MPI unconditionally

@@ -15,11 +15,15 @@
 extern "C" {
 #endif
 
-int libsmm_acc_process(libsmm_acc_stack_descriptor_type* param_stack, int stack_size,
+int libsmm_acc_process(const libsmm_acc_stack_descriptor_type* param_stack, int stack_size,
   int nparams, acc_data_t datatype, void* a_data, void* b_data, void* c_data,
   int m_max, int n_max, int k_max, acc_bool_t def_mnk, acc_stream_t* stream)
 {
   int result;
+#if defined(NDEBUG)
+  (void)(nparams); /* unused */
+#endif
+  assert(7 == nparams);
   if (def_mnk) {
     switch (datatype) {
       case ACC_DATA_F64: {
@@ -38,8 +42,8 @@ int libsmm_acc_process(libsmm_acc_stack_descriptor_type* param_stack, int stack_
 }
 
 
-int libsmm_acc_transpose(void* trs_stack, int offset, int nblks,
-  void* buffer, acc_data_t datatype, int m, int n, acc_stream_t* stream)
+int libsmm_acc_transpose(const int* trs_stack, int offset, int nblks,
+  void* data, acc_data_t datatype, int m, int n, acc_stream_t* stream)
 {
   int result;
   switch (datatype) {

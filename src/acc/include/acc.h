@@ -23,6 +23,8 @@ typedef int acc_bool_t;
 typedef enum acc_data_t {
   ACC_DATA_F64 = 3,
   ACC_DATA_F32 = 1,
+  ACC_DATA_C64 = 7,
+  ACC_DATA_C32 = 5,
   ACC_DATA_UNKNOWN = -1
 } acc_data_t;
 

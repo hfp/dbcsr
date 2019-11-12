@@ -123,8 +123,8 @@ int libsmm_acc_process(const libsmm_acc_stack_descriptor_type* dev_param_stack, 
           int tid = 0;
           for (; tid < nthreads && EXIT_SUCCESS == result; ++tid) {
             acc_openmp_depend_t *const di = &deps[tid];
-            const libsmm_acc_stack_descriptor_type* /*const*/ params = (const int*)di->args[0].const_ptr;
-            void * /*const*/ a_data = di->args[3].const_ptr, * /*const*/ b_data = di->args[4].const_ptr;
+            const libsmm_acc_stack_descriptor_type* /*const*/ params = (const libsmm_acc_stack_descriptor_type*)di->args[0].const_ptr;
+            const void * /*const*/ a_data = di->args[3].const_ptr, * /*const*/ b_data = di->args[4].const_ptr;
             void* /*const*/ c_data = di->args[5].ptr;
             const char *const id = di->in, *const od = di->out;
             switch (datatype) {
@@ -136,7 +136,7 @@ int libsmm_acc_process(const libsmm_acc_stack_descriptor_type* dev_param_stack, 
               } break;
               case ACC_DATA_F32: {
 #               pragma omp target depend(in:id[0]) depend(out:od[0]) nowait is_device_ptr(params,a_data,b_data,c_data)
-                result = libsmm_acc_process_d(params, deps->args[1].i32/*stack_size*/, nparams,
+                result = libsmm_acc_process_s(params, deps->args[1].i32/*stack_size*/, nparams,
                   (const float*)a_data, (const float*)b_data, (float*)c_data,
                   deps->args[6].i32/*m_max*/, deps->args[7].i32/*n_max*/, deps->args[8].i32/*k_max*/);
               } break;

@@ -100,7 +100,7 @@ int acc_dev_mem_allocate(void** dev_mem, size_t n)
 {
   assert(NULL != dev_mem);
 #if defined(ACC_OPENMP_OFFLOAD)
-  if (0 < ACC_OMP_GET_NUM_DEVICES()) {
+  if (0 < omp_get_num_devices()) { /*!ACC_OMP_GET_NUM_DEVICES*/
     *dev_mem = omp_target_alloc(n, omp_get_default_device());
   }
   else
@@ -116,7 +116,7 @@ int acc_dev_mem_deallocate(void* dev_mem)
 {
   if (NULL != dev_mem) {
 #if defined(ACC_OPENMP_OFFLOAD)
-    if (0 < ACC_OMP_GET_NUM_DEVICES()) {
+    if (0 < omp_get_num_devices()) { /*!ACC_OMP_GET_NUM_DEVICES*/
       omp_target_free(dev_mem, omp_get_default_device());
     }
     else

@@ -289,21 +289,21 @@ int acc_memset_zero(void* dev_mem, size_t offset, size_t length, acc_stream_t* s
       result = acc_openmp_stream_depend(stream, &deps);
       if (EXIT_SUCCESS == result) {
         deps->args[0].ptr = dev_mem;
-        deps->args[1].size = offset;
-        deps->args[2].size = length;
+        deps->args[1].size = offset; /* begin */
+        deps->args[2].size = offset + length; /* end */
 #       pragma omp barrier
 #       pragma omp master
         { const int nthreads = omp_get_num_threads();
           int tid = 0;
           for (; tid < nthreads; ++tid) {
             acc_openmp_depend_t *const di = &deps[tid];
-            /* OpenMP specification: pointer arithmetic may not be valid */
-            char * /*const*/ dst = (char*)di->args[0].ptr + di->args[1].size;
-            const size_t size = di->args[2].size; /* length */
             const char *const id = di->in, *const od = di->out;
+            char * /*const*/ dst = (char*)di->args[0].ptr;
+            const size_t begin = di->args[1].size;
+            const size_t end = di->args[2].size;
             size_t i; /* private(i) */
 #           pragma omp target teams distribute parallel for simd depend(in:id[0]) depend(out:od[0]) nowait is_device_ptr(dst)
-            for (i = 0; i < size; ++i) dst[i] = '\0';
+            for (i = begin; i < end; ++i) dst[i] = '\0';
             (void)(id); (void)(od); /* suppress incorrect warning */
           }
         }

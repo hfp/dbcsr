@@ -134,16 +134,7 @@ int acc_get_ndevices(int* n_devices)
 {
   int result;
   if (NULL != n_devices) {
-#if defined(ACC_OPENMP_OFFLOAD) && (!defined(ACC_OPENMP_DEVICE_MAXCOUNT) || (0 != ACC_OPENMP_DEVICE_MAXCOUNT))
-    *n_devices = omp_get_num_devices();
-# if defined(ACC_OPENMP_DEVICE_MAXCOUNT) && (0 < ACC_OPENMP_DEVICE_MAXCOUNT)
-    if (ACC_OPENMP_DEVICE_MAXCOUNT < *n_devices) {
-      *n_devices = ACC_OPENMP_DEVICE_MAXCOUNT;
-    }
-# endif
-#else
-    *n_devices = 0;
-#endif
+    *n_devices = ACC_OMP_GET_NUM_DEVICES();
     assert(0 <= *n_devices);
     result = EXIT_SUCCESS;
   }
@@ -163,21 +154,11 @@ int acc_set_active_device(int device_id)
 #endif
   if (EXIT_SUCCESS == result) {
 #if !defined(NDEBUG)
-    int ndevices;
-# if defined(ACC_OPENMP_OFFLOAD) && (!defined(ACC_OPENMP_DEVICE_MAXCOUNT) || (0 != ACC_OPENMP_DEVICE_MAXCOUNT))
-    ndevices = omp_get_num_devices();
-#   if defined(ACC_OPENMP_DEVICE_MAXCOUNT) && (0 < ACC_OPENMP_DEVICE_MAXCOUNT)
-    if (ACC_OPENMP_DEVICE_MAXCOUNT < ndevices) {
-      ndevices = ACC_OPENMP_DEVICE_MAXCOUNT;
-    }
-#   endif
-# else
-    ndevices = 0;
-# endif
+    const int ndevices = ACC_OMP_GET_NUM_DEVICES();
     if (device_id < ndevices)
 #endif
     {
-#if defined(ACC_OPENMP_OFFLOAD) && (!defined(ACC_OPENMP_DEVICE_MAXCOUNT) || (0 != ACC_OPENMP_DEVICE_MAXCOUNT))
+#if defined(ACC_OPENMP_OFFLOAD)
       omp_set_default_device(device_id);
 #endif
       result = EXIT_SUCCESS;

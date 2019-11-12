@@ -66,7 +66,7 @@ int acc_host_mem_deallocate(void* host_mem, acc_stream_t* stream)
 #if !defined(ACC_OPENMP_OFFLOAD)
     (void)(stream); /* unused */
 #else /* implies _OPENMP */
-    const int ndevices = omp_get_num_devices();
+    const int ndevices = ACC_OMP_GET_NUM_DEVICES();
     if (0 < ndevices) {
       acc_openmp_depend_t* deps;
       result = acc_openmp_stream_depend(stream, &deps);
@@ -100,7 +100,7 @@ int acc_dev_mem_allocate(void** dev_mem, size_t n)
 {
   assert(NULL != dev_mem);
 #if defined(ACC_OPENMP_OFFLOAD)
-  if (0 < omp_get_num_devices()) {
+  if (0 < ACC_OMP_GET_NUM_DEVICES()) {
     *dev_mem = omp_target_alloc(n, omp_get_default_device());
   }
   else
@@ -116,7 +116,7 @@ int acc_dev_mem_deallocate(void* dev_mem)
 {
   if (NULL != dev_mem) {
 #if defined(ACC_OPENMP_OFFLOAD)
-    if (0 < omp_get_num_devices()) {
+    if (0 < ACC_OMP_GET_NUM_DEVICES()) {
       omp_target_free(dev_mem, omp_get_default_device());
     }
     else
@@ -151,7 +151,7 @@ int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t count, acc_stream
 #if !defined(ACC_OPENMP_OFFLOAD)
     (void)(stream); /* unused */
 #else /* implies _OPENMP */
-    const int ndevices = omp_get_num_devices();
+    const int ndevices = ACC_OMP_GET_NUM_DEVICES();
     if (0 < ndevices) {
       acc_openmp_depend_t* deps;
       result = acc_openmp_stream_depend(stream, &deps);
@@ -195,7 +195,7 @@ int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t count, acc_stream
 #if !defined(ACC_OPENMP_OFFLOAD)
     (void)(stream); /* unused */
 #else /* implies _OPENMP */
-    const int ndevices = omp_get_num_devices();
+    const int ndevices = ACC_OMP_GET_NUM_DEVICES();
     if (0 < ndevices) {
       acc_openmp_depend_t* deps;
       result = acc_openmp_stream_depend(stream, &deps);
@@ -239,7 +239,7 @@ int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t count, acc_s
 #if !defined(ACC_OPENMP_OFFLOAD)
     (void)(stream); /* unused */
 #else /* implies _OPENMP */
-    const int ndevices = omp_get_num_devices();
+    const int ndevices = ACC_OMP_GET_NUM_DEVICES();
     if (0 < ndevices) {
       acc_openmp_depend_t* deps;
       result = acc_openmp_stream_depend(stream, &deps);
@@ -283,7 +283,7 @@ int acc_memset_zero(void* dev_mem, size_t offset, size_t length, acc_stream_t* s
 #if !defined(ACC_OPENMP_OFFLOAD)
     (void)(stream); /* unused */
 #else /* implies _OPENMP */
-    const int ndevices = omp_get_num_devices();
+    const int ndevices = ACC_OMP_GET_NUM_DEVICES();
     if (0 < ndevices) {
       acc_openmp_depend_t* deps;
       result = acc_openmp_stream_depend(stream, &deps);

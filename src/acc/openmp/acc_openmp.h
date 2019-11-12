@@ -30,9 +30,6 @@
 #if !defined(ACC_OPENMP_PAUSE_MAXCOUNT)
 # define ACC_OPENMP_PAUSE_MAXCOUNT 4096
 #endif
-#if !defined(ACC_OPENMP_DEVICE_MAXCOUNT) && 0
-# define ACC_OPENMP_DEVICE_MAXCOUNT 0
-#endif
 
 #if defined(__INTEL_COMPILER)
 # if !defined(__INTEL_COMPILER_UPDATE)
@@ -106,6 +103,11 @@
 #   define ACC_OPENMP_VERSION ACC_OPENMP_BASELINE
 #   define ACC_OPENMP_OFFLOAD
 # endif
+#endif
+#if defined(ACC_OPENMP_OFFLOAD)
+# define ACC_OMP_GET_NUM_DEVICES() omp_get_num_devices()
+#else
+# define ACC_OMP_GET_NUM_DEVICES() 0
 #endif
 
 #include "../include/acc.h"

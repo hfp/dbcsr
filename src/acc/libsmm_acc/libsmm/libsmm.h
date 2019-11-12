@@ -6,10 +6,28 @@
  * For further information please visit https://dbcsr.cp2k.org                                    *
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
-#ifndef DBCSR_ACC_LIBSMM_H
-#define DBCSR_ACC_LIBSMM_H
+#ifndef LIBSMM_ACC_H
+#define LIBSMM_ACC_H
 
 #include "../include/libsmm_acc.h"
 #include "../../openmp/acc_openmp.h"
 
-#endif /*DBCSR_ACC_LIBSMM_H*/
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+int libsmm_acc_transpose_d(const int* dev_trs_stack, int offset, int nblks, double* dev_data, int m, int n);
+int libsmm_acc_transpose_s(const int* dev_trs_stack, int offset, int nblks, float* dev_data, int m, int n);
+
+int libsmm_acc_process_d(const libsmm_acc_stack_descriptor_type* dev_param_stack, int stack_size,
+  int nparams, const double* dev_a_data, const double* dev_b_data, double* dev_c_data,
+  int m_max, int n_max, int k_max);
+int libsmm_acc_process_s(const libsmm_acc_stack_descriptor_type* dev_param_stack, int stack_size,
+  int nparams, const float* dev_a_data, const float* dev_b_data, float* dev_c_data,
+  int m_max, int n_max, int k_max);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /*LIBSMM_ACC_H*/

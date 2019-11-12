@@ -165,9 +165,7 @@ int acc_stream_wait_event(acc_stream_t* stream, acc_event_t* event)
 { /* Waits (device-side) for an event (potentially recorded on a different stream). */
   int result;
   if (NULL != stream && NULL != event) {
-#if !defined(ACC_OPENMP_OFFLOAD)
-    (void)(stream); /* unused */
-#else /* implies _OPENMP */
+#if defined(ACC_OPENMP_OFFLOAD)
     const int ndevices = omp_get_num_devices();
     if (0 < ndevices) {
       acc_openmp_depend_t* deps;

@@ -55,9 +55,7 @@ int acc_event_record(acc_event_t* event, acc_stream_t* stream)
   if (NULL != stream) {
     acc_openmp_stream_t *const s = (acc_openmp_stream_t*)stream;
     acc_openmp_event_t *const e = (acc_openmp_event_t*)event;
-#if !defined(ACC_OPENMP_OFFLOAD)
-    (void)(stream); /* unused */
-#else /* implies _OPENMP */
+#if defined(ACC_OPENMP_OFFLOAD)
     const int ndevices = omp_get_num_devices();
     if (0 < ndevices) {
       acc_openmp_depend_t* deps;
@@ -96,7 +94,7 @@ int acc_event_record(acc_event_t* event, acc_stream_t* stream)
       result = EXIT_SUCCESS;
     }
     else {
-      s->pending;
+      s->pending = 0;
       result = EXIT_SUCCESS;
     }
   }

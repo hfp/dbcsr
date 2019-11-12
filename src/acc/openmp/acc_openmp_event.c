@@ -75,12 +75,12 @@ int acc_event_record(acc_event_t* event, acc_stream_t* stream)
             const char *const id = di->in, *const od = di->out;
             (void)(id); (void)(od); /* suppress incorrect warning */
             if (NULL != ei) {
-              const char *volatile *const sig = &ei->dependency;
+              uintptr_t/*const char**/ volatile* /*const*/ sig = (uintptr_t volatile*)&ei->dependency;
 #             pragma omp target depend(in:id[0]) depend(out:od[0]) nowait map(from:sig[0:1])
-              *sig = NULL;
+              *sig = 0/*NULL*/;
             }
             else {
-              volatile int *const sig = &s->pending;
+              int volatile* /*const*/ sig = (int volatile*)&s->pending;
 #             pragma omp target depend(in:id[0]) depend(out:od[0]) nowait map(from:sig[0:1])
               *sig = 0;
             }

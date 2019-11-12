@@ -15,6 +15,7 @@
 extern "C" {
 #endif
 
+#pragma omp declare target
 int libsmm_acc_process_d(const libsmm_acc_stack_descriptor_type* dev_param_stack, int stack_size,
   int nparams, const double* dev_a_data, const double* dev_b_data, double* dev_c_data,
   int m_max, int n_max, int k_max)
@@ -22,8 +23,10 @@ int libsmm_acc_process_d(const libsmm_acc_stack_descriptor_type* dev_param_stack
   int result = EXIT_FAILURE; /* TODO */
   return result;
 }
+#pragma omp end declare target
 
 
+#pragma omp declare target
 int libsmm_acc_process_s(const libsmm_acc_stack_descriptor_type* dev_param_stack, int stack_size,
   int nparams, const float* dev_a_data, const float* dev_b_data, float* dev_c_data,
   int m_max, int n_max, int k_max)
@@ -31,6 +34,7 @@ int libsmm_acc_process_s(const libsmm_acc_stack_descriptor_type* dev_param_stack
   int result = EXIT_FAILURE; /* TODO */
   return result;
 }
+#pragma omp end declare target
 
 #if defined(__cplusplus)
 }

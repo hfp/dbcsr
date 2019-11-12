@@ -47,7 +47,7 @@ int acc_host_mem_allocate(void** host_mem, size_t n, acc_stream_t* stream)
       if (NULL != s) {
 #if defined(_OPENMP) && (200805 <= _OPENMP) /* OpenMP 3.0 */
 #       pragma omp atomic write
-#else
+#elif defined(_OPENMP)
 #       pragma omp critical
 #endif
         s->status = s->status | EXIT_FAILURE;

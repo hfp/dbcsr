@@ -43,7 +43,7 @@ int acc_openmp_stream_depend(acc_stream_t* stream, acc_openmp_depend_t** depend)
     acc_openmp_depend_t *const d = &acc_openmp_stream_call[omp_get_thread_num()];
 # if defined(_OPENMP) && (200805 <= _OPENMP) /* OpenMP 3.0 */
 #   pragma omp atomic capture
-# else
+# elif defined(_OPENMP)
 #   pragma omp critical(acc_openmp_stream_depend_critical)
 # endif
 #endif

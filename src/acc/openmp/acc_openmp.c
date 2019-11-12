@@ -24,7 +24,7 @@ int acc_openmp_alloc(void** item, int typesize, int* counter, int maxcount, void
   assert(0 < acc_openmp_initialized && NULL != item && 0 < typesize && NULL != counter);
 #if defined(_OPENMP) && (200805 <= _OPENMP) /* OpenMP 3.0 */
 # pragma omp atomic capture
-#else
+#elif defined(_OPENMP)
 # pragma omp critical(acc_openmp_alloc_critical)
 #endif
   i = (*counter)++;
@@ -72,7 +72,7 @@ int acc_openmp_dealloc(void* item, int typesize, int* counter, int maxcount, voi
     int i;
 #if defined(_OPENMP) && (200805 <= _OPENMP) /* OpenMP 3.0 */
 #   pragma omp atomic capture
-#else
+#elif defined(_OPENMP)
 #   pragma omp critical(acc_openmp_alloc_critical)
 #endif
     i = (*counter)--;

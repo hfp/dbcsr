@@ -136,6 +136,7 @@ ACC_OPENMP_EXPORT typedef union acc_openmp_any_t {
   size_t size;
   uint32_t u32;
   int32_t i32;
+  acc_bool_t logical;
 } acc_openmp_any_t;
 
 ACC_OPENMP_EXPORT typedef struct acc_openmp_depend_t {

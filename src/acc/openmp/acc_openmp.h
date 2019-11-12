@@ -53,6 +53,11 @@
 #   define ACC_OPENMP_PRAGMA(DIRECTIVE)
 # endif
 #endif
+#if defined(ACC_OPENMP_INTEL_COMPILER)
+# define ACC_OPENMP_DEP(DEP) *DEP
+#else
+# define ACC_OPENMP_DEP(DEP) DEP[0]
+#endif
 
 #if (defined(__GNUC__) && ( \
     (defined(__x86_64__) && 0 != (__x86_64__)) || \

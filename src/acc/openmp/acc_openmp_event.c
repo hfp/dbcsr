@@ -74,12 +74,12 @@ int acc_event_record(acc_event_t* event, acc_stream_t* stream)
             (void)(id); (void)(od); /* suppress incorrect warning */
             if (NULL != ei) {
               uintptr_t/*const char**/ volatile* /*const*/ sig = (uintptr_t volatile*)&ei->dependency;
-#             pragma omp target depend(in:id[0]) depend(out:od[0]) nowait map(from:sig[0:1])
+#             pragma omp target depend(in:ACC_OPENMP_DEP(id)) depend(out:ACC_OPENMP_DEP(od)) nowait map(from:sig[0:1])
               *sig = 0/*NULL*/;
             }
             else {
               int volatile* /*const*/ sig = (int volatile*)&s->pending;
-#             pragma omp target depend(in:id[0]) depend(out:od[0]) nowait map(from:sig[0:1])
+#             pragma omp target depend(in:ACC_OPENMP_DEP(id)) depend(out:ACC_OPENMP_DEP(od)) nowait map(from:sig[0:1])
               *sig = 0;
             }
           }

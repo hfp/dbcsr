@@ -183,7 +183,7 @@ int acc_stream_wait_event(acc_stream_t* stream, acc_event_t* event)
             if (NULL != ie) { /* still pending */
               const char *const id = di->in, *const od = di->out;
               (void)(id); (void)(od); /* suppress incorrect warning */
-#             pragma omp target depend(in:id[0],ie[0]) depend(out:od[0]) nowait if(0)
+#             pragma omp target depend(in:ACC_OPENMP_DEP(id),ACC_OPENMP_DEP(ie)) depend(out:ACC_OPENMP_DEP(od)) nowait if(0)
               {}
             }
           }

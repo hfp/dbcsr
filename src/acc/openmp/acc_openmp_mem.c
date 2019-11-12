@@ -81,7 +81,7 @@ int acc_host_mem_deallocate(void* host_mem, acc_stream_t* stream)
             acc_openmp_depend_t *const di = &deps[tid];
             const char *const id = di->in, *const od = di->out;
             (void)(id); (void)(od); /* suppress incorrect warning */
-#           pragma omp task depend(in:id[0]) depend(out:od[0])
+#           pragma omp task depend(in:ACC_OPENMP_DEP(id)) depend(out:ACC_OPENMP_DEP(od))
             ACC_OPENMP_MEM_FREE(di->args[0].ptr);
           }
         }
@@ -171,7 +171,7 @@ int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t count, acc_stream
             const char *const id = di->in, *const od = di->out;
             acc_openmp_stream_t *const s = (acc_openmp_stream_t*)di->args[3].ptr; assert(NULL != s);
             (void)(id); (void)(od); /* suppress incorrect warning */
-#           pragma omp task depend(in:id[0]) depend(out:od[0])
+#           pragma omp task depend(in:ACC_OPENMP_DEP(id)) depend(out:ACC_OPENMP_DEP(od))
             s->status |= omp_target_memcpy(di->args[1].ptr, di->args[0]./*const_*/ptr, di->args[2].size,
               0/*dst_offset*/, 0/*src_offset*/, dev_dst, dev_src);
           }
@@ -215,7 +215,7 @@ int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t count, acc_stream
             const char *const id = di->in, *const od = di->out;
             acc_openmp_stream_t *const s = (acc_openmp_stream_t*)di->args[3].ptr; assert(NULL != s);
             (void)(id); (void)(od); /* suppress incorrect warning */
-#           pragma omp task depend(in:id[0]) depend(out:od[0])
+#           pragma omp task depend(in:ACC_OPENMP_DEP(id)) depend(out:ACC_OPENMP_DEP(od))
             s->status |= omp_target_memcpy(di->args[1].ptr, di->args[0]./*const_*/ptr, di->args[2].size,
               0/*dst_offset*/, 0/*src_offset*/, dev_dst, dev_src);
           }
@@ -259,7 +259,7 @@ int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t count, acc_s
             const char *const id = di->in, *const od = di->out;
             acc_openmp_stream_t *const s = (acc_openmp_stream_t*)di->args[3].ptr; assert(NULL != s);
             (void)(id); (void)(od); /* suppress incorrect warning */
-#           pragma omp task depend(in:id[0]) depend(out:od[0])
+#           pragma omp task depend(in:ACC_OPENMP_DEP(id)) depend(out:ACC_OPENMP_DEP(od))
             s->status |= omp_target_memcpy(di->args[1].ptr, di->args[0]./*const_*/ptr, di->args[2].size,
               0/*dst_offset*/, 0/*src_offset*/, dev_dst, dev_src);
           }
@@ -302,7 +302,7 @@ int acc_memset_zero(void* dev_mem, size_t offset, size_t length, acc_stream_t* s
             const size_t begin = di->args[1].size;
             const size_t end = di->args[2].size;
             size_t i; /* private(i) */
-#           pragma omp target teams distribute parallel for simd depend(in:id[0]) depend(out:od[0]) nowait is_device_ptr(dst)
+#           pragma omp target teams distribute parallel for simd depend(in:ACC_OPENMP_DEP(id)) depend(out:ACC_OPENMP_DEP(od)) nowait is_device_ptr(dst)
             for (i = begin; i < end; ++i) dst[i] = '\0';
             (void)(id); (void)(od); /* suppress incorrect warning */
           }

@@ -289,8 +289,8 @@ int acc_memset_zero(void* dev_mem, size_t offset, size_t length, acc_stream_t* s
       result = acc_openmp_stream_depend(stream, &deps);
       if (EXIT_SUCCESS == result) {
         deps->args[0].ptr = dev_mem;
-        deps->args[1].size = offset; /* begin */
-        deps->args[2].size = offset + length; /* end */
+        deps->args[1].size = offset;
+        deps->args[2].size = length;
 #       pragma omp barrier
 #       pragma omp master
         { const int nthreads = omp_get_num_threads();
@@ -299,11 +299,14 @@ int acc_memset_zero(void* dev_mem, size_t offset, size_t length, acc_stream_t* s
             acc_openmp_depend_t *const di = &deps[tid];
             const char *const id = di->in, *const od = di->out;
             char * /*const*/ dst = (char*)di->args[0].ptr;
-            const size_t begin = di->args[1].size;
-            const size_t end = di->args[2].size;
+#if 0
             size_t i; /* private(i) */
 #           pragma omp target teams distribute parallel for simd depend(in:ACC_OPENMP_DEP(id)) depend(out:ACC_OPENMP_DEP(od)) nowait is_device_ptr(dst)
-            for (i = begin; i < end; ++i) dst[i] = '\0';
+            for (i = di->args[1].size/*offset*/; i < di->args[1].size + di->args[2].size; ++i) dst[i] = '\0';
+#else
+#           pragma omp target depend(in:ACC_OPENMP_DEP(id)) depend(out:ACC_OPENMP_DEP(od)) nowait is_device_ptr(dst)
+            memset(dst + di->args[1].size, 0, di->args[2].size - di->args[1].size);
+#endif
             (void)(id); (void)(od); /* suppress incorrect warning */
           }
         }

@@ -136,7 +136,7 @@ int acc_clear_errors(void)
 }
 
 
-int acc_openmp_ndevices()
+int acc_openmp_ndevices(void)
 {
 #if defined(ACC_OPENMP_OFFLOAD)
   const int ndevices = omp_get_num_devices();
@@ -172,7 +172,7 @@ int acc_set_active_device(int device_id)
 #endif
   if (EXIT_SUCCESS == result) {
 #if !defined(NDEBUG)
-    if (device < acc_openmp_ndevices())
+    if (device_id < acc_openmp_ndevices())
 #endif
     {
 #if defined(ACC_OPENMP_OFFLOAD)

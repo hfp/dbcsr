@@ -149,7 +149,7 @@ ACC_OPENMP_EXPORT typedef struct acc_openmp_depend_t {
   const char *in, *out;
 } acc_openmp_depend_t;
 
-ACC_OPENMP_EXPORT int acc_openmp_ndevices();
+ACC_OPENMP_EXPORT int acc_openmp_ndevices(void);
 /** Helper function for lock-free allocation of preallocated items such as streams or events. */
 ACC_OPENMP_EXPORT int acc_openmp_alloc(void** item, int typesize, int* counter, int maxcount, void* storage, void** pointer);
 /** Helper function for lock-free deallocation (companion of acc_openmp_alloc). */

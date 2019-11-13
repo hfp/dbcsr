@@ -11,6 +11,7 @@ ifeq (1,$(INTEL))
   CC := icc
 else
   CC := icx
+  LIB ?= 0
 endif
 else ifneq (0,$(IBM))
   CC := xlc
@@ -42,7 +43,8 @@ else
 endif
 endif
 
-ifneq (,$(filter 0 1,$(INTEL)))
+LIB ?= 1
+ifneq (0,$(LIB))
 dbcsr_acc_test: dbcsr_acc_test.o openmp/libacc_openmp.a
 else
 dbcsr_acc_test: dbcsr_acc_test.o openmp/acc_openmp.o openmp/acc_openmp_event.o openmp/acc_openmp_mem.o openmp/acc_openmp_stream.o

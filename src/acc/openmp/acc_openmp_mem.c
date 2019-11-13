@@ -55,6 +55,9 @@ int acc_host_mem_allocate(void** host_mem, size_t n, acc_stream_t* stream)
       result = EXIT_FAILURE;
     }
   }
+  else if (NULL != host_mem) {
+    *host_mem = NULL;
+  }
   return result;
 }
 
@@ -98,17 +101,25 @@ int acc_host_mem_deallocate(void* host_mem, acc_stream_t* stream)
 
 int acc_dev_mem_allocate(void** dev_mem, size_t n)
 {
-  assert(NULL != dev_mem);
+  int result;
+  assert(NULL != dev_mem || 0 == n);
+  if (0 != n) {
 #if defined(ACC_OPENMP_OFFLOAD)
-  if (0 < omp_get_num_devices()) { /*!ACC_OMP_GET_NUM_DEVICES*/
-    *dev_mem = omp_target_alloc(n, omp_get_default_device());
-  }
-  else
+    if (0 < omp_get_num_devices()) { /*!ACC_OMP_GET_NUM_DEVICES*/
+      *dev_mem = omp_target_alloc(n, omp_get_default_device());
+    }
+    else
 #endif
-  {
-    *dev_mem = malloc(n);
+    {
+      *dev_mem = malloc(n);
+    }
+    result = (NULL != *dev_mem ? EXIT_SUCCESS : EXIT_FAILURE);
   }
-  return (NULL != *dev_mem ? EXIT_SUCCESS : EXIT_FAILURE);
+  else {
+    if (NULL != dev_mem) *dev_mem = NULL;
+    result = EXIT_SUCCESS;
+  }
+  return result;
 }
 
 

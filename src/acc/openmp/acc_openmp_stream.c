@@ -166,8 +166,7 @@ int acc_stream_wait_event(acc_stream_t* stream, acc_event_t* event)
   int result;
   if (NULL != stream && NULL != event) {
 #if defined(ACC_OPENMP_OFFLOAD)
-    const int ndevices = ACC_OMP_GET_NUM_DEVICES();
-    if (0 < ndevices) {
+    if (0 < acc_openmp_ndevices()) {
       acc_openmp_depend_t* deps;
       result = acc_openmp_stream_depend(stream, &deps);
       if (EXIT_SUCCESS == result) {

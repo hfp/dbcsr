@@ -15,7 +15,7 @@
 extern "C" {
 #endif
 
-int acc_openmp_initialized;
+int acc_openmp_initialized, acc_openmp_device;
 
 
 int acc_openmp_alloc(void** item, int typesize, int* counter, int maxcount, void* storage, void** pointer)
@@ -98,6 +98,7 @@ int acc_openmp_dealloc(void* item, int typesize, int* counter, int maxcount, voi
 
 int acc_init(void)
 {
+  const char *const device = getenv("ACC_OPENMP_DEVICE");
 #if defined(ACC_OPENMP_OFFLOAD)
 # pragma omp target map(tofrom:acc_openmp_initialized)
 #endif
@@ -106,6 +107,7 @@ int acc_init(void)
 # pragma omp master
 #endif
   ++acc_openmp_initialized;
+  acc_openmp_device = ((NULL != device && 0 != *device) ? atoi(device) : 0);
   return 1 == acc_openmp_initialized
     ? EXIT_SUCCESS
     : EXIT_FAILURE;
@@ -134,11 +136,22 @@ int acc_clear_errors(void)
 }
 
 
+int acc_openmp_ndevices()
+{
+#if defined(ACC_OPENMP_OFFLOAD)
+  const int ndevices = omp_get_num_devices();
+#else
+  const int ndevices = 0;
+#endif
+  return (0 != ndevices ? ndevices : (0 != acc_openmp_device ? 1 : 0));
+}
+
+
 int acc_get_ndevices(int* n_devices)
 {
   int result;
   if (NULL != n_devices) {
-    *n_devices = ACC_OMP_GET_NUM_DEVICES();
+    *n_devices = acc_openmp_ndevices();
     assert(0 <= *n_devices);
     result = EXIT_SUCCESS;
   }
@@ -152,18 +165,18 @@ int acc_get_ndevices(int* n_devices)
 
 int acc_set_active_device(int device_id)
 {
-  int result = (0 <= device_id ? EXIT_SUCCESS : EXIT_FAILURE);
+  const int device = acc_openmp_device + device_id;
+  int result = (0 <= device ? EXIT_SUCCESS : EXIT_FAILURE);
 #if defined(_OPENMP)
 # pragma omp master
 #endif
   if (EXIT_SUCCESS == result) {
 #if !defined(NDEBUG)
-    const int ndevices = ACC_OMP_GET_NUM_DEVICES();
-    if (device_id < ndevices)
+    if (device < acc_openmp_ndevices())
 #endif
     {
 #if defined(ACC_OPENMP_OFFLOAD)
-      omp_set_default_device(device_id);
+      omp_set_default_device(device);
 #endif
       result = EXIT_SUCCESS;
     }

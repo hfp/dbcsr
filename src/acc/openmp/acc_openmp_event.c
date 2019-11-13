@@ -56,8 +56,7 @@ int acc_event_record(acc_event_t* event, acc_stream_t* stream)
     acc_openmp_stream_t *const s = (acc_openmp_stream_t*)stream;
     acc_openmp_event_t *const e = (acc_openmp_event_t*)event;
 #if defined(ACC_OPENMP_OFFLOAD)
-    const int ndevices = ACC_OMP_GET_NUM_DEVICES();
-    if (0 < ndevices) {
+    if (0 < acc_openmp_ndevices()) {
       acc_openmp_depend_t* deps;
       result = acc_openmp_stream_depend(stream, &deps);
       if (EXIT_SUCCESS == result) {

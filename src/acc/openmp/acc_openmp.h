@@ -109,11 +109,6 @@
 #   define ACC_OPENMP_OFFLOAD
 # endif
 #endif
-#if defined(ACC_OPENMP_OFFLOAD)
-# define ACC_OMP_GET_NUM_DEVICES() omp_get_num_devices()
-#else
-# define ACC_OMP_GET_NUM_DEVICES() 0
-#endif
 
 #include "../include/acc.h"
 #include <stdint.h>
@@ -154,6 +149,7 @@ ACC_OPENMP_EXPORT typedef struct acc_openmp_depend_t {
   const char *in, *out;
 } acc_openmp_depend_t;
 
+ACC_OPENMP_EXPORT int acc_openmp_ndevices();
 /** Helper function for lock-free allocation of preallocated items such as streams or events. */
 ACC_OPENMP_EXPORT int acc_openmp_alloc(void** item, int typesize, int* counter, int maxcount, void* storage, void** pointer);
 /** Helper function for lock-free deallocation (companion of acc_openmp_alloc). */

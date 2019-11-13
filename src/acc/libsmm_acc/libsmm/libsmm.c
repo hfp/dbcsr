@@ -52,12 +52,12 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int nblks,
             const char *const id = di->in, *const od = di->out;
             switch (datatype) {
               case ACC_DATA_F64: {
-#               pragma omp target depend(in:id[0]) depend(out:od[0]) nowait is_device_ptr(index,data)
+#               pragma omp target depend(in:ACC_OPENMP_DEP(id)) depend(out:ACC_OPENMP_DEP(od)) nowait is_device_ptr(index,data)
                 result = libsmm_acc_transpose_d(index, deps->args[1].i32/*offset*/, deps->args[2].i32/*nblks*/,
                   (double*)data, deps->args[5].i32/*m*/, deps->args[6].i32/*n*/);
               } break;
               case ACC_DATA_F32: {
-#               pragma omp target depend(in:id[0]) depend(out:od[0]) nowait is_device_ptr(index,data)
+#               pragma omp target depend(in:ACC_OPENMP_DEP(id)) depend(out:ACC_OPENMP_DEP(od)) nowait is_device_ptr(index,data)
                 result = libsmm_acc_transpose_s(index, deps->args[1].i32/*offset*/, deps->args[2].i32/*nblks*/,
                   (float*)data, deps->args[5].i32/*m*/, deps->args[6].i32/*n*/);
               } break;
@@ -129,13 +129,13 @@ int libsmm_acc_process(const libsmm_acc_stack_descriptor_type* dev_param_stack, 
             const char *const id = di->in, *const od = di->out;
             switch (datatype) {
               case ACC_DATA_F64: {
-#               pragma omp target depend(in:id[0]) depend(out:od[0]) nowait is_device_ptr(params,a_data,b_data,c_data)
+#               pragma omp target depend(in:ACC_OPENMP_DEP(id)) depend(out:ACC_OPENMP_DEP(od)) nowait is_device_ptr(params,a_data,b_data,c_data)
                 result = libsmm_acc_process_d(params, deps->args[1].i32/*stack_size*/, nparams,
                   (const double*)a_data, (const double*)b_data, (double*)c_data,
                   deps->args[6].i32/*m_max*/, deps->args[7].i32/*n_max*/, deps->args[8].i32/*k_max*/);
               } break;
               case ACC_DATA_F32: {
-#               pragma omp target depend(in:id[0]) depend(out:od[0]) nowait is_device_ptr(params,a_data,b_data,c_data)
+#               pragma omp target depend(in:ACC_OPENMP_DEP(id)) depend(out:ACC_OPENMP_DEP(od)) nowait is_device_ptr(params,a_data,b_data,c_data)
                 result = libsmm_acc_process_s(params, deps->args[1].i32/*stack_size*/, nparams,
                   (const float*)a_data, (const float*)b_data, (float*)c_data,
                   deps->args[6].i32/*m_max*/, deps->args[7].i32/*n_max*/, deps->args[8].i32/*k_max*/);

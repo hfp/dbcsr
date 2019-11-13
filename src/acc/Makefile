@@ -7,7 +7,11 @@ INTEL ?= 0
 IBM ?= 0
 
 ifneq (0,$(INTEL))
+ifeq (1,$(INTEL))
   CC := icc
+else
+  CC := icx
+endif
 else ifneq (0,$(IBM))
   CC := xlc
 endif
@@ -22,8 +26,13 @@ else
 endif
 ifneq (0,$(OMP))
 ifneq (0,$(INTEL))
+ifeq (1,$(INTEL))
   LDFLAGS += -qopenmp -qoffload
   CFLAGS += -qopenmp -qoffload
+else
+  LDFLAGS += -fiopenmp -fopenmp-targets=spir64
+  CFLAGS += -fiopenmp -fopenmp-targets=spir64
+endif
 else ifneq (0,$(IBM))
   LDFLAGS += -qsmp=omp -qoffload
   CFLAGS += -qsmp=omp -qoffload
@@ -33,7 +42,11 @@ else
 endif
 endif
 
+ifneq (,$(filter 0 1,$(INTEL)))
 dbcsr_acc_test: dbcsr_acc_test.o openmp/libacc_openmp.a
+else
+dbcsr_acc_test: dbcsr_acc_test.o openmp/acc_openmp.o openmp/acc_openmp_event.o openmp/acc_openmp_mem.o openmp/acc_openmp_stream.o
+endif
 	$(CC) $(LDFLAGS) $^ -o $@
 
 %.o: %.c Makefile
@@ -41,7 +54,7 @@ dbcsr_acc_test: dbcsr_acc_test.o openmp/libacc_openmp.a
 
 .PHONE: clean
 clean:
-	@rm -f dbcsr_acc_test.o
+	@rm -f dbcsr_acc_test.o openmp/acc_openmp*.o
 
 .PHONE: realclean
 realclean: clean

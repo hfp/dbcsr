@@ -98,8 +98,12 @@ int acc_openmp_dealloc(void* item, int typesize, int* counter, int maxcount, voi
 
 int acc_init(void)
 {
+#if defined(ACC_OPENMP_OFFLOAD)
+# pragma omp target map(tofrom:acc_openmp_initialized)
+#endif
 #if defined(_OPENMP)
-# pragma omp atomic
+# pragma omp parallel
+# pragma omp master
 #endif
   ++acc_openmp_initialized;
   return 1 == acc_openmp_initialized

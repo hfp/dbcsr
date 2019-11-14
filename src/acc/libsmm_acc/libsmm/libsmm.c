@@ -47,19 +47,14 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int nblks,
           int tid = 0;
           for (; tid < nthreads && EXIT_SUCCESS == result; ++tid) {
             acc_openmp_depend_t *const di = &deps[tid];
-            const int* /*const*/ index = (const int*)di->args[0].const_ptr;
-            void* /*const*/ data = di->args[3].ptr;
-            const char *const id = di->in, *const od = di->out;
             switch (datatype) {
               case ACC_DATA_F64: {
-#               pragma omp target depend(in:ACC_OPENMP_DEP(id)) depend(out:ACC_OPENMP_DEP(od)) nowait is_device_ptr(index,data)
-                result = libsmm_acc_transpose_d(index, deps->args[1].i32/*offset*/, deps->args[2].i32/*nblks*/,
-                  (double*)data, deps->args[5].i32/*m*/, deps->args[6].i32/*n*/);
+                result = libsmm_acc_transpose_d(di->in, di->out, (const int*)di->args[0].const_ptr, deps->args[1].i32/*offset*/,
+                  deps->args[2].i32/*nblks*/, (double*)di->args[3].ptr, deps->args[5].i32/*m*/, deps->args[6].i32/*n*/);
               } break;
               case ACC_DATA_F32: {
-#               pragma omp target depend(in:ACC_OPENMP_DEP(id)) depend(out:ACC_OPENMP_DEP(od)) nowait is_device_ptr(index,data)
-                result = libsmm_acc_transpose_s(index, deps->args[1].i32/*offset*/, deps->args[2].i32/*nblks*/,
-                  (float*)data, deps->args[5].i32/*m*/, deps->args[6].i32/*n*/);
+                result = libsmm_acc_transpose_s(di->in, di->out, (const int*)di->args[0].const_ptr, deps->args[1].i32/*offset*/,
+                  deps->args[2].i32/*nblks*/, (float*)di->args[3].ptr, deps->args[5].i32/*m*/, deps->args[6].i32/*n*/);
               } break;
               default: {
                 acc_openmp_stream_t *const s = (acc_openmp_stream_t*)deps->args[7].ptr;
@@ -67,7 +62,6 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int nblks,
                 result = EXIT_FAILURE;
               }
             }
-            (void)(id); (void)(od); /* suppress incorrect warning */
           }
         }
 #       pragma omp barrier
@@ -77,10 +71,12 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int nblks,
 #endif
     switch (datatype) {
       case ACC_DATA_F64: {
-        result = libsmm_acc_transpose_d(dev_trs_stack, offset, nblks, (double*)dev_data, m, n);
+        result = libsmm_acc_transpose_d(NULL/*dep_in*/, NULL/*dep_out*/,
+          dev_trs_stack, offset, nblks, (double*)dev_data, m, n);
       } break;
       case ACC_DATA_F32: {
-        result = libsmm_acc_transpose_s(dev_trs_stack, offset, nblks, (float*)dev_data, m, n);
+        result = libsmm_acc_transpose_s(NULL/*dep_in*/, NULL/*dep_out*/,
+          dev_trs_stack, offset, nblks, (float*)dev_data, m, n);
       } break;
       default: {
         acc_openmp_stream_t *const s = (acc_openmp_stream_t*)stream;

@@ -15,11 +15,16 @@
 #endif
 
 /** Naive implementation */
-#define LIBSMM_TRANSPOSE(TYPE, STACK, STACKSIZE, M, N, MATRIX) { \
-  int s, i, j; \
-  for (s = 0; s < (STACKSIZE); ++s) { \
+#define LIBSMM_TRANSPOSE(TYPE, DEPEND_IN, DEPEND_OUT, INDEX, OFFSET, INDEXSIZE, M, N, DATA) { \
+  int s; \
+  ACC_OPENMP_PRAGMA(omp target teams distribute parallel for simd \
+    depend(in:ACC_OPENMP_DEP(DEPEND_IN)) depend(out:ACC_OPENMP_DEP(DEPEND_OUT)) \
+    nowait is_device_ptr(INDEX,DATA)) \
+  for (s = 0; s < (INDEXSIZE); ++s) { \
     TYPE tmp[LIBSMM_TRANSPOSE_BLOCKDIM_MAX*LIBSMM_TRANSPOSE_BLOCKDIM_MAX]; \
-    TYPE *const mat = &((MATRIX)[(STACK)[s]]); \
+    const int idx = (INDEX)[(OFFSET)+s]; \
+    TYPE *const mat = &((DATA)[idx]); \
+    int i, j; \
     for (i = 0; i < (M); ++i) { \
       for (j = 0; j < (N); ++j) { \
         tmp[i*(N)+j] = mat[j*(M)+i]; \
@@ -38,16 +43,14 @@
 extern "C" {
 #endif
 
-#if defined(ACC_OPENMP_OFFLOAD)
-# pragma omp declare target
-#endif
-int libsmm_acc_transpose_d(const int* dev_trs_stack, int offset, int nblks, double* dev_data, int m, int n)
+int libsmm_acc_transpose_d(const acc_openmp_dependency_t* in, const acc_openmp_dependency_t* out,
+  const int* dev_trs_stack, int offset, int nblks, double* dev_data, int m, int n)
 {
-  const int *const stack = dev_trs_stack + offset;
   int result;
+  (void)(in); (void)(out); /* suppress incorrect warning */
 #if defined(LIBSMM_TRANSPOSE_BLOCKDIM_MAX)
   if (LIBSMM_TRANSPOSE_BLOCKDIM_MAX >= m && LIBSMM_TRANSPOSE_BLOCKDIM_MAX >= n) {
-    LIBSMM_TRANSPOSE(double, stack, nblks, m, n, dev_data);
+    LIBSMM_TRANSPOSE(double, in, out, dev_trs_stack, nblks, m, n, dev_data);
     result = EXIT_SUCCESS;
   }
   else
@@ -57,21 +60,16 @@ int libsmm_acc_transpose_d(const int* dev_trs_stack, int offset, int nblks, doub
   }
   return result;
 }
-#if defined(ACC_OPENMP_OFFLOAD)
-# pragma omp end declare target
-#endif
 
 
-#if defined(ACC_OPENMP_OFFLOAD)
-# pragma omp declare target
-#endif
-int libsmm_acc_transpose_s(const int* dev_trs_stack, int offset, int nblks, float* dev_data, int m, int n)
+int libsmm_acc_transpose_s(const acc_openmp_dependency_t* in, const acc_openmp_dependency_t* out,
+  const int* dev_trs_stack, int offset, int nblks, float* dev_data, int m, int n)
 {
-  const int *const stack = dev_trs_stack + offset;
   int result;
+  (void)(in); (void)(out); /* suppress incorrect warning */
 #if defined(LIBSMM_TRANSPOSE_BLOCKDIM_MAX)
   if (LIBSMM_TRANSPOSE_BLOCKDIM_MAX >= m && LIBSMM_TRANSPOSE_BLOCKDIM_MAX >= n) {
-    LIBSMM_TRANSPOSE(float, stack, nblks, m, n, dev_data);
+    LIBSMM_TRANSPOSE(float, in, out, dev_trs_stack, nblks, m, n, dev_data);
     result = EXIT_SUCCESS;
   }
   else
@@ -81,9 +79,6 @@ int libsmm_acc_transpose_s(const int* dev_trs_stack, int offset, int nblks, floa
   }
   return result;
 }
-#if defined(ACC_OPENMP_OFFLOAD)
-# pragma omp end declare target
-#endif
 
 #if defined(__cplusplus)
 }

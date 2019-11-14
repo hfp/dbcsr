@@ -16,8 +16,10 @@
 extern "C" {
 #endif
 
-int libsmm_acc_transpose_d(const int* dev_trs_stack, int offset, int nblks, double* dev_data, int m, int n);
-int libsmm_acc_transpose_s(const int* dev_trs_stack, int offset, int nblks, float* dev_data, int m, int n);
+int libsmm_acc_transpose_d(const acc_openmp_dependency_t* in, const acc_openmp_dependency_t* out,
+  const int* dev_trs_stack, int offset, int nblks, double* dev_data, int m, int n);
+int libsmm_acc_transpose_s(const acc_openmp_dependency_t* in, const acc_openmp_dependency_t* out,
+  const int* dev_trs_stack, int offset, int nblks, float* dev_data, int m, int n);
 
 int libsmm_acc_process_d(const libsmm_acc_stack_descriptor_type* dev_param_stack, int stack_size,
   int nparams, const double* dev_a_data, const double* dev_b_data, double* dev_c_data,

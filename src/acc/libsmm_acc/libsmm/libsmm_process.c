@@ -15,34 +15,28 @@
 extern "C" {
 #endif
 
-#if defined(ACC_OPENMP_OFFLOAD)
-# pragma omp declare target
-#endif
-int libsmm_acc_process_d(const libsmm_acc_stack_descriptor_type* dev_param_stack, int stack_size,
-  int nparams, const double* dev_a_data, const double* dev_b_data, double* dev_c_data,
+int libsmm_acc_process_d(const acc_openmp_dependency_t* in, const acc_openmp_dependency_t* out,
+  const libsmm_acc_stack_descriptor_type* dev_param_stack, int stack_size, int nparams,
+  const double* dev_a_data, const double* dev_b_data, double* dev_c_data,
   int m_max, int n_max, int k_max)
 {
   int result = EXIT_FAILURE; /* TODO */
+  (void)(in); (void)(out); /* suppress incorrect warning */
+/*pragma omp target depend(in:ACC_OPENMP_DEP(id)) depend(out:ACC_OPENMP_DEP(od)) nowait is_device_ptr(params,a_data,b_data,c_data)*/
   return result;
 }
-#if defined(ACC_OPENMP_OFFLOAD)
-# pragma omp end declare target
-#endif
 
 
-#if defined(ACC_OPENMP_OFFLOAD)
-# pragma omp declare target
-#endif
-int libsmm_acc_process_s(const libsmm_acc_stack_descriptor_type* dev_param_stack, int stack_size,
-  int nparams, const float* dev_a_data, const float* dev_b_data, float* dev_c_data,
+int libsmm_acc_process_s(const acc_openmp_dependency_t* in, const acc_openmp_dependency_t* out,
+  const libsmm_acc_stack_descriptor_type* dev_param_stack, int stack_size, int nparams,
+  const float* dev_a_data, const float* dev_b_data, float* dev_c_data,
   int m_max, int n_max, int k_max)
 {
   int result = EXIT_FAILURE; /* TODO */
+  (void)(in); (void)(out); /* suppress incorrect warning */
+/*pragma omp target depend(in:ACC_OPENMP_DEP(id)) depend(out:ACC_OPENMP_DEP(od)) nowait is_device_ptr(params,a_data,b_data,c_data)*/
   return result;
 }
-#if defined(ACC_OPENMP_OFFLOAD)
-# pragma omp end declare target
-#endif
 
 #if defined(__cplusplus)
 }

@@ -99,21 +99,16 @@ int acc_openmp_dealloc(void* item, int typesize, int* counter, int maxcount, voi
 
 int acc_init(void)
 {
-  int result;
+  acc_openmp_device = getenv("ACC_OPENMP_DEVICE");
 #if defined(ACC_OPENMP_OFFLOAD)
-# pragma omp target map(tofrom:acc_openmp_initialized)
+# pragma omp target map(tofrom:acc_openmp_initialized) if(NULL == acc_openmp_device)
 #endif
 #if defined(_OPENMP)
 # pragma omp parallel
 # pragma omp master
 #endif
   ++acc_openmp_initialized;
-  if (1 == acc_openmp_initialized) {
-    acc_openmp_device = getenv("ACC_OPENMP_DEVICE");
-    result = EXIT_SUCCESS;
-  }
-  else result = EXIT_FAILURE;
-  return result;
+  return 1 == acc_openmp_initialized ? EXIT_SUCCESS : EXIT_FAILURE;
 }
 
 
@@ -169,7 +164,7 @@ int acc_get_ndevices(int* n_devices)
 int acc_set_active_device(int device_id)
 {
   const int device = ((NULL == acc_openmp_device || 0 == *acc_openmp_device)
-    ? device_id : (device_id + atoi(acc_openmp_device));
+    ? device_id : (device_id + atoi(acc_openmp_device)));
   int result = (0 <= device ? EXIT_SUCCESS : EXIT_FAILURE);
 #if defined(_OPENMP)
 # pragma omp master

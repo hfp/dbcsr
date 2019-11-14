@@ -35,7 +35,7 @@ int acc_openmp_stream_depend(acc_stream_t* stream, acc_openmp_depend_t** depend)
 #endif
   assert(NULL != depend);
   if (NULL != s && EXIT_SUCCESS == s->status) {
-    static const char dummy = 0;
+    static const acc_openmp_dependency_t dummy = 0;
     int index;
 #if !defined(_OPENMP)
     acc_openmp_depend_t *const d = acc_openmp_stream_call;

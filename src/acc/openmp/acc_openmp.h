@@ -127,8 +127,10 @@ ACC_OPENMP_EXPORT typedef struct acc_openmp_stream_t {
 #endif
 } acc_openmp_stream_t;
 
+typedef char acc_openmp_dependency_t;
+
 ACC_OPENMP_EXPORT typedef struct acc_openmp_event_t {
-  const char *volatile dependency;
+  const acc_openmp_dependency_t *volatile dependency;
 } acc_openmp_event_t;
 
 ACC_OPENMP_EXPORT typedef union acc_openmp_any_t {
@@ -146,7 +148,7 @@ ACC_OPENMP_EXPORT typedef struct acc_openmp_depend_t {
   /** Used to record the arguments/signature of each OpenMP-offload/call on a per-thread basis. */
   acc_openmp_any_t args[ACC_OPENMP_ARGUMENTS_MAXCOUNT];
   /** The in/out-pointer must be dereferenced (depend clause expects value; due to syntax issues use in[0]/out[0]). */
-  const char *in, *out;
+  const acc_openmp_dependency_t *in, *out;
 } acc_openmp_depend_t;
 
 ACC_OPENMP_EXPORT int acc_openmp_ndevices(void);

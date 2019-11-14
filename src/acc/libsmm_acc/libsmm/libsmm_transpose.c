@@ -10,6 +10,29 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#if !defined(LIBSMM_TRANSPOSE_BLOCKDIM_MAX)
+# define LIBSMM_TRANSPOSE_BLOCKDIM_MAX 80
+#endif
+
+/** Naive implementation */
+#define LIBSMM_TRANSPOSE(TYPE, STACK, STACKSIZE, M, N, MATRIX) { \
+  int s, i, j; \
+  for (s = 0; s < (STACKSIZE); ++s) { \
+    TYPE tmp[LIBSMM_TRANSPOSE_BLOCKDIM_MAX*LIBSMM_TRANSPOSE_BLOCKDIM_MAX]; \
+    TYPE *const mat = &((MATRIX)[(STACK)[s]]); \
+    for (i = 0; i < (M); ++i) { \
+      for (j = 0; j < (N); ++j) { \
+        tmp[i*(N)+j] = mat[j*(M)+i]; \
+      } \
+    } \
+    for (i = 0; i < (M); ++i) { \
+      for (j = 0; j < (N); ++j) { \
+        mat[i*(N)+j] = tmp[i*(N)+j]; \
+      } \
+    } \
+  } \
+}
+
 
 #if defined(__cplusplus)
 extern "C" {
@@ -20,7 +43,18 @@ extern "C" {
 #endif
 int libsmm_acc_transpose_d(const int* dev_trs_stack, int offset, int nblks, double* dev_data, int m, int n)
 {
-  int result = EXIT_FAILURE; /* TODO */
+  const int *const stack = dev_trs_stack + offset;
+  int result;
+#if defined(LIBSMM_TRANSPOSE_BLOCKDIM_MAX)
+  if (LIBSMM_TRANSPOSE_BLOCKDIM_MAX >= m && LIBSMM_TRANSPOSE_BLOCKDIM_MAX >= n) {
+    LIBSMM_TRANSPOSE(double, stack, nblks, m, n, dev_data);
+    result = EXIT_SUCCESS;
+  }
+  else
+#endif
+  { /* TODO: well-performing library based implementation */
+    result = EXIT_FAILURE;
+  }
   return result;
 }
 #if defined(ACC_OPENMP_OFFLOAD)
@@ -33,7 +67,18 @@ int libsmm_acc_transpose_d(const int* dev_trs_stack, int offset, int nblks, doub
 #endif
 int libsmm_acc_transpose_s(const int* dev_trs_stack, int offset, int nblks, float* dev_data, int m, int n)
 {
-  int result = EXIT_FAILURE; /* TODO */
+  const int *const stack = dev_trs_stack + offset;
+  int result;
+#if defined(LIBSMM_TRANSPOSE_BLOCKDIM_MAX)
+  if (LIBSMM_TRANSPOSE_BLOCKDIM_MAX >= m && LIBSMM_TRANSPOSE_BLOCKDIM_MAX >= n) {
+    LIBSMM_TRANSPOSE(float, stack, nblks, m, n, dev_data);
+    result = EXIT_SUCCESS;
+  }
+  else
+#endif
+  { /* TODO: well-performing library based implementation */
+    result = EXIT_FAILURE;
+  }
   return result;
 }
 #if defined(ACC_OPENMP_OFFLOAD)

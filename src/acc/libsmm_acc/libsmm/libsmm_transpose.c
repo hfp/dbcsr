@@ -71,7 +71,7 @@ int libsmm_acc_transpose_s(const acc_openmp_dependency_t* in, const acc_openmp_d
   (void)(in); (void)(out); /* suppress incorrect warning */
 #if defined(LIBSMM_TRANSPOSE_BLOCKDIM_MAX)
   if (LIBSMM_TRANSPOSE_BLOCKDIM_MAX >= m && LIBSMM_TRANSPOSE_BLOCKDIM_MAX >= n) {
-    LIBSMM_TRANSPOSE(float, in, out, dev_trs_stack, nblks, m, n, dev_data);
+    LIBSMM_TRANSPOSE(float, in, out, dev_trs_stack, offset, nblks, m, n, dev_data);
     result = EXIT_SUCCESS;
   }
   else

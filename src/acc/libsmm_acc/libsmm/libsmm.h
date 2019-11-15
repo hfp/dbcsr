@@ -11,6 +11,12 @@
 
 #include "../include/libsmm_acc.h"
 #include "../../openmp/acc_openmp.h"
+#include <stdlib.h>
+
+#if !defined(ACC_EXIT_FALLBACK)
+/** signals fall-back code; not an error/failure. */
+#define ACC_EXIT_FALLBACK (EXIT_FAILURE + 1)
+#endif
 
 #ifdef __cplusplus
 extern "C" {

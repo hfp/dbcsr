@@ -7,7 +7,6 @@
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
 #include "libsmm.h"
-#include <stdlib.h>
 #include <assert.h>
 
 #if !defined(LIBSMM_TRANSPOSE_BLOCKDIM_MAX)

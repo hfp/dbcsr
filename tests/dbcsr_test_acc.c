@@ -6,7 +6,7 @@
  * For further information please visit https://dbcsr.cp2k.org                                    *
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
-#include "include/acc.h"
+#include "../src/acc/include/acc.h"
 #include <stdlib.h>
 #include <string.h>
 #if !defined(NDEBUG)

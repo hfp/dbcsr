@@ -20,6 +20,7 @@ typedef struct libsmm_acc_stack_descriptor_type {
   acc_bool_t defined_mnk;
 } libsmm_acc_stack_descriptor_type;
 
+/* Interface function should be renamed */
 int libsmm_acc_libcusmm_is_thread_safe(void);
 
 int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int nblks,

@@ -92,12 +92,15 @@ LIBCUSMM_ABS_DIR := $(shell find $(SRCDIR) -type d -name "libcusmm")
 
 ALL_PKG_FILES := $(shell find $(SRCDIR) -name "PACKAGE")
 OBJ_SRC_FILES  = $(shell cd $(SRCDIR); find . ! -name "dbcsr_api_c.F" -name "*.F")
-OBJ_SRC_FILES += $(shell cd $(SRCDIR); find . -name "*.c")
+OBJ_SRC_FILES += $(shell cd $(SRCDIR); find . ! -path "./acc/openmp/*" ! -path "./acc/libsmm_acc/libsmm/*" -name "*.c")
 OBJ_SRC_FILES += $(shell cd $(SRCDIR); find . ! -name "libcusmm.cpp" ! -name "parameters_utils_for_py.cpp" -name "*.cpp")
 
 ifneq ($(NVCC),)
 OBJ_SRC_FILES += $(shell cd $(SRCDIR);  find . ! -name "tune_*_exe*_part*.cu" ! -name "tune_*_exe*_main*.cu"  -name "*.cu")
 OBJ_SRC_FILES += $(LIBCUSMM_DIR)/libcusmm.cpp
+else ifneq ($(OFFLOAD),)
+OBJ_SRC_FILES += $(shell cd $(SRCDIR); find ./acc/openmp -name "*.c")
+OBJ_SRC_FILES += $(shell cd $(SRCDIR); find ./acc/libsmm_acc/libsmm -name "*.c")
 endif
 
 ifneq ($(CINT),)
@@ -268,11 +271,13 @@ help:
 	@echo "================= Variables ====================="
 	@echo "For convenience, some variables can be set during compilation,"
 	@echo "e.g. make VARIABLE=value (multiple variables are possible):"
-	@echo "MPI=0    : disable MPI compilation"
-	@echo "GNU=0    : disable GNU compiler compilation and enable Intel compiler compilation"
-	@echo "CHECKS=1 : enable GNU compiler checks and DBCSR asserts"
-	@echo "CINT=1   : generate the C interface"
-	@echo "GPU=1    : enable GPU support"
+	@echo "OMP=0     : disable OpenMP compilation"
+	@echo "MPI=0     : disable MPI compilation"
+	@echo "GNU=0     : disable GNU compiler and enable Intel compiler"
+	@echo "CHECKS=1  : enable GNU compiler checks and DBCSR asserts"
+	@echo "CINT=1    : generate the C interface"
+	@echo "GPU=1     : enable GPU support"
+	@echo "OFFLOAD=1 : OpenMP/offload"
 
 ifeq ($(INCLUDE_DEPS),)
 install: $(LIBRARY)

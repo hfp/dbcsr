@@ -34,12 +34,13 @@
 #
 # For convenience, some variables can be set during compilation,
 # e.g. make `VARIABLE=value` (multiple variables are possible):
-# 1) OMP=0    : disable OpenMP compilation
-# 2) MPI=0    : disable MPI compilation
-# 3) GNU=0    : disable GNU compiler compilation and enable Intel compiler compilation
-# 4) CHECKS=1 : enable GNU compiler checks and DBCSR asserts
-# 5) CINT=1   : generate the C interface
-# 6) GPU=1    : enable GPU support
+# 1) OMP=0     : disable OpenMP compilation
+# 2) MPI=0     : disable MPI compilation
+# 3) GNU=0     : disable GNU compiler and enable Intel compiler
+# 4) CHECKS=1  : enable GNU compiler checks and DBCSR asserts
+# 5) CINT=1    : generate the C interface
+# 6) GPU=1     : enable GPU support
+# 7) OFFLOAD=1 : OpenMP/offload"
 #
 
 #######################################################################################
@@ -189,6 +190,15 @@ LIBS       += -lstdc++ -lcudart -lnvrtc -lcuda
 #FCFLAGS    := $(subst -D__DBCSR_ACC,-D__DBCSR_ACC=2,$(FCFLAGS))
 #NVFLAGS    += -D__DBCSR_ACC=2
 #LIBS       += -lcublas
+endif
+
+#######################################################################################
+#
+# OpenMP/offload compilation. Use `make OFFLOAD=1` to enable it.
+
+ifeq ($(OFFLOAD),1)
+FCFLAGS    += -D__DBCSR_ACC
+CXXFLAGS   += -I${CUDA_PATH}/include
 endif
 
 #######################################################################################

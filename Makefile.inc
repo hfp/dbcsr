@@ -198,7 +198,6 @@ endif
 
 ifeq ($(OFFLOAD),1)
 FCFLAGS    += -D__DBCSR_ACC
-CXXFLAGS   += -I${CUDA_PATH}/include
 endif
 
 #######################################################################################

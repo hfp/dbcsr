@@ -98,7 +98,7 @@ OBJ_SRC_FILES += $(shell cd $(SRCDIR); find . ! -name "libcusmm.cpp" ! -name "pa
 ifneq ($(NVCC),)
 OBJ_SRC_FILES += $(shell cd $(SRCDIR);  find . ! -name "tune_*_exe*_part*.cu" ! -name "tune_*_exe*_main*.cu"  -name "*.cu")
 OBJ_SRC_FILES += $(LIBCUSMM_DIR)/libcusmm.cpp
-else ifneq ($(OFFLOAD),)
+else
 OBJ_SRC_FILES += $(shell cd $(SRCDIR); find ./acc/openmp -name "*.c")
 OBJ_SRC_FILES += $(shell cd $(SRCDIR); find ./acc/libsmm_acc/libsmm -name "*.c")
 endif

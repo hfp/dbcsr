@@ -214,13 +214,16 @@ target_include_directories(dbcsr PUBLIC
 target_compile_definitions(dbcsr PRIVATE __STATM_TOTAL)
 set_target_properties(dbcsr PROPERTIES LINKER_LANGUAGE Fortran)
 
+# OpenMP/offload backend is built if no other backend is enabled
+if (NOT USE_CUDA)
+  add_subdirectory(acc/openmp)
+  target_sources(dbcsr PRIVATE $<TARGET_OBJECTS:dbcsr_offload>)
+endif ()
+
 if (OpenMP_FOUND)
   target_link_libraries(dbcsr PRIVATE OpenMP::OpenMP_Fortran)
 
-  # OpenMP/offload backend and LIBSMM are written in pure C
-  if (USE_OFFLOAD AND OpenMP_FOUND)
-    add_subdirectory(acc/openmp)
-    target_sources(dbcsr PRIVATE $<TARGET_OBJECTS:dbcsr_offload>)
+  if (USE_OFFLOAD)
     add_subdirectory(acc/libsmm_acc/libsmm)
     target_sources(dbcsr PRIVATE $<TARGET_OBJECTS:dbcsr_libsmm>)
     target_compile_definitions(dbcsr PRIVATE __DBCSR_ACC)

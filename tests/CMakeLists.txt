@@ -34,6 +34,11 @@ foreach (dbcsr_perf_test ${DBCSR_PERF_TESTS})
   set_tests_properties(dbcsr_perf:${dbcsr_perf_test} PROPERTIES ENVIRONMENT OMP_NUM_THREADS=${TEST_OMP_THREADS})
 endforeach ()
 
+# Define simple C-tests here, will be used as the executable name
+set(DBCSR_CTESTS_SIMPLE
+  dbcsr_test_acc
+  )
+
 # Define all the tests here, will be used as the executable name
 set(DBCSR_TESTS
   dbcsr_unittest1
@@ -55,6 +60,18 @@ set(dbcsr_unittest2_SRCS dbcsr_unittest2.F)
 set(dbcsr_unittest3_SRCS dbcsr_unittest3.F)
 set(dbcsr_tensor_unittest_SRCS dbcsr_tensor_unittest.F)
 set(dbcsr_test_csr_conversions_SRCS dbcsr_test_csr_conversions.F)
+set(dbcsr_test_acc_SRCS dbcsr_test_acc.c)
+
+foreach (dbcsr_ctests_simple ${DBCSR_CTESTS_SIMPLE})
+  add_executable(${dbcsr_ctests_simple} ${${dbcsr_ctests_simple}_SRCS})
+  set_target_properties(${dbcsr_ctests_simple} PROPERTIES LINKER_LANGUAGE C)
+  # register C-tests executable that do not need additional arguments with CMake
+  add_test(NAME ${dbcsr_ctests_simple} COMMAND ./${dbcsr_ctests_simple})
+  if (OpenMP_FOUND)
+    target_link_libraries(${dbcsr_ctests_simple} OpenMP::OpenMP_C)
+    set_tests_properties(${dbcsr_ctests_simple} PROPERTIES ENVIRONMENT OMP_NUM_THREADS=${TEST_OMP_THREADS})
+  endif ()
+endforeach ()
 
 # instead of building a full-blown lib, it would be better to simply build an OBJECT lib,
 # but we would need cmake 3.12 to be able to specify target_link_libraries on those to get
@@ -87,7 +104,6 @@ foreach (dbcsr_test ${DBCSR_TESTS})
 endforeach ()
 
 if (USE_CUDA)
-
   # All libcusmm tests
   set(LIBCUSMM_TESTS_BUILD
     libcusmm_unittest_multiply

@@ -9,9 +9,9 @@
 #include "../src/acc/include/acc.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #if !defined(NDEBUG)
 # include <assert.h>
-# include <stdio.h>
 #endif
 #if defined(_OPENMP)
 # include <omp.h>

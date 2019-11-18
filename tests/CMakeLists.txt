@@ -65,6 +65,7 @@ set(dbcsr_test_acc_SRCS dbcsr_test_acc.c)
 foreach (dbcsr_ctests_simple ${DBCSR_CTESTS_SIMPLE})
   add_executable(${dbcsr_ctests_simple} ${${dbcsr_ctests_simple}_SRCS})
   set_target_properties(${dbcsr_ctests_simple} PROPERTIES LINKER_LANGUAGE C)
+  target_link_libraries(dbcsr_ctests_simple dbcsr)
   # register C-tests executable that do not need additional arguments with CMake
   add_test(NAME ${dbcsr_ctests_simple} COMMAND ./${dbcsr_ctests_simple})
   if (OpenMP_FOUND)

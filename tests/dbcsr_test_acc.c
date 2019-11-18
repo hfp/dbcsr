@@ -9,9 +9,9 @@
 #include "../src/acc/include/acc.h"
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #if !defined(NDEBUG)
 # include <assert.h>
-# include <stdio.h>
 #endif
 #if defined(_OPENMP)
 # include <omp.h>
@@ -34,9 +34,8 @@
 #endif
 
 #if defined(NDEBUG)
-# define ACC_CHECK(RESULT) do { \
-    const int acc_check_result_ = (RESULT); \
-    if (EXIT_SUCCESS != acc_check_result_) exit(acc_check_result_) \
+# define ACC_CHECK(RESULT) do { const int acc_check_result_ = (RESULT); \
+    if (EXIT_SUCCESS != acc_check_result_) exit(acc_check_result_); \
   } while(0)
 # define PRINTF(A, ...)
 #else /* debug */

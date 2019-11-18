@@ -104,7 +104,9 @@
 #   define ACC_OPENMP_VERSION 40
 # endif
 # if defined(ACC_OPENMP_VERSION) && (ACC_OPENMP_BASELINE <= ACC_OPENMP_VERSION)
-#   define ACC_OPENMP_OFFLOAD
+#   if !defined(_CRAYC) /* CRAY: control manually, i.e., define ACC_OPENMP_OFFLOAD */
+#     define ACC_OPENMP_OFFLOAD
+#   endif
 # elif !defined(ACC_OPENMP_VERSION) && defined(__ibmxl__)
 #   define ACC_OPENMP_VERSION ACC_OPENMP_BASELINE
 #   define ACC_OPENMP_OFFLOAD

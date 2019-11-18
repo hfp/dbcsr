@@ -242,11 +242,6 @@ if (MPI_FOUND)
   # compiler flags at this point.
   # when built against MPI, a dbcsr consumer has to specify the MPI flags as well, therefore: PUBLIC
   target_link_libraries(dbcsr PUBLIC MPI::MPI_Fortran)
-
-  # __HAS_NO_MPI_MOD controls whether mpi.mod is used or if mpi.f is included
-  if ((MPI_Fortran_LIBRARY_VERSION_STRING MATCHES "Intel") AND (NOT ${CMAKE_Fortran_COMPILER_ID} MATCHES "Intel"))
-    target_compile_definitions(dbcsr PRIVATE __HAS_NO_MPI_MOD)
-  endif ()
 endif ()
 
 # set the __SHORT_FILE__ per file for dbcsr sources

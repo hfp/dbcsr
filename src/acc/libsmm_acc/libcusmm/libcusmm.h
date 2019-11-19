@@ -48,13 +48,13 @@ struct kernel_launcher {
 
 static std::unordered_map<Triplet, kernel_launcher> kernel_handles;
 
-int libcusmm_process_d(int *param_stack, int stack_size,
+int libcusmm_process_d(const int *param_stack, int stack_size,
     CUstream stream, int m, int n, int k,
-    double * a_data, double * b_data, double * c_data);
+    const double * a_data, const double * b_data, double * c_data);
 
 static std::unordered_map<Triplet, CUfunction> transpose_handles;
 
-int libcusmm_transpose_d(int *trs_stack, int offset, int nblks, double *buffer,
+int libcusmm_transpose_d(const int *trs_stack, int offset, int nblks, double *buffer,
                          int m, int n, CUstream stream);
 
 #endif

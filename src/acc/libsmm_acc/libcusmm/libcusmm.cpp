@@ -298,7 +298,7 @@ void jit_transpose_handle(CUfunction& kern_func, int m, int n){
 
 
 //===========================================================================
-int libcusmm_transpose_d(int *trs_stack, int offset, int nblks,
+int libcusmm_transpose_d(const int *trs_stack, int offset, int nblks,
                          double *buffer, int m, int n, CUstream stream) {
 
     CUfunction kern_func;
@@ -328,7 +328,7 @@ int libcusmm_transpose_d(int *trs_stack, int offset, int nblks,
 
     // Construct argument pointer list and launch function
     kern_func = kernel_it->second; // retrieve handle
-    int* trs_stack_ = trs_stack + offset;
+    const int* trs_stack_ = trs_stack + offset;
     void *args[] = { &trs_stack_, &buffer};
 
     return launch_kernel_from_handle(kern_func, nblks, 128, stream, args);

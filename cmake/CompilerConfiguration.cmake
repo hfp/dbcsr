@@ -79,12 +79,3 @@ Please open an issue at https://github.com/cp2k/dbcsr/issues with the reported c
   message("-- CMAKE_CXX_COMPILER_ID: " ${CMAKE_CXX_COMPILER_ID})
   message("-- CMAKE_CXX_COMPILER full path: " ${CMAKE_CXX_COMPILER})
 endif ()
-
-# FindThreads module to assume Pthreads available on OSX
-if (APPLE)
-  set(CMAKE_THREAD_LIBS_INIT "-lpthread")
-  set(CMAKE_HAVE_THREADS_LIBRARY 1)
-  set(CMAKE_USE_WIN32_THREADS_INIT 0)
-  set(CMAKE_USE_PTHREADS_INIT 1)
-  set(THREADS_PREFER_PTHREAD_FLAG ON)
-endif ()

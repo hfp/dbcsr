@@ -15,14 +15,10 @@
 extern "C" {
 #endif
 
-#if !defined(__CUDACC__)
 typedef struct libsmm_acc_stack_descriptor_type {
   int m, n, k, max_m, max_n, max_k;
   acc_bool_t defined_mnk;
 } libsmm_acc_stack_descriptor_type;
-#else /* TODO: update backend */
-typedef void* acc_data_t;
-#endif
 
 /* Interface function should be renamed */
 int libsmm_acc_libcusmm_is_thread_safe(void);

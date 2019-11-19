@@ -20,7 +20,6 @@ typedef void acc_stream_t;
 typedef void acc_event_t;
 typedef int acc_bool_t;
 
-#if !defined(__CUDACC__)
 typedef enum acc_data_t {
   ACC_DATA_F64 = 3,
   ACC_DATA_F32 = 1,
@@ -28,9 +27,6 @@ typedef enum acc_data_t {
   ACC_DATA_C32 = 5,
   ACC_DATA_UNKNOWN = -1
 } acc_data_t;
-#else /* TODO: update backend */
-typedef int acc_data_t;
-#endif
 
 /** initialization and finalization */
 int acc_init(void);

@@ -54,7 +54,7 @@ int libcusmm_process_d(const int *param_stack, int stack_size,
 
 static std::unordered_map<Triplet, CUfunction> transpose_handles;
 
-int libcusmm_transpose_d(int *trs_stack, int offset, int nblks, double *buffer,
+int libcusmm_transpose_d(const int *trs_stack, int offset, int nblks, double *buffer,
                          int m, int n, CUstream stream);
 
 #endif

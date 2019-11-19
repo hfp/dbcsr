@@ -83,9 +83,9 @@ int main(int argc, char* argv[])
     (int)(mem_free >> 20), (int)(mem_total >> 20));
 
   ACC_CHECK(acc_stream_priority_range(&priomin, &priomax));
+  PRINTF("stream priority: min=%i max=%i\n", priomin, priomax);
   priospan = 1 + priomax - priomin;
   ACC_CHECK(0 < priospan ? EXIT_SUCCESS : EXIT_FAILURE);
-  PRINTF("stream priority: min=%i max=%i\n", priomin, priomax);
 
   for (i = 0; i < ACC_STREAM_MAXCOUNT; ++i) {
     priority[i] = priomin + (randnums[i%ACC_STREAM_MAXCOUNT] % priospan);

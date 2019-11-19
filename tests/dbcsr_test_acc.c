@@ -85,7 +85,7 @@ int main(int argc, char* argv[])
   ACC_CHECK(acc_stream_priority_range(&priomin, &priomax));
   priospan = 1 + priomax - priomin;
   PRINTF("stream priority: min=%i max=%i%s\n", priomin, priomax,
-    0 < priospan ? "" : " <-- WARNING: inconsistent values";
+    0 < priospan ? "" : " <-- WARNING: inconsistent values");
 
   for (i = 0; i < ACC_STREAM_MAXCOUNT; ++i) {
     priority[i] = priomin + (randnums[i%ACC_STREAM_MAXCOUNT] % priospan);

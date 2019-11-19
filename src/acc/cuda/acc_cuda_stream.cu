@@ -65,6 +65,7 @@ extern "C" int acc_stream_create(void** stream_p, const char* name, int priority
 
 /****************************************************************************/
 extern "C" int acc_stream_destroy(void* stream){
+    if (stream == 0) return 0;
     cudaStream_t* custream = (cudaStream_t*) stream;
 
     if(verbose_print) printf("cuda_stream_destroy called\n");

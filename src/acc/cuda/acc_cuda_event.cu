@@ -30,6 +30,7 @@ extern "C" int acc_event_create(void** event_p){
 
 /****************************************************************************/
 extern "C" int acc_event_destroy(void* event){
+    if (event == 0) return 0;
     cudaEvent_t* cuevent = (cudaEvent_t*) event;
 
     if(verbose_print) printf("cuda_event_destroy called\n");

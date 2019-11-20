@@ -56,14 +56,21 @@
 int main(int argc, char* argv[])
 {
   const int device = (1 < argc ? atoi(argv[1]) : 0);
+#if defined(_OPENMP)
+  const int max_nthreads = omp_get_max_threads();
+#else
+  const int max_nthreads = 1;
+#endif
+  const int cli_nthreads = (2 < argc ? atoi(argv[2]) : max_nthreads);
+  const int nthreads = ((0 < cli_nthreads && cli_nthreads <= max_nthreads) ? cli_nthreads : max_nthreads);
   int priority[ACC_STREAM_MAXCOUNT], priomin, priomax, priospan;
   int randnums[ACC_EVENT_MAXCOUNT], ndevices, i;
   acc_stream_t *stream[ACC_STREAM_MAXCOUNT], *s;
   acc_event_t *event[ACC_EVENT_MAXCOUNT], *e;
-  const size_t mem_alloc = (16 << 20); /*MB*/
+  const size_t mem_alloc = (16/*MB*/ << 20);
+  const size_t mem_chunk = (mem_alloc + nthreads - 1) / nthreads;
   size_t mem_free, mem_total;
   void *host_mem, *dev_mem;
-  acc_bool_t has_occurred;
 
   for (i = 0; i < ACC_EVENT_MAXCOUNT; ++i) {
     randnums[i] = rand();
@@ -97,7 +104,7 @@ int main(int argc, char* argv[])
 
   ACC_CHECK(acc_stream_destroy(NULL));
 #if defined(_OPENMP)
-# pragma omp parallel for private(i)
+# pragma omp parallel for num_threads(nthreads) private(i)
 #endif
   for (i = 0; i < ACC_STREAM_MAXCOUNT; ++i) {
     const int r = randnums[i%ACC_STREAM_MAXCOUNT] % ACC_STREAM_MAXCOUNT;
@@ -112,7 +119,7 @@ int main(int argc, char* argv[])
   }
 
 #if defined(_OPENMP)
-# pragma omp parallel for private(i)
+# pragma omp parallel for num_threads(nthreads) private(i)
 #endif
   for (i = 0; i < ACC_STREAM_MAXCOUNT; ++i) {
     if (NULL == stream[i]) {
@@ -126,7 +133,7 @@ int main(int argc, char* argv[])
 
   ACC_CHECK(acc_event_destroy(NULL));
 #if defined(_OPENMP)
-# pragma omp parallel for private(i)
+# pragma omp parallel for num_threads(nthreads) private(i)
 #endif
   for (i = 0; i < ACC_EVENT_MAXCOUNT; ++i) {
     const int r = randnums[i%ACC_EVENT_MAXCOUNT] % ACC_EVENT_MAXCOUNT;
@@ -138,7 +145,7 @@ int main(int argc, char* argv[])
   }
 
 #if defined(_OPENMP)
-# pragma omp parallel for private(i)
+# pragma omp parallel for num_threads(nthreads) private(i)
 #endif
   for (i = 0; i < ACC_EVENT_MAXCOUNT; ++i) {
     if (NULL == event[i]) {
@@ -153,19 +160,32 @@ int main(int argc, char* argv[])
   ACC_CHECK(acc_event_create(&e));
   ACC_CHECK(acc_stream_sync(s)); /* wait for completion */
   memset(host_mem, 0xFF, mem_alloc); /* non-zero pattern */
+
 #if defined(_OPENMP)
-# pragma omp parallel
+# pragma omp parallel num_threads(nthreads)
 #endif
   {
-    ACC_CHECK(acc_memset_zero(dev_mem, 0/*offset*/, mem_alloc, s));
-    ACC_CHECK(acc_memcpy_d2h(dev_mem, host_mem, mem_alloc, s));
-    ACC_CHECK(acc_event_record(e, s));
+#if defined(_OPENMP)
+    const int tid = omp_get_thread_num();
+#endif
+    const size_t offset = tid * mem_chunk, mem_rest = mem_alloc - offset;
+    const size_t size = (mem_chunk <= mem_rest ? mem_chunk : mem_rest);
+    acc_bool_t has_occurred;
+    ACC_CHECK(acc_memset_zero(dev_mem, offset, size, s));
+#if defined(_OPENMP)
+#   pragma omp master
+#endif
+    {
+      ACC_CHECK(acc_memcpy_d2h(dev_mem, host_mem, mem_alloc, s));
+      ACC_CHECK(acc_event_record(e, s));
+    }
     ACC_CHECK(acc_event_query(e, &has_occurred));
     if (0 == has_occurred) ACC_CHECK(acc_event_synchronize(e));
     ACC_CHECK(acc_event_query(e, &has_occurred));
     ACC_CHECK(0 != has_occurred ? EXIT_SUCCESS : EXIT_FAILURE);
     ACC_CHECK(acc_stream_wait_event(s, e)); /* superfluous */
   }
+
   for (i = 0; i < (int)mem_alloc; ++i) {
     ACC_CHECK(0 == ((char*)host_mem)[i] ? EXIT_SUCCESS : EXIT_FAILURE);
   }

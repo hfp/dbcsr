@@ -110,10 +110,14 @@ int acc_event_record(acc_event_t* event, acc_stream_t* stream)
 
 int acc_event_query(acc_event_t* event, acc_bool_t* has_occurred)
 {
-  const int result = ((NULL != event && NULL != has_occurred) ? EXIT_SUCCESS : EXIT_FAILURE);
-  if (EXIT_SUCCESS == result) {
-    const acc_openmp_event_t *const e = (acc_openmp_event_t*)event;
-    *has_occurred = (NULL == e->dependency);
+  int result = EXIT_FAILURE;
+  if (NULL != has_occurred) {
+    if (NULL != event) {
+      const acc_openmp_event_t *const e = (acc_openmp_event_t*)event;
+      *has_occurred = (NULL == e->dependency);
+      result = EXIT_SUCCESS;
+    }
+    else *has_occurred = 0;
   }
   return result;
 }
@@ -123,7 +127,7 @@ int acc_event_synchronize(acc_event_t* event)
 { /* Waits on the host-side. */
   int result;
   if (NULL != event) {
-    const acc_openmp_event_t *const e = (const acc_openmp_event_t*)event;
+    const acc_openmp_event_t *const e = (acc_openmp_event_t*)event;
     int npause = 1;
     ACC_OPENMP_WAIT(NULL != e->dependency, npause);
     result = EXIT_SUCCESS;

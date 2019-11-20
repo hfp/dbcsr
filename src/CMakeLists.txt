@@ -149,7 +149,8 @@ function(CUDA_CONVERT_FLAGS EXISTING_TARGET)
 endfunction()
 
 if (USE_CUDA)
-  if (${CMAKE_VERSION} VERSION_LESS 3.13)
+  # issue seems to be present even with CMake 3.14.5 in some environments
+  #if (${CMAKE_VERSION} VERSION_LESS 3.13)
       # workaround for CUDA support with CMake <3.13, see also
       # see https://gitlab.kitware.com/cmake/cmake/issues/17929
       # and https://cliutils.gitlab.io/modern-cmake/chapters/packages/CUDA.html
@@ -159,7 +160,7 @@ if (USE_CUDA)
       if (MPI_FOUND)
         cuda_convert_flags(MPI::MPI)
       endif ()
-  endif ()
+  #endif ()
 
   target_link_libraries(dbcsr PRIVATE cuda)
 

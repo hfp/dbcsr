@@ -167,6 +167,8 @@ int main(int argc, char* argv[])
   {
 #if defined(_OPENMP)
     const int tid = omp_get_thread_num();
+#else
+    const int tid = 0;
 #endif
     const size_t offset = tid * mem_chunk, mem_rest = mem_alloc - offset;
     const size_t size = (mem_chunk <= mem_rest ? mem_chunk : mem_rest);

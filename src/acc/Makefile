@@ -49,15 +49,15 @@ dbcsr_acc_test: ../../tests/dbcsr_test_acc.o openmp/libacc_openmp.a
 else
 dbcsr_acc_test: ../../tests/dbcsr_test_acc.o openmp/acc_openmp.o openmp/acc_openmp_event.o openmp/acc_openmp_mem.o openmp/acc_openmp_stream.o
 endif
-        $(CC) $(LDFLAGS) $^ -o $@
+	$(CC) $(LDFLAGS) $^ -o $@
 
 %.o: %.c Makefile
-        $(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 .PHONE: clean
 clean:
-        @rm -f ../../tests/dbcsr_acc_test.o openmp/acc_openmp*.o
+	@rm -f ../../tests/dbcsr_acc_test.o openmp/acc_openmp*.o
 
 .PHONE: realclean
 realclean: clean
-        @rm -f dbcsr_acc_test
+	@rm -f dbcsr_acc_test

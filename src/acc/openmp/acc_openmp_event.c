@@ -98,10 +98,11 @@ int acc_event_record(acc_event_t* event, acc_stream_t* stream)
     }
   }
   else if (NULL == event) { /* flush all pending work */
+    result = EXIT_SUCCESS;
 #if defined(ACC_OPENMP_OFFLOAD)
 #   pragma omp task if(0)
 #endif
-    result = EXIT_SUCCESS;
+    result = EXIT_FAILURE;
   }
   else result = EXIT_FAILURE;
   return result;

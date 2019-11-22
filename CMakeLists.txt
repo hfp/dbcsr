@@ -32,8 +32,11 @@ project(dbcsr
 # OPTIONS
 include(CMakeDependentOption)
 
-option(USE_OPENMP "Build with OpenMP support" ON)
 option(USE_MPI "Build with MPI support" ON)
+option(USE_OPENMP "Build with OpenMP support" ON)
+cmake_dependent_option(USE_OFFLOAD "Offloading to devices if OpenMP is enabled" OFF "USE_OPENMP" OFF)
+set(WITH_OFFLOAD_FLAGS "" CACHE STRING "Additional flag(s) if OpenMP/offload is enabled")
+set(WITH_OPENMP_FLAGS "" CACHE STRING "To replace OpenMP default flag, e.g., to replace -fopenmp")
 cmake_dependent_option(WITH_C_API "Build the C API (ISO_C_BINDINGS)" ON "USE_MPI" OFF) # the ISO_C_BINDINGS require MPI unconditionally
 cmake_dependent_option(WITH_EXAMPLES "Build the examples" ON "USE_MPI" OFF) # all examples require MPI
 
@@ -118,6 +121,39 @@ endif ()
 # =================================== OpenMP and OpenMP/offload backend
 if (USE_OPENMP)
   find_package(OpenMP REQUIRED)
+
+  # necessarily a starting point; ultimately the OpenMP module/package must to be extended
+  if (USE_OFFLOAD AND WITH_OPENMP_FLAGS)
+    if (OpenMP_Fortran_FOUND)
+      set(OpenMP_Fortran_FLAGS ${WITH_OPENMP_FLAGS})
+    endif ()
+    if (OpenMP_CXX_FOUND)
+      set(OpenMP_CXX_FLAGS ${WITH_OPENMP_FLAGS})
+    endif ()
+    if (OpenMP_C_FOUND)
+      set(OpenMP_C_FLAGS ${WITH_OPENMP_FLAGS})
+    endif ()
+  endif ()
+  if (USE_OFFLOAD AND WITH_OFFLOAD_FLAGS)
+    if (OpenMP_Fortran_FOUND)
+      set(OpenMP_Fortran_FLAGS ${OpenMP_Fortran_FLAGS} ${WITH_OFFLOAD_FLAGS})
+    endif ()
+    if (OpenMP_CXX_FOUND)
+      set(OpenMP_CXX_FLAGS ${OpenMP_CXX_FLAGS} ${WITH_OFFLOAD_FLAGS})
+    endif ()
+    if (OpenMP_C_FOUND)
+      set(OpenMP_C_FLAGS ${OpenMP_C_FLAGS} ${WITH_OFFLOAD_FLAGS})
+    endif ()
+  endif ()
+  if (OpenMP_Fortran_FOUND)
+    set_property(TARGET OpenMP::OpenMP_Fortran PROPERTY INTERFACE_COMPILE_OPTIONS ${OpenMP_C_FLAGS})
+  endif ()
+  if (OpenMP_CXX_FOUND)
+    set_property(TARGET OpenMP::OpenMP_CXX PROPERTY INTERFACE_COMPILE_OPTIONS ${OpenMP_C_FLAGS})
+  endif ()
+  if (OpenMP_C_FOUND)
+    set_property(TARGET OpenMP::OpenMP_C PROPERTY INTERFACE_COMPILE_OPTIONS ${OpenMP_C_FLAGS})
+  endif ()
 endif ()
 
 # =================================== SMM (Small Matrix-Matrix multiplication)

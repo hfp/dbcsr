@@ -28,7 +28,7 @@ typedef enum acc_data_t {
   ACC_DATA_UNKNOWN = -1
 } acc_data_t;
 
-/** accelerator driver initialization and finalization */
+/** initialization and finalization */
 int acc_init(void);
 int acc_finalize(void);
 int acc_clear_errors(void);

@@ -6,7 +6,7 @@
  * For further information please visit https://dbcsr.cp2k.org                                    *
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
-#include "libsmm.h"
+#include "libsmm_omp.h"
 #include <assert.h>
 
 #if !defined(LIBSMM_TRANSPOSE_BLOCKDIM_MAX)

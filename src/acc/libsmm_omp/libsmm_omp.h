@@ -10,7 +10,7 @@
 #define LIBSMM_ACC_H
 
 #include "../include/acc_libsmm.h"
-#include "../openmp/acc_openmp.h"
+#include "../omp/dbcsr_omp.h"
 #include <stdlib.h>
 
 #if !defined(ACC_EXIT_FALLBACK)

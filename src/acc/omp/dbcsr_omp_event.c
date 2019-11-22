@@ -101,8 +101,8 @@ int acc_event_record(acc_event_t* event, acc_stream_t* stream)
     result = EXIT_SUCCESS;
 #if defined(ACC_OPENMP_OFFLOAD)
 #   pragma omp task if(0)
-#endif
     result = EXIT_FAILURE;
+#endif
   }
   else result = EXIT_FAILURE;
   return result;

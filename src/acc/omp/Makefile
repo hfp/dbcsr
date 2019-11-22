@@ -45,7 +45,7 @@ else
 endif
 endif
 
-libacc_openmp.a: $(OBJFILES)
+dbcsr_omp.a: $(OBJFILES)
 	$(AR) -rs $@ $^
 
 %.o: %.c $(INCFILES) Makefile
@@ -57,4 +57,4 @@ clean:
 
 .PHONE: realclean
 realclean: clean
-	@rm -f libacc_openmp.a
+	@rm -f dbcsr_omp.a

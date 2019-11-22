@@ -198,15 +198,15 @@ if (OpenMP_FOUND)
 
   if (USE_OFFLOAD)
     add_subdirectory(acc/libsmm_omp)
-    target_sources(dbcsr PRIVATE $<TARGET_OBJECTS:dbcsr_libsmm>)
+    target_sources(dbcsr PRIVATE $<TARGET_OBJECTS:libsmm_omp>)
     target_compile_definitions(dbcsr PRIVATE __DBCSR_ACC)
   endif ()
 endif ()
 
 # OpenMP/offload backend is built if no other backend is enabled
 if ((NOT USE_CUDA) AND (NOT USE_HIP))
-  add_subdirectory(acc/openmp)
-  target_sources(dbcsr PRIVATE $<TARGET_OBJECTS:dbcsr_offload>)
+  add_subdirectory(acc/omp)
+  target_sources(dbcsr PRIVATE $<TARGET_OBJECTS:dbcsr_omp>)
 endif ()
 
 # =================================================================================================

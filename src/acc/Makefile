@@ -45,9 +45,9 @@ endif
 
 LIB ?= 1
 ifneq (0,$(LIB))
-dbcsr_acc_test: ../../tests/dbcsr_test_acc.o openmp/libacc_openmp.a
+dbcsr_acc_test: ../../tests/dbcsr_test_acc.o omp/libacc_openmp.a
 else
-dbcsr_acc_test: ../../tests/dbcsr_test_acc.o openmp/acc_openmp.o openmp/acc_openmp_event.o openmp/acc_openmp_mem.o openmp/acc_openmp_stream.o
+dbcsr_acc_test: ../../tests/dbcsr_test_acc.o omp/acc_openmp.o omp/acc_openmp_event.o omp/acc_openmp_mem.o omp/acc_openmp_stream.o
 endif
 	$(CC) $(LDFLAGS) $^ -o $@
 
@@ -56,7 +56,7 @@ endif
 
 .PHONE: clean
 clean:
-	@rm -f ../../tests/dbcsr_acc_test.o openmp/acc_openmp*.o
+	@rm -f ../../tests/dbcsr_acc_test.o omp/acc_openmp*.o
 
 .PHONE: realclean
 realclean: clean

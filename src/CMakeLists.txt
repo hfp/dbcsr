@@ -204,7 +204,7 @@ if (OpenMP_FOUND)
 endif ()
 
 # OpenMP/offload backend is built if no other backend is enabled
-if (NOT USE_CUDA AND NOT USE_HIP)
+if ((NOT USE_CUDA) AND (NOT USE_HIP))
   add_subdirectory(acc/openmp)
   target_sources(dbcsr PRIVATE $<TARGET_OBJECTS:dbcsr_offload>)
 endif ()

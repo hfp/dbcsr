@@ -103,8 +103,7 @@ LIBSMM_ACC_ABS_DIR := $(shell find $(SRCDIR) -type d -name "libsmm_acc")
 
 ALL_PKG_FILES := $(shell find $(SRCDIR) -name "PACKAGE")
 OBJ_SRC_FILES  = $(shell cd $(SRCDIR); find . ! -name "dbcsr_api_c.F" -name "*.F")
-OBJ_SRC_FILES += $(shell cd $(SRCDIR); find . ! -path "./acc/openmp/*" ! -path "./acc/libsmm_acc/libsmm/*" -name "*.c")
-OBJ_SRC_FILES += $(shell cd $(SRCDIR); find . ! -name "libcusmm.cpp" ! -name "parameters_utils_for_py.cpp" -name "*.cpp")
+OBJ_SRC_FILES += $(shell cd $(SRCDIR); find . ! -path "./acc/omp/*" ! -path "./acc/libsmm_omp/*" -name "*.c")
 
 # if compiling with GPU acceleration
 ifneq ($(NVCC),)
@@ -122,8 +121,8 @@ ifneq ($(NVCC),)
     OBJ_SRC_FILES += $(shell cd $(SRCDIR);  find . ! -name "tune_*_exe*_part*.cpp" ! -name "tune_*_exe*_main*.cpp"  -name "*.cpp")
   endif
 else # LIBSMM with OpenMP/offload
-  OBJ_SRC_FILES += $(shell cd $(SRCDIR); find ./acc/openmp -name "*.c")
-  OBJ_SRC_FILES += $(shell cd $(SRCDIR); find ./acc/libsmm_acc/libsmm -name "*.c")
+  OBJ_SRC_FILES += $(shell cd $(SRCDIR); find ./acc/omp -name "*.c")
+  OBJ_SRC_FILES += $(shell cd $(SRCDIR); find ./acc/libsmm_omp/libsmm -name "*.c")
 endif
 
 ifneq ($(CINT),)

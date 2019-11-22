@@ -10,7 +10,7 @@
 #ifndef LIBSMM_ACC_H
 #define LIBSMM_ACC_H
 
-#include "include/libsmm_acc.h"
+#include "../include/acc_libsmm.h"
 #include "parameters_utils.h"
 
 #include <cstdio>

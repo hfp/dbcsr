@@ -9,8 +9,8 @@
 #ifndef LIBSMM_ACC_H
 #define LIBSMM_ACC_H
 
-#include "../include/libsmm_acc.h"
-#include "../../openmp/acc_openmp.h"
+#include "../include/acc_libsmm.h"
+#include "../openmp/acc_openmp.h"
 #include <stdlib.h>
 
 #if !defined(ACC_EXIT_FALLBACK)

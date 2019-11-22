@@ -9,7 +9,7 @@
 #ifndef DBCSR_ACC_LIBSMM_H
 #define DBCSR_ACC_LIBSMM_H
 
-#include "../../include/acc.h"
+#include "acc.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -75,7 +75,9 @@ foreach (dbcsr_ctests_simple ${DBCSR_CTESTS_SIMPLE})
   set_target_properties(${dbcsr_ctests_simple} PROPERTIES LINKER_LANGUAGE C)
   target_link_libraries(${dbcsr_ctests_simple} dbcsr)
   # register C-tests executable that do not need additional arguments with CMake
-  add_test(NAME ${dbcsr_ctests_simple} COMMAND ./${dbcsr_ctests_simple})
+  if (NOT CMAKE_SYSTEM_NAME STREQUAL "CrayLinuxEnvironment")
+    add_test(NAME ${dbcsr_ctests_simple} COMMAND ./${dbcsr_ctests_simple})
+  endif ()
   if (OpenMP_FOUND)
     target_link_libraries(${dbcsr_ctests_simple} OpenMP::OpenMP_C)
     set_tests_properties(${dbcsr_ctests_simple} PROPERTIES ENVIRONMENT OMP_NUM_THREADS=${TEST_OMP_THREADS})
@@ -182,7 +184,7 @@ if (USE_CUDA OR USE_HIP)
     hip_add_executable(libsmm_acc_unittest_transpose libsmm_acc_unittest_transpose.cpp)
     target_link_options(libsmm_acc_unittest_transpose PRIVATE ${HIP_ARCH_FLAGS})
 
-    # Workaround issue in hip_add_library: explicitely write dependency between __ & __
+    # Workaround issue in hip_add_library: explicitly write dependency between __ & __
     add_custom_target(generate_libsmm_acc_unittest_multiply_test_cpp DEPENDS libsmm_acc_unittest_multiply.cpp)
     add_dependencies(libsmm_acc_unittest_multiply generate_libsmm_acc_unittest_multiply_test_cpp)
     add_custom_target(generate_libsmm_acc_timer_multiply_test_cpp DEPENDS libsmm_acc_timer_multiply.cpp)

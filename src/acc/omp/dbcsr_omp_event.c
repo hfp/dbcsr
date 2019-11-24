@@ -34,7 +34,7 @@ int acc_event_create(acc_event_t** event_p)
     event->dependency = NULL;
     *event_p = event;
   }
-  return result;
+  ACC_OPENMP_RETURN(result);
 }
 
 
@@ -105,7 +105,7 @@ int acc_event_record(acc_event_t* event, acc_stream_t* stream)
 #endif
   }
   else result = EXIT_FAILURE;
-  return result;
+  ACC_OPENMP_RETURN(result);
 }
 
 
@@ -120,7 +120,7 @@ int acc_event_query(acc_event_t* event, acc_bool_t* has_occurred)
     }
     else *has_occurred = 0;
   }
-  return result;
+  ACC_OPENMP_RETURN(result);
 }
 
 
@@ -134,7 +134,7 @@ int acc_event_synchronize(acc_event_t* event)
     result = EXIT_SUCCESS;
   }
   else result = EXIT_FAILURE;
-  return result;
+  ACC_OPENMP_RETURN(result);
 }
 
 #if defined(__cplusplus)

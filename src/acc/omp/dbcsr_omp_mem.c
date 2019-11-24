@@ -61,7 +61,7 @@ int acc_host_mem_allocate(void** host_mem, size_t n, acc_stream_t* stream)
   else if (NULL != host_mem) {
     *host_mem = NULL;
   }
-  return result;
+  ACC_OPENMP_RETURN(result);
 }
 
 
@@ -97,7 +97,7 @@ int acc_host_mem_deallocate(void* host_mem, acc_stream_t* stream)
 #endif
     ACC_OPENMP_MEM_FREE(host_mem);
   }
-  return result;
+  ACC_OPENMP_RETURN(result);
 }
 
 
@@ -121,7 +121,7 @@ int acc_dev_mem_allocate(void** dev_mem, size_t n)
     if (NULL != dev_mem) *dev_mem = NULL;
     result = EXIT_SUCCESS;
   }
-  return result;
+  ACC_OPENMP_RETURN(result);
 }
 
 
@@ -152,7 +152,7 @@ int acc_dev_mem_set_ptr(void** dev_mem, void* other, size_t lb)
     result = EXIT_SUCCESS;
   }
   else result = EXIT_FAILURE;
-  return result;
+  ACC_OPENMP_RETURN(result);
 }
 
 
@@ -195,7 +195,7 @@ int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t count, acc_stream
 #endif
     memcpy(dev_mem, host_mem, count);
   }
-  return result;
+  ACC_OPENMP_RETURN(result);
 }
 
 
@@ -238,7 +238,7 @@ int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t count, acc_stream
 #endif
     memcpy(host_mem, dev_mem, count);
   }
-  return result;
+  ACC_OPENMP_RETURN(result);
 }
 
 
@@ -281,7 +281,7 @@ int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t count, acc_s
 #endif
     memcpy(devmem_dst, devmem_src, count);
   }
-  return result;
+  ACC_OPENMP_RETURN(result);
 }
 
 
@@ -328,7 +328,7 @@ int acc_memset_zero(void* dev_mem, size_t offset, size_t length, acc_stream_t* s
 #endif
     memset((char*)dev_mem + offset, 0, length);
   }
-  return result;
+  ACC_OPENMP_RETURN(result);
 }
 
 
@@ -387,7 +387,7 @@ int acc_dev_mem_info(size_t* mem_free, size_t* mem_total)
       result = EXIT_FAILURE;
     }
   }
-  return result;
+  ACC_OPENMP_RETURN(result);
 }
 
 #if defined(__cplusplus)

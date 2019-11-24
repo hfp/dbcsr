@@ -61,7 +61,7 @@ int acc_openmp_alloc(void** item, int typesize, int* counter, int maxcount, void
       --(*counter);
     }
   }
-  return result;
+  ACC_OPENMP_RETURN(result);
 }
 
 
@@ -93,7 +93,7 @@ int acc_openmp_dealloc(void* item, int typesize, int* counter, int maxcount, voi
   else {
     result = EXIT_SUCCESS;
   }
-  return result;
+  ACC_OPENMP_RETURN(result);
 }
 
 
@@ -108,7 +108,7 @@ int acc_init(void)
 # pragma omp master
 #endif
   ++acc_openmp_initialized;
-  return 1 == acc_openmp_initialized ? EXIT_SUCCESS : EXIT_FAILURE;
+  ACC_OPENMP_RETURN(1 == acc_openmp_initialized ? EXIT_SUCCESS : EXIT_FAILURE);
 }
 
 
@@ -120,11 +120,11 @@ int acc_finalize(void)
 # pragma omp atomic
 #endif
   --acc_openmp_initialized;
-  return (0 == acc_openmp_initialized
+  ACC_OPENMP_RETURN((0 == acc_openmp_initialized
     && 0 == acc_openmp_stream_count
     && 0 == acc_openmp_event_count)
       ? EXIT_SUCCESS
-      : EXIT_FAILURE;
+      : EXIT_FAILURE);
 }
 
 
@@ -135,7 +135,7 @@ int acc_clear_errors(void)
     result = acc_event_record(NULL/*event*/, NULL/*stream*/);
   }
   else result = EXIT_FAILURE;
-  return result;
+  ACC_OPENMP_RETURN(result);
 }
 
 
@@ -162,7 +162,7 @@ int acc_get_ndevices(int* n_devices)
     result = EXIT_FAILURE;
   }
   assert(0 < acc_openmp_initialized);
-  return result;
+  ACC_OPENMP_RETURN(result);
 }
 
 
@@ -191,7 +191,7 @@ int acc_set_active_device(int device_id)
 #endif
   }
   assert(0 < acc_openmp_initialized);
-  return result;
+  ACC_OPENMP_RETURN(result);
 }
 
 #if defined(__cplusplus)

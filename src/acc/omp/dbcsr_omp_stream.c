@@ -63,7 +63,7 @@ int acc_openmp_stream_depend(acc_stream_t* stream, acc_openmp_depend_t** depend)
 #endif
     result = (NULL != s ? s->status : EXIT_SUCCESS);
   }
-  return result;
+  ACC_OPENMP_RETURN(result);
 }
 
 
@@ -90,7 +90,7 @@ int acc_stream_create(acc_stream_t** stream_p, const char* name, int priority)
 #endif
     *stream_p = stream;
   }
-  return result;
+  ACC_OPENMP_RETURN(result);
 }
 
 
@@ -109,7 +109,7 @@ int acc_stream_destroy(acc_stream_t* stream)
       0, NULL, NULL);
 #endif
   }
-  return result;
+  ACC_OPENMP_RETURN(result);
 }
 
 
@@ -143,7 +143,7 @@ int acc_stream_priority_range(int* least, int* greatest)
   else {
     result = EXIT_FAILURE;
   }
-  return result;
+  ACC_OPENMP_RETURN(result);
 }
 
 
@@ -157,7 +157,7 @@ int acc_stream_sync(acc_stream_t* stream)
       ACC_OPENMP_WAIT(s->pending, npause);
     }
   }
-  return result;
+  ACC_OPENMP_RETURN(result);
 }
 
 
@@ -195,7 +195,7 @@ int acc_stream_wait_event(acc_stream_t* stream, acc_event_t* event)
     result = acc_event_synchronize(event);
   }
   else result = (NULL == event ? EXIT_SUCCESS : EXIT_FAILURE);
-  return result;
+  ACC_OPENMP_RETURN(result);
 }
 
 #if defined(__cplusplus)

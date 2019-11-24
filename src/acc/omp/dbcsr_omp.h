@@ -83,6 +83,15 @@
   } \
 } while (CONDITION)
 
+#if defined(NDEBUG)
+# define ACC_OPENMP_RETURN(RESULT) return RESULT
+#else
+# define ACC_OPENMP_RETURN(RESULT) do { \
+    const int acc_openmp_return_result_ = (RESULT); \
+    return acc_openmp_return_result_; \
+  } while (0)
+#endif
+
 #if defined(__cplusplus)
 # define ACC_OPENMP_EXTERN extern "C"
 # define ACC_OPENMP_EXPORT ACC_OPENMP_EXTERN

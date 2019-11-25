@@ -27,11 +27,11 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int nblks,
   assert(ACC_EXIT_FALLBACK != EXIT_FAILURE && ACC_EXIT_FALLBACK != EXIT_SUCCESS);
   assert((NULL != dev_trs_stack && NULL != dev_data) || 0 == nblks);
   if (0 != nblks) {
-#if defined(ACC_OPENMP_OFFLOAD)
+#if defined(DBCSR_OMP_OFFLOAD)
     const int ndevices = omp_get_num_devices();
     if (0 < ndevices) {
-      acc_openmp_depend_t* deps;
-      result = acc_openmp_stream_depend(stream, &deps);
+      dbcsr_omp_depend_t* deps;
+      result = dbcsr_omp_stream_depend(stream, &deps);
       if (EXIT_SUCCESS == result) {
         deps->args[0].const_ptr = dev_trs_stack;
         deps->args[1].i32 = offset;
@@ -46,7 +46,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int nblks,
         { const int nthreads = omp_get_num_threads();
           int tid = 0;
           for (; tid < nthreads && EXIT_SUCCESS == result; ++tid) {
-            acc_openmp_depend_t *const di = &deps[tid];
+            dbcsr_omp_depend_t *const di = &deps[tid];
             switch (datatype) {
               case ACC_DATA_F64: {
                 result = libsmm_acc_transpose_d(di->in, di->out, (const int*)di->args[0].const_ptr, deps->args[1].i32/*offset*/,
@@ -64,7 +64,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int nblks,
               result = acc_event_record(NULL/*event*/, NULL/*stream*/);
             }
             if (EXIT_SUCCESS != result) { /* fall-back and error handling */
-              acc_openmp_stream_t *const s = (acc_openmp_stream_t*)deps->args[7].ptr;
+              dbcsr_omp_stream_t *const s = (dbcsr_omp_stream_t*)deps->args[7].ptr;
               s->status = result;
             }
           }
@@ -92,7 +92,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int nblks,
         result = acc_event_record(NULL/*event*/, NULL/*stream*/);
       }
       if (EXIT_SUCCESS != result) { /* fall-back and error handling */
-        acc_openmp_stream_t *const s = (acc_openmp_stream_t*)stream;
+        dbcsr_omp_stream_t *const s = (dbcsr_omp_stream_t*)stream;
         s->status = result;
       }
     }
@@ -110,11 +110,11 @@ int libsmm_acc_process(const libsmm_acc_stack_descriptor_type* dev_param_stack, 
   assert((NULL != dev_param_stack && NULL != dev_a_data && NULL != dev_b_data && NULL != dev_c_data) || 0 == stack_size);
   assert(7 == nparams); /* layout of libsmm_acc_stack_descriptor_type is accordingly */
   if (0 != stack_size && def_mnk/*homogeneous*/) {
-#if defined(ACC_OPENMP_OFFLOAD)
+#if defined(DBCSR_OMP_OFFLOAD)
     const int ndevices = omp_get_num_devices();
     if (0 < ndevices) {
-      acc_openmp_depend_t* deps;
-      result = acc_openmp_stream_depend(stream, &deps);
+      dbcsr_omp_depend_t* deps;
+      result = dbcsr_omp_stream_depend(stream, &deps);
       if (EXIT_SUCCESS == result) {
         deps->args[0].const_ptr = dev_param_stack;
         deps->args[1].i32 = stack_size;
@@ -131,7 +131,7 @@ int libsmm_acc_process(const libsmm_acc_stack_descriptor_type* dev_param_stack, 
         { const int nthreads = omp_get_num_threads();
           int tid = 0;
           for (; tid < nthreads && EXIT_SUCCESS == result; ++tid) {
-            acc_openmp_depend_t *const di = &deps[tid];
+            dbcsr_omp_depend_t *const di = &deps[tid];
             switch (datatype) {
               case ACC_DATA_F64: {
                 result = libsmm_acc_process_d(di->in, di->out,
@@ -152,7 +152,7 @@ int libsmm_acc_process(const libsmm_acc_stack_descriptor_type* dev_param_stack, 
                 result = acc_event_record(NULL/*event*/, NULL/*stream*/);
               }
               if (EXIT_SUCCESS != result) { /* fall-back and error handling */
-                acc_openmp_stream_t *const s = (acc_openmp_stream_t*)deps->args[9].ptr;
+                dbcsr_omp_stream_t *const s = (dbcsr_omp_stream_t*)deps->args[9].ptr;
                 s->status = result;
               }
             }
@@ -181,7 +181,7 @@ int libsmm_acc_process(const libsmm_acc_stack_descriptor_type* dev_param_stack, 
         result = acc_event_record(NULL/*event*/, NULL/*stream*/);
       }
       if (EXIT_SUCCESS != result) { /* fall-back and error handling */
-        acc_openmp_stream_t *const s = (acc_openmp_stream_t*)stream;
+        dbcsr_omp_stream_t *const s = (dbcsr_omp_stream_t*)stream;
         s->status = result;
       }
     }

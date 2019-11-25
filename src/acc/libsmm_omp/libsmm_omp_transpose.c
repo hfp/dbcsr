@@ -16,8 +16,8 @@
 /** Naive implementation */
 #define LIBSMM_TRANSPOSE(TYPE, DEPEND_IN, DEPEND_OUT, INDEX, OFFSET, SIZE, M, N, DATA) { \
   int libsmm_transpose_s_; \
-  ACC_OPENMP_PRAGMA(omp target teams distribute parallel for simd \
-    depend(in:ACC_OPENMP_DEP(DEPEND_IN)) depend(out:ACC_OPENMP_DEP(DEPEND_OUT)) \
+  DBCSR_OMP_PRAGMA(omp target teams distribute parallel for simd \
+    depend(in:DBCSR_OMP_DEP(DEPEND_IN)) depend(out:DBCSR_OMP_DEP(DEPEND_OUT)) \
     nowait is_device_ptr(INDEX,DATA)) \
   for (libsmm_transpose_s_ = 0; libsmm_transpose_s_ < (SIZE); ++libsmm_transpose_s_) { \
     TYPE libsmm_transpose_tmp_[LIBSMM_TRANSPOSE_BLOCKDIM_MAX*LIBSMM_TRANSPOSE_BLOCKDIM_MAX]; \
@@ -44,7 +44,7 @@
 extern "C" {
 #endif
 
-int libsmm_acc_transpose_d(const acc_openmp_dependency_t* in, const acc_openmp_dependency_t* out,
+int libsmm_acc_transpose_d(const dbcsr_omp_dependency_t* in, const dbcsr_omp_dependency_t* out,
   const int* dev_trs_stack, int offset, int nblks, double* dev_data, int m, int n)
 {
   int result;
@@ -63,7 +63,7 @@ int libsmm_acc_transpose_d(const acc_openmp_dependency_t* in, const acc_openmp_d
 }
 
 
-int libsmm_acc_transpose_s(const acc_openmp_dependency_t* in, const acc_openmp_dependency_t* out,
+int libsmm_acc_transpose_s(const dbcsr_omp_dependency_t* in, const dbcsr_omp_dependency_t* out,
   const int* dev_trs_stack, int offset, int nblks, float* dev_data, int m, int n)
 {
   int result;

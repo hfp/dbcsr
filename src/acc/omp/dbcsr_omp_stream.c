@@ -15,44 +15,44 @@
 extern "C" {
 #endif
 
-acc_openmp_depend_t acc_openmp_stream_call[ACC_OPENMP_THREADS_MAXCOUNT];
-#if defined(ACC_OPENMP_STREAM_MAXCOUNT) && (0 < ACC_OPENMP_STREAM_MAXCOUNT)
-acc_openmp_stream_t  acc_openmp_streams[ACC_OPENMP_STREAM_MAXCOUNT];
-acc_openmp_stream_t* acc_openmp_streamp[ACC_OPENMP_STREAM_MAXCOUNT];
+dbcsr_omp_depend_t dbcsr_omp_stream_call[DBCSR_OMP_THREADS_MAXCOUNT];
+#if defined(DBCSR_OMP_STREAM_MAXCOUNT) && (0 < DBCSR_OMP_STREAM_MAXCOUNT)
+dbcsr_omp_stream_t  dbcsr_omp_streams[DBCSR_OMP_STREAM_MAXCOUNT];
+dbcsr_omp_stream_t* dbcsr_omp_streamp[DBCSR_OMP_STREAM_MAXCOUNT];
 #endif
-int acc_openmp_stream_count;
+int dbcsr_omp_stream_count;
 
 
-int acc_openmp_stream_depend(acc_stream_t* stream, acc_openmp_depend_t** depend)
+int dbcsr_omp_stream_depend(acc_stream_t* stream, dbcsr_omp_depend_t** depend)
 {
   int result;
-  acc_openmp_stream_t *const s = (acc_openmp_stream_t*)stream;
-#if defined(ACC_OPENMP_STREAM_MAXCOUNT) && (0 < ACC_OPENMP_STREAM_MAXCOUNT)
-  assert(NULL == s || (acc_openmp_streams <= s && s < (acc_openmp_streams + ACC_OPENMP_STREAM_MAXCOUNT)));
+  dbcsr_omp_stream_t *const s = (dbcsr_omp_stream_t*)stream;
+#if defined(DBCSR_OMP_STREAM_MAXCOUNT) && (0 < DBCSR_OMP_STREAM_MAXCOUNT)
+  assert(NULL == s || (dbcsr_omp_streams <= s && s < (dbcsr_omp_streams + DBCSR_OMP_STREAM_MAXCOUNT)));
 #endif
-#if defined(ACC_OPENMP_OFFLOAD) && !defined(NDEBUG)
+#if defined(DBCSR_OMP_OFFLOAD) && !defined(NDEBUG)
   assert(omp_get_default_device() == s->device_id);
 #endif
   assert(NULL != depend);
   if (NULL != s && EXIT_SUCCESS == s->status) {
-    static const acc_openmp_dependency_t dummy = 0;
+    static const dbcsr_omp_dependency_t dummy = 0;
     int index;
 #if !defined(_OPENMP)
-    acc_openmp_depend_t *const d = acc_openmp_stream_call;
+    dbcsr_omp_depend_t *const d = dbcsr_omp_stream_call;
 #else
-    acc_openmp_depend_t *const d = &acc_openmp_stream_call[omp_get_thread_num()];
+    dbcsr_omp_depend_t *const d = &dbcsr_omp_stream_call[omp_get_thread_num()];
 # if defined(_OPENMP) && (200805 <= _OPENMP) /* OpenMP 3.0 */
 #   pragma omp atomic capture
 # elif defined(_OPENMP)
-#   pragma omp critical(acc_openmp_stream_depend_critical)
+#   pragma omp critical(dbcsr_omp_stream_depend_critical)
 # endif
 #endif
     index = s->pending++;
     assert(NULL != d);
 #if !defined(NDEBUG)
-    memset(d->args, 0, ACC_OPENMP_ARGUMENTS_MAXCOUNT * sizeof(acc_openmp_any_t));
+    memset(d->args, 0, DBCSR_OMP_ARGUMENTS_MAXCOUNT * sizeof(dbcsr_omp_any_t));
 #endif
-    d->out = s->name + index % ACC_OPENMP_STREAM_MAXPENDING;
+    d->out = s->name + index % DBCSR_OMP_STREAM_MAXPENDING;
     d->in = (s->name < d->out ? (d->out - 1) : &dummy);
     *depend = d;
     result = EXIT_SUCCESS;
@@ -63,65 +63,65 @@ int acc_openmp_stream_depend(acc_stream_t* stream, acc_openmp_depend_t** depend)
 #endif
     result = (NULL != s ? s->status : EXIT_SUCCESS);
   }
-  ACC_OPENMP_RETURN(result);
+  DBCSR_OMP_RETURN(result);
 }
 
 
 int acc_stream_create(acc_stream_t** stream_p, const char* name, int priority)
 {
-  acc_openmp_stream_t* stream;
-  const int result = acc_openmp_alloc((void**)&stream,
-    sizeof(acc_openmp_stream_t), &acc_openmp_stream_count,
-#if defined(ACC_OPENMP_STREAM_MAXCOUNT) && (0 < ACC_OPENMP_STREAM_MAXCOUNT)
-    ACC_OPENMP_STREAM_MAXCOUNT, acc_openmp_streams, (void**)acc_openmp_streamp);
+  dbcsr_omp_stream_t* stream;
+  const int result = dbcsr_omp_alloc((void**)&stream,
+    sizeof(dbcsr_omp_stream_t), &dbcsr_omp_stream_count,
+#if defined(DBCSR_OMP_STREAM_MAXCOUNT) && (0 < DBCSR_OMP_STREAM_MAXCOUNT)
+    DBCSR_OMP_STREAM_MAXCOUNT, dbcsr_omp_streams, (void**)dbcsr_omp_streamp);
 #else
     0, NULL, NULL);
 #endif
   assert(NULL != stream_p);
   if (EXIT_SUCCESS == result) {
     assert(NULL != stream);
-    strncpy(stream->name, name, ACC_OPENMP_STREAM_MAXPENDING);
-    stream->name[ACC_OPENMP_STREAM_MAXPENDING-1] = '\0';
+    strncpy(stream->name, name, DBCSR_OMP_STREAM_MAXPENDING);
+    stream->name[DBCSR_OMP_STREAM_MAXPENDING-1] = '\0';
     stream->priority = priority;
     stream->pending = 0;
     stream->status = 0;
-#if defined(ACC_OPENMP_OFFLOAD) && !defined(NDEBUG)
+#if defined(DBCSR_OMP_OFFLOAD) && !defined(NDEBUG)
     stream->device_id = omp_get_default_device();
 #endif
     *stream_p = stream;
   }
-  ACC_OPENMP_RETURN(result);
+  DBCSR_OMP_RETURN(result);
 }
 
 
 int acc_stream_destroy(acc_stream_t* stream)
 {
-  acc_openmp_stream_t *const s = (acc_openmp_stream_t*)stream;
+  dbcsr_omp_stream_t *const s = (dbcsr_omp_stream_t*)stream;
   int result = ((NULL != s && 0 < s->pending) ? acc_stream_sync(stream) : EXIT_SUCCESS);
-#if defined(ACC_OPENMP_STREAM_MAXCOUNT) && (0 < ACC_OPENMP_STREAM_MAXCOUNT)
-  assert(NULL == s || (acc_openmp_streams <= s && s < (acc_openmp_streams + ACC_OPENMP_STREAM_MAXCOUNT)));
+#if defined(DBCSR_OMP_STREAM_MAXCOUNT) && (0 < DBCSR_OMP_STREAM_MAXCOUNT)
+  assert(NULL == s || (dbcsr_omp_streams <= s && s < (dbcsr_omp_streams + DBCSR_OMP_STREAM_MAXCOUNT)));
 #endif
   if (EXIT_SUCCESS == result) {
-    result = acc_openmp_dealloc(stream, sizeof(acc_openmp_stream_t), &acc_openmp_stream_count,
-#if defined(ACC_OPENMP_STREAM_MAXCOUNT) && (0 < ACC_OPENMP_STREAM_MAXCOUNT)
-      ACC_OPENMP_STREAM_MAXCOUNT, acc_openmp_streams, (void**)acc_openmp_streamp);
+    result = dbcsr_omp_dealloc(stream, sizeof(dbcsr_omp_stream_t), &dbcsr_omp_stream_count,
+#if defined(DBCSR_OMP_STREAM_MAXCOUNT) && (0 < DBCSR_OMP_STREAM_MAXCOUNT)
+      DBCSR_OMP_STREAM_MAXCOUNT, dbcsr_omp_streams, (void**)dbcsr_omp_streamp);
 #else
       0, NULL, NULL);
 #endif
   }
-  ACC_OPENMP_RETURN(result);
+  DBCSR_OMP_RETURN(result);
 }
 
 
-int acc_openmp_stream_clear_errors(void)
+int dbcsr_omp_stream_clear_errors(void)
 {
-#if defined(ACC_OPENMP_STREAM_MAXCOUNT) && (0 < ACC_OPENMP_STREAM_MAXCOUNT)
+#if defined(DBCSR_OMP_STREAM_MAXCOUNT) && (0 < DBCSR_OMP_STREAM_MAXCOUNT)
   int i = 0;
 # if defined(_OPENMP)
 # pragma omp critical
 # endif
-  for (; i < ACC_OPENMP_STREAM_MAXCOUNT; ++i) {
-    acc_openmp_streams[i].status = EXIT_SUCCESS;
+  for (; i < DBCSR_OMP_STREAM_MAXCOUNT; ++i) {
+    dbcsr_omp_streams[i].status = EXIT_SUCCESS;
   }
 #endif
   return EXIT_SUCCESS;
@@ -143,7 +143,7 @@ int acc_stream_priority_range(int* least, int* greatest)
   else {
     result = EXIT_FAILURE;
   }
-  ACC_OPENMP_RETURN(result);
+  DBCSR_OMP_RETURN(result);
 }
 
 
@@ -153,11 +153,11 @@ int acc_stream_sync(acc_stream_t* stream)
   if (EXIT_SUCCESS == result) {
     result = acc_event_record(NULL/*event*/, stream);
     if (EXIT_SUCCESS == result) {
-      acc_openmp_stream_t* const s = (acc_openmp_stream_t*)stream;
-      ACC_OPENMP_WAIT(s->pending, npause);
+      dbcsr_omp_stream_t* const s = (dbcsr_omp_stream_t*)stream;
+      DBCSR_OMP_WAIT(s->pending, npause);
     }
   }
-  ACC_OPENMP_RETURN(result);
+  DBCSR_OMP_RETURN(result);
 }
 
 
@@ -165,10 +165,10 @@ int acc_stream_wait_event(acc_stream_t* stream, acc_event_t* event)
 { /* Waits (device-side) for an event (potentially recorded on a different stream). */
   int result;
   if (NULL != stream && NULL != event) {
-#if defined(ACC_OPENMP_OFFLOAD)
-    if (0 < acc_openmp_ndevices()) {
-      acc_openmp_depend_t* deps;
-      result = acc_openmp_stream_depend(stream, &deps);
+#if defined(DBCSR_OMP_OFFLOAD)
+    if (0 < dbcsr_omp_ndevices()) {
+      dbcsr_omp_depend_t* deps;
+      result = dbcsr_omp_stream_depend(stream, &deps);
       if (EXIT_SUCCESS == result) {
         deps->args[0].const_ptr = event;
 #       pragma omp barrier
@@ -176,13 +176,13 @@ int acc_stream_wait_event(acc_stream_t* stream, acc_event_t* event)
         { const int nthreads = omp_get_num_threads();
           int tid = 0;
           for (; tid < nthreads; ++tid) {
-            const acc_openmp_depend_t *const di = &deps[tid];
-            const acc_openmp_event_t *const ei = (const acc_openmp_event_t*)di->args[0].const_ptr;
+            const dbcsr_omp_depend_t *const di = &deps[tid];
+            const dbcsr_omp_event_t *const ei = (const dbcsr_omp_event_t*)di->args[0].const_ptr;
             const char *const ie = ei->dependency;
             if (NULL != ie) { /* still pending */
               const char *const id = di->in, *const od = di->out;
               (void)(id); (void)(od); /* suppress incorrect warning */
-#             pragma omp target depend(in:ACC_OPENMP_DEP(id),ACC_OPENMP_DEP(ie)) depend(out:ACC_OPENMP_DEP(od)) nowait if(0)
+#             pragma omp target depend(in:DBCSR_OMP_DEP(id),DBCSR_OMP_DEP(ie)) depend(out:DBCSR_OMP_DEP(od)) nowait if(0)
               {}
             }
           }
@@ -195,7 +195,7 @@ int acc_stream_wait_event(acc_stream_t* stream, acc_event_t* event)
     result = acc_event_synchronize(event);
   }
   else result = (NULL == event ? EXIT_SUCCESS : EXIT_FAILURE);
-  ACC_OPENMP_RETURN(result);
+  DBCSR_OMP_RETURN(result);
 }
 
 #if defined(__cplusplus)

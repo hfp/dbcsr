@@ -72,10 +72,10 @@ set(dbcsr_test_acc_SRCS dbcsr_test_acc.c)
 
 foreach (dbcsr_ctests_simple ${DBCSR_CTESTS_SIMPLE})
   add_executable(${dbcsr_ctests_simple} ${${dbcsr_ctests_simple}_SRCS})
-  set_target_properties(${dbcsr_ctests_simple} PROPERTIES LINKER_LANGUAGE C)
+  set_target_properties(${dbcsr_ctests_simple} PROPERTIES LINKER_LANGUAGE Fortran)
   target_link_libraries(${dbcsr_ctests_simple} dbcsr)
   if (OpenMP_FOUND)
-    target_link_libraries(${dbcsr_ctests_simple} OpenMP::OpenMP_C)
+    target_link_libraries(${dbcsr_ctests_simple} OpenMP::OpenMP_Fortran)
   endif ()
   # register C-tests executable that do not need additional arguments with CMake
   if (NOT CMAKE_SYSTEM_NAME STREQUAL "CrayLinuxEnvironment")

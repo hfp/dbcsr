@@ -84,8 +84,10 @@
 } while (CONDITION)
 
 #if defined(NDEBUG)
+# define DBCSR_OMP_EXPECT(EXPECTED, EXPR) EXPR
 # define DBCSR_OMP_RETURN(RESULT) return RESULT
 #else
+# define DBCSR_OMP_EXPECT(EXPECTED, EXPR) assert((EXPECTED) == (EXPR))
 # define DBCSR_OMP_RETURN(RESULT) do { \
     const int dbcsr_omp_return_result_ = (RESULT); \
     return dbcsr_omp_return_result_; \

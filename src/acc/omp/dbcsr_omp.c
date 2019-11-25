@@ -128,14 +128,10 @@ int acc_finalize(void)
 }
 
 
-int acc_clear_errors(void)
-{
-  int result;
-  if (0 < dbcsr_omp_initialized) { /* flush all pending work */
-    result = acc_event_record(NULL/*event*/, NULL/*stream*/);
-  }
-  else result = EXIT_FAILURE;
-  DBCSR_OMP_RETURN(result);
+void acc_clear_errors(void)
+{ /* flush all pending work */
+  assert(0 < dbcsr_omp_initialized/*called before acc_init, or after acc_finalize*/);
+  DBCSR_OMP_EXPECT(EXIT_SUCCESS, acc_event_record(NULL/*event*/, NULL/*stream*/));
 }
 
 

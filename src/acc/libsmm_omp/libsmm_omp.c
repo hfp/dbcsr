@@ -14,7 +14,7 @@
 extern "C" {
 #endif
 
-int libsmm_acc_libcusmm_is_thread_safe(void)
+acc_bool_t libsmm_acc_is_thread_safe(void)
 {
   return 1/*true*/;
 }

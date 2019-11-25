@@ -64,7 +64,7 @@ int acc_event_record(acc_event_t* event, acc_stream_t* stream)
         deps->args[0].ptr = event;
 #       pragma omp barrier
 #       pragma omp master
-        { const int nthreads = omp_get_num_threads();
+        { const int nthreads = dbcsr_omp_stream_depend_begin();
           int tid = 0;
           for (; tid < nthreads; ++tid) {
             dbcsr_omp_depend_t *const di = &deps[tid];
@@ -82,6 +82,7 @@ int acc_event_record(acc_event_t* event, acc_stream_t* stream)
               *sig = 0;
             }
           }
+          result = dbcsr_omp_stream_depend_end();
         }
 #       pragma omp barrier
       }

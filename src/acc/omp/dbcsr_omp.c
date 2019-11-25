@@ -99,6 +99,8 @@ int dbcsr_omp_dealloc(void* item, int typesize, int* counter, int maxcount, void
 
 int acc_init(void)
 {
+  extern int dbcsr_omp_stream_count;
+  extern int dbcsr_omp_event_count;
   dbcsr_omp_device = getenv("DBCSR_OMP_DEVICE");
 #if defined(DBCSR_OMP_OFFLOAD)
 # pragma omp target map(tofrom:dbcsr_omp_initialized) if(NULL == dbcsr_omp_device)
@@ -108,7 +110,10 @@ int acc_init(void)
 # pragma omp master
 #endif
   ++dbcsr_omp_initialized;
-  DBCSR_OMP_RETURN(1 == dbcsr_omp_initialized ? EXIT_SUCCESS : EXIT_FAILURE);
+  DBCSR_OMP_RETURN((1 == dbcsr_omp_initialized
+    && 0 == dbcsr_omp_stream_count
+    && 0 == dbcsr_omp_event_count)
+  ? EXIT_SUCCESS : EXIT_FAILURE);
 }
 
 
@@ -123,14 +128,20 @@ int acc_finalize(void)
   DBCSR_OMP_RETURN((0 == dbcsr_omp_initialized
     && 0 == dbcsr_omp_stream_count
     && 0 == dbcsr_omp_event_count)
-      ? EXIT_SUCCESS
-      : EXIT_FAILURE);
+  ? EXIT_SUCCESS : EXIT_FAILURE);
 }
 
 
 void acc_clear_errors(void)
 { /* flush all pending work */
+  extern int dbcsr_omp_stream_depend_count;
   assert(0 < dbcsr_omp_initialized/*called before acc_init, or after acc_finalize*/);
+#if defined(_OPENMP) && (200805 <= _OPENMP) /* OpenMP 3.0 */
+# pragma omp atomic write
+#elif defined(_OPENMP)
+# pragma omp critical
+#endif
+  dbcsr_omp_stream_depend_count = 0; /* reset number of active dependencies */
   DBCSR_OMP_EXPECT(EXIT_SUCCESS, acc_event_record(NULL/*event*/, NULL/*stream*/));
 }
 

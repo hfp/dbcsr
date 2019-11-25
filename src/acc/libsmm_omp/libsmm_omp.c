@@ -43,7 +43,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int nblks,
         deps->args[7].ptr = stream;
 #       pragma omp barrier
 #       pragma omp master
-        { const int nthreads = omp_get_num_threads();
+        { const int nthreads = dbcsr_omp_stream_depend_begin();
           int tid = 0;
           for (; tid < nthreads && EXIT_SUCCESS == result; ++tid) {
             dbcsr_omp_depend_t *const di = &deps[tid];
@@ -68,6 +68,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int nblks,
               s->status = result;
             }
           }
+          if (EXIT_SUCCESS == result) result = dbcsr_omp_stream_depend_end();
         }
 #       pragma omp barrier
       }
@@ -128,7 +129,7 @@ int libsmm_acc_process(const libsmm_acc_stack_descriptor_type* dev_param_stack, 
         deps->args[9].ptr = stream;
 #       pragma omp barrier
 #       pragma omp master
-        { const int nthreads = omp_get_num_threads();
+        { const int nthreads = dbcsr_omp_stream_depend_begin();
           int tid = 0;
           for (; tid < nthreads && EXIT_SUCCESS == result; ++tid) {
             dbcsr_omp_depend_t *const di = &deps[tid];
@@ -157,6 +158,7 @@ int libsmm_acc_process(const libsmm_acc_stack_descriptor_type* dev_param_stack, 
               }
             }
           }
+          if (EXIT_SUCCESS == result) result = dbcsr_omp_stream_depend_end();
         }
 #       pragma omp barrier
       }

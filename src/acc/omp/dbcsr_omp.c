@@ -15,18 +15,18 @@
 extern "C" {
 #endif
 
-int acc_openmp_initialized;
-const char* acc_openmp_device;
+int dbcsr_omp_initialized;
+const char* dbcsr_omp_device;
 
 
-int acc_openmp_alloc(void** item, int typesize, int* counter, int maxcount, void* storage, void** pointer)
+int dbcsr_omp_alloc(void** item, int typesize, int* counter, int maxcount, void* storage, void** pointer)
 {
   int result, i;
-  assert(0 < acc_openmp_initialized && NULL != item && 0 < typesize && NULL != counter);
+  assert(0 < dbcsr_omp_initialized && NULL != item && 0 < typesize && NULL != counter);
 #if defined(_OPENMP) && (200805 <= _OPENMP) /* OpenMP 3.0 */
 # pragma omp atomic capture
 #elif defined(_OPENMP)
-# pragma omp critical(acc_openmp_alloc_critical)
+# pragma omp critical(dbcsr_omp_alloc_critical)
 #endif
   i = (*counter)++;
   if (0 < maxcount) { /* fast allocation */
@@ -61,20 +61,20 @@ int acc_openmp_alloc(void** item, int typesize, int* counter, int maxcount, void
       --(*counter);
     }
   }
-  ACC_OPENMP_RETURN(result);
+  DBCSR_OMP_RETURN(result);
 }
 
 
-int acc_openmp_dealloc(void* item, int typesize, int* counter, int maxcount, void* storage, void** pointer)
+int dbcsr_omp_dealloc(void* item, int typesize, int* counter, int maxcount, void* storage, void** pointer)
 {
   int result;
-  assert(0 < acc_openmp_initialized && 0 < typesize && NULL != counter);
+  assert(0 < dbcsr_omp_initialized && 0 < typesize && NULL != counter);
   if (NULL != item) {
     int i;
 #if defined(_OPENMP) && (200805 <= _OPENMP) /* OpenMP 3.0 */
 #   pragma omp atomic capture
 #elif defined(_OPENMP)
-#   pragma omp critical(acc_openmp_alloc_critical)
+#   pragma omp critical(dbcsr_omp_alloc_critical)
 #endif
     i = (*counter)--;
     assert(0 <= i);
@@ -93,36 +93,36 @@ int acc_openmp_dealloc(void* item, int typesize, int* counter, int maxcount, voi
   else {
     result = EXIT_SUCCESS;
   }
-  ACC_OPENMP_RETURN(result);
+  DBCSR_OMP_RETURN(result);
 }
 
 
 int acc_init(void)
 {
-  acc_openmp_device = getenv("ACC_OPENMP_DEVICE");
-#if defined(ACC_OPENMP_OFFLOAD)
-# pragma omp target map(tofrom:acc_openmp_initialized) if(NULL == acc_openmp_device)
+  dbcsr_omp_device = getenv("DBCSR_OMP_DEVICE");
+#if defined(DBCSR_OMP_OFFLOAD)
+# pragma omp target map(tofrom:dbcsr_omp_initialized) if(NULL == dbcsr_omp_device)
 #endif
 #if defined(_OPENMP)
 # pragma omp parallel
 # pragma omp master
 #endif
-  ++acc_openmp_initialized;
-  ACC_OPENMP_RETURN(1 == acc_openmp_initialized ? EXIT_SUCCESS : EXIT_FAILURE);
+  ++dbcsr_omp_initialized;
+  DBCSR_OMP_RETURN(1 == dbcsr_omp_initialized ? EXIT_SUCCESS : EXIT_FAILURE);
 }
 
 
 int acc_finalize(void)
 {
-  extern int acc_openmp_stream_count;
-  extern int acc_openmp_event_count;
+  extern int dbcsr_omp_stream_count;
+  extern int dbcsr_omp_event_count;
 #if defined(_OPENMP)
 # pragma omp atomic
 #endif
-  --acc_openmp_initialized;
-  ACC_OPENMP_RETURN((0 == acc_openmp_initialized
-    && 0 == acc_openmp_stream_count
-    && 0 == acc_openmp_event_count)
+  --dbcsr_omp_initialized;
+  DBCSR_OMP_RETURN((0 == dbcsr_omp_initialized
+    && 0 == dbcsr_omp_stream_count
+    && 0 == dbcsr_omp_event_count)
       ? EXIT_SUCCESS
       : EXIT_FAILURE);
 }
@@ -131,22 +131,22 @@ int acc_finalize(void)
 int acc_clear_errors(void)
 {
   int result;
-  if (0 < acc_openmp_initialized) { /* flush all pending work */
+  if (0 < dbcsr_omp_initialized) { /* flush all pending work */
     result = acc_event_record(NULL/*event*/, NULL/*stream*/);
   }
   else result = EXIT_FAILURE;
-  ACC_OPENMP_RETURN(result);
+  DBCSR_OMP_RETURN(result);
 }
 
 
-int acc_openmp_ndevices(void)
+int dbcsr_omp_ndevices(void)
 {
-#if defined(ACC_OPENMP_OFFLOAD)
+#if defined(DBCSR_OMP_OFFLOAD)
   const int ndevices = omp_get_num_devices();
 #else
   const int ndevices = 0;
 #endif
-  return (0 != ndevices ? ndevices : ((NULL != acc_openmp_device && 0 != *acc_openmp_device) ? 1 : 0));
+  return (0 != ndevices ? ndevices : ((NULL != dbcsr_omp_device && 0 != *dbcsr_omp_device) ? 1 : 0));
 }
 
 
@@ -154,32 +154,32 @@ int acc_get_ndevices(int* n_devices)
 {
   int result;
   if (NULL != n_devices) {
-    *n_devices = acc_openmp_ndevices();
+    *n_devices = dbcsr_omp_ndevices();
     assert(0 <= *n_devices);
     result = EXIT_SUCCESS;
   }
   else {
     result = EXIT_FAILURE;
   }
-  assert(0 < acc_openmp_initialized);
-  ACC_OPENMP_RETURN(result);
+  assert(0 < dbcsr_omp_initialized);
+  DBCSR_OMP_RETURN(result);
 }
 
 
 int acc_set_active_device(int device_id)
 {
-  const int device = ((NULL == acc_openmp_device || 0 == *acc_openmp_device)
-    ? device_id : (device_id + atoi(acc_openmp_device)));
+  const int device = ((NULL == dbcsr_omp_device || 0 == *dbcsr_omp_device)
+    ? device_id : (device_id + atoi(dbcsr_omp_device)));
   int result = (0 <= device ? EXIT_SUCCESS : EXIT_FAILURE);
 #if defined(_OPENMP)
 # pragma omp master
 #endif
   if (EXIT_SUCCESS == result) {
 #if !defined(NDEBUG)
-    if (device_id < acc_openmp_ndevices())
+    if (device_id < dbcsr_omp_ndevices())
 #endif
     {
-#if defined(ACC_OPENMP_OFFLOAD)
+#if defined(DBCSR_OMP_OFFLOAD)
       omp_set_default_device(device);
 #endif
       result = EXIT_SUCCESS;
@@ -190,8 +190,8 @@ int acc_set_active_device(int device_id)
     }
 #endif
   }
-  assert(0 < acc_openmp_initialized);
-  ACC_OPENMP_RETURN(result);
+  assert(0 < dbcsr_omp_initialized);
+  DBCSR_OMP_RETURN(result);
 }
 
 #if defined(__cplusplus)

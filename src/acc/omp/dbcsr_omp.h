@@ -6,60 +6,60 @@
  * For further information please visit https://dbcsr.cp2k.org                                    *
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
-#ifndef ACC_OPENMP_H
-#define ACC_OPENMP_H
+#ifndef DBCSR_OMP_H
+#define DBCSR_OMP_H
 
-#if !defined(ACC_OPENMP_THREADS_MAXCOUNT)
-# define ACC_OPENMP_THREADS_MAXCOUNT 8192
+#if !defined(DBCSR_OMP_THREADS_MAXCOUNT)
+# define DBCSR_OMP_THREADS_MAXCOUNT 8192
 #endif
-#if !defined(ACC_OPENMP_CACHELINE_NBYTES)
-# define ACC_OPENMP_CACHELINE_NBYTES 64
+#if !defined(DBCSR_OMP_CACHELINE_NBYTES)
+# define DBCSR_OMP_CACHELINE_NBYTES 64
 #endif
-#if !defined(ACC_OPENMP_ARGUMENTS_MAXCOUNT)
-# define ACC_OPENMP_ARGUMENTS_MAXCOUNT 14
+#if !defined(DBCSR_OMP_ARGUMENTS_MAXCOUNT)
+# define DBCSR_OMP_ARGUMENTS_MAXCOUNT 14
 #endif
-#if !defined(ACC_OPENMP_STREAM_MAXPENDING)
-# define ACC_OPENMP_STREAM_MAXPENDING 256
+#if !defined(DBCSR_OMP_STREAM_MAXPENDING)
+# define DBCSR_OMP_STREAM_MAXPENDING 256
 #endif
-#if !defined(ACC_OPENMP_STREAM_MAXCOUNT)
-# define ACC_OPENMP_STREAM_MAXCOUNT 32
+#if !defined(DBCSR_OMP_STREAM_MAXCOUNT)
+# define DBCSR_OMP_STREAM_MAXCOUNT 32
 #endif
-#if !defined(ACC_OPENMP_EVENT_MAXCOUNT)
-# define ACC_OPENMP_EVENT_MAXCOUNT ((ACC_OPENMP_THREADS_MAXCOUNT) > (32*(ACC_OPENMP_STREAM_MAXCOUNT)) \
-    ? (ACC_OPENMP_THREADS_MAXCOUNT) : (32*(ACC_OPENMP_STREAM_MAXCOUNT)))
+#if !defined(DBCSR_OMP_EVENT_MAXCOUNT)
+# define DBCSR_OMP_EVENT_MAXCOUNT ((DBCSR_OMP_THREADS_MAXCOUNT) > (32*(DBCSR_OMP_STREAM_MAXCOUNT)) \
+    ? (DBCSR_OMP_THREADS_MAXCOUNT) : (32*(DBCSR_OMP_STREAM_MAXCOUNT)))
 #endif
-#if !defined(ACC_OPENMP_PAUSE_MAXCOUNT)
-# define ACC_OPENMP_PAUSE_MAXCOUNT 4096
+#if !defined(DBCSR_OMP_PAUSE_MAXCOUNT)
+# define DBCSR_OMP_PAUSE_MAXCOUNT 4096
 #endif
 
 #if defined(__INTEL_COMPILER)
 # if !defined(__INTEL_COMPILER_UPDATE)
-#   define ACC_OPENMP_INTEL_COMPILER __INTEL_COMPILER
+#   define DBCSR_OMP_INTEL_COMPILER __INTEL_COMPILER
 # else
-#   define ACC_OPENMP_INTEL_COMPILER (__INTEL_COMPILER + __INTEL_COMPILER_UPDATE)
+#   define DBCSR_OMP_INTEL_COMPILER (__INTEL_COMPILER + __INTEL_COMPILER_UPDATE)
 # endif
 #elif defined(__INTEL_COMPILER_BUILD_DATE)
-# define ACC_OPENMP_INTEL_COMPILER ((__INTEL_COMPILER_BUILD_DATE / 10000 - 2000) * 100)
+# define DBCSR_OMP_INTEL_COMPILER ((__INTEL_COMPILER_BUILD_DATE / 10000 - 2000) * 100)
 #endif
 
-#define ACC_OPENMP_EXPAND(SYMBOL) SYMBOL
-#define ACC_OPENMP_STRINGIFY2(SYMBOL) #SYMBOL
-#define ACC_OPENMP_STRINGIFY(SYMBOL) ACC_OPENMP_STRINGIFY2(SYMBOL)
-#define ACC_OPENMP_UP2(N, NPOT) ((((uint64_t)N) + ((NPOT) - 1)) & ~((NPOT) - 1))
+#define DBCSR_OMP_EXPAND(SYMBOL) SYMBOL
+#define DBCSR_OMP_STRINGIFY2(SYMBOL) #SYMBOL
+#define DBCSR_OMP_STRINGIFY(SYMBOL) DBCSR_OMP_STRINGIFY2(SYMBOL)
+#define DBCSR_OMP_UP2(N, NPOT) ((((uint64_t)N) + ((NPOT) - 1)) & ~((NPOT) - 1))
 
 #if defined(__STDC_VERSION__) && (199901L <= __STDC_VERSION__) /*C99*/
-# define ACC_OPENMP_PRAGMA(DIRECTIVE) _Pragma(ACC_OPENMP_STRINGIFY(DIRECTIVE))
+# define DBCSR_OMP_PRAGMA(DIRECTIVE) _Pragma(DBCSR_OMP_STRINGIFY(DIRECTIVE))
 #else
-# if defined(ACC_OPENMP_INTEL_COMPILER) || defined(_MSC_VER)
-#   define ACC_OPENMP_PRAGMA(DIRECTIVE) __pragma(ACC_OPENMP_EXPAND(DIRECTIVE))
+# if defined(DBCSR_OMP_INTEL_COMPILER) || defined(_MSC_VER)
+#   define DBCSR_OMP_PRAGMA(DIRECTIVE) __pragma(DBCSR_OMP_EXPAND(DIRECTIVE))
 # else
-#   define ACC_OPENMP_PRAGMA(DIRECTIVE)
+#   define DBCSR_OMP_PRAGMA(DIRECTIVE)
 # endif
 #endif
-#if defined(ACC_OPENMP_INTEL_COMPILER)
-# define ACC_OPENMP_DEP(DEP) *DEP
+#if defined(DBCSR_OMP_INTEL_COMPILER)
+# define DBCSR_OMP_DEP(DEP) *DEP
 #else
-# define ACC_OPENMP_DEP(DEP) DEP[0]
+# define DBCSR_OMP_DEP(DEP) DEP[0]
 #endif
 
 #if (defined(__GNUC__) && ( \
@@ -68,57 +68,57 @@
     (defined(_M_X64) || defined(_M_AMD64)) || \
     (defined(__i386__) && 0 != (__i386__)) || \
     (defined(_M_IX86))))
-# define ACC_OPENMP_PAUSE __asm__ __volatile__("pause" ::: "memory")
+# define DBCSR_OMP_PAUSE __asm__ __volatile__("pause" ::: "memory")
 #else
-# define ACC_OPENMP_PAUSE
+# define DBCSR_OMP_PAUSE
 #endif
-#define ACC_OPENMP_WAIT(CONDITION, COUNTER) do { \
+#define DBCSR_OMP_WAIT(CONDITION, COUNTER) do { \
   while (CONDITION) { int counter = 0; \
-    for (; counter <= (COUNTER); ++counter) ACC_OPENMP_PAUSE; \
-    if ((COUNTER) < ACC_OPENMP_PAUSE_MAXCOUNT) { \
+    for (; counter <= (COUNTER); ++counter) DBCSR_OMP_PAUSE; \
+    if ((COUNTER) < DBCSR_OMP_PAUSE_MAXCOUNT) { \
       (COUNTER) = 2 * (0 < (COUNTER) ? (COUNTER) : 1); \
     } else { /* yield? */ \
-      (COUNTER) = ACC_OPENMP_PAUSE_MAXCOUNT; \
+      (COUNTER) = DBCSR_OMP_PAUSE_MAXCOUNT; \
     } \
   } \
 } while (CONDITION)
 
 #if defined(NDEBUG)
-# define ACC_OPENMP_RETURN(RESULT) return RESULT
+# define DBCSR_OMP_RETURN(RESULT) return RESULT
 #else
-# define ACC_OPENMP_RETURN(RESULT) do { \
-    const int acc_openmp_return_result_ = (RESULT); \
-    return acc_openmp_return_result_; \
+# define DBCSR_OMP_RETURN(RESULT) do { \
+    const int dbcsr_omp_return_result_ = (RESULT); \
+    return dbcsr_omp_return_result_; \
   } while (0)
 #endif
 
 #if defined(__cplusplus)
-# define ACC_OPENMP_EXTERN extern "C"
-# define ACC_OPENMP_EXPORT ACC_OPENMP_EXTERN
+# define DBCSR_OMP_EXTERN extern "C"
+# define DBCSR_OMP_EXPORT DBCSR_OMP_EXTERN
 #else
-# define ACC_OPENMP_EXTERN extern
-# define ACC_OPENMP_EXPORT
+# define DBCSR_OMP_EXTERN extern
+# define DBCSR_OMP_EXPORT
 #endif
 
-#if !defined(ACC_OPENMP_BASELINE)
-# define ACC_OPENMP_BASELINE 45
+#if !defined(DBCSR_OMP_BASELINE)
+# define DBCSR_OMP_BASELINE 45
 #endif
 
 #if defined(_OPENMP)
 # if   (201811 <= _OPENMP/*v5.0*/)
-#   define ACC_OPENMP_VERSION 50
+#   define DBCSR_OMP_VERSION 50
 # elif (201511 <= _OPENMP/*v4.5*/)
-#   define ACC_OPENMP_VERSION 45
+#   define DBCSR_OMP_VERSION 45
 # elif (201307 <= _OPENMP/*v4.0*/)
-#   define ACC_OPENMP_VERSION 40
+#   define DBCSR_OMP_VERSION 40
 # endif
-# if defined(ACC_OPENMP_VERSION) && (ACC_OPENMP_BASELINE <= ACC_OPENMP_VERSION)
-#   if !defined(_CRAYC) /* CRAY: control manually, i.e., define ACC_OPENMP_OFFLOAD */
-#     define ACC_OPENMP_OFFLOAD
+# if defined(DBCSR_OMP_VERSION) && (DBCSR_OMP_BASELINE <= DBCSR_OMP_VERSION)
+#   if !defined(_CRAYC) /* CRAY: control manually, i.e., define DBCSR_OMP_OFFLOAD */
+#     define DBCSR_OMP_OFFLOAD
 #   endif
-# elif !defined(ACC_OPENMP_VERSION) && defined(__ibmxl__)
-#   define ACC_OPENMP_VERSION ACC_OPENMP_BASELINE
-#   define ACC_OPENMP_OFFLOAD
+# elif !defined(DBCSR_OMP_VERSION) && defined(__ibmxl__)
+#   define DBCSR_OMP_VERSION DBCSR_OMP_BASELINE
+#   define DBCSR_OMP_OFFLOAD
 # endif
 #endif
 
@@ -129,23 +129,23 @@
 #endif
 
 
-ACC_OPENMP_EXPORT typedef struct acc_openmp_stream_t {
+DBCSR_OMP_EXPORT typedef struct dbcsr_omp_stream_t {
   /* address of each character is (side-)used to form OpenMP task dependencies */
-  char name[ACC_OPENMP_STREAM_MAXPENDING];
+  char name[DBCSR_OMP_STREAM_MAXPENDING];
   volatile int pending, status;
   int priority;
-#if defined(ACC_OPENMP_OFFLOAD) && !defined(NDEBUG)
+#if defined(DBCSR_OMP_OFFLOAD) && !defined(NDEBUG)
   int device_id; /* should match active device as set by acc_set_active_device */
 #endif
-} acc_openmp_stream_t;
+} dbcsr_omp_stream_t;
 
-typedef char acc_openmp_dependency_t;
+typedef char dbcsr_omp_dependency_t;
 
-ACC_OPENMP_EXPORT typedef struct acc_openmp_event_t {
-  const acc_openmp_dependency_t *volatile dependency;
-} acc_openmp_event_t;
+DBCSR_OMP_EXPORT typedef struct dbcsr_omp_event_t {
+  const dbcsr_omp_dependency_t *volatile dependency;
+} dbcsr_omp_event_t;
 
-ACC_OPENMP_EXPORT typedef union acc_openmp_any_t {
+DBCSR_OMP_EXPORT typedef union dbcsr_omp_any_t {
   const void* const_ptr; void* ptr;
   uint64_t u64;
   int64_t i64;
@@ -153,24 +153,24 @@ ACC_OPENMP_EXPORT typedef union acc_openmp_any_t {
   uint32_t u32;
   int32_t i32;
   acc_bool_t logical;
-} acc_openmp_any_t;
+} dbcsr_omp_any_t;
 
-ACC_OPENMP_EXPORT typedef struct acc_openmp_depend_t {
-  char data[ACC_OPENMP_UP2(ACC_OPENMP_ARGUMENTS_MAXCOUNT*sizeof(acc_openmp_any_t)+2*sizeof(void*),ACC_OPENMP_CACHELINE_NBYTES)];
+DBCSR_OMP_EXPORT typedef struct dbcsr_omp_depend_t {
+  char data[DBCSR_OMP_UP2(DBCSR_OMP_ARGUMENTS_MAXCOUNT*sizeof(dbcsr_omp_any_t)+2*sizeof(void*),DBCSR_OMP_CACHELINE_NBYTES)];
   /** Used to record the arguments/signature of each OpenMP-offload/call on a per-thread basis. */
-  acc_openmp_any_t args[ACC_OPENMP_ARGUMENTS_MAXCOUNT];
+  dbcsr_omp_any_t args[DBCSR_OMP_ARGUMENTS_MAXCOUNT];
   /** The in/out-pointer must be dereferenced (depend clause expects value; due to syntax issues use in[0]/out[0]). */
-  const acc_openmp_dependency_t *in, *out;
-} acc_openmp_depend_t;
+  const dbcsr_omp_dependency_t *in, *out;
+} dbcsr_omp_depend_t;
 
-ACC_OPENMP_EXPORT int acc_openmp_ndevices(void);
+DBCSR_OMP_EXPORT int dbcsr_omp_ndevices(void);
 /** Helper function for lock-free allocation of preallocated items such as streams or events. */
-ACC_OPENMP_EXPORT int acc_openmp_alloc(void** item, int typesize, int* counter, int maxcount, void* storage, void** pointer);
-/** Helper function for lock-free deallocation (companion of acc_openmp_alloc). */
-ACC_OPENMP_EXPORT int acc_openmp_dealloc(void* item, int typesize, int* counter, int maxcount, void* storage, void** pointer);
+DBCSR_OMP_EXPORT int dbcsr_omp_alloc(void** item, int typesize, int* counter, int maxcount, void* storage, void** pointer);
+/** Helper function for lock-free deallocation (companion of dbcsr_omp_alloc). */
+DBCSR_OMP_EXPORT int dbcsr_omp_dealloc(void* item, int typesize, int* counter, int maxcount, void* storage, void** pointer);
 /** Generate dependency for given stream. If a dependency is not consumed, acc_event_record(NULL, NULL) shall be called. */
-ACC_OPENMP_EXPORT int acc_openmp_stream_depend(acc_stream_t* stream, acc_openmp_depend_t** depend);
+DBCSR_OMP_EXPORT int dbcsr_omp_stream_depend(acc_stream_t* stream, dbcsr_omp_depend_t** depend);
 /** Clears status of all streams (if possible). */
-ACC_OPENMP_EXPORT int acc_openmp_stream_clear_errors(void);
+DBCSR_OMP_EXPORT int dbcsr_omp_stream_clear_errors(void);
 
-#endif /*ACC_OPENMP_H*/
+#endif /*DBCSR_OMP_H*/

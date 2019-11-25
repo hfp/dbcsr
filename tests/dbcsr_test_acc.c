@@ -195,7 +195,7 @@ int main(int argc, char* argv[])
   ACC_CHECK(acc_dev_mem_deallocate(dev_mem));
   ACC_CHECK(acc_host_mem_deallocate(host_mem, s));
   ACC_CHECK(acc_stream_destroy(s));
-  ACC_CHECK(acc_clear_errors());
+  acc_clear_errors(); /* no result code */
   ACC_CHECK(acc_finalize());
 
   return EXIT_SUCCESS;

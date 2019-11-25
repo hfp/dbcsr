@@ -31,7 +31,7 @@ typedef enum acc_data_t {
 /** initialization and finalization */
 int acc_init(void);
 int acc_finalize(void);
-int acc_clear_errors(void);
+void acc_clear_errors(void);
 
 /** devices */
 int acc_get_ndevices(int* n_devices);

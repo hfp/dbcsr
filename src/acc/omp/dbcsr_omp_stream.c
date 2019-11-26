@@ -11,6 +11,11 @@
 #include <string.h>
 #include <assert.h>
 
+#if !defined(DBCSR_OMP_STREAM_DEPEND_COUNT) && !defined(NDEBUG)
+# define DBCSR_OMP_STREAM_DEPEND_COUNT
+#endif
+
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -20,7 +25,7 @@ dbcsr_omp_depend_t dbcsr_omp_stream_call[DBCSR_OMP_THREADS_MAXCOUNT];
 dbcsr_omp_stream_t  dbcsr_omp_streams[DBCSR_OMP_STREAM_MAXCOUNT];
 dbcsr_omp_stream_t* dbcsr_omp_streamp[DBCSR_OMP_STREAM_MAXCOUNT];
 #endif
-int dbcsr_omp_stream_count;
+int dbcsr_omp_stream_count, dbcsr_omp_stream_depend_count;
 
 
 int dbcsr_omp_stream_depend(acc_stream_t* stream, dbcsr_omp_depend_t** depend)
@@ -48,6 +53,12 @@ int dbcsr_omp_stream_depend(acc_stream_t* stream, dbcsr_omp_depend_t** depend)
 # endif
 #endif
     index = s->pending++;
+#if defined(DBCSR_OMP_STREAM_DEPEND_COUNT)
+# if defined(_OPENMP)
+#   pragma omp atomic
+# endif
+    ++dbcsr_omp_stream_depend_count;
+#endif
     assert(NULL != d);
 #if !defined(NDEBUG)
     memset(d->args, 0, DBCSR_OMP_ARGUMENTS_MAXCOUNT * sizeof(dbcsr_omp_any_t));
@@ -64,6 +75,27 @@ int dbcsr_omp_stream_depend(acc_stream_t* stream, dbcsr_omp_depend_t** depend)
     result = (NULL != s ? s->status : EXIT_SUCCESS);
   }
   DBCSR_OMP_RETURN(result);
+}
+
+
+int dbcsr_omp_stream_depend_begin(void)
+{
+  const int result = omp_get_num_threads();
+#if defined(DBCSR_OMP_STREAM_DEPEND_COUNT)
+  dbcsr_omp_stream_depend_count -= result;
+#endif
+  return result;
+}
+
+
+int dbcsr_omp_stream_depend_end(void)
+{
+#if defined(DBCSR_OMP_STREAM_DEPEND_COUNT)
+  const int result = 0 == dbcsr_omp_stream_depend_count ? EXIT_SUCCESS : EXIT_FAILURE;
+#else
+  const int result = EXIT_SUCCESS;
+#endif
+  return result;
 }
 
 
@@ -173,7 +205,7 @@ int acc_stream_wait_event(acc_stream_t* stream, acc_event_t* event)
         deps->args[0].const_ptr = event;
 #       pragma omp barrier
 #       pragma omp master
-        { const int nthreads = omp_get_num_threads();
+        { const int nthreads = dbcsr_omp_stream_depend_begin();
           int tid = 0;
           for (; tid < nthreads; ++tid) {
             const dbcsr_omp_depend_t *const di = &deps[tid];
@@ -186,6 +218,7 @@ int acc_stream_wait_event(acc_stream_t* stream, acc_event_t* event)
               {}
             }
           }
+          result = dbcsr_omp_stream_depend_end();
         }
 #       pragma omp barrier
       }

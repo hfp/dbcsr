@@ -48,10 +48,8 @@ int acc_host_mem_allocate(void** host_mem, size_t n, acc_stream_t* stream)
     *host_mem = DBCSR_OMP_MEM_ALLOC(n);
     if (NULL == *host_mem) {
       if (NULL != s) {
-#if defined(_OPENMP) && (200805 <= _OPENMP) /* OpenMP 3.0 */
-#       pragma omp atomic write
-#elif defined(_OPENMP)
-#       pragma omp critical
+#if defined(_OPENMP)
+#       pragma omp atomic
 #endif
         s->status = s->status | EXIT_FAILURE;
       }
@@ -80,7 +78,7 @@ int acc_host_mem_deallocate(void* host_mem, acc_stream_t* stream)
         deps->args[0].ptr = host_mem;
 #       pragma omp barrier
 #       pragma omp master
-        { const int nthreads = omp_get_num_threads();
+        { const int nthreads = dbcsr_omp_stream_depend_begin();
           int tid = 0;
           for (; tid < nthreads; ++tid) {
             dbcsr_omp_depend_t *const di = &deps[tid];
@@ -89,6 +87,7 @@ int acc_host_mem_deallocate(void* host_mem, acc_stream_t* stream)
 #           pragma omp task depend(in:DBCSR_OMP_DEP(id)) depend(out:DBCSR_OMP_DEP(od))
             DBCSR_OMP_MEM_FREE(di->args[0].ptr);
           }
+          result = dbcsr_omp_stream_depend_end();
         }
 #       pragma omp barrier
       }
@@ -174,7 +173,7 @@ int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t count, acc_stream
         deps->args[3].ptr = stream;
 #       pragma omp barrier
 #       pragma omp master
-        { const int nthreads = omp_get_num_threads();
+        { const int nthreads = dbcsr_omp_stream_depend_begin();
           /* capture current default device before spawning task (acc_set_active_device) */
           const int dev_src = omp_get_initial_device(), dev_dst = omp_get_default_device();
           int tid = 0;
@@ -187,6 +186,7 @@ int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t count, acc_stream
             s->status |= omp_target_memcpy(di->args[1].ptr, di->args[0]./*const_*/ptr, di->args[2].size,
               0/*dst_offset*/, 0/*src_offset*/, dev_dst, dev_src);
           }
+          result = dbcsr_omp_stream_depend_end();
         }
 #       pragma omp barrier
       }
@@ -217,7 +217,7 @@ int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t count, acc_stream
         deps->args[3].ptr = stream;
 #       pragma omp barrier
 #       pragma omp master
-        { const int nthreads = omp_get_num_threads();
+        { const int nthreads = dbcsr_omp_stream_depend_begin();
           /* capture current default device before spawning task (acc_set_active_device) */
           const int dev_src = omp_get_default_device(), dev_dst = omp_get_initial_device();
           int tid = 0;
@@ -230,6 +230,7 @@ int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t count, acc_stream
             s->status |= omp_target_memcpy(di->args[1].ptr, di->args[0]./*const_*/ptr, di->args[2].size,
               0/*dst_offset*/, 0/*src_offset*/, dev_dst, dev_src);
           }
+          result = dbcsr_omp_stream_depend_end();
         }
 #       pragma omp barrier
       }
@@ -260,7 +261,7 @@ int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t count, acc_s
         deps->args[3].ptr = stream;
 #       pragma omp barrier
 #       pragma omp master
-        { const int nthreads = omp_get_num_threads();
+        { const int nthreads = dbcsr_omp_stream_depend_begin();
           /* capture current default device before spawning task (acc_set_active_device) */
           const int dev_src = omp_get_default_device(), dev_dst = dev_src;
           int tid = 0;
@@ -273,6 +274,7 @@ int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t count, acc_s
             s->status |= omp_target_memcpy(di->args[1].ptr, di->args[0]./*const_*/ptr, di->args[2].size,
               0/*dst_offset*/, 0/*src_offset*/, dev_dst, dev_src);
           }
+          result = dbcsr_omp_stream_depend_end();
         }
 #       pragma omp barrier
       }
@@ -302,7 +304,7 @@ int acc_memset_zero(void* dev_mem, size_t offset, size_t length, acc_stream_t* s
         deps->args[2].size = length;
 #       pragma omp barrier
 #       pragma omp master
-        { const int nthreads = omp_get_num_threads();
+        { const int nthreads = dbcsr_omp_stream_depend_begin();
           int tid = 0;
           for (; tid < nthreads; ++tid) {
             dbcsr_omp_depend_t *const di = &deps[tid];
@@ -320,6 +322,7 @@ int acc_memset_zero(void* dev_mem, size_t offset, size_t length, acc_stream_t* s
 #endif
             (void)(id); (void)(od); /* suppress incorrect warning */
           }
+          result = dbcsr_omp_stream_depend_end();
         }
 #       pragma omp barrier
       }

@@ -103,7 +103,7 @@ int acc_init(void)
   extern int dbcsr_omp_event_count;
   dbcsr_omp_device = getenv("DBCSR_OMP_DEVICE");
 #if defined(DBCSR_OMP_OFFLOAD)
-# pragma omp target map(tofrom:dbcsr_omp_initialized) if(NULL == dbcsr_omp_device)
+# pragma omp target map(tofrom:dbcsr_omp_initialized) if(0/*NULL*/ == dbcsr_omp_device)
 #endif
 #if defined(_OPENMP)
 # pragma omp parallel

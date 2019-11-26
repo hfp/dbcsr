@@ -95,7 +95,7 @@ int dbcsr_omp_stream_depend_begin(void)
 int dbcsr_omp_stream_depend_end(void)
 {
 #if defined(DBCSR_OMP_STREAM_DEPEND_COUNT)
-  const int result = 0 == dbcsr_omp_stream_depend_count ? EXIT_SUCCESS : EXIT_FAILURE;
+  const int result = (0 == dbcsr_omp_stream_depend_count ? EXIT_SUCCESS : EXIT_FAILURE);
 #else
   const int result = EXIT_SUCCESS;
 #endif

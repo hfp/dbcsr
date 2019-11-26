@@ -62,29 +62,28 @@ int acc_event_record(acc_event_t* event, acc_stream_t* stream)
       if (EXIT_SUCCESS == result) {
         if (NULL != e) e->dependency = deps->out; /* reset if re-enqueued */
         deps->args[0].ptr = event;
-#       pragma omp barrier
-#       pragma omp master
-        { const int nthreads = dbcsr_omp_stream_depend_begin();
-          int tid = 0;
-          for (; tid < nthreads; ++tid) {
-            dbcsr_omp_depend_t *const di = &deps[tid];
-            dbcsr_omp_event_t *const ei = (dbcsr_omp_event_t*)di->args[0].ptr;
-            const char *const id = di->in, *const od = di->out;
-            (void)(id); (void)(od); /* suppress incorrect warning */
-            if (NULL != ei) {
-              uintptr_t/*const char**/ volatile* /*const*/ sig = (uintptr_t volatile*)&ei->dependency;
-#             pragma omp target depend(in:DBCSR_OMP_DEP(id)) depend(out:DBCSR_OMP_DEP(od)) nowait map(from:sig[0:1])
-              *sig = 0/*NULL*/;
-            }
-            else {
-              int volatile* /*const*/ sig = (int volatile*)&s->pending;
-#             pragma omp target depend(in:DBCSR_OMP_DEP(id)) depend(out:DBCSR_OMP_DEP(od)) nowait map(from:sig[0:1])
-              *sig = 0;
-            }
+      }
+      dbcsr_omp_stream_depend_sync();
+#     pragma omp master
+      { const int nthreads = dbcsr_omp_stream_depend_begin();
+        int tid = 0;
+        for (; tid < nthreads; ++tid) {
+          dbcsr_omp_depend_t *const di = &deps[tid];
+          dbcsr_omp_event_t *const ei = (dbcsr_omp_event_t*)di->args[0].ptr;
+          const char *const id = di->in, *const od = di->out;
+          (void)(id); (void)(od); /* suppress incorrect warning */
+          if (NULL != ei) {
+            uintptr_t/*const char**/ volatile* /*const*/ sig = (uintptr_t volatile*)&ei->dependency;
+#           pragma omp target depend(in:DBCSR_OMP_DEP(id)) depend(out:DBCSR_OMP_DEP(od)) nowait map(from:sig[0:1])
+            *sig = 0/*NULL*/;
           }
-          result = dbcsr_omp_stream_depend_end();
+          else {
+            int volatile* /*const*/ sig = (int volatile*)&s->pending;
+#           pragma omp target depend(in:DBCSR_OMP_DEP(id)) depend(out:DBCSR_OMP_DEP(od)) nowait map(from:sig[0:1])
+            *sig = 0;
+          }
         }
-#       pragma omp barrier
+        result = dbcsr_omp_stream_depend_end();
       }
     }
     else

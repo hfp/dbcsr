@@ -76,20 +76,19 @@ int acc_host_mem_deallocate(void* host_mem, acc_stream_t* stream)
       if (EXIT_SUCCESS == result) {
         assert(NULL != deps);
         deps->args[0].ptr = host_mem;
-#       pragma omp barrier
-#       pragma omp master
-        { const int nthreads = dbcsr_omp_stream_depend_begin();
-          int tid = 0;
-          for (; tid < nthreads; ++tid) {
-            dbcsr_omp_depend_t *const di = &deps[tid];
-            const char *const id = di->in, *const od = di->out;
-            (void)(id); (void)(od); /* suppress incorrect warning */
-#           pragma omp task depend(in:DBCSR_OMP_DEP(id)) depend(out:DBCSR_OMP_DEP(od))
-            DBCSR_OMP_MEM_FREE(di->args[0].ptr);
-          }
-          result = dbcsr_omp_stream_depend_end();
+      }
+      dbcsr_omp_stream_depend_sync();
+#     pragma omp master
+      { const int nthreads = dbcsr_omp_stream_depend_begin();
+        int tid = 0;
+        for (; tid < nthreads; ++tid) {
+          dbcsr_omp_depend_t *const di = &deps[tid];
+          const char *const id = di->in, *const od = di->out;
+          (void)(id); (void)(od); /* suppress incorrect warning */
+#         pragma omp task depend(in:DBCSR_OMP_DEP(id)) depend(out:DBCSR_OMP_DEP(od))
+          DBCSR_OMP_MEM_FREE(di->args[0].ptr);
         }
-#       pragma omp barrier
+        result = dbcsr_omp_stream_depend_end();
       }
     }
     else
@@ -171,24 +170,23 @@ int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t count, acc_stream
         deps->args[1].ptr = dev_mem;
         deps->args[2].size = count;
         deps->args[3].ptr = stream;
-#       pragma omp barrier
-#       pragma omp master
-        { const int nthreads = dbcsr_omp_stream_depend_begin();
-          /* capture current default device before spawning task (acc_set_active_device) */
-          const int dev_src = omp_get_initial_device(), dev_dst = omp_get_default_device();
-          int tid = 0;
-          for (; tid < nthreads; ++tid) {
-            dbcsr_omp_depend_t *const di = &deps[tid];
-            const char *const id = di->in, *const od = di->out;
-            dbcsr_omp_stream_t *const s = (dbcsr_omp_stream_t*)di->args[3].ptr; assert(NULL != s);
-            (void)(id); (void)(od); /* suppress incorrect warning */
-#           pragma omp task depend(in:DBCSR_OMP_DEP(id)) depend(out:DBCSR_OMP_DEP(od))
-            s->status |= omp_target_memcpy(di->args[1].ptr, di->args[0]./*const_*/ptr, di->args[2].size,
-              0/*dst_offset*/, 0/*src_offset*/, dev_dst, dev_src);
-          }
-          result = dbcsr_omp_stream_depend_end();
+      }
+      dbcsr_omp_stream_depend_sync();
+#     pragma omp master
+      { const int nthreads = dbcsr_omp_stream_depend_begin();
+        /* capture current default device before spawning task (acc_set_active_device) */
+        const int dev_src = omp_get_initial_device(), dev_dst = omp_get_default_device();
+        int tid = 0;
+        for (; tid < nthreads; ++tid) {
+          dbcsr_omp_depend_t *const di = &deps[tid];
+          const char *const id = di->in, *const od = di->out;
+          dbcsr_omp_stream_t *const s = (dbcsr_omp_stream_t*)di->args[3].ptr; assert(NULL != s);
+          (void)(id); (void)(od); /* suppress incorrect warning */
+#         pragma omp task depend(in:DBCSR_OMP_DEP(id)) depend(out:DBCSR_OMP_DEP(od))
+          s->status |= omp_target_memcpy(di->args[1].ptr, di->args[0]./*const_*/ptr, di->args[2].size,
+            0/*dst_offset*/, 0/*src_offset*/, dev_dst, dev_src);
         }
-#       pragma omp barrier
+        result = dbcsr_omp_stream_depend_end();
       }
     }
     else
@@ -215,24 +213,23 @@ int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t count, acc_stream
         deps->args[1].ptr = host_mem;
         deps->args[2].size = count;
         deps->args[3].ptr = stream;
-#       pragma omp barrier
-#       pragma omp master
-        { const int nthreads = dbcsr_omp_stream_depend_begin();
-          /* capture current default device before spawning task (acc_set_active_device) */
-          const int dev_src = omp_get_default_device(), dev_dst = omp_get_initial_device();
-          int tid = 0;
-          for (; tid < nthreads; ++tid) {
-            dbcsr_omp_depend_t *const di = &deps[tid];
-            const char *const id = di->in, *const od = di->out;
-            dbcsr_omp_stream_t *const s = (dbcsr_omp_stream_t*)di->args[3].ptr; assert(NULL != s);
-            (void)(id); (void)(od); /* suppress incorrect warning */
-#           pragma omp task depend(in:DBCSR_OMP_DEP(id)) depend(out:DBCSR_OMP_DEP(od))
-            s->status |= omp_target_memcpy(di->args[1].ptr, di->args[0]./*const_*/ptr, di->args[2].size,
-              0/*dst_offset*/, 0/*src_offset*/, dev_dst, dev_src);
-          }
-          result = dbcsr_omp_stream_depend_end();
+      }
+      dbcsr_omp_stream_depend_sync();
+#     pragma omp master
+      { const int nthreads = dbcsr_omp_stream_depend_begin();
+        /* capture current default device before spawning task (acc_set_active_device) */
+        const int dev_src = omp_get_default_device(), dev_dst = omp_get_initial_device();
+        int tid = 0;
+        for (; tid < nthreads; ++tid) {
+          dbcsr_omp_depend_t *const di = &deps[tid];
+          const char *const id = di->in, *const od = di->out;
+          dbcsr_omp_stream_t *const s = (dbcsr_omp_stream_t*)di->args[3].ptr; assert(NULL != s);
+          (void)(id); (void)(od); /* suppress incorrect warning */
+#         pragma omp task depend(in:DBCSR_OMP_DEP(id)) depend(out:DBCSR_OMP_DEP(od))
+          s->status |= omp_target_memcpy(di->args[1].ptr, di->args[0]./*const_*/ptr, di->args[2].size,
+            0/*dst_offset*/, 0/*src_offset*/, dev_dst, dev_src);
         }
-#       pragma omp barrier
+        result = dbcsr_omp_stream_depend_end();
       }
     }
     else
@@ -259,24 +256,23 @@ int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t count, acc_s
         deps->args[1].ptr = devmem_dst;
         deps->args[2].size = count;
         deps->args[3].ptr = stream;
-#       pragma omp barrier
-#       pragma omp master
-        { const int nthreads = dbcsr_omp_stream_depend_begin();
-          /* capture current default device before spawning task (acc_set_active_device) */
-          const int dev_src = omp_get_default_device(), dev_dst = dev_src;
-          int tid = 0;
-          for (; tid < nthreads; ++tid) {
-            dbcsr_omp_depend_t *const di = &deps[tid];
-            const char *const id = di->in, *const od = di->out;
-            dbcsr_omp_stream_t *const s = (dbcsr_omp_stream_t*)di->args[3].ptr; assert(NULL != s);
-            (void)(id); (void)(od); /* suppress incorrect warning */
-#           pragma omp task depend(in:DBCSR_OMP_DEP(id)) depend(out:DBCSR_OMP_DEP(od))
-            s->status |= omp_target_memcpy(di->args[1].ptr, di->args[0]./*const_*/ptr, di->args[2].size,
-              0/*dst_offset*/, 0/*src_offset*/, dev_dst, dev_src);
-          }
-          result = dbcsr_omp_stream_depend_end();
+      }
+      dbcsr_omp_stream_depend_sync();
+#     pragma omp master
+      { const int nthreads = dbcsr_omp_stream_depend_begin();
+        /* capture current default device before spawning task (acc_set_active_device) */
+        const int dev_src = omp_get_default_device(), dev_dst = dev_src;
+        int tid = 0;
+        for (; tid < nthreads; ++tid) {
+          dbcsr_omp_depend_t *const di = &deps[tid];
+          const char *const id = di->in, *const od = di->out;
+          dbcsr_omp_stream_t *const s = (dbcsr_omp_stream_t*)di->args[3].ptr; assert(NULL != s);
+          (void)(id); (void)(od); /* suppress incorrect warning */
+#         pragma omp task depend(in:DBCSR_OMP_DEP(id)) depend(out:DBCSR_OMP_DEP(od))
+          s->status |= omp_target_memcpy(di->args[1].ptr, di->args[0]./*const_*/ptr, di->args[2].size,
+            0/*dst_offset*/, 0/*src_offset*/, dev_dst, dev_src);
         }
-#       pragma omp barrier
+        result = dbcsr_omp_stream_depend_end();
       }
     }
     else
@@ -302,29 +298,28 @@ int acc_memset_zero(void* dev_mem, size_t offset, size_t length, acc_stream_t* s
         deps->args[0].ptr = dev_mem;
         deps->args[1].size = offset;
         deps->args[2].size = length;
-#       pragma omp barrier
-#       pragma omp master
-        { const int nthreads = dbcsr_omp_stream_depend_begin();
-          int tid = 0;
-          for (; tid < nthreads; ++tid) {
-            dbcsr_omp_depend_t *const di = &deps[tid];
-            const char *const id = di->in, *const od = di->out;
-            char * /*const*/ dst = (char*)di->args[0].ptr;
-            const size_t begin = di->args[1].size;
-            const size_t size = di->args[2].size;
+      }
+      dbcsr_omp_stream_depend_sync();
+#     pragma omp master
+      { const int nthreads = dbcsr_omp_stream_depend_begin();
+        int tid = 0;
+        for (; tid < nthreads; ++tid) {
+          dbcsr_omp_depend_t *const di = &deps[tid];
+          const char *const id = di->in, *const od = di->out;
+          char * /*const*/ dst = (char*)di->args[0].ptr;
+          const size_t begin = di->args[1].size;
+          const size_t size = di->args[2].size;
 #if defined(DBCSR_OMP_DEVMEMSET)
-#           pragma omp target depend(in:DBCSR_OMP_DEP(id)) depend(out:DBCSR_OMP_DEP(od)) nowait is_device_ptr(dst)
-            memset(dst + begin, 0, size);
+#         pragma omp target depend(in:DBCSR_OMP_DEP(id)) depend(out:DBCSR_OMP_DEP(od)) nowait is_device_ptr(dst)
+          memset(dst + begin, 0, size);
 #else
-            size_t i; /* private(i) */
-#           pragma omp target teams distribute parallel for simd depend(in:DBCSR_OMP_DEP(id)) depend(out:DBCSR_OMP_DEP(od)) nowait is_device_ptr(dst)
-            for (i = begin; i < (begin + size); ++i) dst[i] = '\0';
+          size_t i; /* private(i) */
+#         pragma omp target teams distribute parallel for simd depend(in:DBCSR_OMP_DEP(id)) depend(out:DBCSR_OMP_DEP(od)) nowait is_device_ptr(dst)
+          for (i = begin; i < (begin + size); ++i) dst[i] = '\0';
 #endif
-            (void)(id); (void)(od); /* suppress incorrect warning */
-          }
-          result = dbcsr_omp_stream_depend_end();
+          (void)(id); (void)(od); /* suppress incorrect warning */
         }
-#       pragma omp barrier
+        result = dbcsr_omp_stream_depend_end();
       }
     }
     else

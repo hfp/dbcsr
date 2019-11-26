@@ -80,7 +80,11 @@ int dbcsr_omp_stream_depend(acc_stream_t* stream, dbcsr_omp_depend_t** depend)
 
 int dbcsr_omp_stream_depend_begin(void)
 {
+#if defined(_OPENMP)
   const int result = omp_get_num_threads();
+#else
+  const int result = 1;
+#endif
 #if defined(DBCSR_OMP_STREAM_DEPEND_COUNT)
   dbcsr_omp_stream_depend_count -= result;
 #endif

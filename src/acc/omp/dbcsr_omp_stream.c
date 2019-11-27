@@ -21,7 +21,8 @@ dbcsr_omp_depend_t dbcsr_omp_stream_call[DBCSR_OMP_THREADS_MAXCOUNT];
 dbcsr_omp_stream_t  dbcsr_omp_streams[DBCSR_OMP_STREAM_MAXCOUNT];
 dbcsr_omp_stream_t* dbcsr_omp_streamp[DBCSR_OMP_STREAM_MAXCOUNT];
 #endif
-int dbcsr_omp_stream_count, dbcsr_omp_stream_depend_count;
+volatile int dbcsr_omp_stream_depend_count;
+int dbcsr_omp_stream_count;
 
 
 int dbcsr_omp_stream_depend(acc_stream_t* stream, dbcsr_omp_depend_t** depend)
@@ -98,15 +99,16 @@ int dbcsr_omp_stream_depend_end(void)
   const int tid = 0;
 #endif
   if (0 != tid) {
-    const int count = dbcsr_omp_stream_depend_count;
-    int npause = 1;
+    int count, npause = 1;
+    count = dbcsr_omp_stream_depend_count; /* non-atomic (good enough?) */
     DBCSR_OMP_WAIT(count <= dbcsr_omp_stream_depend_count, npause);
   }
   else { /* master thread */
-#if defined(_OPENMP)
-    const int nthreads = omp_get_num_threads();
-#else
+#if !defined(_OPENMP)
     const int nthreads = 1;
+#else
+    const int nthreads = omp_get_num_threads();
+#   pragma omp atomic
 #endif
     dbcsr_omp_stream_depend_count -= nthreads;
   }

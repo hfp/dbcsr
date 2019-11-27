@@ -90,6 +90,7 @@
 # define DBCSR_OMP_EXPECT(EXPECTED, EXPR) assert((EXPECTED) == (EXPR))
 # define DBCSR_OMP_RETURN(RESULT) do { \
     const int dbcsr_omp_return_result_ = (RESULT); \
+    assert(EXIT_SUCCESS == dbcsr_omp_return_result_); \
     return dbcsr_omp_return_result_; \
   } while (0)
 #endif

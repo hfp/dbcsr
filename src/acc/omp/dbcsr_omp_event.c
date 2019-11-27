@@ -99,9 +99,12 @@ int acc_event_record(acc_event_t* event, acc_stream_t* stream)
   }
   else if (NULL == event) { /* flush all pending work */
     result = EXIT_SUCCESS;
-#if defined(DBCSR_OMP_OFFLOAD)
+#if defined(DBCSR_OMP_OFFLOAD) && 0
+#   pragma omp master
 #   pragma omp task if(0)
     result = EXIT_FAILURE;
+#elif defined(_OPENMP)
+#   pragma omp barrier
 #endif
   }
   else result = EXIT_FAILURE;

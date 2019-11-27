@@ -179,7 +179,7 @@ DBCSR_OMP_EXPORT int dbcsr_omp_alloc(void** item, int typesize, int* counter, in
 /** Helper function for lock-free deallocation (companion of dbcsr_omp_alloc). */
 DBCSR_OMP_EXPORT int dbcsr_omp_dealloc(void* item, int typesize, int* counter, int maxcount, void* storage, void** pointer);
 /** Generate dependency for given stream. If a dependency is not consumed, acc_event_record(NULL, NULL) shall be called. */
-DBCSR_OMP_EXPORT int dbcsr_omp_stream_depend(acc_stream_t* stream, dbcsr_omp_depend_t** depend);
+DBCSR_OMP_EXPORT void dbcsr_omp_stream_depend(acc_stream_t* stream, dbcsr_omp_depend_t** depend);
 /** Commits the data filled into "depend" (as given by dbcsr_omp_stream_depend of each thread). */
 DBCSR_OMP_EXPORT void dbcsr_omp_stream_depend_begin(void);
 /** Returns the number of dependencies (independently requested by threads). */

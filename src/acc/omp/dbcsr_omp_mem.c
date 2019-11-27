@@ -70,11 +70,8 @@ int acc_host_mem_deallocate(void* host_mem, acc_stream_t* stream)
   if (0 < dbcsr_omp_ndevices()) {
     if (NULL != host_mem) {
       dbcsr_omp_depend_t* deps;
-      result = dbcsr_omp_stream_depend(stream, &deps);
-      if (EXIT_SUCCESS == result) {
-        assert(NULL != deps);
-        deps->data.args[0].ptr = host_mem;
-      }
+      dbcsr_omp_stream_depend(stream, &deps);
+      deps->data.args[0].ptr = host_mem;
       dbcsr_omp_stream_depend_begin();
 #     pragma omp master
       { const int nthreads = dbcsr_omp_stream_depend_nthreads();
@@ -168,13 +165,11 @@ int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t count, acc_stream
   if (0 < dbcsr_omp_ndevices()) {
     if (0 != count) {
       dbcsr_omp_depend_t* deps;
-      result = dbcsr_omp_stream_depend(stream, &deps);
-      if (EXIT_SUCCESS == result) {
-        deps->data.args[0].const_ptr = host_mem;
-        deps->data.args[1].ptr = dev_mem;
-        deps->data.args[2].size = count;
-        deps->data.args[3].ptr = stream;
-      }
+      dbcsr_omp_stream_depend(stream, &deps);
+      deps->data.args[0].const_ptr = host_mem;
+      deps->data.args[1].ptr = dev_mem;
+      deps->data.args[2].size = count;
+      deps->data.args[3].ptr = stream;
       dbcsr_omp_stream_depend_begin();
 #     pragma omp master
       { const int nthreads = dbcsr_omp_stream_depend_nthreads();
@@ -217,13 +212,11 @@ int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t count, acc_stream
   if (0 < dbcsr_omp_ndevices()) {
     if (0 != count) {
       dbcsr_omp_depend_t* deps;
-      result = dbcsr_omp_stream_depend(stream, &deps);
-      if (EXIT_SUCCESS == result) {
-        deps->data.args[0].const_ptr = dev_mem;
-        deps->data.args[1].ptr = host_mem;
-        deps->data.args[2].size = count;
-        deps->data.args[3].ptr = stream;
-      }
+      dbcsr_omp_stream_depend(stream, &deps);
+      deps->data.args[0].const_ptr = dev_mem;
+      deps->data.args[1].ptr = host_mem;
+      deps->data.args[2].size = count;
+      deps->data.args[3].ptr = stream;
       dbcsr_omp_stream_depend_begin();
 #     pragma omp master
       { const int nthreads = dbcsr_omp_stream_depend_nthreads();
@@ -266,13 +259,11 @@ int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t count, acc_s
   if (0 < dbcsr_omp_ndevices()) {
     if (0 != count) {
       dbcsr_omp_depend_t* deps;
-      result = dbcsr_omp_stream_depend(stream, &deps);
-      if (EXIT_SUCCESS == result) {
-        deps->data.args[0].const_ptr = devmem_src;
-        deps->data.args[1].ptr = devmem_dst;
-        deps->data.args[2].size = count;
-        deps->data.args[3].ptr = stream;
-      }
+      dbcsr_omp_stream_depend(stream, &deps);
+      deps->data.args[0].const_ptr = devmem_src;
+      deps->data.args[1].ptr = devmem_dst;
+      deps->data.args[2].size = count;
+      deps->data.args[3].ptr = stream;
       dbcsr_omp_stream_depend_begin();
 #     pragma omp master
       { const int nthreads = dbcsr_omp_stream_depend_nthreads();
@@ -315,12 +306,10 @@ int acc_memset_zero(void* dev_mem, size_t offset, size_t length, acc_stream_t* s
   if (0 < dbcsr_omp_ndevices()) {
     if (0 != length) {
       dbcsr_omp_depend_t* deps;
-      result = dbcsr_omp_stream_depend(stream, &deps);
-      if (EXIT_SUCCESS == result) {
-        deps->data.args[0].ptr = dev_mem;
-        deps->data.args[1].size = offset;
-        deps->data.args[2].size = length;
-      }
+      dbcsr_omp_stream_depend(stream, &deps);
+      deps->data.args[0].ptr = dev_mem;
+      deps->data.args[1].size = offset;
+      deps->data.args[2].size = length;
       dbcsr_omp_stream_depend_begin();
 #     pragma omp master
       { const int nthreads = dbcsr_omp_stream_depend_nthreads();

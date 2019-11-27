@@ -31,17 +31,15 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int nblks,
     const int ndevices = omp_get_num_devices();
     if (0 < ndevices) {
       dbcsr_omp_depend_t* deps;
-      result = dbcsr_omp_stream_depend(stream, &deps);
-      if (EXIT_SUCCESS == result) {
-        deps->data.args[0].const_ptr = dev_trs_stack;
-        deps->data.args[1].i32 = offset;
-        deps->data.args[2].i32 = nblks;
-        deps->data.args[3].ptr = dev_data;
-        deps->data.args[4].i32 = datatype;
-        deps->data.args[5].i32 = m;
-        deps->data.args[6].i32 = n;
-        deps->data.args[7].ptr = stream;
-      }
+      dbcsr_omp_stream_depend(stream, &deps);
+      deps->data.args[0].const_ptr = dev_trs_stack;
+      deps->data.args[1].i32 = offset;
+      deps->data.args[2].i32 = nblks;
+      deps->data.args[3].ptr = dev_data;
+      deps->data.args[4].i32 = datatype;
+      deps->data.args[5].i32 = m;
+      deps->data.args[6].i32 = n;
+      deps->data.args[7].ptr = stream;
       dbcsr_omp_stream_depend_begin();
 #     pragma omp master
       { const int nthreads = dbcsr_omp_stream_depend_nthreads();
@@ -114,19 +112,17 @@ int libsmm_acc_process(const libsmm_acc_stack_descriptor_type* dev_param_stack, 
     const int ndevices = omp_get_num_devices();
     if (0 < ndevices) {
       dbcsr_omp_depend_t* deps;
-      result = dbcsr_omp_stream_depend(stream, &deps);
-      if (EXIT_SUCCESS == result) {
-        deps->data.args[0].const_ptr = dev_param_stack;
-        deps->data.args[1].i32 = stack_size;
-        deps->data.args[2].i32 = datatype;
-        deps->data.args[3].const_ptr = dev_a_data;
-        deps->data.args[4].const_ptr = dev_b_data;
-        deps->data.args[5].ptr = dev_c_data;
-        deps->data.args[6].i32 = m_max;
-        deps->data.args[7].i32 = n_max;
-        deps->data.args[8].i32 = k_max;
-        deps->data.args[9].ptr = stream;
-      }
+      dbcsr_omp_stream_depend(stream, &deps);
+      deps->data.args[0].const_ptr = dev_param_stack;
+      deps->data.args[1].i32 = stack_size;
+      deps->data.args[2].i32 = datatype;
+      deps->data.args[3].const_ptr = dev_a_data;
+      deps->data.args[4].const_ptr = dev_b_data;
+      deps->data.args[5].ptr = dev_c_data;
+      deps->data.args[6].i32 = m_max;
+      deps->data.args[7].i32 = n_max;
+      deps->data.args[8].i32 = k_max;
+      deps->data.args[9].ptr = stream;
       dbcsr_omp_stream_depend_begin();
 #     pragma omp master
       { const int nthreads = dbcsr_omp_stream_depend_nthreads();

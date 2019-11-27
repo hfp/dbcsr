@@ -24,9 +24,13 @@ volatile int dbcsr_omp_stream_depend_count;
 int dbcsr_omp_stream_count;
 
 
-int dbcsr_omp_stream_depend(acc_stream_t* stream, dbcsr_omp_depend_t** depend)
+void dbcsr_omp_stream_depend(acc_stream_t* stream, dbcsr_omp_depend_t** depend)
 {
-  int result;
+#if defined(_OPENMP)
+  dbcsr_omp_depend_t *const di = &dbcsr_omp_stream_call[omp_get_thread_num()];
+#else
+  dbcsr_omp_depend_t *const di = dbcsr_omp_stream_call;
+#endif
   dbcsr_omp_stream_t *const s = (dbcsr_omp_stream_t*)stream;
 #if defined(DBCSR_OMP_STREAM_MAXCOUNT) && (0 < DBCSR_OMP_STREAM_MAXCOUNT)
   assert(NULL == s || (dbcsr_omp_streams <= s && s < (dbcsr_omp_streams + DBCSR_OMP_STREAM_MAXCOUNT)));
@@ -35,37 +39,23 @@ int dbcsr_omp_stream_depend(acc_stream_t* stream, dbcsr_omp_depend_t** depend)
   assert(omp_get_default_device() == s->device_id);
 #endif
   assert(0 == dbcsr_omp_stream_depend_count);
-  assert(NULL != depend);
+  assert(NULL != depend && NULL != di);
   if (NULL != s && EXIT_SUCCESS == s->status) {
     static const dbcsr_omp_dependency_t dummy = 0;
     int index;
-#if !defined(_OPENMP)
-    dbcsr_omp_depend_t *const di = dbcsr_omp_stream_call;
-#else
-    dbcsr_omp_depend_t *const di = &dbcsr_omp_stream_call[omp_get_thread_num()];
-# if defined(_OPENMP) && (200805 <= _OPENMP) /* OpenMP 3.0 */
+#if defined(_OPENMP) && (200805 <= _OPENMP) /* OpenMP 3.0 */
 #   pragma omp atomic capture
-# else /* implies _OPENMP */
+#elif defined(_OPENMP)
 #   pragma omp critical(dbcsr_omp_stream_depend_critical)
-# endif
 #endif
     index = s->pending++;
-    assert(NULL != di);
 #if !defined(NDEBUG)
     memset(di->data.args, 0, DBCSR_OMP_ARGUMENTS_MAXCOUNT * sizeof(dbcsr_omp_any_t));
 #endif
     di->data.out = s->name + index % DBCSR_OMP_STREAM_MAXPENDING;
     di->data.in = (s->name < di->data.out ? (di->data.out - 1) : &dummy);
-    *depend = di;
-    result = EXIT_SUCCESS;
   }
-  else {
-#if !defined(NDEBUG) /* user checks return value */
-    *depend = NULL;
-#endif
-    result = (NULL != s ? s->status : EXIT_SUCCESS);
-  }
-  DBCSR_OMP_RETURN(result);
+  *depend = di;
 }
 
 
@@ -216,10 +206,8 @@ int acc_stream_wait_event(acc_stream_t* stream, acc_event_t* event)
 #if defined(DBCSR_OMP_OFFLOAD)
     if (0 < dbcsr_omp_ndevices()) {
       dbcsr_omp_depend_t* deps;
-      result = dbcsr_omp_stream_depend(stream, &deps);
-      if (EXIT_SUCCESS == result) {
-        deps->data.args[0].const_ptr = event;
-      }
+      dbcsr_omp_stream_depend(stream, &deps);
+      deps->data.args[0].const_ptr = event;
       dbcsr_omp_stream_depend_begin();
 #     pragma omp master
       { const int nthreads = dbcsr_omp_stream_depend_nthreads();

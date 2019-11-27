@@ -58,11 +58,9 @@ int acc_event_record(acc_event_t* event, acc_stream_t* stream)
 #if defined(DBCSR_OMP_OFFLOAD)
     if (0 < dbcsr_omp_ndevices()) {
       dbcsr_omp_depend_t* deps;
-      result = dbcsr_omp_stream_depend(stream, &deps);
-      if (EXIT_SUCCESS == result) {
-        if (NULL != e) e->dependency = deps->data.out; /* reset if re-enqueued */
-        deps->data.args[0].ptr = event;
-      }
+      dbcsr_omp_stream_depend(stream, &deps);
+      if (NULL != e) e->dependency = deps->data.out; /* reset if re-enqueued */
+      deps->data.args[0].ptr = event;
       dbcsr_omp_stream_depend_begin();
 #     pragma omp master
       { const int nthreads = dbcsr_omp_stream_depend_nthreads();

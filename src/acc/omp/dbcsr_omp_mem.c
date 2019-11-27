@@ -84,12 +84,11 @@ int acc_host_mem_deallocate(void* host_mem, acc_stream_t* stream)
           DBCSR_OMP_MEM_FREE(di->data.args[0].ptr);
         }
       }
-      result = dbcsr_omp_stream_depend_end(stream);
     }
     else { /* branch must participate in barrier */
       dbcsr_omp_stream_depend_begin();
-      result = dbcsr_omp_stream_depend_end(stream);
     }
+    result = dbcsr_omp_stream_depend_end(stream);
   }
   else
 #endif
@@ -186,12 +185,11 @@ int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t count, acc_stream
             0/*dst_offset*/, 0/*src_offset*/, dev_dst, dev_src);
         }
       }
-      result = dbcsr_omp_stream_depend_end(stream);
     }
     else { /* branch must participate in barrier */
       dbcsr_omp_stream_depend_begin();
-      result = dbcsr_omp_stream_depend_end(stream);
     }
+    result = dbcsr_omp_stream_depend_end(stream);
   }
   else
 #endif
@@ -233,12 +231,11 @@ int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t count, acc_stream
             0/*dst_offset*/, 0/*src_offset*/, dev_dst, dev_src);
         }
       }
-      result = dbcsr_omp_stream_depend_end(stream);
     }
     else { /* branch must participate in barrier */
       dbcsr_omp_stream_depend_begin();
-      result = dbcsr_omp_stream_depend_end(stream);
     }
+    result = dbcsr_omp_stream_depend_end(stream);
   }
   else
 #endif
@@ -280,12 +277,11 @@ int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t count, acc_s
             0/*dst_offset*/, 0/*src_offset*/, dev_dst, dev_src);
         }
       }
-      result = dbcsr_omp_stream_depend_end(stream);
     }
     else { /* branch must participate in barrier */
       dbcsr_omp_stream_depend_begin();
-      result = dbcsr_omp_stream_depend_end(stream);
     }
+    result = dbcsr_omp_stream_depend_end(stream);
   }
   else
 #endif
@@ -331,12 +327,11 @@ int acc_memset_zero(void* dev_mem, size_t offset, size_t length, acc_stream_t* s
           (void)(id); (void)(od); /* suppress incorrect warning */
         }
       }
-      result = dbcsr_omp_stream_depend_end(stream);
     }
     else { /* branch must participate in barrier */
       dbcsr_omp_stream_depend_begin();
-      result = dbcsr_omp_stream_depend_end(stream);
     }
+    result = dbcsr_omp_stream_depend_end(stream);
   }
   else
 #endif

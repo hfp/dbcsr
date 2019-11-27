@@ -81,10 +81,10 @@ int dbcsr_omp_stream_depend_nthreads(void)
 }
 
 
-int dbcsr_omp_stream_depend_end(acc_stream_t* stream)
+int dbcsr_omp_stream_depend_end(const acc_stream_t* stream)
 {
   int result;
-  dbcsr_omp_stream_t *const s = (dbcsr_omp_stream_t*)stream;
+  const dbcsr_omp_stream_t *const s = (const dbcsr_omp_stream_t*)stream;
 #if defined(_OPENMP)
   const int nthreads = omp_get_num_threads(), tid = omp_get_thread_num();
   if (0 != tid) {

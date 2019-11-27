@@ -86,7 +86,7 @@ int dbcsr_omp_stream_depend_nthreads(void)
 #endif
   int npause = 1;
   DBCSR_OMP_WAIT(result < dbcsr_omp_stream_depend_count, npause);
-  return result;
+  DBCSR_OMP_RETURN(result);
 }
 
 

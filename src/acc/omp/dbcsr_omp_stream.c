@@ -44,7 +44,7 @@ int dbcsr_omp_stream_depend(acc_stream_t* stream, dbcsr_omp_depend_t** depend)
     dbcsr_omp_depend_t *const d = &dbcsr_omp_stream_call[omp_get_thread_num()];
 # if defined(_OPENMP) && (200805 <= _OPENMP) /* OpenMP 3.0 */
 #   pragma omp atomic capture
-# elif defined(_OPENMP)
+# else /* implies _OPENMP */
 #   pragma omp critical(dbcsr_omp_stream_depend_critical)
 # endif
 #endif
@@ -100,11 +100,11 @@ int dbcsr_omp_stream_depend_end(void)
   int result;
   if (0 != tid) {
     int npause = 1;
-    DBCSR_OMP_WAIT(dbcsr_omp_stream_depend_count < nthreads, npause);
+    DBCSR_OMP_WAIT(nthreads > dbcsr_omp_stream_depend_count, npause);
     result = EXIT_SUCCESS;
   }
   else { /* master thread */
-    result = (nthreads == dbcsr_omp_stream_depend_count ? EXIT_SUCCESS : EXIT_FAILURE);    
+    result = (nthreads == dbcsr_omp_stream_depend_count ? EXIT_SUCCESS : EXIT_FAILURE);
 #if defined(_OPENMP)
 #   pragma omp atomic
 #endif

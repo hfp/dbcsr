@@ -28,11 +28,9 @@
 # define DBCSR_OMP_DEVMEMSET
 #endif
 
-
 #if defined(__cplusplus)
 extern "C" {
 #endif
-
 
 int acc_host_mem_allocate(void** host_mem, size_t n, acc_stream_t* stream)
 {

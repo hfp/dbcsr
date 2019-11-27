@@ -83,7 +83,7 @@
       (COUNTER) = DBCSR_OMP_PAUSE_MAXCOUNT; \
     } \
   } \
-} while (CONDITION)
+} while (0)
 
 #if defined(NDEBUG)
 # define DBCSR_OMP_EXPECT(EXPECTED, EXPR) EXPR

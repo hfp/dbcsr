@@ -39,9 +39,9 @@ int dbcsr_omp_stream_depend(acc_stream_t* stream, dbcsr_omp_depend_t** depend)
     static const dbcsr_omp_dependency_t dummy = 0;
     int index;
 #if !defined(_OPENMP)
-    dbcsr_omp_depend_t *const d = dbcsr_omp_stream_call;
+    dbcsr_omp_depend_t *const di = dbcsr_omp_stream_call;
 #else
-    dbcsr_omp_depend_t *const d = &dbcsr_omp_stream_call[omp_get_thread_num()];
+    dbcsr_omp_depend_t *const di = &dbcsr_omp_stream_call[omp_get_thread_num()];
 # if defined(_OPENMP) && (200805 <= _OPENMP) /* OpenMP 3.0 */
 #   pragma omp atomic capture
 # else /* implies _OPENMP */
@@ -49,13 +49,13 @@ int dbcsr_omp_stream_depend(acc_stream_t* stream, dbcsr_omp_depend_t** depend)
 # endif
 #endif
     index = s->pending++;
-    assert(NULL != d);
+    assert(NULL != di);
 #if !defined(NDEBUG)
-    memset(d->args, 0, DBCSR_OMP_ARGUMENTS_MAXCOUNT * sizeof(dbcsr_omp_any_t));
+    memset(di->data.args, 0, DBCSR_OMP_ARGUMENTS_MAXCOUNT * sizeof(dbcsr_omp_any_t));
 #endif
-    d->out = s->name + index % DBCSR_OMP_STREAM_MAXPENDING;
-    d->in = (s->name < d->out ? (d->out - 1) : &dummy);
-    *depend = d;
+    di->data.out = s->name + index % DBCSR_OMP_STREAM_MAXPENDING;
+    di->data.in = (s->name < di->data.out ? (di->data.out - 1) : &dummy);
+    *depend = di;
     result = EXIT_SUCCESS;
   }
   else {
@@ -219,7 +219,7 @@ int acc_stream_wait_event(acc_stream_t* stream, acc_event_t* event)
       dbcsr_omp_depend_t* deps;
       result = dbcsr_omp_stream_depend(stream, &deps);
       if (EXIT_SUCCESS == result) {
-        deps->args[0].const_ptr = event;
+        deps->data.args[0].const_ptr = event;
       }
       dbcsr_omp_stream_depend_begin();
 #     pragma omp master
@@ -227,10 +227,10 @@ int acc_stream_wait_event(acc_stream_t* stream, acc_event_t* event)
         int tid = 0;
         for (; tid < nthreads; ++tid) {
           const dbcsr_omp_depend_t *const di = &deps[tid];
-          const dbcsr_omp_event_t *const ei = (const dbcsr_omp_event_t*)di->args[0].const_ptr;
+          const dbcsr_omp_event_t *const ei = (const dbcsr_omp_event_t*)di->data.args[0].const_ptr;
           const char *const ie = ei->dependency;
           if (NULL != ie) { /* still pending */
-            const char *const id = di->in, *const od = di->out;
+            const char *const id = di->data.in, *const od = di->data.out;
             (void)(id); (void)(od); /* suppress incorrect warning */
 #           pragma omp target depend(in:DBCSR_OMP_DEP(id),DBCSR_OMP_DEP(ie)) depend(out:DBCSR_OMP_DEP(od)) nowait if(0)
             {}

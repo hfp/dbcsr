@@ -73,7 +73,7 @@ int acc_host_mem_deallocate(void* host_mem, acc_stream_t* stream)
       result = dbcsr_omp_stream_depend(stream, &deps);
       if (EXIT_SUCCESS == result) {
         assert(NULL != deps);
-        deps->args[0].ptr = host_mem;
+        deps->data.args[0].ptr = host_mem;
       }
       dbcsr_omp_stream_depend_begin();
 #     pragma omp master
@@ -81,10 +81,10 @@ int acc_host_mem_deallocate(void* host_mem, acc_stream_t* stream)
         int tid = 0;
         for (; tid < nthreads; ++tid) {
           dbcsr_omp_depend_t *const di = &deps[tid];
-          const char *const id = di->in, *const od = di->out;
+          const char *const id = di->data.in, *const od = di->data.out;
           (void)(id); (void)(od); /* suppress incorrect warning */
 #         pragma omp task depend(in:DBCSR_OMP_DEP(id)) depend(out:DBCSR_OMP_DEP(od))
-          DBCSR_OMP_MEM_FREE(di->args[0].ptr);
+          DBCSR_OMP_MEM_FREE(di->data.args[0].ptr);
         }
       }
       result = dbcsr_omp_stream_depend_end();
@@ -170,10 +170,10 @@ int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t count, acc_stream
       dbcsr_omp_depend_t* deps;
       result = dbcsr_omp_stream_depend(stream, &deps);
       if (EXIT_SUCCESS == result) {
-        deps->args[0].const_ptr = host_mem;
-        deps->args[1].ptr = dev_mem;
-        deps->args[2].size = count;
-        deps->args[3].ptr = stream;
+        deps->data.args[0].const_ptr = host_mem;
+        deps->data.args[1].ptr = dev_mem;
+        deps->data.args[2].size = count;
+        deps->data.args[3].ptr = stream;
       }
       dbcsr_omp_stream_depend_begin();
 #     pragma omp master
@@ -183,11 +183,11 @@ int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t count, acc_stream
         int tid = 0;
         for (; tid < nthreads; ++tid) {
           dbcsr_omp_depend_t *const di = &deps[tid];
-          const char *const id = di->in, *const od = di->out;
-          dbcsr_omp_stream_t *const s = (dbcsr_omp_stream_t*)di->args[3].ptr; assert(NULL != s);
+          const char *const id = di->data.in, *const od = di->data.out;
+          dbcsr_omp_stream_t *const s = (dbcsr_omp_stream_t*)di->data.args[3].ptr; assert(NULL != s);
           (void)(id); (void)(od); /* suppress incorrect warning */
 #         pragma omp task depend(in:DBCSR_OMP_DEP(id)) depend(out:DBCSR_OMP_DEP(od))
-          s->status |= omp_target_memcpy(di->args[1].ptr, di->args[0]./*const_*/ptr, di->args[2].size,
+          s->status |= omp_target_memcpy(di->data.args[1].ptr, di->data.args[0]./*const_*/ptr, di->data.args[2].size,
             0/*dst_offset*/, 0/*src_offset*/, dev_dst, dev_src);
         }
       }
@@ -219,10 +219,10 @@ int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t count, acc_stream
       dbcsr_omp_depend_t* deps;
       result = dbcsr_omp_stream_depend(stream, &deps);
       if (EXIT_SUCCESS == result) {
-        deps->args[0].const_ptr = dev_mem;
-        deps->args[1].ptr = host_mem;
-        deps->args[2].size = count;
-        deps->args[3].ptr = stream;
+        deps->data.args[0].const_ptr = dev_mem;
+        deps->data.args[1].ptr = host_mem;
+        deps->data.args[2].size = count;
+        deps->data.args[3].ptr = stream;
       }
       dbcsr_omp_stream_depend_begin();
 #     pragma omp master
@@ -232,11 +232,11 @@ int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t count, acc_stream
         int tid = 0;
         for (; tid < nthreads; ++tid) {
           dbcsr_omp_depend_t *const di = &deps[tid];
-          const char *const id = di->in, *const od = di->out;
-          dbcsr_omp_stream_t *const s = (dbcsr_omp_stream_t*)di->args[3].ptr; assert(NULL != s);
+          const char *const id = di->data.in, *const od = di->data.out;
+          dbcsr_omp_stream_t *const s = (dbcsr_omp_stream_t*)di->data.args[3].ptr; assert(NULL != s);
           (void)(id); (void)(od); /* suppress incorrect warning */
 #         pragma omp task depend(in:DBCSR_OMP_DEP(id)) depend(out:DBCSR_OMP_DEP(od))
-          s->status |= omp_target_memcpy(di->args[1].ptr, di->args[0]./*const_*/ptr, di->args[2].size,
+          s->status |= omp_target_memcpy(di->data.args[1].ptr, di->data.args[0]./*const_*/ptr, di->data.args[2].size,
             0/*dst_offset*/, 0/*src_offset*/, dev_dst, dev_src);
         }
       }
@@ -268,10 +268,10 @@ int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t count, acc_s
       dbcsr_omp_depend_t* deps;
       result = dbcsr_omp_stream_depend(stream, &deps);
       if (EXIT_SUCCESS == result) {
-        deps->args[0].const_ptr = devmem_src;
-        deps->args[1].ptr = devmem_dst;
-        deps->args[2].size = count;
-        deps->args[3].ptr = stream;
+        deps->data.args[0].const_ptr = devmem_src;
+        deps->data.args[1].ptr = devmem_dst;
+        deps->data.args[2].size = count;
+        deps->data.args[3].ptr = stream;
       }
       dbcsr_omp_stream_depend_begin();
 #     pragma omp master
@@ -281,11 +281,11 @@ int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t count, acc_s
         int tid = 0;
         for (; tid < nthreads; ++tid) {
           dbcsr_omp_depend_t *const di = &deps[tid];
-          const char *const id = di->in, *const od = di->out;
-          dbcsr_omp_stream_t *const s = (dbcsr_omp_stream_t*)di->args[3].ptr; assert(NULL != s);
+          const char *const id = di->data.in, *const od = di->data.out;
+          dbcsr_omp_stream_t *const s = (dbcsr_omp_stream_t*)di->data.args[3].ptr; assert(NULL != s);
           (void)(id); (void)(od); /* suppress incorrect warning */
 #         pragma omp task depend(in:DBCSR_OMP_DEP(id)) depend(out:DBCSR_OMP_DEP(od))
-          s->status |= omp_target_memcpy(di->args[1].ptr, di->args[0]./*const_*/ptr, di->args[2].size,
+          s->status |= omp_target_memcpy(di->data.args[1].ptr, di->data.args[0]./*const_*/ptr, di->data.args[2].size,
             0/*dst_offset*/, 0/*src_offset*/, dev_dst, dev_src);
         }
       }
@@ -317,9 +317,9 @@ int acc_memset_zero(void* dev_mem, size_t offset, size_t length, acc_stream_t* s
       dbcsr_omp_depend_t* deps;
       result = dbcsr_omp_stream_depend(stream, &deps);
       if (EXIT_SUCCESS == result) {
-        deps->args[0].ptr = dev_mem;
-        deps->args[1].size = offset;
-        deps->args[2].size = length;
+        deps->data.args[0].ptr = dev_mem;
+        deps->data.args[1].size = offset;
+        deps->data.args[2].size = length;
       }
       dbcsr_omp_stream_depend_begin();
 #     pragma omp master
@@ -327,10 +327,10 @@ int acc_memset_zero(void* dev_mem, size_t offset, size_t length, acc_stream_t* s
         int tid = 0;
         for (; tid < nthreads; ++tid) {
           dbcsr_omp_depend_t *const di = &deps[tid];
-          const char *const id = di->in, *const od = di->out;
-          char * /*const*/ dst = (char*)di->args[0].ptr;
-          const size_t begin = di->args[1].size;
-          const size_t size = di->args[2].size;
+          const char *const id = di->data.in, *const od = di->data.out;
+          char * /*const*/ dst = (char*)di->data.args[0].ptr;
+          const size_t begin = di->data.args[1].size;
+          const size_t size = di->data.args[2].size;
 #if defined(DBCSR_OMP_DEVMEMSET)
 #         pragma omp target depend(in:DBCSR_OMP_DEP(id)) depend(out:DBCSR_OMP_DEP(od)) nowait is_device_ptr(dst)
           memset(dst + begin, 0, size);

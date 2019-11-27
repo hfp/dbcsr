@@ -16,7 +16,7 @@
 # define DBCSR_OMP_CACHELINE_NBYTES 64
 #endif
 #if !defined(DBCSR_OMP_ARGUMENTS_MAXCOUNT)
-# define DBCSR_OMP_ARGUMENTS_MAXCOUNT 14
+# define DBCSR_OMP_ARGUMENTS_MAXCOUNT 13
 #endif
 #if !defined(DBCSR_OMP_STREAM_MAXPENDING)
 # define DBCSR_OMP_STREAM_MAXPENDING 256
@@ -163,12 +163,17 @@ DBCSR_OMP_EXPORT typedef union dbcsr_omp_any_t {
   acc_bool_t logical;
 } dbcsr_omp_any_t;
 
-DBCSR_OMP_EXPORT typedef struct dbcsr_omp_depend_t {
-  char data[DBCSR_OMP_UP2(DBCSR_OMP_ARGUMENTS_MAXCOUNT*sizeof(dbcsr_omp_any_t)+2*sizeof(void*),DBCSR_OMP_CACHELINE_NBYTES)];
+DBCSR_OMP_EXPORT typedef struct dbcsr_omp_depend_data_t {
   /** Used to record the arguments/signature of each OpenMP-offload/call on a per-thread basis. */
   dbcsr_omp_any_t args[DBCSR_OMP_ARGUMENTS_MAXCOUNT];
   /** The in/out-pointer must be dereferenced (depend clause expects value; due to syntax issues use in[0]/out[0]). */
   const dbcsr_omp_dependency_t *in, *out;
+  int counter;
+} dbcsr_omp_depend_data_t;
+
+DBCSR_OMP_EXPORT typedef union dbcsr_omp_depend_t {
+  char pad[DBCSR_OMP_UP2(sizeof(dbcsr_omp_depend_data_t),DBCSR_OMP_CACHELINE_NBYTES)];
+  dbcsr_omp_depend_data_t data;
 } dbcsr_omp_depend_t;
 
 DBCSR_OMP_EXPORT int dbcsr_omp_ndevices(void);

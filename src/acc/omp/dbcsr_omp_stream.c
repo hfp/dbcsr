@@ -86,7 +86,7 @@ int dbcsr_omp_stream_depend_nthreads(void)
 #endif
   int npause = 1;
   DBCSR_OMP_WAIT(result < dbcsr_omp_stream_depend_count, npause);
-  DBCSR_OMP_RETURN(result);
+  return result;
 }
 
 
@@ -110,7 +110,7 @@ int dbcsr_omp_stream_depend_end(void)
 #endif
     dbcsr_omp_stream_depend_count -= nthreads;
   }
-  return (0 == dbcsr_omp_stream_depend_count ? EXIT_SUCCESS : EXIT_FAILURE);
+  DBCSR_OMP_RETURN(0 == dbcsr_omp_stream_depend_count ? EXIT_SUCCESS : EXIT_FAILURE);
 }
 
 

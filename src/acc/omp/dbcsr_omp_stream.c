@@ -84,8 +84,7 @@ int dbcsr_omp_stream_depend_nthreads(void)
 #else
   const int result = 1;
 #endif
-  int npause = 1;
-  DBCSR_OMP_WAIT(result > dbcsr_omp_stream_depend_count, npause);
+  DBCSR_OMP_WAIT(result > dbcsr_omp_stream_depend_count);
   return result;
 }
 
@@ -99,8 +98,7 @@ int dbcsr_omp_stream_depend_end(void)
 #endif
   int result;
   if (0 != tid) {
-    int npause = 1;
-    DBCSR_OMP_WAIT(nthreads > dbcsr_omp_stream_depend_count, npause);
+    DBCSR_OMP_WAIT(0 != dbcsr_omp_stream_depend_count);
     result = EXIT_SUCCESS;
   }
   else { /* master thread */
@@ -198,12 +196,12 @@ int acc_stream_priority_range(int* least, int* greatest)
 
 int acc_stream_sync(acc_stream_t* stream)
 { /* Blocks the host-thread. */
-  int result = (NULL != stream ? EXIT_SUCCESS : EXIT_FAILURE), npause = 1;
+  int result = (NULL != stream ? EXIT_SUCCESS : EXIT_FAILURE);
   if (EXIT_SUCCESS == result) {
     result = acc_event_record(NULL/*event*/, stream);
     if (EXIT_SUCCESS == result) {
       dbcsr_omp_stream_t* const s = (dbcsr_omp_stream_t*)stream;
-      DBCSR_OMP_WAIT(s->pending, npause);
+      DBCSR_OMP_WAIT(s->pending);
     }
   }
   DBCSR_OMP_RETURN(result);

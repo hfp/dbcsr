@@ -16,7 +16,7 @@
 # define DBCSR_OMP_CACHELINE_NBYTES 64
 #endif
 #if !defined(DBCSR_OMP_ARGUMENTS_MAXCOUNT)
-# define DBCSR_OMP_ARGUMENTS_MAXCOUNT 13
+# define DBCSR_OMP_ARGUMENTS_MAXCOUNT 14
 #endif
 #if !defined(DBCSR_OMP_STREAM_MAXPENDING)
 # define DBCSR_OMP_STREAM_MAXPENDING 256
@@ -74,14 +74,12 @@
 #else
 # define DBCSR_OMP_PAUSE __asm__ __volatile__("" ::: "memory")
 #endif
-#define DBCSR_OMP_WAIT(CONDITION, COUNTER) do { \
+#define DBCSR_OMP_WAIT(CONDITION) do { int npause = 0; \
   while (CONDITION) { int counter = 0; \
-    for (; counter <= (COUNTER); ++counter) DBCSR_OMP_PAUSE; \
-    if ((COUNTER) < DBCSR_OMP_PAUSE_MAXCOUNT) { \
-      (COUNTER) = 2 * (0 < (COUNTER) ? (COUNTER) : 1); \
-    } else { /* yield? */ \
-      (COUNTER) = DBCSR_OMP_PAUSE_MAXCOUNT; \
-    } \
+    for (; counter <= npause; ++counter) DBCSR_OMP_PAUSE; \
+    if (npause < DBCSR_OMP_PAUSE_MAXCOUNT) { \
+      npause = (0 < npause ? (2 * npause) : 1); \
+    } else { /* yield? */ } \
   } \
 } while (0)
 
@@ -168,7 +166,6 @@ DBCSR_OMP_EXPORT typedef struct dbcsr_omp_depend_data_t {
   dbcsr_omp_any_t args[DBCSR_OMP_ARGUMENTS_MAXCOUNT];
   /** The in/out-pointer must be dereferenced (depend clause expects value; due to syntax issues use in[0]/out[0]). */
   const dbcsr_omp_dependency_t *in, *out;
-  int counter;
 } dbcsr_omp_depend_data_t;
 
 DBCSR_OMP_EXPORT typedef union dbcsr_omp_depend_t {

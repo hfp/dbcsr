@@ -132,8 +132,7 @@ int acc_event_synchronize(acc_event_t* event)
   int result;
   if (NULL != event) {
     const dbcsr_omp_event_t *const e = (dbcsr_omp_event_t*)event;
-    int npause = 1;
-    DBCSR_OMP_WAIT(NULL != e->dependency, npause);
+    DBCSR_OMP_WAIT(NULL != e->dependency);
     result = EXIT_SUCCESS;
   }
   else result = EXIT_FAILURE;

@@ -82,7 +82,7 @@ int acc_event_record(acc_event_t* event, acc_stream_t* stream)
           }
         }
       }
-      result = dbcsr_omp_stream_depend_end();
+      result = dbcsr_omp_stream_depend_end(stream);
     }
     else
 #endif

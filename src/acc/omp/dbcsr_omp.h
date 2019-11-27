@@ -185,7 +185,7 @@ DBCSR_OMP_EXPORT void dbcsr_omp_stream_depend_begin(void);
 /** Returns the number of dependencies (independently requested by threads). */
 DBCSR_OMP_EXPORT int dbcsr_omp_stream_depend_nthreads(void);
 /** Signals the end of the reduction and returns an error code. */
-DBCSR_OMP_EXPORT int dbcsr_omp_stream_depend_end(void);
+DBCSR_OMP_EXPORT int dbcsr_omp_stream_depend_end(acc_stream_t* stream);
 /** Clears status of all streams (if possible). */
 DBCSR_OMP_EXPORT void dbcsr_omp_stream_clear_errors(void);
 

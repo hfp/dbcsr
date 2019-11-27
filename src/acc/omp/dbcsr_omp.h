@@ -63,7 +63,7 @@
 #endif
 
 #if defined(_OPENMP)
-# define DBCSR_OMP_PAUSE DBCSR_OMP_PRAGMA(omp flush)
+# define DBCSR_OMP_PAUSE { DBCSR_OMP_PRAGMA(omp flush) }
 #elif (defined(__GNUC__) && ( \
     (defined(__x86_64__) && 0 != (__x86_64__)) || \
     (defined(__amd64__) && 0 != (__amd64__)) || \

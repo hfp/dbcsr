@@ -127,6 +127,9 @@
 
 #include "../include/acc.h"
 #include <stdint.h>
+#if !defined(NDEBUG)
+# include <assert.h>
+#endif
 #if defined(_OPENMP)
 # include <omp.h>
 #endif

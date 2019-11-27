@@ -66,11 +66,11 @@ int acc_host_mem_allocate(void** host_mem, size_t n, acc_stream_t* stream)
 int acc_host_mem_deallocate(void* host_mem, acc_stream_t* stream)
 {
   int result = EXIT_SUCCESS;
-  if (NULL != host_mem) {
 #if !defined(DBCSR_OMP_OFFLOAD)
-    (void)(stream); /* unused */
+  (void)(stream); /* unused */
 #else /* implies _OPENMP */
-    if (0 < dbcsr_omp_ndevices()) {
+  if (0 < dbcsr_omp_ndevices()) {
+    if (NULL != host_mem) {
       dbcsr_omp_depend_t* deps;
       result = dbcsr_omp_stream_depend(stream, &deps);
       if (EXIT_SUCCESS == result) {
@@ -91,8 +91,13 @@ int acc_host_mem_deallocate(void* host_mem, acc_stream_t* stream)
         result = dbcsr_omp_stream_depend_end();
       }
     }
-    else
+    else { /* branch must participate in barrier */
+      dbcsr_omp_stream_depend_sync();
+    }
+  }
+  else
 #endif
+  if (NULL != host_mem) {
     DBCSR_OMP_MEM_FREE(host_mem);
   }
   DBCSR_OMP_RETURN(result);
@@ -158,11 +163,11 @@ int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t count, acc_stream
 {
   int result = EXIT_SUCCESS;
   assert((NULL != host_mem && NULL != dev_mem) || 0 == count);
-  if (0 != count) {
 #if !defined(DBCSR_OMP_OFFLOAD)
-    (void)(stream); /* unused */
+  (void)(stream); /* unused */
 #else /* implies _OPENMP */
-    if (0 < dbcsr_omp_ndevices()) {
+  if (0 < dbcsr_omp_ndevices()) {
+    if (0 != count) {
       dbcsr_omp_depend_t* deps;
       result = dbcsr_omp_stream_depend(stream, &deps);
       if (EXIT_SUCCESS == result) {
@@ -189,8 +194,13 @@ int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t count, acc_stream
         result = dbcsr_omp_stream_depend_end();
       }
     }
-    else
+    else { /* branch must participate in barrier */
+      dbcsr_omp_stream_depend_sync();
+    }
+  }
+  else
 #endif
+  if (0 != count) {
     memcpy(dev_mem, host_mem, count);
   }
   DBCSR_OMP_RETURN(result);
@@ -201,11 +211,11 @@ int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t count, acc_stream
 {
   int result = EXIT_SUCCESS;
   assert((NULL != dev_mem && NULL != host_mem) || 0 == count);
-  if (0 != count) {
 #if !defined(DBCSR_OMP_OFFLOAD)
-    (void)(stream); /* unused */
+  (void)(stream); /* unused */
 #else /* implies _OPENMP */
-    if (0 < dbcsr_omp_ndevices()) {
+  if (0 < dbcsr_omp_ndevices()) {
+    if (0 != count) {
       dbcsr_omp_depend_t* deps;
       result = dbcsr_omp_stream_depend(stream, &deps);
       if (EXIT_SUCCESS == result) {
@@ -232,8 +242,13 @@ int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t count, acc_stream
         result = dbcsr_omp_stream_depend_end();
       }
     }
-    else
+    else { /* branch must participate in barrier */
+      dbcsr_omp_stream_depend_sync();
+    }
+  }
+  else
 #endif
+  if (0 != count) {
     memcpy(host_mem, dev_mem, count);
   }
   DBCSR_OMP_RETURN(result);
@@ -244,11 +259,11 @@ int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t count, acc_s
 {
   int result = EXIT_SUCCESS;
   assert((NULL != devmem_src && NULL != devmem_dst) || 0 == count);
-  if (0 != count) {
 #if !defined(DBCSR_OMP_OFFLOAD)
-    (void)(stream); /* unused */
+  (void)(stream); /* unused */
 #else /* implies _OPENMP */
-    if (0 < dbcsr_omp_ndevices()) {
+  if (0 < dbcsr_omp_ndevices()) {
+    if (0 != count) {
       dbcsr_omp_depend_t* deps;
       result = dbcsr_omp_stream_depend(stream, &deps);
       if (EXIT_SUCCESS == result) {
@@ -275,8 +290,13 @@ int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t count, acc_s
         result = dbcsr_omp_stream_depend_end();
       }
     }
-    else
+    else { /* branch must participate in barrier */
+      dbcsr_omp_stream_depend_sync();
+    }
+  }
+  else
 #endif
+  if (0 != count) {
     memcpy(devmem_dst, devmem_src, count);
   }
   DBCSR_OMP_RETURN(result);
@@ -287,11 +307,11 @@ int acc_memset_zero(void* dev_mem, size_t offset, size_t length, acc_stream_t* s
 {
   int result = EXIT_SUCCESS;
   assert(NULL != dev_mem || 0 == length);
-  if (0 != length) {
 #if !defined(DBCSR_OMP_OFFLOAD)
-    (void)(stream); /* unused */
+  (void)(stream); /* unused */
 #else /* implies _OPENMP */
-    if (0 < dbcsr_omp_ndevices()) {
+  if (0 < dbcsr_omp_ndevices()) {
+    if (0 != length) {
       dbcsr_omp_depend_t* deps;
       result = dbcsr_omp_stream_depend(stream, &deps);
       if (EXIT_SUCCESS == result) {
@@ -320,10 +340,15 @@ int acc_memset_zero(void* dev_mem, size_t offset, size_t length, acc_stream_t* s
           (void)(id); (void)(od); /* suppress incorrect warning */
         }
         result = dbcsr_omp_stream_depend_end();
-      }
+      }      
     }
-    else
+    else { /* branch must participate in barrier */
+      dbcsr_omp_stream_depend_sync();
+    }
+  }
+  else
 #endif
+  if (0 != length) {
     memset((char*)dev_mem + offset, 0, length);
   }
   DBCSR_OMP_RETURN(result);

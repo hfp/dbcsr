@@ -34,6 +34,7 @@ int dbcsr_omp_stream_depend(acc_stream_t* stream, dbcsr_omp_depend_t** depend)
 #if defined(DBCSR_OMP_OFFLOAD) && !defined(NDEBUG)
   assert(omp_get_default_device() == s->device_id);
 #endif
+  assert(0 == dbcsr_omp_stream_depend_count);
   assert(NULL != depend);
   if (NULL != s && EXIT_SUCCESS == s->status) {
     static const dbcsr_omp_dependency_t dummy = 0;
@@ -81,33 +82,33 @@ int dbcsr_omp_stream_depend_nthreads(void)
 {
 #if defined(_OPENMP)
   const int result = omp_get_num_threads();
+  assert(/*master*/0 == omp_get_thread_num());
+  DBCSR_OMP_WAIT(result > dbcsr_omp_stream_depend_count);
 #else
   const int result = 1;
 #endif
-  DBCSR_OMP_WAIT(result > dbcsr_omp_stream_depend_count);
   return result;
 }
 
 
 int dbcsr_omp_stream_depend_end(void)
 {
+  int result;
 #if defined(_OPENMP)
   const int nthreads = omp_get_num_threads(), tid = omp_get_thread_num();
-#else
-  const int nthreads = 1, tid = 0;
-#endif
-  int result;
   if (0 != tid) {
     DBCSR_OMP_WAIT(0 != dbcsr_omp_stream_depend_count);
     result = EXIT_SUCCESS;
   }
   else { /* master thread */
     result = (nthreads == dbcsr_omp_stream_depend_count ? EXIT_SUCCESS : EXIT_FAILURE);
-#if defined(_OPENMP)
 #   pragma omp atomic
-#endif
     dbcsr_omp_stream_depend_count -= nthreads;
   }
+#else
+  result = (1/*nthreads*/ == dbcsr_omp_stream_depend_count ? EXIT_SUCCESS : EXIT_FAILURE);
+  dbcsr_omp_stream_depend_count = 0;
+#endif
   DBCSR_OMP_RETURN(result);
 }
 

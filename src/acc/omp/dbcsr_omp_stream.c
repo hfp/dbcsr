@@ -98,17 +98,20 @@ int dbcsr_omp_stream_depend_end(void)
 #else
   const int nthreads = 1, tid = 0;
 #endif
+  int result;
   if (0 != tid) {
     int npause = 1;
     DBCSR_OMP_WAIT(dbcsr_omp_stream_depend_count < nthreads, npause);
+    result = EXIT_SUCCESS;
   }
   else { /* master thread */
+    result = (nthreads == dbcsr_omp_stream_depend_count ? EXIT_SUCCESS : EXIT_FAILURE);    
 #if defined(_OPENMP)
 #   pragma omp atomic
 #endif
     dbcsr_omp_stream_depend_count -= nthreads;
   }
-  DBCSR_OMP_RETURN(0 == dbcsr_omp_stream_depend_count ? EXIT_SUCCESS : EXIT_FAILURE);
+  DBCSR_OMP_RETURN(result);
 }
 
 

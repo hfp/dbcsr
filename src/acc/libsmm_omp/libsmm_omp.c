@@ -41,37 +41,36 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int nblks,
         deps->args[5].i32 = m;
         deps->args[6].i32 = n;
         deps->args[7].ptr = stream;
-#       pragma omp barrier
-#       pragma omp master
-        { const int nthreads = dbcsr_omp_stream_depend_begin();
-          int tid = 0;
-          for (; tid < nthreads && EXIT_SUCCESS == result; ++tid) {
-            dbcsr_omp_depend_t *const di = &deps[tid];
-            switch (datatype) {
-              case ACC_DATA_F64: {
-                result = libsmm_acc_transpose_d(di->in, di->out, (const int*)di->args[0].const_ptr, deps->args[1].i32/*offset*/,
-                  deps->args[2].i32/*nblks*/, (double*)di->args[3].ptr, deps->args[5].i32/*m*/, deps->args[6].i32/*n*/);
-              } break;
-              case ACC_DATA_F32: {
-                result = libsmm_acc_transpose_s(di->in, di->out, (const int*)di->args[0].const_ptr, deps->args[1].i32/*offset*/,
-                  deps->args[2].i32/*nblks*/, (float*)di->args[3].ptr, deps->args[5].i32/*m*/, deps->args[6].i32/*n*/);
-              } break;
-              default: {
-                result = EXIT_FAILURE;
-              }
-            }
-            if (ACC_EXIT_FALLBACK == result) { /* not an error/failure */
-              result = acc_event_record(NULL/*event*/, NULL/*stream*/);
-            }
-            if (EXIT_SUCCESS != result) { /* fall-back and error handling */
-              dbcsr_omp_stream_t *const s = (dbcsr_omp_stream_t*)deps->args[7].ptr;
-              s->status = result;
+      }
+      dbcsr_omp_stream_depend_begin();
+#     pragma omp master
+      { const int nthreads = dbcsr_omp_stream_depend_nthreads();
+        int tid = 0;
+        for (; tid < nthreads && EXIT_SUCCESS == result; ++tid) {
+          dbcsr_omp_depend_t *const di = &deps[tid];
+          switch (datatype) {
+            case ACC_DATA_F64: {
+              result = libsmm_acc_transpose_d(di->in, di->out, (const int*)di->args[0].const_ptr, deps->args[1].i32/*offset*/,
+                deps->args[2].i32/*nblks*/, (double*)di->args[3].ptr, deps->args[5].i32/*m*/, deps->args[6].i32/*n*/);
+            } break;
+            case ACC_DATA_F32: {
+              result = libsmm_acc_transpose_s(di->in, di->out, (const int*)di->args[0].const_ptr, deps->args[1].i32/*offset*/,
+                deps->args[2].i32/*nblks*/, (float*)di->args[3].ptr, deps->args[5].i32/*m*/, deps->args[6].i32/*n*/);
+            } break;
+            default: {
+              result = EXIT_FAILURE;
             }
           }
-          result |= dbcsr_omp_stream_depend_end();
+          if (ACC_EXIT_FALLBACK == result) { /* not an error/failure */
+            result = acc_event_record(NULL/*event*/, NULL/*stream*/);
+          }
+          if (EXIT_SUCCESS != result) { /* fall-back and error handling */
+            dbcsr_omp_stream_t *const s = (dbcsr_omp_stream_t*)deps->args[7].ptr;
+            s->status = result;
+          }
         }
-#       pragma omp barrier
       }
+      result |= dbcsr_omp_stream_depend_end();
     }
     else
 #endif
@@ -127,41 +126,40 @@ int libsmm_acc_process(const libsmm_acc_stack_descriptor_type* dev_param_stack, 
         deps->args[7].i32 = n_max;
         deps->args[8].i32 = k_max;
         deps->args[9].ptr = stream;
-#       pragma omp barrier
-#       pragma omp master
-        { const int nthreads = dbcsr_omp_stream_depend_begin();
-          int tid = 0;
-          for (; tid < nthreads && EXIT_SUCCESS == result; ++tid) {
-            dbcsr_omp_depend_t *const di = &deps[tid];
-            switch (datatype) {
-              case ACC_DATA_F64: {
-                result = libsmm_acc_process_d(di->in, di->out,
-                  (const libsmm_acc_stack_descriptor_type*)di->args[0].const_ptr, deps->args[1].i32/*stack_size*/, nparams,
-                  (const double*)di->args[3].const_ptr, (const double*)di->args[4].const_ptr, (double*)di->args[5].ptr,
-                  deps->args[6].i32/*m_max*/, deps->args[7].i32/*n_max*/, deps->args[8].i32/*k_max*/);
-              } break;
-              case ACC_DATA_F32: {
-                result = libsmm_acc_process_s(di->in, di->out,
-                  (const libsmm_acc_stack_descriptor_type*)di->args[0].const_ptr, deps->args[1].i32/*stack_size*/, nparams,
-                  (const float*)di->args[3].const_ptr, (const float*)di->args[4].const_ptr, (float*)di->args[5].ptr,
-                  deps->args[6].i32/*m_max*/, deps->args[7].i32/*n_max*/, deps->args[8].i32/*k_max*/);
-              } break;
-              default: {
-                result = EXIT_FAILURE;
-              }
-              if (ACC_EXIT_FALLBACK == result) { /* not an error/failure */
-                result = acc_event_record(NULL/*event*/, NULL/*stream*/);
-              }
-              if (EXIT_SUCCESS != result) { /* fall-back and error handling */
-                dbcsr_omp_stream_t *const s = (dbcsr_omp_stream_t*)deps->args[9].ptr;
-                s->status = result;
-              }
+      }
+      dbcsr_omp_stream_depend_begin();
+#     pragma omp master
+      { const int nthreads = dbcsr_omp_stream_depend_nthreads();
+        int tid = 0;
+        for (; tid < nthreads && EXIT_SUCCESS == result; ++tid) {
+          dbcsr_omp_depend_t *const di = &deps[tid];
+          switch (datatype) {
+            case ACC_DATA_F64: {
+              result = libsmm_acc_process_d(di->in, di->out,
+                (const libsmm_acc_stack_descriptor_type*)di->args[0].const_ptr, deps->args[1].i32/*stack_size*/, nparams,
+                (const double*)di->args[3].const_ptr, (const double*)di->args[4].const_ptr, (double*)di->args[5].ptr,
+                deps->args[6].i32/*m_max*/, deps->args[7].i32/*n_max*/, deps->args[8].i32/*k_max*/);
+            } break;
+            case ACC_DATA_F32: {
+              result = libsmm_acc_process_s(di->in, di->out,
+                (const libsmm_acc_stack_descriptor_type*)di->args[0].const_ptr, deps->args[1].i32/*stack_size*/, nparams,
+                (const float*)di->args[3].const_ptr, (const float*)di->args[4].const_ptr, (float*)di->args[5].ptr,
+                deps->args[6].i32/*m_max*/, deps->args[7].i32/*n_max*/, deps->args[8].i32/*k_max*/);
+            } break;
+            default: {
+              result = EXIT_FAILURE;
+            }
+            if (ACC_EXIT_FALLBACK == result) { /* not an error/failure */
+              result = acc_event_record(NULL/*event*/, NULL/*stream*/);
+            }
+            if (EXIT_SUCCESS != result) { /* fall-back and error handling */
+              dbcsr_omp_stream_t *const s = (dbcsr_omp_stream_t*)deps->args[9].ptr;
+              s->status = result;
             }
           }
-          result |= dbcsr_omp_stream_depend_end();
         }
-#       pragma omp barrier
       }
+      result |= dbcsr_omp_stream_depend_end();
     }
     else
 #endif

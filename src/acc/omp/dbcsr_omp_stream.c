@@ -68,7 +68,7 @@ int dbcsr_omp_stream_depend(acc_stream_t* stream, dbcsr_omp_depend_t** depend)
 }
 
 
-DBCSR_OMP_EXPORT void dbcsr_omp_stream_depend_sync(void)
+DBCSR_OMP_EXPORT void dbcsr_omp_stream_depend_begin(void)
 {
 #if defined(_OPENMP)
 # pragma omp atomic
@@ -77,7 +77,7 @@ DBCSR_OMP_EXPORT void dbcsr_omp_stream_depend_sync(void)
 }
 
 
-int dbcsr_omp_stream_depend_begin(void)
+int dbcsr_omp_stream_depend_nthreads(void)
 {
 #if defined(_OPENMP)
   const int result = omp_get_num_threads();
@@ -85,14 +85,31 @@ int dbcsr_omp_stream_depend_begin(void)
   const int result = 1;
 #endif
   int npause = 1;
-  DBCSR_OMP_WAIT(result != dbcsr_omp_stream_depend_count, npause);
-  dbcsr_omp_stream_depend_count -= result; /* no data race */
+  DBCSR_OMP_WAIT(result < dbcsr_omp_stream_depend_count, npause);
   return result;
 }
 
 
 int dbcsr_omp_stream_depend_end(void)
 {
+#if defined(_OPENMP)
+  const int tid = omp_get_thread_num();
+#else
+  const int tid = 0;
+#endif
+  if (0 != tid) {
+    const int count = dbcsr_omp_stream_depend_count;
+    int npause = 1;
+    DBCSR_OMP_WAIT(count <= dbcsr_omp_stream_depend_count, npause);
+  }
+  else { /* master thread */
+#if defined(_OPENMP)
+    const int nthreads = omp_get_num_threads();
+#else
+    const int nthreads = 1;
+#endif
+    dbcsr_omp_stream_depend_count -= nthreads;
+  }
   return (0 == dbcsr_omp_stream_depend_count ? EXIT_SUCCESS : EXIT_FAILURE);
 }
 
@@ -202,9 +219,9 @@ int acc_stream_wait_event(acc_stream_t* stream, acc_event_t* event)
       if (EXIT_SUCCESS == result) {
         deps->args[0].const_ptr = event;
       }
-      dbcsr_omp_stream_depend_sync();
+      dbcsr_omp_stream_depend_begin();
 #     pragma omp master
-      { const int nthreads = dbcsr_omp_stream_depend_begin();
+      { const int nthreads = dbcsr_omp_stream_depend_nthreads();
         int tid = 0;
         for (; tid < nthreads; ++tid) {
           const dbcsr_omp_depend_t *const di = &deps[tid];
@@ -217,8 +234,8 @@ int acc_stream_wait_event(acc_stream_t* stream, acc_event_t* event)
             {}
           }
         }
-        result = dbcsr_omp_stream_depend_end();
       }
+      result = dbcsr_omp_stream_depend_end();
     }
     else
 #endif

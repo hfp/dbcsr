@@ -63,9 +63,9 @@ int acc_event_record(acc_event_t* event, acc_stream_t* stream)
         if (NULL != e) e->dependency = deps->out; /* reset if re-enqueued */
         deps->args[0].ptr = event;
       }
-      dbcsr_omp_stream_depend_sync();
+      dbcsr_omp_stream_depend_begin();
 #     pragma omp master
-      { const int nthreads = dbcsr_omp_stream_depend_begin();
+      { const int nthreads = dbcsr_omp_stream_depend_nthreads();
         int tid = 0;
         for (; tid < nthreads; ++tid) {
           dbcsr_omp_depend_t *const di = &deps[tid];
@@ -83,8 +83,8 @@ int acc_event_record(acc_event_t* event, acc_stream_t* stream)
             *sig = 0;
           }
         }
-        result = dbcsr_omp_stream_depend_end();
       }
+      result = dbcsr_omp_stream_depend_end();
     }
     else
 #endif

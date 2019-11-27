@@ -86,7 +86,7 @@ int dbcsr_omp_stream_depend_nthreads(void)
   const int result = 1;
 #endif
   int npause = 1;
-  DBCSR_OMP_WAIT(result < dbcsr_omp_stream_depend_count, npause);
+  DBCSR_OMP_WAIT(result > dbcsr_omp_stream_depend_count, npause);
   return result;
 }
 
@@ -162,18 +162,20 @@ int acc_stream_destroy(acc_stream_t* stream)
 }
 
 
-int dbcsr_omp_stream_clear_errors(void)
+void dbcsr_omp_stream_clear_errors(void)
 {
-#if defined(DBCSR_OMP_STREAM_MAXCOUNT) && (0 < DBCSR_OMP_STREAM_MAXCOUNT)
-  int i = 0;
-# if defined(_OPENMP)
+#if defined(_OPENMP)
 # pragma omp critical
-# endif
-  for (; i < DBCSR_OMP_STREAM_MAXCOUNT; ++i) {
-    dbcsr_omp_streams[i].status = EXIT_SUCCESS;
-  }
 #endif
-  return EXIT_SUCCESS;
+  {
+#if defined(DBCSR_OMP_STREAM_MAXCOUNT) && (0 < DBCSR_OMP_STREAM_MAXCOUNT)
+    int i = 0;
+    for (; i < DBCSR_OMP_STREAM_MAXCOUNT; ++i) {
+      dbcsr_omp_streams[i].status = EXIT_SUCCESS;
+    }
+#endif
+    dbcsr_omp_stream_depend_count = 0; /* reset number of active dependencies */
+  }
 }
 
 

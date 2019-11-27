@@ -185,6 +185,6 @@ DBCSR_OMP_EXPORT int dbcsr_omp_stream_depend_nthreads(void);
 /** Signals the end of the reduction and returns an error code. */
 DBCSR_OMP_EXPORT int dbcsr_omp_stream_depend_end(void);
 /** Clears status of all streams (if possible). */
-DBCSR_OMP_EXPORT int dbcsr_omp_stream_clear_errors(void);
+DBCSR_OMP_EXPORT void dbcsr_omp_stream_clear_errors(void);
 
 #endif /*DBCSR_OMP_H*/

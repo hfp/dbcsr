@@ -133,16 +133,10 @@ int acc_finalize(void)
 
 
 void acc_clear_errors(void)
-{ /* flush all pending work */
-  extern int dbcsr_omp_stream_depend_count;
-  assert(0 < dbcsr_omp_initialized/*called before acc_init, or after acc_finalize*/);
-#if defined(_OPENMP) && (200805 <= _OPENMP) /* OpenMP 3.0 */
-# pragma omp atomic write
-#elif defined(_OPENMP)
-# pragma omp critical
-#endif
-  dbcsr_omp_stream_depend_count = 0; /* reset number of active dependencies */
+{ assert(0 < dbcsr_omp_initialized);
+  /* flush all pending work */
   DBCSR_OMP_EXPECT(EXIT_SUCCESS, acc_event_record(NULL/*event*/, NULL/*stream*/));
+  dbcsr_omp_stream_clear_errors();
 }
 
 

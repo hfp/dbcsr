@@ -94,20 +94,16 @@ int dbcsr_omp_stream_depend_nthreads(void)
 int dbcsr_omp_stream_depend_end(void)
 {
 #if defined(_OPENMP)
-  const int tid = omp_get_thread_num();
+  const int nthreads = omp_get_num_threads(), tid = omp_get_thread_num();
 #else
-  const int tid = 0;
+  const int nthreads = 1, tid = 0;
 #endif
   if (0 != tid) {
-    int count, npause = 1;
-    count = dbcsr_omp_stream_depend_count; /* non-atomic (good enough?) */
-    DBCSR_OMP_WAIT(count <= dbcsr_omp_stream_depend_count, npause);
+    int npause = 1;
+    DBCSR_OMP_WAIT(dbcsr_omp_stream_depend_count < nthreads, npause);
   }
   else { /* master thread */
-#if !defined(_OPENMP)
-    const int nthreads = 1;
-#else
-    const int nthreads = omp_get_num_threads();
+#if defined(_OPENMP)
 #   pragma omp atomic
 #endif
     dbcsr_omp_stream_depend_count -= nthreads;

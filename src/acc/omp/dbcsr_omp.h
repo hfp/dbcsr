@@ -62,7 +62,9 @@
 # define DBCSR_OMP_DEP(DEP) DEP[0]
 #endif
 
-#if (defined(__GNUC__) && ( \
+#if defined(_OPENMP)
+# define DBCSR_OMP_PAUSE DBCSR_OMP_PRAGMA(omp flush)
+#elif (defined(__GNUC__) && ( \
     (defined(__x86_64__) && 0 != (__x86_64__)) || \
     (defined(__amd64__) && 0 != (__amd64__)) || \
     (defined(_M_X64) || defined(_M_AMD64)) || \
@@ -70,7 +72,7 @@
     (defined(_M_IX86))))
 # define DBCSR_OMP_PAUSE __asm__ __volatile__("pause" ::: "memory")
 #else
-# define DBCSR_OMP_PAUSE
+# define DBCSR_OMP_PAUSE __asm__ __volatile__("" ::: "memory")
 #endif
 #define DBCSR_OMP_WAIT(CONDITION, COUNTER) do { \
   while (CONDITION) { int counter = 0; \

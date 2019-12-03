@@ -63,7 +63,7 @@ int acc_event_record(acc_event_t* event, acc_stream_t* stream)
       deps->data.args[0].ptr = event;
       dbcsr_omp_stream_depend_begin();
 #     pragma omp master
-      { const int nthreads = dbcsr_omp_stream_depend_nthreads();
+      { const int nthreads = omp_get_num_threads();
         int tid = 0;
         for (; tid < nthreads; ++tid) {
           dbcsr_omp_depend_t *const di = &deps[tid];

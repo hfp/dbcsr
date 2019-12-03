@@ -16,7 +16,7 @@
 # define DBCSR_OMP_CACHELINE_NBYTES 64
 #endif
 #if !defined(DBCSR_OMP_ARGUMENTS_MAXCOUNT)
-# define DBCSR_OMP_ARGUMENTS_MAXCOUNT 14
+# define DBCSR_OMP_ARGUMENTS_MAXCOUNT 13
 #endif
 #if !defined(DBCSR_OMP_STREAM_MAXPENDING)
 # define DBCSR_OMP_STREAM_MAXPENDING 256
@@ -166,6 +166,7 @@ DBCSR_OMP_EXPORT typedef struct dbcsr_omp_depend_data_t {
   dbcsr_omp_any_t args[DBCSR_OMP_ARGUMENTS_MAXCOUNT];
   /** The in/out-pointer must be dereferenced (depend clause expects value; due to syntax issues use in[0]/out[0]). */
   const dbcsr_omp_dependency_t *in, *out;
+  int counter;
 } dbcsr_omp_depend_data_t;
 
 DBCSR_OMP_EXPORT typedef union dbcsr_omp_depend_t {
@@ -182,8 +183,6 @@ DBCSR_OMP_EXPORT int dbcsr_omp_dealloc(void* item, int typesize, int* counter, i
 DBCSR_OMP_EXPORT void dbcsr_omp_stream_depend(acc_stream_t* stream, dbcsr_omp_depend_t** depend);
 /** Commits the data filled into "depend" (as given by dbcsr_omp_stream_depend of each thread). */
 DBCSR_OMP_EXPORT void dbcsr_omp_stream_depend_begin(void);
-/** Returns the number of dependencies (independently requested by threads). */
-DBCSR_OMP_EXPORT int dbcsr_omp_stream_depend_nthreads(void);
 /** Signals the end of the reduction and returns an error code. */
 DBCSR_OMP_EXPORT int dbcsr_omp_stream_depend_end(const acc_stream_t* stream);
 /** Clears status of all streams (if possible). */

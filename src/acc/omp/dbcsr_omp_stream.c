@@ -205,9 +205,9 @@ int acc_stream_wait_event(acc_stream_t* stream, acc_event_t* event)
       deps->data.args[0].const_ptr = event;
       dbcsr_omp_stream_depend_begin();
 #     pragma omp master
-      { const int nthreads = dbcsr_omp_stream_depend_count();
+      { const int ndepend = dbcsr_omp_stream_depend_count();
         int tid = 0;
-        for (; tid < nthreads; ++tid) {
+        for (; tid < ndepend; ++tid) {
           const dbcsr_omp_depend_t *const di = &deps[tid];
           const dbcsr_omp_event_t *const ei = (const dbcsr_omp_event_t*)di->data.args[0].const_ptr;
           const char *const ie = ei->dependency;

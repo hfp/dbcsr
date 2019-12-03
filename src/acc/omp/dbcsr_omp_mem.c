@@ -74,9 +74,9 @@ int acc_host_mem_deallocate(void* host_mem, acc_stream_t* stream)
       deps->data.args[0].ptr = host_mem;
       dbcsr_omp_stream_depend_begin();
 #     pragma omp master
-      { const int nthreads = dbcsr_omp_stream_depend_count();
+      { const int ndepend = dbcsr_omp_stream_depend_count();
         int tid = 0;
-        for (; tid < nthreads; ++tid) {
+        for (; tid < ndepend; ++tid) {
           dbcsr_omp_depend_t *const di = &deps[tid];
           const char *const id = di->data.in, *const od = di->data.out;
           (void)(id); (void)(od); /* suppress incorrect warning */
@@ -171,11 +171,11 @@ int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t count, acc_stream
       deps->data.args[3].ptr = stream;
       dbcsr_omp_stream_depend_begin();
 #     pragma omp master
-      { const int nthreads = dbcsr_omp_stream_depend_count();
+      { const int ndepend = dbcsr_omp_stream_depend_count();
         /* capture current default device before spawning task (acc_set_active_device) */
         const int dev_src = omp_get_initial_device(), dev_dst = omp_get_default_device();
         int tid = 0;
-        for (; tid < nthreads; ++tid) {
+        for (; tid < ndepend; ++tid) {
           dbcsr_omp_depend_t *const di = &deps[tid];
           const char *const id = di->data.in, *const od = di->data.out;
           dbcsr_omp_stream_t *const s = (dbcsr_omp_stream_t*)di->data.args[3].ptr; assert(NULL != s);
@@ -217,11 +217,11 @@ int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t count, acc_stream
       deps->data.args[3].ptr = stream;
       dbcsr_omp_stream_depend_begin();
 #     pragma omp master
-      { const int nthreads = dbcsr_omp_stream_depend_count();
+      { const int ndepend = dbcsr_omp_stream_depend_count();
         /* capture current default device before spawning task (acc_set_active_device) */
         const int dev_src = omp_get_default_device(), dev_dst = omp_get_initial_device();
         int tid = 0;
-        for (; tid < nthreads; ++tid) {
+        for (; tid < ndepend; ++tid) {
           dbcsr_omp_depend_t *const di = &deps[tid];
           const char *const id = di->data.in, *const od = di->data.out;
           dbcsr_omp_stream_t *const s = (dbcsr_omp_stream_t*)di->data.args[3].ptr; assert(NULL != s);
@@ -263,11 +263,11 @@ int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t count, acc_s
       deps->data.args[3].ptr = stream;
       dbcsr_omp_stream_depend_begin();
 #     pragma omp master
-      { const int nthreads = dbcsr_omp_stream_depend_count();
+      { const int ndepend = dbcsr_omp_stream_depend_count();
         /* capture current default device before spawning task (acc_set_active_device) */
         const int dev_src = omp_get_default_device(), dev_dst = dev_src;
         int tid = 0;
-        for (; tid < nthreads; ++tid) {
+        for (; tid < ndepend; ++tid) {
           dbcsr_omp_depend_t *const di = &deps[tid];
           const char *const id = di->data.in, *const od = di->data.out;
           dbcsr_omp_stream_t *const s = (dbcsr_omp_stream_t*)di->data.args[3].ptr; assert(NULL != s);
@@ -308,9 +308,9 @@ int acc_memset_zero(void* dev_mem, size_t offset, size_t length, acc_stream_t* s
       deps->data.args[2].size = length;
       dbcsr_omp_stream_depend_begin();
 #     pragma omp master
-      { const int nthreads = dbcsr_omp_stream_depend_count();
+      { const int ndepend = dbcsr_omp_stream_depend_count();
         int tid = 0;
-        for (; tid < nthreads; ++tid) {
+        for (; tid < ndepend; ++tid) {
           dbcsr_omp_depend_t *const di = &deps[tid];
           const char *const id = di->data.in, *const od = di->data.out;
           char * /*const*/ dst = (char*)di->data.args[0].ptr;

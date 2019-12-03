@@ -20,6 +20,7 @@ dbcsr_omp_depend_t dbcsr_omp_stream_depend_state[DBCSR_OMP_THREADS_MAXCOUNT];
 dbcsr_omp_stream_t  dbcsr_omp_streams[DBCSR_OMP_STREAM_MAXCOUNT];
 dbcsr_omp_stream_t* dbcsr_omp_streamp[DBCSR_OMP_STREAM_MAXCOUNT];
 #endif
+volatile int dbcsr_omp_stream_depend_counter;
 int dbcsr_omp_stream_count;
 
 
@@ -52,9 +53,18 @@ void dbcsr_omp_stream_depend(acc_stream_t* stream, dbcsr_omp_depend_t** depend)
 #endif
     di->data.out = s->name + index % DBCSR_OMP_STREAM_MAXPENDING;
     di->data.in = (s->name < di->data.out ? (di->data.out - 1) : &dummy);
-    /*di->data.counter = 0;*/
+#if defined(_OPENMP)
+#   pragma omp atomic
+#endif
+    ++dbcsr_omp_stream_depend_counter;
   }
   *depend = di;
+}
+
+
+int dbcsr_omp_stream_depend_count(void)
+{
+  return dbcsr_omp_stream_depend_counter;
 }
 
 
@@ -67,7 +77,7 @@ void dbcsr_omp_stream_depend_begin(void)
   const int tid = 0;
 #endif
   dbcsr_omp_depend_t *const di = &dbcsr_omp_stream_depend_state[tid];
-  di->data.counter = !di->data.counter;
+  di->data.counter = !di->data.counter; /* sense reversal */
   if (0 != tid) {
     DBCSR_OMP_WAIT(di->data.counter != dbcsr_omp_stream_barrier_flag);
   }
@@ -81,6 +91,10 @@ int dbcsr_omp_stream_depend_end(const acc_stream_t* stream)
 {
   const dbcsr_omp_stream_t *const s = (const dbcsr_omp_stream_t*)stream;
   dbcsr_omp_stream_depend_begin();
+#if defined(_OPENMP)
+# pragma omp single
+#endif
+  dbcsr_omp_stream_depend_counter = 0;
   DBCSR_OMP_RETURN(NULL != s ? s->status : EXIT_SUCCESS);
 }
 
@@ -191,7 +205,7 @@ int acc_stream_wait_event(acc_stream_t* stream, acc_event_t* event)
       deps->data.args[0].const_ptr = event;
       dbcsr_omp_stream_depend_begin();
 #     pragma omp master
-      { const int nthreads = omp_get_num_threads();
+      { const int nthreads = dbcsr_omp_stream_depend_count();
         int tid = 0;
         for (; tid < nthreads; ++tid) {
           const dbcsr_omp_depend_t *const di = &deps[tid];

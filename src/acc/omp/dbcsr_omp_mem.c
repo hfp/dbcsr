@@ -74,7 +74,7 @@ int acc_host_mem_deallocate(void* host_mem, acc_stream_t* stream)
       deps->data.args[0].ptr = host_mem;
       dbcsr_omp_stream_depend_begin();
 #     pragma omp master
-      { const int nthreads = omp_get_num_threads();
+      { const int nthreads = dbcsr_omp_stream_depend_count();
         int tid = 0;
         for (; tid < nthreads; ++tid) {
           dbcsr_omp_depend_t *const di = &deps[tid];
@@ -171,7 +171,7 @@ int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t count, acc_stream
       deps->data.args[3].ptr = stream;
       dbcsr_omp_stream_depend_begin();
 #     pragma omp master
-      { const int nthreads = omp_get_num_threads();
+      { const int nthreads = dbcsr_omp_stream_depend_count();
         /* capture current default device before spawning task (acc_set_active_device) */
         const int dev_src = omp_get_initial_device(), dev_dst = omp_get_default_device();
         int tid = 0;
@@ -217,7 +217,7 @@ int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t count, acc_stream
       deps->data.args[3].ptr = stream;
       dbcsr_omp_stream_depend_begin();
 #     pragma omp master
-      { const int nthreads = omp_get_num_threads();
+      { const int nthreads = dbcsr_omp_stream_depend_count();
         /* capture current default device before spawning task (acc_set_active_device) */
         const int dev_src = omp_get_default_device(), dev_dst = omp_get_initial_device();
         int tid = 0;
@@ -263,7 +263,7 @@ int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t count, acc_s
       deps->data.args[3].ptr = stream;
       dbcsr_omp_stream_depend_begin();
 #     pragma omp master
-      { const int nthreads = omp_get_num_threads();
+      { const int nthreads = dbcsr_omp_stream_depend_count();
         /* capture current default device before spawning task (acc_set_active_device) */
         const int dev_src = omp_get_default_device(), dev_dst = dev_src;
         int tid = 0;
@@ -308,7 +308,7 @@ int acc_memset_zero(void* dev_mem, size_t offset, size_t length, acc_stream_t* s
       deps->data.args[2].size = length;
       dbcsr_omp_stream_depend_begin();
 #     pragma omp master
-      { const int nthreads = omp_get_num_threads();
+      { const int nthreads = dbcsr_omp_stream_depend_count();
         int tid = 0;
         for (; tid < nthreads; ++tid) {
           dbcsr_omp_depend_t *const di = &deps[tid];

@@ -181,11 +181,11 @@ int main(int argc, char* argv[])
       ACC_CHECK(acc_memcpy_d2h(dev_mem, host_mem, mem_alloc, s));
       ACC_CHECK(acc_event_record(e, s));
     }
+    ACC_CHECK(acc_stream_wait_event(s, e));
     ACC_CHECK(acc_event_query(e, &has_occurred));
     if (0 == has_occurred) ACC_CHECK(acc_event_synchronize(e));
     ACC_CHECK(acc_event_query(e, &has_occurred));
     ACC_CHECK(0 != has_occurred ? EXIT_SUCCESS : EXIT_FAILURE);
-    ACC_CHECK(acc_stream_wait_event(s, e)); /* superfluous */
   }
 
   for (i = 0; i < (int)mem_alloc; ++i) {

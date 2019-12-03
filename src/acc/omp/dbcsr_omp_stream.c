@@ -20,7 +20,7 @@ dbcsr_omp_depend_t dbcsr_omp_stream_depend_state[DBCSR_OMP_THREADS_MAXCOUNT];
 dbcsr_omp_stream_t  dbcsr_omp_streams[DBCSR_OMP_STREAM_MAXCOUNT];
 dbcsr_omp_stream_t* dbcsr_omp_streamp[DBCSR_OMP_STREAM_MAXCOUNT];
 #endif
-volatile int dbcsr_omp_stream_depend_counter;
+int dbcsr_omp_stream_depend_counter;
 int dbcsr_omp_stream_count;
 
 
@@ -53,18 +53,24 @@ void dbcsr_omp_stream_depend(acc_stream_t* stream, dbcsr_omp_depend_t** depend)
 #endif
     di->data.out = s->name + index % DBCSR_OMP_STREAM_MAXPENDING;
     di->data.in = (s->name < di->data.out ? (di->data.out - 1) : &dummy);
-#if defined(_OPENMP)
-#   pragma omp atomic
-#endif
-    ++dbcsr_omp_stream_depend_counter;
   }
   *depend = di;
 }
 
 
-int dbcsr_omp_stream_depend_count(void)
+void dbcsr_omp_stream_depend_set_count(int count)
 {
-  return dbcsr_omp_stream_depend_counter;
+  assert(/*master*/0 == omp_get_thread_num());
+  dbcsr_omp_stream_depend_counter = count;
+}
+
+
+int dbcsr_omp_stream_depend_get_count(void)
+{
+  assert(/*master*/0 == omp_get_thread_num());
+  return 0 == dbcsr_omp_stream_depend_counter
+    ? omp_get_num_threads()
+    : dbcsr_omp_stream_depend_counter;
 }
 
 
@@ -205,7 +211,7 @@ int acc_stream_wait_event(acc_stream_t* stream, acc_event_t* event)
       deps->data.args[0].const_ptr = event;
       dbcsr_omp_stream_depend_begin();
 #     pragma omp master
-      { const int ndepend = dbcsr_omp_stream_depend_count();
+      { const int ndepend = dbcsr_omp_stream_depend_get_count();
         int tid = 0;
         for (; tid < ndepend; ++tid) {
           const dbcsr_omp_depend_t *const di = &deps[tid];

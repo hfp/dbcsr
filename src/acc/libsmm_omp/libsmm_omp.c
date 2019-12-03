@@ -42,7 +42,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int nblks,
       deps->data.args[7].ptr = stream;
       dbcsr_omp_stream_depend_begin();
 #     pragma omp master
-      { const int ndepend = dbcsr_omp_stream_depend_count();
+      { const int ndepend = dbcsr_omp_stream_depend_get_count();
         int tid = 0;
         for (; tid < ndepend && EXIT_SUCCESS == result; ++tid) {
           dbcsr_omp_depend_t *const di = &deps[tid];
@@ -125,7 +125,7 @@ int libsmm_acc_process(const libsmm_acc_stack_descriptor_type* dev_param_stack, 
       deps->data.args[9].ptr = stream;
       dbcsr_omp_stream_depend_begin();
 #     pragma omp master
-      { const int ndepend = dbcsr_omp_stream_depend_count();
+      { const int ndepend = dbcsr_omp_stream_depend_get_count();
         int tid = 0;
         for (; tid < ndepend && EXIT_SUCCESS == result; ++tid) {
           dbcsr_omp_depend_t *const di = &deps[tid];

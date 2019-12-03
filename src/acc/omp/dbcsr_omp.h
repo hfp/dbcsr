@@ -16,16 +16,13 @@
 # define DBCSR_OMP_CACHELINE_NBYTES 64
 #endif
 #if !defined(DBCSR_OMP_ARGUMENTS_MAXCOUNT)
-# define DBCSR_OMP_ARGUMENTS_MAXCOUNT 13
+# define DBCSR_OMP_ARGUMENTS_MAXCOUNT 14
 #endif
 #if !defined(DBCSR_OMP_STREAM_MAXPENDING)
 # define DBCSR_OMP_STREAM_MAXPENDING 256
 #endif
 #if !defined(DBCSR_OMP_STREAM_MAXCOUNT)
 # define DBCSR_OMP_STREAM_MAXCOUNT 32
-#endif
-#if !defined(DBCSR_OMP_STREAM_BARRIER)
-# define DBCSR_OMP_STREAM_BARRIER
 #endif
 #if !defined(DBCSR_OMP_EVENT_MAXCOUNT)
 # define DBCSR_OMP_EVENT_MAXCOUNT ((DBCSR_OMP_THREADS_MAXCOUNT) > (32*(DBCSR_OMP_STREAM_MAXCOUNT)) \
@@ -169,9 +166,6 @@ DBCSR_OMP_EXPORT typedef struct dbcsr_omp_depend_data_t {
   dbcsr_omp_any_t args[DBCSR_OMP_ARGUMENTS_MAXCOUNT];
   /** The in/out-pointer must be dereferenced (depend clause expects value; due to syntax issues use in[0]/out[0]). */
   const dbcsr_omp_dependency_t *in, *out;
-#if defined(DBCSR_OMP_STREAM_BARRIER)
-  int counter;
-#endif
 } dbcsr_omp_depend_data_t;
 
 DBCSR_OMP_EXPORT typedef union dbcsr_omp_depend_t {
@@ -186,10 +180,6 @@ DBCSR_OMP_EXPORT int dbcsr_omp_alloc(void** item, int typesize, int* counter, in
 DBCSR_OMP_EXPORT int dbcsr_omp_dealloc(void* item, int typesize, int* counter, int maxcount, void* storage, void** pointer);
 /** Generate dependency for given stream. If a dependency is not consumed, acc_event_record(NULL, NULL) shall be called. */
 DBCSR_OMP_EXPORT void dbcsr_omp_stream_depend(acc_stream_t* stream, dbcsr_omp_depend_t** depend);
-/** Set the number of tasks to be issued. */
-#if defined(DBCSR_OMP_STREAM_BARRIER)
-DBCSR_OMP_EXPORT void dbcsr_omp_stream_depend_set_count(int count);
-#endif
 /** Get the number of tasks to be issued. */
 DBCSR_OMP_EXPORT int dbcsr_omp_stream_depend_get_count(void);
 /** Commits the data filled into "depend" (as given by dbcsr_omp_stream_depend of each thread). */

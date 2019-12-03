@@ -47,9 +47,8 @@ void dbcsr_omp_stream_depend(acc_stream_t* stream, dbcsr_omp_depend_t** depend)
 #   pragma omp critical(dbcsr_omp_stream_depend_critical)
 #endif
     index = s->pending++;
-#if !defined(NDEBUG)
+    /* enable user to check arguments by assuming NULL/0 in case of unset arguments */
     memset(di->data.args, 0, DBCSR_OMP_ARGUMENTS_MAXCOUNT * sizeof(dbcsr_omp_any_t));
-#endif
     di->data.out = s->name + index % DBCSR_OMP_STREAM_MAXPENDING;
     di->data.in = (s->name < di->data.out ? (di->data.out - 1) : &dummy);
   }
@@ -193,12 +192,14 @@ int acc_stream_wait_event(acc_stream_t* stream, acc_event_t* event)
         for (; tid < ndepend; ++tid) {
           const dbcsr_omp_depend_t *const di = &deps[tid];
           const dbcsr_omp_event_t *const ei = (const dbcsr_omp_event_t*)di->data.args[0].const_ptr;
-          const char *const ie = ei->dependency;
-          if (NULL != ie) { /* still pending */
-            const char *const id = di->data.in, *const od = di->data.out;
-            (void)(id); (void)(od); /* suppress incorrect warning */
-#           pragma omp target depend(in:DBCSR_OMP_DEP(id),DBCSR_OMP_DEP(ie)) depend(out:DBCSR_OMP_DEP(od)) nowait if(0)
-            {}
+          if (NULL != ei) {
+            const char *const ie = ei->dependency;
+            if (NULL != ie) { /* still pending */
+              const char *const id = di->data.in, *const od = di->data.out;
+              (void)(id); (void)(od); /* suppress incorrect warning */
+#             pragma omp target depend(in:DBCSR_OMP_DEP(id),DBCSR_OMP_DEP(ie)) depend(out:DBCSR_OMP_DEP(od)) nowait if(0)
+              {}
+            } else break; /* incorrect dependency-count */
           }
         }
       }

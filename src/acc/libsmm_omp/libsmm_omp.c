@@ -44,7 +44,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int nblks,
 #     pragma omp master
       { const int ndepend = dbcsr_omp_stream_depend_count();
         int tid = 0;
-        for (; tid < nthreads && EXIT_SUCCESS == result; ++tid) {
+        for (; tid < ndepend && EXIT_SUCCESS == result; ++tid) {
           dbcsr_omp_depend_t *const di = &deps[tid];
           switch (datatype) {
             case ACC_DATA_F64: {
@@ -127,7 +127,7 @@ int libsmm_acc_process(const libsmm_acc_stack_descriptor_type* dev_param_stack, 
 #     pragma omp master
       { const int ndepend = dbcsr_omp_stream_depend_count();
         int tid = 0;
-        for (; tid < nthreads && EXIT_SUCCESS == result; ++tid) {
+        for (; tid < ndepend && EXIT_SUCCESS == result; ++tid) {
           dbcsr_omp_depend_t *const di = &deps[tid];
           switch (datatype) {
             case ACC_DATA_F64: {

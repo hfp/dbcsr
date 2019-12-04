@@ -45,19 +45,19 @@ endif
 
 LIB ?= 1
 ifneq (0,$(LIB))
-dbcsr_acc_test: ../../tests/dbcsr_test_acc.o omp/dbcsr_omp.a
+dbcsr_test_acc: ../../tests/dbcsr_test_acc.o omp/dbcsr_omp.a
 else
-dbcsr_acc_test: ../../tests/dbcsr_test_acc.o omp/dbcsr_omp.o omp/dbcsr_omp_event.o omp/dbcsr_omp_mem.o omp/dbcsr_omp_stream.o
+dbcsr_test_acc: ../../tests/dbcsr_test_acc.o omp/dbcsr_omp.o omp/dbcsr_omp_event.o omp/dbcsr_omp_mem.o omp/dbcsr_omp_stream.o
 endif
 	$(CC) $(LDFLAGS) $^ -o $@
 
-%.o: %.c Makefile
+../../tests/dbcsr_test_acc.o: ../../tests/dbcsr_test_acc.c Makefile
 	$(CC) $(CFLAGS) -c $< -o $@
 
 .PHONE: clean
 clean:
-	@rm -f ../../tests/dbcsr_acc_test.o omp/dbcsr_omp*.o
+	@rm -f ../../tests/dbcsr_test_acc.o omp/dbcsr_omp*.o
 
 .PHONE: realclean
 realclean: clean
-	@rm -f dbcsr_acc_test
+	@rm -f dbcsr_test_acc

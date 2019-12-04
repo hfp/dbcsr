@@ -47,11 +47,23 @@ void dbcsr_omp_stream_depend(acc_stream_t* stream, dbcsr_omp_depend_t** depend)
 #   pragma omp critical(dbcsr_omp_stream_depend_critical)
 #endif
     index = s->pending++;
-    /* enable user to check arguments by assuming NULL/0 in case of unset arguments */
-    memset(di->data.args, 0, DBCSR_OMP_ARGUMENTS_MAXCOUNT * sizeof(dbcsr_omp_any_t));
     di->data.out = s->name + index % DBCSR_OMP_STREAM_MAXPENDING;
     di->data.in = (s->name < di->data.out ? (di->data.out - 1) : &dummy);
   }
+  /* enable user to check arguments by assuming NULL/0 in case of unset arguments */
+#if defined(_OPENMP)
+# pragma omp single /* implied barrier */
+  { const int nthreads = omp_get_num_threads();
+    int tid = 0;
+    for (; tid < nthreads; ++tid) {
+      memset(dbcsr_omp_stream_depend_state[tid].data.args, 0,
+      DBCSR_OMP_ARGUMENTS_MAXCOUNT * sizeof(dbcsr_omp_any_t));
+    }
+  }
+#else
+  memset(dbcsr_omp_stream_depend_state->data.args, 0,
+    DBCSR_OMP_ARGUMENTS_MAXCOUNT * sizeof(dbcsr_omp_any_t));
+#endif
   *depend = di;
 }
 
@@ -69,14 +81,18 @@ int dbcsr_omp_stream_depend_get_count(void)
 
 void dbcsr_omp_stream_depend_begin(void)
 { /* barrier */
+#if defined(_OPENMP)
 # pragma omp barrier
+#endif
 }
 
 
 int dbcsr_omp_stream_depend_end(const acc_stream_t* stream)
 {
   const dbcsr_omp_stream_t *const s = (const dbcsr_omp_stream_t*)stream;
+#if 0 /* barrier/single in dbcsr_omp_stream_depend */
   dbcsr_omp_stream_depend_begin();
+#endif
   DBCSR_OMP_RETURN(NULL != s ? s->status : EXIT_SUCCESS);
 }
 

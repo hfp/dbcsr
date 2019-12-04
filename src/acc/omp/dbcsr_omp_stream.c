@@ -38,6 +38,9 @@ void dbcsr_omp_stream_depend(acc_stream_t* stream, dbcsr_omp_depend_t** depend)
   assert(NULL == s || omp_get_default_device() == s->device_id);
 #endif
   assert(NULL != depend && NULL != di);
+#if defined(_OPENMP)
+# pragma omp barrier
+#endif  
   if (NULL != s && EXIT_SUCCESS == s->status) {
     static const dbcsr_omp_dependency_t dummy = 0;
     int index;
@@ -52,9 +55,8 @@ void dbcsr_omp_stream_depend(acc_stream_t* stream, dbcsr_omp_depend_t** depend)
   }
   /* enable user to check arguments by assuming NULL/0 in case of unset arguments */
 #if defined(_OPENMP)
-# pragma omp single /* implied barrier */
-  { const int nthreads = omp_get_num_threads();
-    int tid = 0;
+# pragma omp master
+  { const int nthreads = omp_get_num_threads(); int tid = 0;
     for (; tid < nthreads; ++tid) {
       memset(dbcsr_omp_stream_depend_state[tid].data.args, 0,
       DBCSR_OMP_ARGUMENTS_MAXCOUNT * sizeof(dbcsr_omp_any_t));
@@ -90,9 +92,7 @@ void dbcsr_omp_stream_depend_begin(void)
 int dbcsr_omp_stream_depend_end(const acc_stream_t* stream)
 {
   const dbcsr_omp_stream_t *const s = (const dbcsr_omp_stream_t*)stream;
-#if 0 /* barrier/single in dbcsr_omp_stream_depend */
   dbcsr_omp_stream_depend_begin();
-#endif
   DBCSR_OMP_RETURN(NULL != s ? s->status : EXIT_SUCCESS);
 }
 

@@ -16,7 +16,7 @@
 # define DBCSR_OMP_CACHELINE_NBYTES 64
 #endif
 #if !defined(DBCSR_OMP_ARGUMENTS_MAXCOUNT)
-# define DBCSR_OMP_ARGUMENTS_MAXCOUNT 14
+# define DBCSR_OMP_ARGUMENTS_MAXCOUNT 13
 #endif
 #if !defined(DBCSR_OMP_STREAM_MAXPENDING)
 # define DBCSR_OMP_STREAM_MAXPENDING 256
@@ -166,6 +166,7 @@ DBCSR_OMP_EXPORT typedef struct dbcsr_omp_depend_data_t {
   dbcsr_omp_any_t args[DBCSR_OMP_ARGUMENTS_MAXCOUNT];
   /** The in/out-pointer must be dereferenced (depend clause expects value; due to syntax issues use in[0]/out[0]). */
   const dbcsr_omp_dependency_t *in, *out;
+  int counter;
 } dbcsr_omp_depend_data_t;
 
 DBCSR_OMP_EXPORT typedef union dbcsr_omp_depend_t {

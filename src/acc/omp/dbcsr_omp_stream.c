@@ -20,6 +20,8 @@ dbcsr_omp_depend_t dbcsr_omp_stream_depend_state[DBCSR_OMP_THREADS_MAXCOUNT];
 dbcsr_omp_stream_t  dbcsr_omp_streams[DBCSR_OMP_STREAM_MAXCOUNT];
 dbcsr_omp_stream_t* dbcsr_omp_streamp[DBCSR_OMP_STREAM_MAXCOUNT];
 #endif
+volatile int dbcsr_omp_stream_depend_counter;
+int dbcsr_omp_stream_depend_count;
 int dbcsr_omp_stream_count;
 
 
@@ -38,9 +40,7 @@ void dbcsr_omp_stream_depend(acc_stream_t* stream, dbcsr_omp_depend_t** depend)
   assert(NULL == s || omp_get_default_device() == s->device_id);
 #endif
   assert(NULL != depend && NULL != di);
-#if defined(_OPENMP)
-# pragma omp barrier
-#endif  
+  dbcsr_omp_stream_depend_begin(); /* barrier */
   if (NULL != s && EXIT_SUCCESS == s->status) {
     static const dbcsr_omp_dependency_t dummy = 0;
     int index;
@@ -61,11 +61,16 @@ void dbcsr_omp_stream_depend(acc_stream_t* stream, dbcsr_omp_depend_t** depend)
       memset(dbcsr_omp_stream_depend_state[tid].data.args, 0,
       DBCSR_OMP_ARGUMENTS_MAXCOUNT * sizeof(dbcsr_omp_any_t));
     }
+    dbcsr_omp_stream_depend_counter = nthreads;
+    dbcsr_omp_stream_depend_count = nthreads;
   }
 #else
   memset(dbcsr_omp_stream_depend_state->data.args, 0,
     DBCSR_OMP_ARGUMENTS_MAXCOUNT * sizeof(dbcsr_omp_any_t));
+  dbcsr_omp_stream_depend_counter = 1;
+  dbcsr_omp_stream_depend_count = 1;
 #endif
+  dbcsr_omp_stream_depend_begin(); /* barrier */
   *depend = di;
 }
 
@@ -74,25 +79,38 @@ int dbcsr_omp_stream_depend_get_count(void)
 {
 #if defined(_OPENMP)
   assert(/*master*/0 == omp_get_thread_num());
-  return omp_get_num_threads();
 #else
-  return 1;
+  assert(1 == dbcsr_omp_stream_depend_count);
 #endif
+  return dbcsr_omp_stream_depend_count;
 }
 
 
 void dbcsr_omp_stream_depend_begin(void)
 { /* barrier */
-#if defined(_OPENMP)
-# pragma omp barrier
+  static volatile int dbcsr_omp_stream_barrier_flag = 0;
+#if !defined(_OPENMP)
+  dbcsr_omp_depend_t *const di = dbcsr_omp_stream_depend_state;
+#else
+  dbcsr_omp_depend_t *const di = &dbcsr_omp_stream_depend_state[omp_get_thread_num()];
+# pragma omp atomic
 #endif
+  --dbcsr_omp_stream_depend_counter;
+  di->data.counter = !di->data.counter; /* sense reversal */
+  if (0 != dbcsr_omp_stream_depend_counter) { /* arrived early */
+    DBCSR_OMP_WAIT(di->data.counter != dbcsr_omp_stream_barrier_flag);
+  }
+  else { /* arrived last */
+    dbcsr_omp_stream_depend_counter = dbcsr_omp_stream_depend_count;
+    dbcsr_omp_stream_barrier_flag = di->data.counter;
+  }
 }
 
 
 int dbcsr_omp_stream_depend_end(const acc_stream_t* stream)
 {
   const dbcsr_omp_stream_t *const s = (const dbcsr_omp_stream_t*)stream;
-  dbcsr_omp_stream_depend_begin();
+  dbcsr_omp_stream_depend_begin(); /* barrier */
   DBCSR_OMP_RETURN(NULL != s ? s->status : EXIT_SUCCESS);
 }
 

@@ -78,13 +78,14 @@ int acc_host_mem_deallocate(void* host_mem, acc_stream_t* stream)
         int tid = 0;
         for (; tid < ndepend; ++tid) {
           dbcsr_omp_depend_t *const di = &deps[tid];
+          const char *const id = di->data.in, *const od = di->data.out;
           void *const ptr = di->data.args[0].ptr;
-          if (NULL != ptr) {
-            const char *const id = di->data.in, *const od = di->data.out;
-            (void)(id); (void)(od); /* suppress incorrect warning */
-#           pragma omp task depend(in:DBCSR_OMP_DEP(id)) depend(out:DBCSR_OMP_DEP(od))
-            DBCSR_OMP_MEM_FREE(ptr);
-          } else break; /* incorrect dependency-count */
+          (void)(id); (void)(od); /* suppress incorrect warning */
+#if !defined(NDEBUG)
+          if (NULL == ptr) break; /* incorrect dependency-count */
+#endif
+#         pragma omp task depend(in:DBCSR_OMP_DEP(id)) depend(out:DBCSR_OMP_DEP(od))
+          DBCSR_OMP_MEM_FREE(ptr);
         }
       }
     }
@@ -180,15 +181,17 @@ int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t count, acc_stream
         int tid = 0;
         for (; tid < ndepend; ++tid) {
           dbcsr_omp_depend_t *const di = &deps[tid];
+          const char *const id = di->data.in, *const od = di->data.out;
+          dbcsr_omp_stream_t *const s = (dbcsr_omp_stream_t*)di->data.args[3].ptr;
           /*const*/ void *const ptr = di->data.args[0]./*const_*/ptr;
-          if (NULL != ptr) {
-            const char *const id = di->data.in, *const od = di->data.out;
-            dbcsr_omp_stream_t *const s = (dbcsr_omp_stream_t*)di->data.args[3].ptr; assert(NULL != s);
-            (void)(id); (void)(od); /* suppress incorrect warning */
-#           pragma omp task depend(in:DBCSR_OMP_DEP(id)) depend(out:DBCSR_OMP_DEP(od))
-            s->status |= omp_target_memcpy(di->data.args[1].ptr, ptr, di->data.args[2].size,
-              0/*dst_offset*/, 0/*src_offset*/, dev_dst, dev_src);
-          } else break; /* incorrect dependency-count */
+          (void)(id); (void)(od); /* suppress incorrect warning */
+#if !defined(NDEBUG)
+          if (NULL == ptr) break; /* incorrect dependency-count */
+#endif
+          assert(NULL != s);
+#         pragma omp task depend(in:DBCSR_OMP_DEP(id)) depend(out:DBCSR_OMP_DEP(od))
+          s->status |= omp_target_memcpy(di->data.args[1].ptr, ptr, di->data.args[2].size,
+            0/*dst_offset*/, 0/*src_offset*/, dev_dst, dev_src);
         }
       }
     }
@@ -229,15 +232,17 @@ int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t count, acc_stream
         int tid = 0;
         for (; tid < ndepend; ++tid) {
           dbcsr_omp_depend_t *const di = &deps[tid];
+          const char *const id = di->data.in, *const od = di->data.out;
+          dbcsr_omp_stream_t *const s = (dbcsr_omp_stream_t*)di->data.args[3].ptr;
           /*const*/ void *const ptr = di->data.args[0]./*const_*/ptr;
-          if (NULL != ptr) {
-            const char *const id = di->data.in, *const od = di->data.out;
-            dbcsr_omp_stream_t *const s = (dbcsr_omp_stream_t*)di->data.args[3].ptr; assert(NULL != s);
-            (void)(id); (void)(od); /* suppress incorrect warning */
+          (void)(id); (void)(od); /* suppress incorrect warning */
+#if !defined(NDEBUG)
+          if (NULL == ptr) break; /* incorrect dependency-count */
+#endif
+          assert(NULL != s);
 #           pragma omp task depend(in:DBCSR_OMP_DEP(id)) depend(out:DBCSR_OMP_DEP(od))
-            s->status |= omp_target_memcpy(di->data.args[1].ptr, ptr, di->data.args[2].size,
-              0/*dst_offset*/, 0/*src_offset*/, dev_dst, dev_src);
-          } else break; /* incorrect dependency-count */
+          s->status |= omp_target_memcpy(di->data.args[1].ptr, ptr, di->data.args[2].size,
+            0/*dst_offset*/, 0/*src_offset*/, dev_dst, dev_src);
         }
       }
     }
@@ -278,15 +283,17 @@ int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t count, acc_s
         int tid = 0;
         for (; tid < ndepend; ++tid) {
           dbcsr_omp_depend_t *const di = &deps[tid];
+          const char *const id = di->data.in, *const od = di->data.out;
+          dbcsr_omp_stream_t *const s = (dbcsr_omp_stream_t*)di->data.args[3].ptr;
           /*const*/ void *const ptr = di->data.args[0]./*const_*/ptr;
-          if (NULL != ptr) {
-            const char *const id = di->data.in, *const od = di->data.out;
-            dbcsr_omp_stream_t *const s = (dbcsr_omp_stream_t*)di->data.args[3].ptr; assert(NULL != s);
-            (void)(id); (void)(od); /* suppress incorrect warning */
-#           pragma omp task depend(in:DBCSR_OMP_DEP(id)) depend(out:DBCSR_OMP_DEP(od))
-            s->status |= omp_target_memcpy(di->data.args[1].ptr, ptr, di->data.args[2].size,
-              0/*dst_offset*/, 0/*src_offset*/, dev_dst, dev_src);
-          } else break; /* incorrect dependency-count */
+          (void)(id); (void)(od); /* suppress incorrect warning */
+#if !defined(NDEBUG)
+          if (NULL == ptr) break; /* incorrect dependency-count */
+#endif
+          assert(NULL != s);
+#         pragma omp task depend(in:DBCSR_OMP_DEP(id)) depend(out:DBCSR_OMP_DEP(od))
+          s->status |= omp_target_memcpy(di->data.args[1].ptr, ptr, di->data.args[2].size,
+            0/*dst_offset*/, 0/*src_offset*/, dev_dst, dev_src);
         }
       }
     }
@@ -324,21 +331,23 @@ int acc_memset_zero(void* dev_mem, size_t offset, size_t length, acc_stream_t* s
         int tid = 0;
         for (; tid < ndepend; ++tid) {
           dbcsr_omp_depend_t *const di = &deps[tid];
+          const char *const id = di->data.in, *const od = di->data.out;
+          const size_t begin = di->data.args[1].size;
+          const size_t size = di->data.args[2].size;
           char * /*const*/ dst = (char*)di->data.args[0].ptr;
-          if (NULL != dst) {
-            const char *const id = di->data.in, *const od = di->data.out;
-            const size_t begin = di->data.args[1].size;
-            const size_t size = di->data.args[2].size;
+          (void)(id); (void)(od); /* suppress incorrect warning */
+#if !defined(NDEBUG)
+          if (NULL == dst) break; /* incorrect dependency-count */
+#endif
 #if defined(DBCSR_OMP_DEVMEMSET)
-#           pragma omp target depend(in:DBCSR_OMP_DEP(id)) depend(out:DBCSR_OMP_DEP(od)) nowait is_device_ptr(dst)
-            memset(dst + begin, 0, size);
+#         pragma omp target depend(in:DBCSR_OMP_DEP(id)) depend(out:DBCSR_OMP_DEP(od)) nowait is_device_ptr(dst)
+          memset(dst + begin, 0, size);
 #else
-            size_t i; /* private(i) */
+          { size_t i; /* private(i) */
 #           pragma omp target teams distribute parallel for simd depend(in:DBCSR_OMP_DEP(id)) depend(out:DBCSR_OMP_DEP(od)) nowait is_device_ptr(dst)
             for (i = begin; i < (begin + size); ++i) dst[i] = '\0';
+          }
 #endif
-            (void)(id); (void)(od); /* suppress incorrect warning */
-          } else break; /* incorrect dependency-count */
         }
       }
     }

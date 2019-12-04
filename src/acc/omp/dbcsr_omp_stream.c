@@ -29,8 +29,10 @@ void dbcsr_omp_stream_depend(acc_stream_t* stream, dbcsr_omp_depend_t** depend)
 {
 #if defined(_OPENMP)
   dbcsr_omp_depend_t *const di = &dbcsr_omp_stream_depend_state[omp_get_thread_num()];
+  const int nthreads = omp_get_num_threads();
 #else
   dbcsr_omp_depend_t *const di = dbcsr_omp_stream_depend_state;
+  const int nthreads = 1;
 #endif
   dbcsr_omp_stream_t *const s = (dbcsr_omp_stream_t*)stream;
 #if defined(DBCSR_OMP_STREAM_MAXCOUNT) && (0 < DBCSR_OMP_STREAM_MAXCOUNT)
@@ -40,7 +42,6 @@ void dbcsr_omp_stream_depend(acc_stream_t* stream, dbcsr_omp_depend_t** depend)
   assert(NULL == s || omp_get_default_device() == s->device_id);
 #endif
   assert(NULL != depend && NULL != di);
-  dbcsr_omp_stream_depend_begin(); /* barrier */
   if (NULL != s && EXIT_SUCCESS == s->status) {
     static const dbcsr_omp_dependency_t dummy = 0;
     int index;
@@ -53,24 +54,29 @@ void dbcsr_omp_stream_depend(acc_stream_t* stream, dbcsr_omp_depend_t** depend)
     di->data.out = s->name + index % DBCSR_OMP_STREAM_MAXPENDING;
     di->data.in = (s->name < di->data.out ? (di->data.out - 1) : &dummy);
   }
-  /* enable user to check arguments by assuming NULL/0 in case of unset arguments */
-#if defined(_OPENMP)
+#if !defined(NDEBUG)
+# if defined(_OPENMP)
 # pragma omp master
-  { const int nthreads = omp_get_num_threads(); int tid = 0;
+# endif
+  { int tid = 0;
     for (; tid < nthreads; ++tid) {
+      /* enable user to assume NULL/0 in case of unset arguments */
       memset(dbcsr_omp_stream_depend_state[tid].data.args, 0,
       DBCSR_OMP_ARGUMENTS_MAXCOUNT * sizeof(dbcsr_omp_any_t));
     }
-    dbcsr_omp_stream_depend_counter = nthreads;
-    dbcsr_omp_stream_depend_count = nthreads;
   }
-#else
-  memset(dbcsr_omp_stream_depend_state->data.args, 0,
-    DBCSR_OMP_ARGUMENTS_MAXCOUNT * sizeof(dbcsr_omp_any_t));
-  dbcsr_omp_stream_depend_counter = 1;
-  dbcsr_omp_stream_depend_count = 1;
 #endif
-  dbcsr_omp_stream_depend_begin(); /* barrier */
+  /* boot-strap/initialize custom barrier using OpenMP */
+  if (nthreads != dbcsr_omp_stream_depend_count) {
+#if defined(_OPENMP)
+#   pragma omp barrier
+#   pragma omp single /* implied barrier */
+#endif
+    {
+      dbcsr_omp_stream_depend_counter = nthreads;
+      dbcsr_omp_stream_depend_count = nthreads;
+    }
+  }
   *depend = di;
 }
 
@@ -87,7 +93,7 @@ int dbcsr_omp_stream_depend_get_count(void)
 
 
 void dbcsr_omp_stream_depend_begin(void)
-{ /* barrier */
+{ /* custom barrier */
   static volatile int dbcsr_omp_stream_barrier_flag = 0;
 #if !defined(_OPENMP)
   dbcsr_omp_depend_t *const di = dbcsr_omp_stream_depend_state;
@@ -110,7 +116,7 @@ void dbcsr_omp_stream_depend_begin(void)
 int dbcsr_omp_stream_depend_end(const acc_stream_t* stream)
 {
   const dbcsr_omp_stream_t *const s = (const dbcsr_omp_stream_t*)stream;
-  dbcsr_omp_stream_depend_begin(); /* barrier */
+  dbcsr_omp_stream_depend_begin(); /* custom barrier */
   DBCSR_OMP_RETURN(NULL != s ? s->status : EXIT_SUCCESS);
 }
 
@@ -226,14 +232,16 @@ int acc_stream_wait_event(acc_stream_t* stream, acc_event_t* event)
         for (; tid < ndepend; ++tid) {
           const dbcsr_omp_depend_t *const di = &deps[tid];
           const dbcsr_omp_event_t *const ei = (const dbcsr_omp_event_t*)di->data.args[0].const_ptr;
-          if (NULL != ei) {
-            const char *const ie = ei->dependency;
-            if (NULL != ie) { /* still pending */
-              const char *const id = di->data.in, *const od = di->data.out;
-              (void)(id); (void)(od); /* suppress incorrect warning */
-#             pragma omp target depend(in:DBCSR_OMP_DEP(id),DBCSR_OMP_DEP(ie)) depend(out:DBCSR_OMP_DEP(od)) nowait if(0)
-              {}
-            } else break; /* incorrect dependency-count */
+          const char* ie;
+#if !defined(NDEBUG)
+          if (NULL == ei) break; /* incorrect dependency-count */
+#endif
+          ie = ei->dependency;
+          if (NULL != ie) { /* still pending */
+            const char *const id = di->data.in, *const od = di->data.out;
+            (void)(id); (void)(od); /* suppress incorrect warning */
+#           pragma omp target depend(in:DBCSR_OMP_DEP(id),DBCSR_OMP_DEP(ie)) depend(out:DBCSR_OMP_DEP(od)) nowait if(0)
+            {}
           }
         }
       }

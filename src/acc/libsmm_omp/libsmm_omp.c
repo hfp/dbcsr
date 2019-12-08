@@ -68,7 +68,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int nblks,
           }
         }
       }
-      result |= dbcsr_omp_stream_depend_end(stream);
+      result = dbcsr_omp_stream_depend_end(stream); /* pick-up stream status */
     }
     else
 #endif
@@ -155,7 +155,7 @@ int libsmm_acc_process(const libsmm_acc_stack_descriptor_type* dev_param_stack, 
           }
         }
       }
-      result |= dbcsr_omp_stream_depend_end(stream);
+      result = dbcsr_omp_stream_depend_end(stream); /* pick-up stream status */
     }
     else
 #endif

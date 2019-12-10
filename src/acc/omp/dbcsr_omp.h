@@ -140,8 +140,11 @@
 # include <omp.h>
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-DBCSR_OMP_EXPORT typedef struct dbcsr_omp_stream_t {
+typedef struct dbcsr_omp_stream_t {
   /* address of each character is (side-)used to form OpenMP task dependencies */
   char name[DBCSR_OMP_STREAM_MAXPENDING];
   volatile int pending, status;
@@ -153,11 +156,11 @@ DBCSR_OMP_EXPORT typedef struct dbcsr_omp_stream_t {
 
 typedef char dbcsr_omp_dependency_t;
 
-DBCSR_OMP_EXPORT typedef struct dbcsr_omp_event_t {
+typedef struct dbcsr_omp_event_t {
   const dbcsr_omp_dependency_t *volatile dependency;
 } dbcsr_omp_event_t;
 
-DBCSR_OMP_EXPORT typedef union dbcsr_omp_any_t {
+typedef union dbcsr_omp_any_t {
   const void* const_ptr; void* ptr;
   uint64_t u64;
   int64_t i64;
@@ -167,7 +170,7 @@ DBCSR_OMP_EXPORT typedef union dbcsr_omp_any_t {
   acc_bool_t logical;
 } dbcsr_omp_any_t;
 
-DBCSR_OMP_EXPORT typedef struct dbcsr_omp_depend_data_t {
+typedef struct dbcsr_omp_depend_data_t {
   /** Used to record the arguments/signature of each OpenMP-offload/call on a per-thread basis. */
   dbcsr_omp_any_t args[DBCSR_OMP_ARGUMENTS_MAXCOUNT];
   /** The in/out-pointer must be dereferenced (depend clause expects value; due to syntax issues use in[0]/out[0]). */
@@ -175,29 +178,33 @@ DBCSR_OMP_EXPORT typedef struct dbcsr_omp_depend_data_t {
   int counter;
 } dbcsr_omp_depend_data_t;
 
-DBCSR_OMP_EXPORT typedef union dbcsr_omp_depend_t {
+typedef union dbcsr_omp_depend_t {
   char pad[DBCSR_OMP_UP2(sizeof(dbcsr_omp_depend_data_t),DBCSR_OMP_CACHELINE_NBYTES)];
   dbcsr_omp_depend_data_t data;
 } dbcsr_omp_depend_t;
 
-DBCSR_OMP_EXPORT int dbcsr_omp_ndevices(void);
+int dbcsr_omp_ndevices(void);
 /** Helper function for lock-free allocation of preallocated items such as streams or events. */
-DBCSR_OMP_EXPORT int dbcsr_omp_alloc(void** item, int typesize, int* counter, int maxcount, void* storage, void** pointer);
+int dbcsr_omp_alloc(void** item, int typesize, int* counter, int maxcount, void* storage, void** pointer);
 /** Helper function for lock-free deallocation (companion of dbcsr_omp_alloc). */
-DBCSR_OMP_EXPORT int dbcsr_omp_dealloc(void* item, int typesize, int* counter, int maxcount, void* storage, void** pointer);
+int dbcsr_omp_dealloc(void* item, int typesize, int* counter, int maxcount, void* storage, void** pointer);
 /** Initializes the barrier. */
-DBCSR_OMP_EXPORT void dbcsr_omp_stream_barrier_init(int nthreads);
+void dbcsr_omp_stream_barrier_init(int nthreads);
 /** Synchronizes all threads of the team. */
-DBCSR_OMP_EXPORT void dbcsr_omp_stream_barrier_wait(void);
+void dbcsr_omp_stream_barrier_wait(void);
 /** Generate dependency for given stream. If a dependency is not consumed, acc_event_record(NULL, NULL) shall be called. */
-DBCSR_OMP_EXPORT void dbcsr_omp_stream_depend(acc_stream_t* stream, dbcsr_omp_depend_t** depend);
+void dbcsr_omp_stream_depend(acc_stream_t* stream, dbcsr_omp_depend_t** depend);
 /** Get the number of tasks to be issued. */
-DBCSR_OMP_EXPORT int dbcsr_omp_stream_depend_get_count(void);
+int dbcsr_omp_stream_depend_get_count(void);
 /** Commits the data filled into "depend" (as given by dbcsr_omp_stream_depend of each thread). */
-DBCSR_OMP_EXPORT void dbcsr_omp_stream_depend_begin(void);
+void dbcsr_omp_stream_depend_begin(void);
 /** Signals the end of the reduction and returns an error code. */
-DBCSR_OMP_EXPORT int dbcsr_omp_stream_depend_end(const acc_stream_t* stream);
+int dbcsr_omp_stream_depend_end(const acc_stream_t* stream);
 /** Clears status of all streams (if possible). */
-DBCSR_OMP_EXPORT void dbcsr_omp_stream_clear_errors(void);
+void dbcsr_omp_stream_clear_errors(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /*DBCSR_OMP_H*/

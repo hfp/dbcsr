@@ -129,15 +129,18 @@ set(DBCSR_HIP_SRCS
 # set the __SHORT_FILE__ per file for dbcsr sources
 foreach (dbcsr_src ${DBCSR_SRCS})
   # add_fypp_sources returns a path in the current binary dir
-  get_filename_component(dbcsr_src "${dbcsr_src}" ABSOLUTE)
-  file(RELATIVE_PATH short_file "${CMAKE_CURRENT_BINARY_DIR}" "${dbcsr_src}")
-  set_source_files_properties(${dbcsr_src} PROPERTIES COMPILE_DEFINITIONS __SHORT_FILE__="dbcsr/${short_file}")
+  get_filename_component(short_file "${dbcsr_src}" NAME)
+  set_source_files_properties(${dbcsr_src} PROPERTIES COMPILE_DEFINITIONS __SHORT_FILE__="${short_file}")
 endforeach ()
 
 
 # =================================================================================================
 # DBCSR LIBRARY
 add_library(dbcsr ${DBCSR_SRCS})
+
+set_target_properties(dbcsr PROPERTIES
+  VERSION ${dbcsr_VERSION}
+  SOVERSION ${VERSION_MAJOR})
 
 if (TARGET PkgConfig::deps)
   target_link_libraries(dbcsr PRIVATE PkgConfig::deps)
@@ -346,6 +349,11 @@ if (WITH_C_API)
   set_target_properties(dbcsr_c PROPERTIES
     LINKER_LANGUAGE Fortran
     )
+
+  set_target_properties(dbcsr_c PROPERTIES
+    VERSION ${dbcsr_VERSION}
+    SOVERSION ${VERSION_MAJOR}.${VERSION_MINOR})
+
   target_link_libraries(dbcsr_c PRIVATE dbcsr)
   target_link_libraries(dbcsr_c PUBLIC MPI::MPI_C)  # the C API always needs MPI
   target_include_directories(dbcsr_c PUBLIC
@@ -387,7 +395,7 @@ configure_package_config_file(cmake/DBCSRConfig.cmake.in
   INSTALL_DESTINATION "${config_install_dir}"
   )
 write_basic_package_version_file("${CMAKE_CURRENT_BINARY_DIR}/DBCSRConfigVersion.cmake"
-  VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}"
+  VERSION "${dbcsr_VERSION}"
   COMPATIBILITY SameMajorVersion
   )
 if (USE_HIP)

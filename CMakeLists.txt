@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.10)
+cmake_minimum_required (VERSION 3.12)
 
 # include our cmake snippets
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
@@ -12,31 +12,51 @@ endif()
 
 # =================================================================================================
 # PROJECT AND VERSION
-file(STRINGS VERSION VERSION_INFO)
-foreach(line ${VERSION_INFO})
-  if (${line} MATCHES "^([^#].*)=[ \t]*(.*)$")
-    set(key ${CMAKE_MATCH_1})
-    set(value ${CMAKE_MATCH_2})
-    string(REGEX REPLACE "[ \t\n]+$" "" key "${key}")
-    string(REGEX REPLACE "[ \t\n]+$" "" value "${value}")
-    set(VERSION_${key} "${value}")
-    continue ()
-  endif ()
-endforeach()
+INCLUDE(GetGitRevisionDescription)
 
-project(dbcsr
-        VERSION ${VERSION_MAJOR}.${VERSION_MINOR}
-        DESCRIPTION "DBCSR: Distributed Block Compressed Sparse Row matrix library (https://dbcsr.cp2k.org)")
+git_describe(GIT_DESC)
+
+if (GIT_DESC)
+  string(REGEX REPLACE "^v([0-9]+)\\..*" "\\1" VERSION_MAJOR "${GIT_DESC}")
+  string(REGEX REPLACE "^v[0-9]+\\.([0-9]+).*" "\\1" VERSION_MINOR "${GIT_DESC}")
+  string(REGEX REPLACE "^v[0-9]+\\.[0-9]+\\.([0-9]+).*" "\\1" VERSION_PATCH "${GIT_DESC}")
+  string(REGEX REPLACE "^v[0-9]+\\.[0-9]+\\.[0-9]+(.*)" "\\1" VERSION_GIT "${GIT_DESC}")
+
+  git_local_changes(GIT_STATE)
+  if ("${GIT_STATE}" STREQUAL "DIRTY")
+    set(VERSION_GIT "${VERSION_GIT}-dirty")
+  endif ()
+
+  execute_process(COMMAND git log -1 --format=%ai
+                  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+                  OUTPUT_VARIABLE GIT_COMMIT_DATE
+                  OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+  # take only the date from the git timestamp:
+  string(REGEX REPLACE "^([0-9\\-]+) .*" "\\1" VERSION_DATE "${GIT_COMMIT_DATE}")
+else ()
+  file(STRINGS VERSION VERSION_INFO)
+  foreach(line ${VERSION_INFO})
+    if (${line} MATCHES "^([^#].*)=[ \t]*(.*)$")
+      set(key ${CMAKE_MATCH_1})
+      set(value ${CMAKE_MATCH_2})
+      string(REGEX REPLACE "[ \t\n]+$" "" key "${key}")
+      string(REGEX REPLACE "[ \t\n]+$" "" value "${value}")
+      set(VERSION_${key} "${value}")
+      continue ()
+    endif ()
+  endforeach()
+endif ()
+
+project(dbcsr DESCRIPTION "DBCSR: Distributed Block Compressed Sparse Row matrix library (https://dbcsr.cp2k.org)")
+set(dbcsr_VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}${VERSION_GIT})
 
 # =================================================================================================
 # OPTIONS
 include(CMakeDependentOption)
 
-option(USE_MPI "Build with MPI support" ON)
 option(USE_OPENMP "Build with OpenMP support" ON)
-cmake_dependent_option(USE_OFFLOAD "Offloading to devices if OpenMP is enabled" OFF "USE_OPENMP" OFF)
-set(WITH_OFFLOAD_FLAGS "" CACHE STRING "Additional flag(s) if OpenMP/offload is enabled")
-set(WITH_OPENMP_FLAGS "" CACHE STRING "To replace OpenMP default flag, e.g., to replace -fopenmp")
+option(USE_MPI "Build with MPI support" ON)
 cmake_dependent_option(WITH_C_API "Build the C API (ISO_C_BINDINGS)" ON "USE_MPI" OFF) # the ISO_C_BINDINGS require MPI unconditionally
 cmake_dependent_option(WITH_EXAMPLES "Build the examples" ON "USE_MPI" OFF) # all examples require MPI
 
@@ -66,16 +86,11 @@ if (USE_CUDA AND USE_HIP)
 endif()
 
 # =================================================================================================
-# LANGUAGES AND TESTING: enable *here* since subsequent settings can depend on enabled languages
+# LANGUAGES AND TESTING
 enable_language(Fortran)
-enable_language(C)
-enable_testing() # enables the `make test` target
 
-if ((WITH_C_API AND WITH_EXAMPLES) OR USE_CUDA OR USE_HIP)
+if (WITH_C_API AND WITH_EXAMPLES)
   enable_language(CXX)
-endif ()
-if (USE_CUDA)
-  enable_language(CUDA)
 endif ()
 
 # we're always using at least C++11
@@ -86,7 +101,7 @@ set(CMAKE_CXX_STANDARD 11)
 
 # =================================== BLAS, LAPACK, PkgConfig
 find_package(BLAS REQUIRED)
-find_package(LAPACK REQUIRED)
+find_package(LAPACK REQUIRED)  # needed for some of the integrated test routines
 find_package(PkgConfig)
 
 # =================================== Python
@@ -96,22 +111,16 @@ find_package(PkgConfig)
 # In CMake <3.15, the system is searched before the virtual environment.
 if (NOT Python_EXECUTABLE)
     # If the python interpreter isn't specified as a command line option, look for it:
-    if (CMAKE_VERSION VERSION_LESS 3.12)
-      find_package(PythonInterp REQUIRED)
-      set(Python_EXECUTABLE ${PYTHON_EXECUTABLE})
-    else ()
-      find_package(Python COMPONENTS Interpreter REQUIRED)
-    endif ()
+    find_package(Python COMPONENTS Interpreter REQUIRED)
 endif ()
-
-find_package(BLAS REQUIRED)
-find_package(LAPACK REQUIRED)
-find_package(PkgConfig)
 
 # =================================== MPI
 if (USE_MPI)
   get_property(REQUIRED_MPI_COMPONENTS GLOBAL PROPERTY ENABLED_LANGUAGES)
   list(REMOVE_ITEM REQUIRED_MPI_COMPONENTS CUDA)  # CUDA does not have an MPI component
+  if (NOT CMAKE_CROSSCOMPILING)  # when cross compiling, assume the users know what they are doing
+     set(MPI_DETERMINE_LIBRARY_VERSION TRUE)
+  endif ()
   find_package(MPI COMPONENTS ${REQUIRED_MPI_COMPONENTS} REQUIRED)
 
   if (NOT MPI_Fortran_HAVE_F90_MODULE)
@@ -120,30 +129,16 @@ The listed MPI implementation does not provide the required mpi.mod interface. \
 When using the GNU compiler in combination with Intel MPI, please use the \
 Intel MPI compiler wrappers. Check the INSTALL.md for more information.")
   endif ()
+  if ("${MPI_Fortran_LIBRARY_VERSION_STRING}" MATCHES "Open MPI v2.1" OR "${MPI_Fortran_LIBRARY_VERSION_STRING}" MATCHES "Open MPI v3.1")
+     message(WARNING
+            "RMA with ${MPI_Fortran_LIBRARY_VERSION_STRING} is not supported due to issues with its implementation."
+            " Please use a newer version of OpenMPI or switch to MPICH if you plan on using MPI-RMA.")
+  endif ()
 endif ()
 
 # =================================== OpenMP and OpenMP/offload backend
 if (USE_OPENMP)
   find_package(OpenMP REQUIRED)
-
-  # CMake's OpenMP module/package does not (yet) support OpenMP/offload
-  foreach (LANG IN ITEMS Fortran CXX C)
-    if (OpenMP_${LANG}_FOUND)
-      if (USE_OFFLOAD AND WITH_OPENMP_FLAGS)
-        set(OpenMP_${LANG}_LIBRARIES ${WITH_OPENMP_FLAGS})
-        set(OpenMP_${LANG}_FLAGS ${WITH_OPENMP_FLAGS})
-      endif ()
-      if (USE_OFFLOAD AND WITH_OFFLOAD_FLAGS)
-        set(OpenMP_${LANG}_LIBRARIES ${OpenMP_${LANG}_LIBRARIES} ${WITH_OFFLOAD_FLAGS})
-        set(OpenMP_${LANG}_FLAGS ${OpenMP_${LANG}_FLAGS} ${WITH_OFFLOAD_FLAGS})
-      endif ()
-      if (USE_OFFLOAD) # promote OpenMP flags to link-line
-        set(OpenMP_${LANG}_LIBRARIES ${OpenMP_${LANG}_FLAGS})
-      endif ()
-      set_property(TARGET OpenMP::OpenMP_${LANG} PROPERTY INTERFACE_LINK_LIBRARIES ${OpenMP_${LANG}_LIBRARIES})
-      set_property(TARGET OpenMP::OpenMP_${LANG} PROPERTY INTERFACE_COMPILE_OPTIONS ${OpenMP_${LANG}_FLAGS})
-    endif ()
-  endforeach ()
 endif ()
 
 # =================================== SMM (Small Matrix-Matrix multiplication)
@@ -159,6 +154,7 @@ endif ()
 
 # =================================== GPU backend
 if (USE_CUDA OR USE_HIP)
+  enable_language(CXX)
   set(GPU_ARCH_NUMBER_K20X 35)
   set(GPU_ARCH_NUMBER_K40  35)
   set(GPU_ARCH_NUMBER_K80  37)
@@ -168,6 +164,8 @@ if (USE_CUDA OR USE_HIP)
 endif()
 
 if (USE_CUDA)
+
+  enable_language(CUDA)
   if (CMAKE_CUDA_COMPILER_VERSION LESS 5.5)
       message(FATAL_ERROR "CUDA version >= 5.5 is required.")
   endif()
@@ -281,7 +279,11 @@ include(CompilerConfiguration)
 include(CheckCompilerSupport)
 
 add_subdirectory(src)
-add_subdirectory(tests)
+
+include(CTest)
+if (BUILD_TESTING)
+  add_subdirectory(tests)
+endif ()
 
 if (WITH_EXAMPLES)
   add_subdirectory(examples)

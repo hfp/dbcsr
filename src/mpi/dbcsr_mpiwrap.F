@@ -106,7 +106,6 @@ MODULE dbcsr_mpiwrap
    INTEGER, PARAMETER, PUBLIC :: file_amode_rdwr = 8
    INTEGER, PARAMETER, PUBLIC :: file_amode_excl = 64
    INTEGER, PARAMETER, PUBLIC :: file_amode_append = 128
-
 #endif
 
    ! we need to fix this to a given number (crossing fingers)
@@ -176,7 +175,8 @@ MODULE dbcsr_mpiwrap
              mp_type_indexed_make_c, mp_type_indexed_make_z
 
    ! misc
-   PUBLIC :: mp_get_library_version, mp_get_processor_name
+   PUBLIC :: mp_get_library_version, mp_get_processor_name, &
+             mp_get_numnodes
 
    ! assumed to be private
 
@@ -748,17 +748,17 @@ CONTAINS
 #if defined(__parallel)
 
       CALL mpi_comm_group(mp_comm, oldgroup, ierr);
-      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_comm_group @ mp_reordering")
+      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_comm_group @ "//routineN)
       CALL mpi_group_incl(oldgroup, SIZE(ranks_order), ranks_order, newgroup, ierr)
-      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_group_incl @ mp_reordering")
+      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_group_incl @ "//routineN)
 
       CALL mpi_comm_create(mp_comm, newgroup, newcomm, ierr)
-      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_comm_create @ mp_reordering")
+      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_comm_create @ "//routineN)
 
       CALL mpi_group_free(oldgroup, ierr)
-      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_group_free @ mp_reordering")
+      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_group_free @ "//routineN)
       CALL mpi_group_free(newgroup, ierr)
-      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_group_free @ mp_reordering")
+      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_group_free @ "//routineN)
 
       ! update the system default communicator
       mp_new_comm = newcomm
@@ -783,7 +783,7 @@ CONTAINS
       IF (debug_comm_count .NE. 0) THEN
          ! A bug, we're leaking or double-freeing communicators. Needs to be fixed where the leak happens.
          ! Memory leak checking might be helpful to locate the culprit
-         DBCSR_ABORT("mp_world_finalize: assert failed:  leaking communicators")
+         DBCSR_ABORT("mp_world_finalize: assert failed: leaking communicators")
       ENDIF
       CALL mpi_finalize(ierr)
       IF (ierr /= 0) CALL mp_stop(ierr, "mpi_finalize @ mp_world_finalize")
@@ -1031,7 +1031,7 @@ CONTAINS
 
 #if defined(__parallel)
       CALL mpi_barrier(group, ierr)
-      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_barrier @ mp_sync")
+      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_barrier @ "//routineN)
 #else
       MARK_USED(group)
 #endif
@@ -1056,7 +1056,7 @@ CONTAINS
 #if defined(__parallel)
 #if __MPI_VERSION > 2
       CALL mpi_ibarrier(group, request, ierr)
-      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_ibarrier @ mp_isync")
+      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_ibarrier @ "//routineN)
 #else
       MARK_USED(group)
       MARK_USED(request)
@@ -1091,12 +1091,12 @@ CONTAINS
 #if defined(__parallel)
       IF (PRESENT(taskid)) THEN
          CALL mpi_comm_rank(groupid, taskid, ierr)
-         IF (ierr /= 0) CALL mp_stop(ierr, "mpi_comm_rank @ mp_environ_l")
+         IF (ierr /= 0) CALL mp_stop(ierr, "mpi_comm_rank @ "//routineN)
       ENDIF
 
       IF (PRESENT(numtask)) THEN
          CALL mpi_comm_size(groupid, numtask, ierr)
-         IF (ierr /= 0) CALL mp_stop(ierr, "mpi_comm_size @ mp_environ_l")
+         IF (ierr /= 0) CALL mp_stop(ierr, "mpi_comm_size @ "//routineN)
       ENDIF
 #else
       MARK_USED(groupid)
@@ -1124,10 +1124,10 @@ CONTAINS
       dims = 1
 #if defined(__parallel)
       CALL mpi_comm_size(groupid, numtask, ierr)
-      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_comm_size @ mp_environ_c")
+      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_comm_size @ "//routineN)
 
       CALL mpi_cart_get(groupid, 2, dims, periods, task_coor, ierr)
-      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_cart_get @ mp_environ_c")
+      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_cart_get @ "//routineN)
 #else
       MARK_USED(groupid)
 #endif
@@ -1151,7 +1151,7 @@ CONTAINS
       periods = .FALSE.
 #if defined(__parallel)
       CALL mpi_cart_get(comm, ndims, dims, periods, task_coor, ierr)
-      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_cart_get @ mp_environ_c")
+      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_cart_get @ "//routineN)
 #else
       MARK_USED(comm)
 #endif
@@ -1183,10 +1183,10 @@ CONTAINS
 #if defined(__parallel)
 
       CALL mpi_comm_size(comm_old, nodes, ierr)
-      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_comm_size @ mp_cart_create")
+      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_comm_size @ "//routineN)
 
       IF (ANY(dims == 0)) CALL mpi_dims_create(nodes, ndims, dims, ierr)
-      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_dims_create @ mp_cart_create")
+      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_dims_create @ "//routineN)
 
       ! FIX ME.  Quick hack to avoid problems with realspace grids for compilers
       ! like IBM that actually reorder the processors when creating the new
@@ -1195,12 +1195,12 @@ CONTAINS
       period = .TRUE.
       CALL mpi_cart_create(comm_old, ndims, dims, period, reorder, comm_cart, &
                            ierr)
-      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_cart_create @ mp_cart_create")
+      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_cart_create @ "//routineN)
 
       IF (comm_cart /= MPI_COMM_NULL) THEN
          debug_comm_count = debug_comm_count + 1
          CALL mpi_cart_get(comm_cart, ndims, dims, period, pos, ierr)
-         IF (ierr /= 0) CALL mp_stop(ierr, "mpi_cart_get @ mp_cart_create")
+         IF (ierr /= 0) CALL mp_stop(ierr, "mpi_cart_get @ "//routineN)
       END IF
 #else
       pos(1:ndims) = 0
@@ -1226,7 +1226,7 @@ CONTAINS
       m = SIZE(coords)
 #if defined(__parallel)
       CALL mpi_cart_coords(comm, rank, m, coords, ierr)
-      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_cart_coords @ mp_cart_coords")
+      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_cart_coords @ "//routineN)
 #else
       coords = 0
       MARK_USED(rank)
@@ -1253,7 +1253,7 @@ CONTAINS
       res = 0
 #if defined(__parallel)
       CALL mpi_comm_compare(comm1, comm2, iout, ierr)
-      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_comm_compare @ mp_comm_compare")
+      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_comm_compare @ "//routineN)
       SELECT CASE (iout)
       CASE (MPI_IDENT)
          res = 0
@@ -1291,7 +1291,7 @@ CONTAINS
       sub_comm = 0
 #if defined(__parallel)
       CALL mpi_cart_sub(comm, rdim, sub_comm, ierr)
-      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_cart_sub @ mp_cart_sub")
+      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_cart_sub @ "//routineN)
       debug_comm_count = debug_comm_count + 1
 #else
       MARK_USED(comm)
@@ -1315,7 +1315,7 @@ CONTAINS
 
 #if defined(__parallel)
       CALL mpi_comm_free(comm, ierr)
-      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_comm_free @ mp_comm_free")
+      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_comm_free @ "//routineN)
       debug_comm_count = debug_comm_count - 1
 #else
       MARK_USED(comm)
@@ -1339,7 +1339,7 @@ CONTAINS
 
 #if defined(__parallel)
       CALL mpi_comm_dup(comm1, comm2, ierr)
-      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_comm_dup @ mp_comm_dup")
+      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_comm_dup @ "//routineN)
       debug_comm_count = debug_comm_count + 1
 #else
       comm2 = comm1
@@ -1369,29 +1369,29 @@ CONTAINS
       rank = 0
 #if defined(__parallel)
       CALL mpi_comm_size(comm1, n1, ierr)
-      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_comm_size @ mp_rank_compare")
+      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_comm_size @ "//routineN)
       CALL mpi_comm_size(comm2, n2, ierr)
-      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_comm_size @ mp_rank_compare")
+      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_comm_size @ "//routineN)
       n = MAX(n1, n2)
       CALL mpi_comm_group(comm1, g1, ierr)
-      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_comm_group @ mp_rank_compare")
+      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_comm_group @ "//routineN)
       CALL mpi_comm_group(comm2, g2, ierr)
-      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_comm_group @ mp_rank_compare")
+      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_comm_group @ "//routineN)
       ALLOCATE (rin(0:n - 1), STAT=ierr)
       IF (ierr /= 0) &
-         DBCSR_ABORT("allocate @ mp_rank_compare")
+         DBCSR_ABORT("allocate @ "//routineN)
       DO i = 0, n - 1
          rin(i) = i
       END DO
       CALL mpi_group_translate_ranks(g1, n, rin, g2, rank, ierr)
       IF (ierr /= 0) CALL mp_stop(ierr, &
-                                  "mpi_group_translate_rank @ mp_rank_compare")
+                                  "mpi_group_translate_rank @ "//routineN)
       CALL mpi_group_free(g1, ierr)
       IF (ierr /= 0) &
-         DBCSR_ABORT("group_free @ mp_rank_compare")
+         DBCSR_ABORT("group_free @ "//routineN)
       CALL mpi_group_free(g2, ierr)
       IF (ierr /= 0) &
-         DBCSR_ABORT("group_free @ mp_rank_compare")
+         DBCSR_ABORT("group_free @ "//routineN)
       DEALLOCATE (rin)
 #else
       MARK_USED(comm1)
@@ -1417,7 +1417,7 @@ CONTAINS
       ndim = SIZE(dims)
 #if defined(__parallel)
       IF (ANY(dims == 0)) CALL mpi_dims_create(nodes, ndim, dims, ierr)
-      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_dims_create @ mp_dims_create")
+      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_dims_create @ "//routineN)
 #else
       dims = 1
       MARK_USED(nodes)
@@ -1440,7 +1440,7 @@ CONTAINS
 
 #if defined(__parallel)
       CALL mpi_cart_rank(group, pos, rank, ierr)
-      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_cart_rank @ mp_cart_rank")
+      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_cart_rank @ "//routineN)
 #else
       rank = 0
       MARK_USED(group)
@@ -1465,7 +1465,7 @@ CONTAINS
 
 #if defined(__parallel)
       CALL mpi_wait(request, MPI_STATUS_IGNORE, ierr)
-      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_wait @ mp_wait")
+      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_wait @ "//routineN)
 #else
       MARK_USED(request)
 #endif
@@ -1495,7 +1495,7 @@ CONTAINS
       count = SIZE(requests)
       ALLOCATE (status(MPI_STATUS_SIZE, count))
       CALL mpi_waitall_internal(count, requests, status, ierr) ! MPI_STATUSES_IGNORE openmpi workaround
-      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_waitall @ mp_waitall_1")
+      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_waitall @ "//routineN)
       DEALLOCATE (status)
 #else
       MARK_USED(requests)
@@ -1524,7 +1524,7 @@ CONTAINS
       ALLOCATE (status(MPI_STATUS_SIZE, count))
 
       CALL mpi_waitall_internal(count, requests, status, ierr) ! MPI_STATUSES_IGNORE openmpi workaround
-      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_waitall @ mp_waitall_2")
+      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_waitall @ "//routineN)
       DEALLOCATE (status)
 #else
       MARK_USED(requests)
@@ -1568,7 +1568,7 @@ CONTAINS
       count = SIZE(requests)
 
       CALL mpi_waitany(count, requests, completed, MPI_STATUS_IGNORE, ierr)
-      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_waitany @ mp_waitany")
+      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_waitany @ "//routineN)
 #else
       MARK_USED(requests)
       completed = 1
@@ -1650,7 +1650,7 @@ CONTAINS
       count = SIZE(requests)
 
       CALL mpi_testany_internal(count, requests, completed_l, flag_l, MPI_STATUS_IGNORE, ierr)
-      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_testany_1 @ mp_testany")
+      IF (ierr /= 0) CALL mp_stop(ierr, routineN//" @ mp_testany")
 
       IF (PRESENT(completed)) completed = completed_l
       IF (PRESENT(flag)) flag = flag_l
@@ -1682,7 +1682,7 @@ CONTAINS
       count = SIZE(requests)
 
       CALL mpi_testany_internal(count, requests, completed_l, flag_l, MPI_STATUS_IGNORE, ierr)
-      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_testany_2 @ mp_testany")
+      IF (ierr /= 0) CALL mp_stop(ierr, routineN//" @ mp_testany")
 
       IF (PRESENT(completed)) completed = completed_l
       IF (PRESENT(flag)) flag = flag_l
@@ -1891,13 +1891,13 @@ CONTAINS
 #if defined(__parallel)
       IF (source .EQ. mp_any_source) THEN
          CALL mpi_probe(mp_any_source, mp_any_tag, comm, status_single, ierr)
-         IF (ierr /= 0) CALL mp_stop(ierr, "mpi_probe @ mp_probe")
+         IF (ierr /= 0) CALL mp_stop(ierr, "mpi_probe @ "//routineN)
          source = status_single(MPI_SOURCE)
          tag = status_single(MPI_TAG)
       ELSE
          flag = .FALSE.
          CALL mpi_iprobe(source, mp_any_tag, comm, flag, status_single, ierr)
-         IF (ierr /= 0) CALL mp_stop(ierr, "mpi_iprobe @ mp_probe")
+         IF (ierr /= 0) CALL mp_stop(ierr, "mpi_iprobe @ "//routineN)
          IF (flag .EQV. .FALSE.) THEN
             source = mp_any_source
             tag = -1 !status_single(MPI_TAG) ! in case of flag==false status is undefined
@@ -2410,23 +2410,86 @@ CONTAINS
 
       CHARACTER(LEN=*), INTENT(OUT)                      :: procname
          !! Name of processor, declared as CHARACTER(LEN=mp_max_processor_name)
-      INTEGER, INTENT(OUT)                               :: resultlen
+      INTEGER, OPTIONAL, INTENT(OUT)                     :: resultlen
          !! Length (in characters) of procname (INTEGER)
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_get_processor_name', &
                                      routineP = moduleN//':'//routineN
 #if defined(__parallel)
-      INTEGER                                            :: ierr
+      INTEGER                                            :: namelen, ierr
 
-      CALL mpi_get_processor_name(procname, resultlen, ierr)
-      IF (ierr /= 0) THEN
+      CALL mpi_get_processor_name(procname, namelen, ierr)
+      IF (ierr .EQ. 0) THEN
+         IF (PRESENT(resultlen)) resultlen = namelen
+      ELSE
 #endif
          CALL m_hostnm(procname)
-         resultlen = LEN_TRIM(procname)
+         IF (PRESENT(resultlen)) resultlen = LEN_TRIM(procname)
 #if defined(__parallel)
       ENDIF
 #endif
    END SUBROUTINE mp_get_processor_name
+
+   SUBROUTINE mp_get_numnodes(numnodes, groupid)
+      !! Get the number of physical system (nodes) as opposed to the number of ranks
+
+      INTEGER, INTENT(OUT)  :: numnodes
+      INTEGER, INTENT(IN)   :: groupid
+         !! mpi communicator
+
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_get_numnodes', routineP = moduleN//':'//routineN
+#if defined(__parallel)
+#if (__MPI_VERSION > 2)
+      INTEGER :: comm, rank, is_node, ierr
+
+      CALL mpi_comm_split_type(groupid, MPI_COMM_TYPE_SHARED, 0, &
+                               MPI_INFO_NULL, comm, ierr)
+      IF (ierr .NE. 0) CALL mp_stop(ierr, "mpi_comm_split_type @ "//routineN)
+
+      CALL mpi_comm_rank(comm, rank, ierr)
+      IF (ierr .NE. 0) CALL mp_stop(ierr, "mpi_comm_rank @ "//routineN)
+      is_node = MERGE(0, 1, rank .NE. 0)
+
+      CALL mpi_allreduce(is_node, numnodes, 1, MPI_INTEGER, MPI_SUM, &
+                         groupid, ierr)
+      IF (ierr .NE. 0) CALL mp_stop(ierr, "mpi_allreduce @ "//routineN)
+
+      CALL mpi_comm_free(comm, ierr)
+      IF (ierr .NE. 0) CALL mp_stop(ierr, "mpi_comm_free @ "//routineN)
+#else
+      CHARACTER(LEN=mp_max_processor_name), ALLOCATABLE :: procnames(:)
+      INTEGER :: i, j, group_size, ierr
+
+      CALL mpi_comm_rank(comm, i, ierr)
+      IF (ierr .NE. 0) CALL mp_stop(ierr, "mpi_comm_rank @ "//routineN)
+
+      CALL mpi_comm_size(groupid, group_size, ierr)
+      IF (ierr .NE. 0) CALL mp_stop(ierr, "mpi_comm_size @ "//routineN)
+      DBCSR_ASSERT(0 .LT. group_size)
+      ALLOCATE(procnames(group_size))
+
+      CALL mp_get_processor_name(procnames(i))
+      CALL mpi_allgather(MPI_IN_PLACE, 0, 0, &
+                         procnames, mp_max_processor_name, &
+                         MPI_CHAR, groupid, ierr)
+      IF (ierr .NE. 0) CALL mp_stop(ierr, "mpi_allgather @ "//routineN)
+
+      numnodes = 1
+      DO i = 2, group_size
+         DO j = 1, i - 1
+            IF (procnames(i) .EQ. procnames(j)) EXIT
+            IF (i .EQ. j) numnodes = numnodes + 1
+         ENDDO
+      ENDDO
+
+      DEALLOCATE(procnames)
+#endif
+#else
+      MARK_USED(groupid)
+      numnodes = 1
+#endif
+      DBCSR_ASSERT(0 .LT. numnodes)
+   END SUBROUTINE mp_get_numnodes
 
    SUBROUTINE mp_file_open(groupid, fh, filepath, amode_status, info)
       !! Opens a file

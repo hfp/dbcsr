@@ -747,7 +747,7 @@ CONTAINS
       ierr = 0
 #if defined(__parallel)
 
-      CALL mpi_comm_group(mp_comm, oldgroup, ierr);
+      CALL mpi_comm_group(mp_comm, oldgroup, ierr)
       IF (ierr /= 0) CALL mp_stop(ierr, "mpi_comm_group @ "//routineN)
       CALL mpi_group_incl(oldgroup, SIZE(ranks_order), ranks_order, newgroup, ierr)
       IF (ierr /= 0) CALL mp_stop(ierr, "mpi_group_incl @ "//routineN)
@@ -2460,15 +2460,15 @@ CONTAINS
       CHARACTER(LEN=mp_max_processor_name), ALLOCATABLE :: procnames(:)
       INTEGER :: i, j, group_size, ierr
 
-      CALL mpi_comm_rank(comm, i, ierr)
+      CALL mpi_comm_rank(groupid, i, ierr)
       IF (ierr .NE. 0) CALL mp_stop(ierr, "mpi_comm_rank @ "//routineN)
 
       CALL mpi_comm_size(groupid, group_size, ierr)
       IF (ierr .NE. 0) CALL mp_stop(ierr, "mpi_comm_size @ "//routineN)
       DBCSR_ASSERT(0 .LT. group_size)
-      ALLOCATE(procnames(group_size))
+      ALLOCATE (procnames(group_size))
 
-      CALL mp_get_processor_name(procnames(i))
+      CALL mp_get_processor_name(procnames(i + 1))
       CALL mpi_allgather(MPI_IN_PLACE, 0, 0, &
                          procnames, mp_max_processor_name, &
                          MPI_CHAR, groupid, ierr)
@@ -2482,7 +2482,7 @@ CONTAINS
          ENDDO
       ENDDO
 
-      DEALLOCATE(procnames)
+      DEALLOCATE (procnames)
 #endif
 #else
       MARK_USED(groupid)

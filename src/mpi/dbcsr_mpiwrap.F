@@ -2430,10 +2430,10 @@ CONTAINS
 #endif
    END SUBROUTINE mp_get_processor_name
 
-   SUBROUTINE mp_get_numnodes(numnodes, groupid)
+   FUNCTION mp_get_numnodes(groupid)
       !! Get the number of physical system (nodes) as opposed to the number of ranks
 
-      INTEGER, INTENT(OUT)  :: numnodes
+      INTEGER :: mp_get_numnodes
       INTEGER, INTENT(IN)   :: groupid
          !! mpi communicator
 
@@ -2450,7 +2450,7 @@ CONTAINS
       IF (ierr .NE. 0) CALL mp_stop(ierr, "mpi_comm_rank @ "//routineN)
       is_node = MERGE(0, 1, rank .NE. 0)
 
-      CALL mpi_allreduce(is_node, numnodes, 1, MPI_INTEGER, MPI_SUM, &
+      CALL mpi_allreduce(is_node, mp_get_numnodes, 1, MPI_INTEGER, MPI_SUM, &
                          groupid, ierr)
       IF (ierr .NE. 0) CALL mp_stop(ierr, "mpi_allreduce @ "//routineN)
 
@@ -2474,11 +2474,11 @@ CONTAINS
                          MPI_CHAR, groupid, ierr)
       IF (ierr .NE. 0) CALL mp_stop(ierr, "mpi_allgather @ "//routineN)
 
-      numnodes = 1
+      mp_get_numnodes = 1
       DO i = 2, group_size
          DO j = 1, i - 1
             IF (procnames(i) .EQ. procnames(j)) EXIT
-            IF (i .EQ. j) numnodes = numnodes + 1
+            IF (i .EQ. j) mp_get_numnodes = mp_get_numnodes + 1
          ENDDO
       ENDDO
 
@@ -2486,10 +2486,10 @@ CONTAINS
 #endif
 #else
       MARK_USED(groupid)
-      numnodes = 1
+      mp_get_numnodes = 1
 #endif
-      DBCSR_ASSERT(0 .LT. numnodes)
-   END SUBROUTINE mp_get_numnodes
+      DBCSR_ASSERT(0 .LT. mp_get_numnodes)
+   END FUNCTION mp_get_numnodes
 
    SUBROUTINE mp_file_open(groupid, fh, filepath, amode_status, info)
       !! Opens a file

@@ -16,6 +16,7 @@ MODULE dbcsr_config
                           dp
    USE dbcsr_ptr_util, ONLY: dbcsr_data_allocation, &
                              dbcsr_data_allocation_type
+   USE dbcsr_mpiwrap, ONLY: mp_get_numnodes
 #include "base/dbcsr_base_uses.f90"
 
 !$ USE OMP_LIB, ONLY: omp_get_max_threads

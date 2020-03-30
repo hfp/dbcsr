@@ -2442,13 +2442,16 @@ CONTAINS
       INTEGER :: mp_comm, ierr
 #if (__MPI_VERSION > 2)
       INTEGER :: comm, rank, is_node
-
+#else
+      CHARACTER(LEN=mp_max_processor_name), ALLOCATABLE :: procnames(:)
+      INTEGER :: i, j, group_size
+#endif
       IF (.NOT. PRESENT(groupid)) THEN
          mp_comm = mp_comm_world
       ELSE
          mp_comm = groupid
       ENDIF
-
+#if (__MPI_VERSION > 2)
       CALL mpi_comm_split_type(mp_comm, MPI_COMM_TYPE_SHARED, 0, &
                                MPI_INFO_NULL, comm, ierr)
       IF (ierr .NE. 0) CALL mp_stop(ierr, "mpi_comm_split_type @ "//routineN)
@@ -2464,15 +2467,6 @@ CONTAINS
       CALL mpi_comm_free(comm, ierr)
       IF (ierr .NE. 0) CALL mp_stop(ierr, "mpi_comm_free @ "//routineN)
 #else
-      CHARACTER(LEN=mp_max_processor_name), ALLOCATABLE :: procnames(:)
-      INTEGER :: i, j, group_size
-
-      IF (.NOT. PRESENT(groupid)) THEN
-         mp_comm = mp_comm_world
-      ELSE
-         mp_comm = groupid
-      ENDIF
-
       CALL mpi_comm_rank(mp_comm, i, ierr)
       IF (ierr .NE. 0) CALL mp_stop(ierr, "mpi_comm_rank @ "//routineN)
 

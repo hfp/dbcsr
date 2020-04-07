@@ -831,12 +831,12 @@ CONTAINS
 
       TYPE(dbcsr_data_obj), INTENT(INOUT)                :: dst
          !! destination data area
-      INTEGER, DIMENSION(:), INTENT(IN)                  :: dst_lb, dst_sizes
+      INTEGER, DIMENSION(*), INTENT(IN)                  :: dst_lb, dst_sizes
          !! lower bounds for destination
          !! sizes for destination
       TYPE(dbcsr_data_obj), INTENT(IN)                   :: src
          !! source data area
-      INTEGER, DIMENSION(:), INTENT(IN)                  :: src_lb, src_sizes
+      INTEGER, DIMENSION(*), INTENT(IN)                  :: src_lb, src_sizes
          !! lower bounds for source
          !! sizes for source
 

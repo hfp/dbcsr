@@ -64,9 +64,9 @@ CONTAINS
    SUBROUTINE hybrid_alltoall_any(sb, scount, sdispl, &
                                   rb, rcount, rdispl, mp_env, most_ptp, remainder_ptp, no_hybrid)
       TYPE(dbcsr_data_obj), INTENT(IN)                   :: sb
-      INTEGER, DIMENSION(:), INTENT(IN)                  :: scount, sdispl
+      INTEGER, DIMENSION(*), INTENT(IN)                  :: scount, sdispl
       TYPE(dbcsr_data_obj), INTENT(INOUT)                :: rb
-      INTEGER, DIMENSION(:), INTENT(IN)                  :: rcount, rdispl
+      INTEGER, DIMENSION(*), INTENT(IN)                  :: rcount, rdispl
       TYPE(dbcsr_mp_obj), INTENT(IN)                     :: mp_env
       LOGICAL, INTENT(in), OPTIONAL                      :: most_ptp, remainder_ptp, no_hybrid
 
@@ -114,16 +114,16 @@ CONTAINS
       !! set, otherwise a alltoall collective call is issued.
       !! see mp_alltoall
 
-      INTEGER, DIMENSION(:), INTENT(in), &
+      INTEGER, DIMENSION(*), INTENT(in), &
          TARGET                                 :: sb
-      INTEGER, DIMENSION(:), INTENT(IN)        :: scount, sdispl
-      INTEGER, DIMENSION(:), &
+      INTEGER, DIMENSION(*), INTENT(IN)         :: scount, sdispl
+      INTEGER, DIMENSION(*), &
          INTENT(INOUT), TARGET                  :: rb
-      INTEGER, DIMENSION(:), INTENT(IN)        :: rcount, rdispl
-      TYPE(dbcsr_mp_obj), INTENT(IN)           :: mp_env
+      INTEGER, DIMENSION(*), INTENT(IN)         :: rcount, rdispl
+      TYPE(dbcsr_mp_obj), INTENT(IN)            :: mp_env
          !! MP Environment
-      LOGICAL, INTENT(IN), OPTIONAL            :: most_ptp, remainder_ptp, &
-                                                  no_hybrid
+      LOGICAL, INTENT(IN), OPTIONAL             :: most_ptp, remainder_ptp, &
+                                                   no_hybrid
          !! Use point-to-point for row/column; default is no
          !! Use point-to-point for remaining; default is no
          !! Use regular global collective; default is no
@@ -500,7 +500,7 @@ CONTAINS
    SUBROUTINE dbcsr_iscatterv_any(base, counts, displs, msg, recvcount, root, grp, request)
       !! Scatter function of encapsulated data.
       TYPE(dbcsr_data_obj), INTENT(IN)                   :: base
-      INTEGER, DIMENSION(:), INTENT(IN)                  :: counts, displs
+      INTEGER, DIMENSION(*), INTENT(IN)                  :: counts, displs
       TYPE(dbcsr_data_obj), INTENT(INOUT)                :: msg
       INTEGER, INTENT(IN)                                :: recvcount, root, grp
       INTEGER, INTENT(INOUT)                             :: request
@@ -530,7 +530,7 @@ CONTAINS
       TYPE(dbcsr_data_obj), INTENT(IN)                   :: base
       INTEGER, INTENT(IN)                                :: ub_base
       TYPE(dbcsr_data_obj), INTENT(INOUT)                :: msg
-      INTEGER, DIMENSION(:), INTENT(IN)                  :: counts, displs
+      INTEGER, DIMENSION(*), INTENT(IN)                  :: counts, displs
       INTEGER, INTENT(IN)                                :: root, grp
 
       CHARACTER(len=*), PARAMETER :: routineN = 'dbcsr_gatherv_any', &
@@ -621,7 +621,7 @@ CONTAINS
       TYPE(dbcsr_data_obj), INTENT(IN)                   :: send_data
       INTEGER, INTENT(IN)                                :: scount
       TYPE(dbcsr_data_obj), INTENT(INOUT)                :: recv_data
-      INTEGER, DIMENSION(:), INTENT(IN)                  :: recv_count, recv_displ
+      INTEGER, DIMENSION(*), INTENT(IN)                  :: recv_count, recv_displ
       INTEGER, INTENT(IN)                                :: gid
 
       CHARACTER(len=*), PARAMETER :: routineN = 'dbcsr_allgatherv', &
@@ -660,16 +660,16 @@ CONTAINS
       !! set, otherwise a alltoall collective call is issued.
       !! see mp_alltoall
 
-      ${type1}$, DIMENSION(:), &
+      ${type1}$, DIMENSION(*), &
          INTENT(in), TARGET                     :: sb
-      INTEGER, DIMENSION(:), INTENT(IN)        :: scount, sdispl
-      ${type1}$, DIMENSION(:), &
+      INTEGER, DIMENSION(*), INTENT(IN)         :: scount, sdispl
+      ${type1}$, DIMENSION(*), &
          INTENT(INOUT), TARGET                  :: rb
-      INTEGER, DIMENSION(:), INTENT(IN)        :: rcount, rdispl
-      TYPE(dbcsr_mp_obj), INTENT(IN)           :: mp_env
+      INTEGER, DIMENSION(*), INTENT(IN)         :: rcount, rdispl
+      TYPE(dbcsr_mp_obj), INTENT(IN)            :: mp_env
          !! MP Environment
-      LOGICAL, INTENT(in), OPTIONAL            :: most_ptp, remainder_ptp, &
-                                                  no_hybrid
+      LOGICAL, INTENT(in), OPTIONAL             :: most_ptp, remainder_ptp, &
+                                                   no_hybrid
          !! Use point-to-point for row/column; default is no
          !! Use point-to-point for remaining; default is no
          !! Use regular global collective; default is no
@@ -685,7 +685,7 @@ CONTAINS
       INTEGER, DIMENSION(:, :), POINTER        :: pgrid
       LOGICAL                                  :: most_collective, &
                                                   remainder_collective, no_h
-      ${type1}$, DIMENSION(:), POINTER           :: send_data_p, recv_data_p
+      ${type1}$, DIMENSION(:), POINTER         :: send_data_p, recv_data_p
       TYPE(dbcsr_mp_obj)                       :: mpe
 
       IF (.NOT. dbcsr_mp_has_subgroups(mp_env)) THEN

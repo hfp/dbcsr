@@ -503,7 +503,7 @@ CONTAINS
 !$OMP        PARALLEL DO DEFAULT(NONE) &
 !$OMP                 PRIVATE(bc,m,n,mn,blk_p,blk_cs,tr,co) &
 !$OMP                 SHARED(pd,br,matrix,ro,row_blk_size,col_blk_size,r_dp, r_sp, c_dp,c_sp) &
-!$OMP                  REDUCTION(+:local_cs_row)
+!$OMP                 REDUCTION(+:local_cs_row)
          DO blk = matrix%row_p(br) + 1, matrix%row_p(br + 1)
             bc = matrix%col_i(blk)
             m = row_blk_size(br)
@@ -558,6 +558,7 @@ CONTAINS
                local_cs_row = local_cs_row + blk_cs
             ENDIF
          ENDDO
+!$OMP        END PARALLEL DO
          local_cs = local_cs + local_cs_row
       ENDDO
       checksum = local_cs
@@ -582,17 +583,27 @@ CONTAINS
       rs = ld; cs = od
       IF (tr) THEN
          CALL swap(rs, cs)
+!$OMP PARALLEL DO DEFAULT(NONE) &
+!$OMP             PRIVATE(r, c) &
+!$OMP             SHARED(DATA, rs, cs, ro, co) &
+!$OMP             REDUCTION(+:pd_cs)
          DO r = 1, rs
             DO c = 1, cs
                pd_cs = pd_cs + DATA(c, r)*LOG(ABS(REAL((ro + r - 1), KIND=dp)*REAL((co + c - 1), KIND=dp)))
             ENDDO
          ENDDO
+!$OMP END PARALLEL DO
       ELSE
+!$OMP PARALLEL DO DEFAULT(NONE) &
+!$OMP             PRIVATE(r, c) &
+!$OMP             SHARED(DATA, rs, cs, ro, co) &
+!$OMP             REDUCTION(+:pd_cs)
          DO c = 1, cs
             DO r = 1, rs
                pd_cs = pd_cs + DATA(r, c)*LOG(ABS(REAL((ro + r - 1), KIND=dp)*REAL((co + c - 1), KIND=dp)))
             ENDDO
          ENDDO
+!$OMP END PARALLEL DO
       ENDIF
    END FUNCTION pd_blk_cs
 

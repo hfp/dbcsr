@@ -63,6 +63,12 @@ set(DBCSR_TESTS
   dbcsr_test_csr_conversions
   )
 
+if (NOT (CMAKE_Fortran_COMPILER_ID STREQUAL "Cray"))
+  set(DBCSR_TESTS_CPP
+     dbcsr_tensor_test_cpp
+     )
+endif ()
+
 # Common object files linked to all tests
 set(dbcsr_unittest_common_SRCS
   dbcsr_test_add.F
@@ -77,6 +83,7 @@ set(dbcsr_tensor_unittest_SRCS dbcsr_tensor_unittest.F)
 set(dbcsr_tas_unittest_SRCS dbcsr_tas_unittest.F)
 set(dbcsr_test_csr_conversions_SRCS dbcsr_test_csr_conversions.F)
 set(dbcsr_test_acc_SRCS dbcsr_test_acc.c)
+set(dbcsr_tensor_test_cpp_SRCS dbcsr_tensor_test.cpp)
 
 foreach (dbcsr_ctests_simple ${DBCSR_CTESTS_SIMPLE})
   add_executable(${dbcsr_ctests_simple} ${${dbcsr_ctests_simple}_SRCS})
@@ -143,6 +150,23 @@ foreach (tests_src ${DBCSR_PERF_SRCS} ${dbcsr_unittest_common_SRCS} ${dbcsr_unit
   get_filename_component(short_file "${tests_src}" NAME)
   set_source_files_properties(${tests_src} PROPERTIES COMPILE_DEFINITIONS __SHORT_FILE__="${short_file}")
 endforeach ()
+
+if (WITH_C_API)
+ foreach (dbcsr_test_cpp ${DBCSR_TESTS_CPP})
+   add_executable(${dbcsr_test_cpp} ${${dbcsr_test_cpp}_SRCS})
+   target_link_libraries(${dbcsr_test_cpp} dbcsr_c MPI::MPI_CXX)
+   # register unittest executable with CMake
+   if (USE_MPI)
+     separate_arguments(MPIEXEC_PREFLAGS)
+     add_test(NAME ${dbcsr_test_cpp} COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${num_ranks} ${MPIEXEC_PREFLAGS} ./${dbcsr_test_cpp} ${MPIEXEC_POSTFLAGS})
+   else ()
+     add_test(NAME ${dbcsr_test_cpp} COMMAND ./${dbcsr_test_cpp})
+   endif ()
+   if (OpenMP_FOUND)
+     set_tests_properties(${dbcsr_test_cpp} PROPERTIES ENVIRONMENT OMP_NUM_THREADS=${TEST_OMP_THREADS})
+   endif ()
+ endforeach ()
+endif ()
 
 # =================================== GPU BACKEND TESTS (CUDA / HIP)
 if (USE_CUDA OR USE_HIP)

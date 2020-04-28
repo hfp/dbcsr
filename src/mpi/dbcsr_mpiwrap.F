@@ -744,7 +744,7 @@ CONTAINS
       INTEGER, INTENT(IN)                      :: mp_comm
          !! [output] : handle of the default communicator
       INTEGER, INTENT(out)                     :: mp_new_comm
-      INTEGER, DIMENSION(:)                    :: ranks_order
+      INTEGER, DIMENSION(:), CONTIGUOUS        :: ranks_order
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_reordering', &
                                      routineP = moduleN//':'//routineN
@@ -1173,8 +1173,9 @@ CONTAINS
    SUBROUTINE mp_cart_create(comm_old, ndims, dims, pos, comm_cart)
 
       INTEGER, INTENT(IN)                      :: comm_old, ndims
-      INTEGER, INTENT(INOUT)                   :: dims(:)
-      INTEGER, INTENT(OUT)                     :: pos(:), comm_cart
+      INTEGER, CONTIGUOUS, INTENT(INOUT)       :: dims(:)
+      INTEGER, CONTIGUOUS, INTENT(OUT)         :: pos(:)
+      INTEGER, INTENT(OUT)                     :: comm_cart
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_cart_create', &
                                      routineP = moduleN//':'//routineN
@@ -1226,7 +1227,7 @@ CONTAINS
    SUBROUTINE mp_cart_coords(comm, rank, coords)
 
       INTEGER, INTENT(IN)                                :: comm, rank
-      INTEGER, DIMENSION(:), INTENT(OUT)                 :: coords
+      INTEGER, DIMENSION(:), CONTIGUOUS, INTENT(OUT)     :: coords
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_cart_coords', routineP = moduleN//':'//routineN
 
@@ -1289,7 +1290,7 @@ CONTAINS
    SUBROUTINE mp_cart_sub(comm, rdim, sub_comm)
 
       INTEGER, INTENT(IN)                                :: comm
-      LOGICAL, DIMENSION(:), INTENT(IN)                  :: rdim
+      LOGICAL, DIMENSION(:), CONTIGUOUS, INTENT(IN)      :: rdim
       INTEGER, INTENT(OUT)                               :: sub_comm
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_cart_sub', routineP = moduleN//':'//routineN
@@ -1363,7 +1364,7 @@ CONTAINS
    SUBROUTINE mp_rank_compare(comm1, comm2, rank)
 
       INTEGER, INTENT(IN)                      :: comm1, comm2
-      INTEGER, DIMENSION(:), INTENT(OUT)       :: rank
+      INTEGER, DIMENSION(:), CONTIGUOUS, INTENT(OUT) :: rank
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_rank_compare', &
                                      routineP = moduleN//':'//routineN
@@ -1416,7 +1417,7 @@ CONTAINS
    SUBROUTINE mp_dims_create(nodes, dims)
 
       INTEGER, INTENT(IN)                                :: nodes
-      INTEGER, DIMENSION(:), INTENT(INOUT)               :: dims
+      INTEGER, DIMENSION(:), CONTIGUOUS, INTENT(INOUT)   :: dims
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_dims_create', routineP = moduleN//':'//routineN
 
@@ -1440,7 +1441,7 @@ CONTAINS
 !..mp_cart_rank
    SUBROUTINE mp_cart_rank(group, pos, rank)
       INTEGER, INTENT(IN)                                :: group
-      INTEGER, DIMENSION(:), INTENT(IN)                  :: pos
+      INTEGER, DIMENSION(:), CONTIGUOUS, INTENT(IN)      :: pos
       INTEGER, INTENT(OUT)                               :: rank
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_cart_rank', routineP = moduleN//':'//routineN
@@ -1488,7 +1489,7 @@ CONTAINS
       !! @note
       !! see isendrecv
 
-      INTEGER, DIMENSION(:), INTENT(inout)     :: requests
+      INTEGER, DIMENSION(:), CONTIGUOUS, INTENT(inout) :: requests
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_waitall_1', &
                                      routineP = moduleN//':'//routineN
@@ -1516,7 +1517,7 @@ CONTAINS
 
    SUBROUTINE mp_waitall_2(requests)
       !! waits for completion of the given requests
-      INTEGER, DIMENSION(:, :), INTENT(inout)  :: requests
+      INTEGER, DIMENSION(:, :), CONTIGUOUS, INTENT(inout)  :: requests
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_waitall_2', &
                                      routineP = moduleN//':'//routineN
@@ -1561,7 +1562,7 @@ CONTAINS
 
    SUBROUTINE mp_waitany(requests, completed)
       !! waits for completion of any of the given requests
-      INTEGER, DIMENSION(:), INTENT(inout)     :: requests
+      INTEGER, DIMENSION(:), CONTIGUOUS, INTENT(inout) :: requests
       INTEGER, INTENT(out)                     :: completed
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_waitany', &
@@ -1589,7 +1590,7 @@ CONTAINS
 
    FUNCTION mp_testall_tv(requests) RESULT(flag)
       !! Tests for completion of the given requests.
-      !! \brief We use mpi_test so that we can use a single status.
+      !! We use mpi_test so that we can use a single status.
 
       INTEGER, DIMENSION(:)                 :: requests
          !! the list of requests to test
@@ -1642,7 +1643,7 @@ CONTAINS
 
    SUBROUTINE mp_testany_1(requests, completed, flag)
       !! tests for completion of the given requests
-      INTEGER, DIMENSION(:), INTENT(inout)  :: requests
+      INTEGER, DIMENSION(:), CONTIGUOUS, INTENT(inout) :: requests
       INTEGER, INTENT(out), OPTIONAL           :: completed
       LOGICAL, INTENT(out), OPTIONAL           :: flag
 
@@ -1674,7 +1675,7 @@ CONTAINS
 
    SUBROUTINE mp_testany_2(requests, completed, flag)
       !! tests for completion of the given requests
-      INTEGER, DIMENSION(:, :), INTENT(inout)   :: requests
+      INTEGER, DIMENSION(:, :), CONTIGUOUS, INTENT(inout)   :: requests
       INTEGER, INTENT(out), OPTIONAL           :: completed
       LOGICAL, INTENT(out), OPTIONAL           :: flag
 
@@ -1953,7 +1954,7 @@ CONTAINS
    END SUBROUTINE mp_bcast_b
 
    SUBROUTINE mp_bcast_bv(msg, source, gid)
-      LOGICAL                                            :: msg(:)
+      LOGICAL, CONTIGUOUS                                :: msg(:)
       INTEGER                                            :: source, gid
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_bcast_bv', routineP = moduleN//':'//routineN
@@ -1982,7 +1983,7 @@ CONTAINS
       !! @note
       !! arrays can be pointers or assumed shape, but they must be contiguous!
 
-      LOGICAL, DIMENSION(:)                    :: msgin
+      LOGICAL, DIMENSION(:), CONTIGUOUS        :: msgin
          !! the input message
       INTEGER, INTENT(IN)                      :: dest, comm
          !! the destination processor
@@ -2038,7 +2039,7 @@ CONTAINS
       !! @note
       !! arrays can be pointers or assumed shape, but they must be contiguous!
 
-      LOGICAL, DIMENSION(:)                    :: msgout
+      LOGICAL, DIMENSION(:), CONTIGUOUS        :: msgout
          !! the received message
       INTEGER, INTENT(IN)                      :: source, comm
          !! the source processor
@@ -2204,7 +2205,7 @@ CONTAINS
       !! Invalid data types
       !! This routine is invalid for (int_8) data!
 
-      REAL(kind=real_8), INTENT(INOUT)         :: msg(:)
+      REAL(kind=real_8), CONTIGUOUS, INTENT(INOUT)         :: msg(:)
          !! Find location of maximum element among these data (input).
       INTEGER, INTENT(IN)                      :: gid
          !! Message passing environment identifier
@@ -2250,7 +2251,7 @@ CONTAINS
       !! Invalid data types
       !! This routine is invalid for (int_8) data!
 
-      REAL(kind=real_8), INTENT(INOUT)         :: msg(:)
+      REAL(kind=real_8), CONTIGUOUS, INTENT(INOUT)         :: msg(:)
          !! Find location of maximum element among these data (input).
       INTEGER, INTENT(IN)                      :: gid
          !! Message passing environment identifier
@@ -2319,7 +2320,7 @@ CONTAINS
       !! MPI mapping
       !! mpi_allreduce
 
-      LOGICAL, DIMENSION(:), INTENT(INOUT)               :: msg
+      LOGICAL, DIMENSION(:), CONTIGUOUS, INTENT(INOUT)   :: msg
          !! Datum to perform inclusive disjunction (input) and resultant inclusive disjunction (output)
       INTEGER, INTENT(IN)                                :: gid
          !! Message passing environment identifier
@@ -2349,7 +2350,7 @@ CONTAINS
       !! MPI mapping
       !! mpi_allreduce
 
-      LOGICAL, DIMENSION(:), INTENT(INOUT)               :: msg
+      LOGICAL, DIMENSION(:), CONTIGUOUS, INTENT(INOUT)   :: msg
          !! Datum to perform inclusive disjunction (input) and resultant inclusive disjunction (output)
       INTEGER, INTENT(IN)                                :: gid
          !! Message passing environment identifier
@@ -3196,9 +3197,9 @@ CONTAINS
       !! All-to-all data exchange, rank 4 data, equal sizes
       !! @note see mp_alltoall_${nametype1}$
 
-      ${type1}$, DIMENSION(:, :, :, :), &
+      ${type1}$, DIMENSION(:, :, :, :), CONTIGUOUS, &
          INTENT(IN)                            :: sb
-      ${type1}$, DIMENSION(:, :, :, :), &
+      ${type1}$, DIMENSION(:, :, :, :), CONTIGUOUS, &
          INTENT(OUT)                           :: rb
       INTEGER, INTENT(IN)                      :: count, group
 
@@ -3271,7 +3272,7 @@ CONTAINS
       !! Send rank-1 data to another process
       !! @note see mp_send_${nametype1}$
 
-      ${type1}$                                :: msg(:)
+      ${type1}$, CONTIGUOUS                    :: msg(:)
          !! Rank-1 data to send
       INTEGER                                  :: dest, tag, gid
 
@@ -3348,7 +3349,7 @@ CONTAINS
       !! Receive rank-1 data from another process
       !! @note see mp_recv_${nametype1}$
 
-      ${type1}$, INTENT(INOUT)                 :: msg(:)
+      ${type1}$, CONTIGUOUS, INTENT(INOUT)     :: msg(:)
          !! Place received data into this rank-1 array
       INTEGER, INTENT(INOUT)                   :: source, tag
       INTEGER, INTENT(IN)                      :: gid
@@ -3464,7 +3465,7 @@ CONTAINS
       !! Broadcasts rank-1 data to all processes
       !! @note see mp_bcast_${nametype1}$1
 
-      ${type1}$                                :: msg(:)
+      ${type1}$, CONTIGUOUS                    :: msg(:)
          !! Data to broadcast
       INTEGER                                  :: source, gid
 
@@ -3492,7 +3493,7 @@ CONTAINS
       !! Broadcasts rank-1 data to all processes
       !! @note see mp_bcast_${nametype1}$1
 
-      ${type1}$                                :: msg(:)
+      ${type1}$, CONTIGUOUS                    :: msg(:)
          !! Data to broadcast
       INTEGER                                  :: source, gid
       INTEGER, INTENT(INOUT)                   :: request
@@ -3529,7 +3530,7 @@ CONTAINS
       !! Broadcasts rank-2 data to all processes
       !! @note see mp_bcast_${nametype1}$1
 
-      ${type1}$                                :: msg(:, :)
+      ${type1}$, CONTIGUOUS                    :: msg(:, :)
          !! Data to broadcast
       INTEGER                                  :: source, gid
 
@@ -3557,7 +3558,7 @@ CONTAINS
       !! Broadcasts rank-3 data to all processes
       !! @note see mp_bcast_${nametype1}$1
 
-      ${type1}$                                  :: msg(:, :, :)
+      ${type1}$, CONTIGUOUS                    :: msg(:, :, :)
          !! Data to broadcast
       INTEGER                                  :: source, gid
 
@@ -3649,7 +3650,7 @@ CONTAINS
       !! Element-wise sum of a rank-1 array on all processes.
       !! @note see mp_sum_${nametype1}$
 
-      ${type1}$, INTENT(INOUT)                 :: msg(:)
+      ${type1}$, CONTIGUOUS, INTENT(INOUT)     :: msg(:)
          !! Vector to sum and result
       INTEGER, INTENT(IN)                      :: gid
       INTEGER, INTENT(INOUT)                   :: request
@@ -3954,7 +3955,7 @@ CONTAINS
       !! all processes.
       !! @note see mp_max_${nametype1}$
 
-      ${type1}$, INTENT(INOUT)                 :: msg(:)
+      ${type1}$, CONTIGUOUS, INTENT(INOUT)     :: msg(:)
          !! Find maximum among these data (input) and maximum (output)
       INTEGER, INTENT(IN)                      :: gid
 
@@ -4077,9 +4078,9 @@ CONTAINS
       !! MPI mapping
       !! mpi_scatter
 
-      ${type1}$, INTENT(IN)                    :: msg_scatter(:)
+      ${type1}$, CONTIGUOUS, INTENT(IN)        :: msg_scatter(:)
          !! Data to scatter (for root process)
-      ${type1}$, INTENT(OUT)                   :: msg(:)
+      ${type1}$, CONTIGUOUS, INTENT(OUT)       :: msg(:)
          !! Received data
       INTEGER, INTENT(IN)                      :: root, gid
          !! Process which scatters data
@@ -4113,7 +4114,7 @@ CONTAINS
       !! MPI mapping
       !! mpi_scatter
 
-      ${type1}$, INTENT(IN)                    :: msg_scatter(:)
+      ${type1}$, CONTIGUOUS, INTENT(IN)        :: msg_scatter(:)
          !! Data to scatter (for root process)
       ${type1}$, INTENT(INOUT)                 :: msg
       INTEGER, INTENT(IN)                      :: root, gid
@@ -4159,9 +4160,9 @@ CONTAINS
       !! MPI mapping
       !! mpi_scatter
 
-      ${type1}$, INTENT(IN)                    :: msg_scatter(:, :)
+      ${type1}$, CONTIGUOUS, INTENT(IN)        :: msg_scatter(:, :)
          !! Data to scatter (for root process)
-      ${type1}$, INTENT(INOUT)                 :: msg(:)
+      ${type1}$, CONTIGUOUS, INTENT(INOUT)     :: msg(:)
       INTEGER, INTENT(IN)                      :: root, gid
          !! Process which scatters data
          !! Message passing environment identifier
@@ -4205,10 +4206,10 @@ CONTAINS
       !! MPI mapping
       !! mpi_scatter
 
-      ${type1}$, INTENT(IN)                    :: msg_scatter(:)
+      ${type1}$, CONTIGUOUS, INTENT(IN)        :: msg_scatter(:)
          !! Data to scatter (for root process)
-      INTEGER, INTENT(IN)                      :: sendcounts(:), displs(:)
-      ${type1}$, INTENT(INOUT)                 :: msg(:)
+      INTEGER, CONTIGUOUS, INTENT(IN)          :: sendcounts(:), displs(:)
+      ${type1}$, CONTIGUOUS, INTENT(INOUT)     :: msg(:)
       INTEGER, INTENT(IN)                      :: recvcount, root, gid
          !! Process which scatters data
          !! Message passing environment identifier
@@ -4259,7 +4260,7 @@ CONTAINS
 
       ${type1}$, INTENT(IN)                    :: msg
          !! Datum to send to root
-      ${type1}$, INTENT(OUT)                   :: msg_gather(:)
+      ${type1}$, CONTIGUOUS, INTENT(OUT)       :: msg_gather(:)
          !! Received data (on root)
       INTEGER, INTENT(IN)                      :: root, gid
          !! Process which gathers the data
@@ -4297,9 +4298,9 @@ CONTAINS
       !! mpi_gather
       !! @note see mp_gather_${nametype1}$
 
-      ${type1}$, INTENT(IN)                    :: msg(:)
+      ${type1}$, CONTIGUOUS, INTENT(IN)        :: msg(:)
          !! Datum to send to root
-      ${type1}$, INTENT(OUT)                   :: msg_gather(:)
+      ${type1}$, CONTIGUOUS, INTENT(OUT)       :: msg_gather(:)
       INTEGER, INTENT(IN)                      :: root, gid
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_gather_${nametype1}$v', &
@@ -4334,9 +4335,9 @@ CONTAINS
       !! mpi_gather
       !! @note see mp_gather_${nametype1}$
 
-      ${type1}$, INTENT(IN)                    :: msg(:, :)
+      ${type1}$, CONTIGUOUS, INTENT(IN)        :: msg(:, :)
          !! Datum to send to root
-      ${type1}$, INTENT(OUT)                   :: msg_gather(:, :)
+      ${type1}$, CONTIGUOUS, INTENT(OUT)       :: msg_gather(:, :)
       INTEGER, INTENT(IN)                      :: root, gid
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_gather_${nametype1}$m', &
@@ -4373,11 +4374,11 @@ CONTAINS
       !! MPI mapping
       !! mpi_gather
 
-      ${type1}$, DIMENSION(:), INTENT(IN)      :: sendbuf
+      ${type1}$, DIMENSION(:), CONTIGUOUS, INTENT(IN)      :: sendbuf
          !! Data to send to root
-      ${type1}$, DIMENSION(:), INTENT(OUT)     :: recvbuf
+      ${type1}$, DIMENSION(:), CONTIGUOUS, INTENT(OUT)     :: recvbuf
          !! Received data (on root)
-      INTEGER, DIMENSION(:), INTENT(IN)        :: recvcounts, displs
+      INTEGER, DIMENSION(:), CONTIGUOUS, INTENT(IN)        :: recvcounts, displs
          !! Sizes of data received from processes
          !! Offsets of data received from processes
       INTEGER, INTENT(IN)                      :: root, comm
@@ -4424,11 +4425,11 @@ CONTAINS
       !! MPI mapping
       !! mpi_gather
 
-      ${type1}$, DIMENSION(:), INTENT(IN)      :: sendbuf
+      ${type1}$, DIMENSION(:), CONTIGUOUS, INTENT(IN)      :: sendbuf
          !! Data to send to root
-      ${type1}$, DIMENSION(:), INTENT(OUT)     :: recvbuf
+      ${type1}$, DIMENSION(:), CONTIGUOUS, INTENT(OUT)     :: recvbuf
          !! Received data (on root)
-      INTEGER, DIMENSION(:), INTENT(IN)        :: recvcounts, displs
+      INTEGER, DIMENSION(:), CONTIGUOUS, INTENT(IN)        :: recvcounts, displs
          !! Sizes of data received from processes
          !! Offsets of data received from processes
       INTEGER, INTENT(IN)                      :: sendcount, root, comm
@@ -4486,7 +4487,7 @@ CONTAINS
 
       ${type1}$, INTENT(IN)                    :: msgout
          !! Datum to send
-      ${type1}$, INTENT(OUT)                   :: msgin(:)
+      ${type1}$, CONTIGUOUS, INTENT(OUT)       :: msgin(:)
          !! Received data
       INTEGER, INTENT(IN)                      :: gid
          !! Message passing environment identifier
@@ -4528,7 +4529,7 @@ CONTAINS
 
       ${type1}$, INTENT(IN)                    :: msgout
          !! Datum to send
-      ${type1}$, INTENT(OUT)                   :: msgin(:, :)
+      ${type1}$, CONTIGUOUS, INTENT(OUT)       :: msgin(:, :)
          !! Received data
       INTEGER, INTENT(IN)                      :: gid
          !! Message passing environment identifier
@@ -4570,7 +4571,7 @@ CONTAINS
 
       ${type1}$, INTENT(IN)                    :: msgout
          !! Datum to send
-      ${type1}$, INTENT(OUT)                   :: msgin(:)
+      ${type1}$, CONTIGUOUS, INTENT(OUT)       :: msgin(:)
          !! Received data
       INTEGER, INTENT(IN)                      :: gid
          !! Message passing environment identifier
@@ -4623,9 +4624,9 @@ CONTAINS
       !! MPI mapping
       !! mpi_allgather
 
-      ${type1}$, INTENT(IN)                    :: msgout(:)
+      ${type1}$, CONTIGUOUS, INTENT(IN)        :: msgout(:)
          !! Rank-1 data to send
-      ${type1}$, INTENT(OUT)                   :: msgin(:, :)
+      ${type1}$, CONTIGUOUS, INTENT(OUT)       :: msgin(:, :)
          !! Received data
       INTEGER, INTENT(IN)                      :: gid
          !! Message passing environment identifier
@@ -4660,9 +4661,9 @@ CONTAINS
       !! same data
       !! @note see mp_allgather_${nametype1}$12
 
-      ${type1}$, INTENT(IN)                    :: msgout(:, :)
+      ${type1}$, CONTIGUOUS, INTENT(IN)        :: msgout(:, :)
          !! Rank-2 data to send
-      ${type1}$, INTENT(OUT)                   :: msgin(:, :, :)
+      ${type1}$, CONTIGUOUS, INTENT(OUT)       :: msgin(:, :, :)
       INTEGER, INTENT(IN)                      :: gid
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_allgather_${nametype1}$23', &
@@ -4695,9 +4696,9 @@ CONTAINS
       !! same data
       !! @note see mp_allgather_${nametype1}$12
 
-      ${type1}$, INTENT(IN)                    :: msgout(:, :, :)
+      ${type1}$, CONTIGUOUS, INTENT(IN)        :: msgout(:, :, :)
          !! Rank-3 data to send
-      ${type1}$, INTENT(OUT)                   :: msgin(:, :, :, :)
+      ${type1}$, CONTIGUOUS, INTENT(OUT)       :: msgin(:, :, :, :)
       INTEGER, INTENT(IN)                      :: gid
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_allgather_${nametype1}$34', &
@@ -4730,9 +4731,9 @@ CONTAINS
       !! same data
       !! @note see mp_allgather_${nametype1}$12
 
-      ${type1}$, INTENT(IN)                    :: msgout(:, :)
+      ${type1}$, CONTIGUOUS, INTENT(IN)        :: msgout(:, :)
          !! Rank-2 data to send
-      ${type1}$, INTENT(OUT)                   :: msgin(:, :)
+      ${type1}$, CONTIGUOUS, INTENT(OUT)       :: msgin(:, :)
       INTEGER, INTENT(IN)                      :: gid
 
       CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_allgather_${nametype1}$22', &
@@ -4765,9 +4766,9 @@ CONTAINS
       !! same data
       !! @note see mp_allgather_${nametype1}$11
 
-      ${type1}$, INTENT(IN)                    :: msgout(:)
+      ${type1}$, CONTIGUOUS, INTENT(IN)        :: msgout(:)
          !! Rank-1 data to send
-      ${type1}$, INTENT(OUT)                   :: msgin(:)
+      ${type1}$, CONTIGUOUS, INTENT(OUT)       :: msgin(:)
       INTEGER, INTENT(IN)                      :: gid
       INTEGER, INTENT(OUT)                     :: request
 
@@ -4812,9 +4813,9 @@ CONTAINS
       !! same data
       !! @note see mp_allgather_${nametype1}$12
 
-      ${type1}$, INTENT(IN)                    :: msgout(:)
+      ${type1}$, CONTIGUOUS, INTENT(IN)        :: msgout(:)
          !! Rank-2 data to send
-      ${type1}$, INTENT(OUT)                   :: msgin(:, :, :)
+      ${type1}$, CONTIGUOUS, INTENT(OUT)       :: msgin(:, :, :)
       INTEGER, INTENT(IN)                      :: gid
       INTEGER, INTENT(OUT)                     :: request
 
@@ -4859,9 +4860,9 @@ CONTAINS
       !! same data
       !! @note see mp_allgather_${nametype1}$12
 
-      ${type1}$, INTENT(IN)                    :: msgout(:, :)
+      ${type1}$, CONTIGUOUS, INTENT(IN)        :: msgout(:, :)
          !! Rank-2 data to send
-      ${type1}$, INTENT(OUT)                   :: msgin(:, :)
+      ${type1}$, CONTIGUOUS, INTENT(OUT)       :: msgin(:, :)
       INTEGER, INTENT(IN)                      :: gid
       INTEGER, INTENT(OUT)                     :: request
 
@@ -4906,9 +4907,9 @@ CONTAINS
       !! same data
       !! @note see mp_allgather_${nametype1}$12
 
-      ${type1}$, INTENT(IN)                    :: msgout(:, :)
+      ${type1}$, CONTIGUOUS, INTENT(IN)        :: msgout(:, :)
          !! Rank-2 data to send
-      ${type1}$, INTENT(OUT)                   :: msgin(:, :, :, :)
+      ${type1}$, CONTIGUOUS, INTENT(OUT)       :: msgin(:, :, :, :)
       INTEGER, INTENT(IN)                      :: gid
       INTEGER, INTENT(OUT)                     :: request
 
@@ -4953,9 +4954,9 @@ CONTAINS
       !! same data
       !! @note see mp_allgather_${nametype1}$12
 
-      ${type1}$, INTENT(IN)                    :: msgout(:, :, :)
+      ${type1}$, CONTIGUOUS, INTENT(IN)        :: msgout(:, :, :)
          !! Rank-3 data to send
-      ${type1}$, INTENT(OUT)                   :: msgin(:, :, :)
+      ${type1}$, CONTIGUOUS, INTENT(OUT)       :: msgin(:, :, :)
       INTEGER, INTENT(IN)                      :: gid
       INTEGER, INTENT(OUT)                     :: request
 
@@ -5011,11 +5012,12 @@ CONTAINS
       !! MPI mapping
       !! mpi_allgather
 
-      ${type1}$, INTENT(IN)                    :: msgout(:)
+      ${type1}$, CONTIGUOUS, INTENT(IN)        :: msgout(:)
          !! Rank-1 data to send
-      ${type1}$, INTENT(OUT)                   :: msgin(:)
+      ${type1}$, CONTIGUOUS, INTENT(OUT)       :: msgin(:)
          !! Received data
-      INTEGER, INTENT(IN)                      :: rcount(:), rdispl(:), gid
+      INTEGER, CONTIGUOUS, INTENT(IN)          :: rcount(:), rdispl(:)
+      INTEGER, INTENT(IN)                      :: gid
          !! Size of sent data for every process
          !! Offset of sent data for every process
          !! Message passing environment identifier
@@ -5061,11 +5063,12 @@ CONTAINS
       !! MPI mapping
       !! mpi_allgather
 
-      ${type1}$, INTENT(IN)                    :: msgout(:)
+      ${type1}$, CONTIGUOUS, INTENT(IN)        :: msgout(:)
          !! Rank-1 data to send
-      ${type1}$, INTENT(OUT)                   :: msgin(:)
+      ${type1}$, CONTIGUOUS, INTENT(OUT)       :: msgin(:)
          !! Received data
-      INTEGER, INTENT(IN)                      :: rcount(:), rdispl(:), gid
+      INTEGER, CONTIGUOUS, INTENT(IN)          :: rcount(:), rdispl(:)
+      INTEGER, INTENT(IN)                      :: gid
          !! Size of sent data for every process
          !! Offset of sent data for every process
          !! Message passing environment identifier
@@ -5123,11 +5126,12 @@ CONTAINS
       !! MPI mapping
       !! mpi_allgather
 
-      ${type1}$, INTENT(IN)                    :: msgout(:)
+      ${type1}$, CONTIGUOUS, INTENT(IN)         :: msgout(:)
          !! Rank-1 data to send
-      ${type1}$, INTENT(OUT)                   :: msgin(:)
+      ${type1}$, CONTIGUOUS, INTENT(OUT)       :: msgin(:)
          !! Received data
-      INTEGER, INTENT(IN)                      :: rcount(:, :), rdispl(:, :), gid
+      INTEGER, CONTIGUOUS, INTENT(IN)          :: rcount(:, :), rdispl(:, :)
+      INTEGER, INTENT(IN)                      :: gid
          !! Size of sent data for every process
          !! Offset of sent data for every process
          !! Message passing environment identifier
@@ -5174,8 +5178,8 @@ CONTAINS
       !! wrapper needed to deal with interfaces as present in openmpi 1.8.1
       !! the issue is with the rank of rcount and rdispl
 
-      ${type1}$, INTENT(IN)                      :: msgout(:)
-      ${type1}$, INTENT(OUT)                     :: msgin(:)
+      ${type1}$, CONTIGUOUS, INTENT(IN)                      :: msgout(:)
+      ${type1}$, CONTIGUOUS, INTENT(OUT)                     :: msgin(:)
       INTEGER, INTENT(IN)                      :: rsize
       INTEGER, INTENT(IN)                      :: rcount(rsize), rdispl(rsize), gid, scount
       INTEGER, INTENT(INOUT)                   :: request, ierr
@@ -5189,11 +5193,12 @@ CONTAINS
    SUBROUTINE mp_sum_scatter_${nametype1}$v(msgout, msgin, rcount, gid)
       !! Sums a vector and partitions the result among processes
 
-      ${type1}$, INTENT(IN)                    :: msgout(:)
+      ${type1}$, CONTIGUOUS, INTENT(IN)        :: msgout(:)
          !! Data to sum
-      ${type1}$, INTENT(OUT)                   :: msgin(:)
+      ${type1}$, CONTIGUOUS, INTENT(OUT)       :: msgin(:)
          !! Received portion of summed data
-      INTEGER, INTENT(IN)                      :: rcount(:), gid
+      INTEGER, CONTIGUOUS, INTENT(IN)          :: rcount(:)
+      INTEGER, INTENT(IN)                      :: gid
          !! Partition sizes of the summed data for every process
          !! Message passing environment identifier
 
@@ -5223,11 +5228,11 @@ CONTAINS
    SUBROUTINE mp_sendrecv_${nametype1}$v(msgin, dest, msgout, source, comm)
       !! Sends and receives vector data
 
-      ${type1}$, INTENT(IN)                    :: msgin(:)
+      ${type1}$, CONTIGUOUS, INTENT(IN)        :: msgin(:)
          !! Data to send
       INTEGER, INTENT(IN)                      :: dest
          !! Process to send data to
-      ${type1}$, INTENT(OUT)                   :: msgout(:)
+      ${type1}$, CONTIGUOUS, INTENT(OUT)       :: msgout(:)
          !! Received data
       INTEGER, INTENT(IN)                      :: source, comm
          !! Process from which to receive
@@ -5331,11 +5336,11 @@ CONTAINS
       !! @note
       !! arrays can be pointers or assumed shape, but they must be contiguous!
 
-      ${type1}$, DIMENSION(:)                  :: msgin
+      ${type1}$, CONTIGUOUS, DIMENSION(:)      :: msgin
          !! Vector data to send
       INTEGER, INTENT(IN)                      :: dest
          !! Which process to send to
-      ${type1}$, DIMENSION(:)                  :: msgout
+      ${type1}$, CONTIGUOUS, DIMENSION(:)      :: msgout
          !! Receive data into this pointer
       INTEGER, INTENT(IN)                      :: source, comm
          !! Process to receive from
@@ -5403,7 +5408,7 @@ CONTAINS
       !! @note
       !! arrays can be pointers or assumed shape, but they must be contiguous!
 
-      ${type1}$, DIMENSION(:)                  :: msgin
+      ${type1}$, CONTIGUOUS, DIMENSION(:)      :: msgin
       INTEGER, INTENT(IN)                      :: dest, comm
       INTEGER, INTENT(out)                     :: request
       INTEGER, INTENT(in), OPTIONAL            :: tag
@@ -5457,7 +5462,7 @@ CONTAINS
       !! @note
       !! arrays can be pointers or assumed shape, but they must be contiguous!
 
-      ${type1}$, DIMENSION(:, :)               :: msgin
+      ${type1}$, DIMENSION(:, :), CONTIGUOUS   :: msgin
       INTEGER, INTENT(IN)                      :: dest, comm
       INTEGER, INTENT(out)                     :: request
       INTEGER, INTENT(in), OPTIONAL            :: tag
@@ -5509,7 +5514,7 @@ CONTAINS
       !! @note
       !! arrays can be pointers or assumed shape, but they must be contiguous!
 
-      ${type1}$, DIMENSION(:)                  :: msgout
+      ${type1}$, CONTIGUOUS, DIMENSION(:)      :: msgout
       INTEGER, INTENT(IN)                      :: source, comm
       INTEGER, INTENT(out)                     :: request
       INTEGER, INTENT(in), OPTIONAL            :: tag
@@ -5562,7 +5567,7 @@ CONTAINS
       !! @note
       !! arrays can be pointers or assumed shape, but they must be contiguous!
 
-      ${type1}$, DIMENSION(:, :)               :: msgout
+      ${type1}$, DIMENSION(:, :), CONTIGUOUS   :: msgout
       INTEGER, INTENT(IN)                      :: source, comm
       INTEGER, INTENT(out)                     :: request
       INTEGER, INTENT(in), OPTIONAL            :: tag
@@ -5611,7 +5616,7 @@ CONTAINS
       !! @note
       !! arrays can be pointers or assumed shape, but they must be contiguous!
 
-      ${type1}$, DIMENSION(:)        :: base
+      ${type1}$, CONTIGUOUS, DIMENSION(:) :: base
       INTEGER, INTENT(IN)            :: comm
       INTEGER, INTENT(INOUT)         :: win
 
@@ -5650,9 +5655,9 @@ CONTAINS
       !! @note
       !! arrays can be pointers or assumed shape, but they must be contiguous!
 
-      ${type1}$, DIMENSION(:)                             :: base
+      ${type1}$, CONTIGUOUS, DIMENSION(:)                 :: base
       INTEGER, INTENT(IN)                                 :: source, win
-      ${type1}$, DIMENSION(:)                             :: win_data
+      ${type1}$, CONTIGUOUS, DIMENSION(:)                 :: win_data
       INTEGER, INTENT(IN), OPTIONAL                       :: myproc, disp
       INTEGER, INTENT(OUT)                                :: request
       TYPE(mp_type_descriptor_type), INTENT(IN), OPTIONAL :: origin_datatype, target_datatype
@@ -5786,7 +5791,7 @@ CONTAINS
    SUBROUTINE mp_allocate_${nametype1}$ (DATA, len, stat)
       !! Allocates special parallel memory
 
-      ${type1}$, DIMENSION(:), POINTER    :: DATA
+      ${type1}$, DIMENSION(:), POINTER, CONTIGUOUS :: DATA
          !! pointer to integer array to allocate
       INTEGER, INTENT(IN)                 :: len
          !! number of integers to allocate
@@ -5818,7 +5823,7 @@ CONTAINS
    SUBROUTINE mp_deallocate_${nametype1}$ (DATA, stat)
       !! Deallocates special parallel memory
 
-      ${type1}$, DIMENSION(:), POINTER    :: DATA
+      ${type1}$, DIMENSION(:), POINTER, CONTIGUOUS :: DATA
          !! pointer to special memory to deallocate
       INTEGER, INTENT(OUT), OPTIONAL      :: stat
 
@@ -6101,7 +6106,7 @@ CONTAINS
       !! Allocates an array, using MPI_ALLOC_MEM ... this is hackish
       !! as the Fortran version returns an integer, which we take to be a C_PTR
 
-      ${type1}$, DIMENSION(:), POINTER         :: DATA
+      ${type1}$, DIMENSION(:), POINTER, CONTIGUOUS :: DATA
          !! data array to allocate
       INTEGER, INTENT(IN)                      :: len
          !! length (in data elements) of data array allocation
@@ -6141,7 +6146,7 @@ CONTAINS
       !! as the Fortran version takes an integer, which we hope to get by reference
 
       ${type1}$, DIMENSION(:), &
-         POINTER                               :: DATA
+         POINTER, CONTIGUOUS                   :: DATA
          !! data array to allocate
       INTEGER, INTENT(OUT), OPTIONAL           :: stat
          !! allocation status result

@@ -215,7 +215,7 @@ CONTAINS
          dense_template = dbcsr_type()
          CALL dbcsr_create(dense_template, template=matrix, &
                            dist=dense_rdist%i%main, &
-                           row_blk_size=array_data(row_blk_size), col_blk_size=array_data(col_blk_size))
+                           row_blk_size_obj=row_blk_size, col_blk_size_obj=col_blk_size)
          CALL dbcsr_make_images_dense(m2s, dense_rdist, &
                                       row_map=row_map, col_map=col_map, &
                                       join_cols=use_dense_mult, join_rows=ab_dense, &
@@ -314,9 +314,9 @@ CONTAINS
                                                             myt_total_send_count, &
                                                             total_recv_count, total_send_count
       INTEGER, ALLOCATABLE, DIMENSION(:, :, :, :)        :: myt_send_count, recv_count, send_count
-      INTEGER, DIMENSION(:), POINTER                     :: col_blk_size, col_dist, col_img_dist, &
+      INTEGER, DIMENSION(:), CONTIGUOUS, POINTER         :: col_blk_size, col_dist, col_img_dist, &
                                                             row_blk_size, row_dist, row_img_dist
-      INTEGER, DIMENSION(:, :), POINTER                  :: blacs2mpi
+      INTEGER, DIMENSION(:, :), CONTIGUOUS, POINTER      :: blacs2mpi
       LOGICAL                                            :: nocopy, tr
       TYPE(dbcsr_data_obj)                               :: received_data_area, recv_data_area, &
                                                             send_data_area
@@ -427,8 +427,8 @@ CONTAINS
             ums%mats(row_img, col_img) = dbcsr_type()
             CALL dbcsr_create(ums%mats(row_img, col_img), "imaged "//sm%name, &
                               target_dist, &
-                              dbcsr_type_no_symmetry, array_data(sm%row_blk_size), array_data(sm%col_blk_size), &
-                              sm%row_blk_size, sm%col_blk_size, &
+                              dbcsr_type_no_symmetry, &
+                              row_blk_size_obj=sm%row_blk_size, col_blk_size_obj=sm%col_blk_size, &
                               nze=0, data_type=data_type, &
                               max_rbs=sm%max_rbs, max_cbs=sm%max_cbs, &
                               row_blk_offset=sm%row_blk_offset, col_blk_offset=sm%col_blk_offset, &
@@ -759,7 +759,7 @@ CONTAINS
 
       INTEGER                                            :: handle, mat_col, mat_row, mat_vpcol, &
                                                             mat_vprow
-      INTEGER, DIMENSION(:), POINTER                     :: und_col_blk_offsets, und_row_blk_offsets
+      INTEGER, DIMENSION(:), CONTIGUOUS, POINTER         :: und_col_blk_offsets, und_row_blk_offsets
       INTEGER, DIMENSION(dbcsr_meta_size)                :: old_meta
       REAL(kind=dp)                                      :: cs
       TYPE(array_i1d_obj)                                :: dense_local_vcols, dense_local_vrows, &
@@ -866,11 +866,12 @@ CONTAINS
       INTEGER, ALLOCATABLE, DIMENSION(:)                 :: row_counts, total_row_counts
       INTEGER, ALLOCATABLE, DIMENSION(:, :, :)           :: left_sizes, my_sizes, right_sizes
       INTEGER, ALLOCATABLE, DIMENSION(:, :, :, :)        :: all_sizes
-      INTEGER, DIMENSION(:), POINTER :: col_blk_sizes2enum, enum2col_blk_sizes, &
-                                        enum2row_blk_sizes, k_sizes, left_data_rr, left_data_sr, left_index_rp, left_index_rr, &
-                                        left_index_sp, left_index_sr, local_rows, m_sizes, n_sizes, right_data_rr, right_data_sr, &
-                                        right_index_rp, right_index_rr, right_index_sp, right_index_sr, row_blk_sizes2enum
-      INTEGER, DIMENSION(:, :), POINTER                  :: left_pgrid, product_pgrid, right_pgrid
+      INTEGER, DIMENSION(:), POINTER, CONTIGUOUS :: col_blk_sizes2enum, enum2col_blk_sizes, &
+                                                    enum2row_blk_sizes, left_data_rr, left_data_sr, left_index_rp, left_index_rr, &
+                                         left_index_sp, left_index_sr, local_rows, m_sizes, n_sizes, right_data_rr, right_data_sr, &
+                                                  right_index_rp, right_index_rr, right_index_sp, right_index_sr, row_blk_sizes2enum
+      INTEGER, DIMENSION(:), POINTER, CONTIGUOUS         :: k_sizes
+      INTEGER, DIMENSION(:, :), POINTER, CONTIGUOUS      :: left_pgrid, product_pgrid, right_pgrid
       INTEGER, SAVE                                      :: mult_id = 0
       LOGICAL                                            :: keep_sparsity, list_indexing, &
                                                             otf_filtering
@@ -1202,10 +1203,10 @@ CONTAINS
                                            capacity=left_row_mult*left_col_nimages + right_row_nimages*right_col_mult + 1)
       IF (has_acc) THEN
          ! enumerate the blocksizes to keep the following 2D-arrays small.
-         CALL enumerate_blk_sizes(array_data(right_set%mats(1, 1)%row_blk_size), &
+         CALL enumerate_blk_sizes(right_set%mats(1, 1)%row_blk_size%low%data, &
                                   dbcsr_max_row_size(right_set%mats(1, 1)), &
                                   row_blk_sizes2enum, enum2row_blk_sizes)
-         CALL enumerate_blk_sizes(array_data(right_set%mats(1, 1)%col_blk_size), &
+         CALL enumerate_blk_sizes(right_set%mats(1, 1)%col_blk_size%low%data, &
                                   dbcsr_max_col_size(right_set%mats(1, 1)), &
                                   col_blk_sizes2enum, enum2col_blk_sizes)
       ENDIF
@@ -1943,13 +1944,13 @@ CONTAINS
                                                                  dst_p, sm_pos, sd_pos
       INTEGER, INTENT(IN)                                     :: nsymmetries, nrow_images, ncol_images, metalen
       LOGICAL, INTENT(INOUT)                                  :: tr
-      INTEGER, DIMENSION(:), INTENT(IN), POINTER              :: row_img_dist, col_img_dist, row_dist, col_dist
+      INTEGER, DIMENSION(:), INTENT(IN), CONTIGUOUS, POINTER  :: row_img_dist, col_img_dist, row_dist, col_dist
       INTEGER, DIMENSION(:), ALLOCATABLE, INTENT(IN)          :: sd_disp
       INTEGER, DIMENSION(:), ALLOCATABLE, INTENT(INOUT)       :: myt_smp, myt_sdp, send_meta
       TYPE(dbcsr_imagedistribution_obj), INTENT(IN)           :: target_imgdist
-      INTEGER, DIMENSION(:, :), INTENT(IN), POINTER           :: blacs2mpi
+      INTEGER, DIMENSION(:, :), INTENT(IN), CONTIGUOUS, POINTER :: blacs2mpi
       CHARACTER, INTENT(IN)                                   :: predist_type_fwd
-      ${type1}$, DIMENSION(:), INTENT(IN)                     :: data_area
+      ${type1}$, DIMENSION(:), INTENT(IN), CONTIGUOUS         :: data_area
       TYPE(dbcsr_data_obj), INTENT(INOUT)                     :: send_data_area
       TYPE(dbcsr_scalar_type), INTENT(IN)                     :: scale_neg_one
       TYPE(dbcsr_scalar_type), INTENT(IN), OPTIONAL           :: scale_value

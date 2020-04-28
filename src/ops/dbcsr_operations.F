@@ -2069,9 +2069,9 @@ CONTAINS
       TYPE(dbcsr_type), INTENT(INOUT)                    :: matrix
       INTEGER, INTENT(IN)                                :: which_norm
       REAL(KIND=real_8), DIMENSION(:), INTENT(OUT), &
-         TARGET                                          :: norm_vector
+         TARGET, CONTIGUOUS                              :: norm_vector
 
-      REAL(KIND=real_8), DIMENSION(:), POINTER           :: v_p
+      REAL(KIND=real_8), DIMENSION(:), POINTER, CONTIGUOUS :: v_p
       TYPE(dbcsr_data_obj)                               :: norm_vector_a
 
       CALL dbcsr_data_init(norm_vector_a)
@@ -2848,11 +2848,11 @@ CONTAINS
    SUBROUTINE dbcsr_scale_by_vector_${nametype1}$ (matrix_a, alpha, side)
       !! Interface for matrix scaling by a vector
       TYPE(dbcsr_type), INTENT(INOUT)            :: matrix_a
-      ${type1}$, DIMENSION(:), INTENT(IN), TARGET :: alpha
+      ${type1}$, DIMENSION(:), INTENT(IN), TARGET, CONTIGUOUS :: alpha
       CHARACTER(LEN=*), INTENT(IN)              :: side
       CHARACTER(len=*), PARAMETER :: routineN = 'dbcsr_scale_by_vector_${nametype1}$', &
                                      routineP = moduleN//':'//routineN
-      ${type1}$, DIMENSION(:), POINTER            :: tmp_p
+      ${type1}$, DIMENSION(:), POINTER, CONTIGUOUS :: tmp_p
       TYPE(dbcsr_data_obj)                      :: enc_alpha_vec
 
       CALL dbcsr_data_init(enc_alpha_vec)
@@ -2925,7 +2925,7 @@ CONTAINS
       IF (dbcsr_nfullrows_total(matrix) /= SIZE(diag)) &
          DBCSR_ABORT("Diagonal has wrong size")
 
-      IF (.NOT. array_equality(dbcsr_row_block_offsets(matrix), dbcsr_row_block_offsets(matrix))) &
+      IF (.NOT. array_equality(matrix%row_blk_offset, matrix%col_blk_offset)) &
          DBCSR_ABORT("matrix not quadratic")
 
       CALL dbcsr_iterator_start(iter, matrix)
@@ -2964,7 +2964,7 @@ CONTAINS
       IF (dbcsr_nfullrows_total(matrix) /= SIZE(diag)) &
          DBCSR_ABORT("Diagonal has wrong size")
 
-      IF (.NOT. array_equality(dbcsr_row_block_offsets(matrix), dbcsr_row_block_offsets(matrix))) &
+      IF (.NOT. array_equality(matrix%row_blk_offset, matrix%col_blk_offset)) &
          DBCSR_ABORT("matrix not quadratic")
 
       diag(:) = ${zero1[n]}$
@@ -3005,7 +3005,7 @@ CONTAINS
       IF (dbcsr_get_data_type(matrix) /= ${dkind1}$) &
          DBCSR_ABORT("Incompatible data types")
 
-      IF (.NOT. array_equality(dbcsr_row_block_offsets(matrix), dbcsr_row_block_offsets(matrix))) &
+      IF (.NOT. array_equality(matrix%row_blk_offset, matrix%col_blk_offset)) &
          DBCSR_ABORT("matrix not quadratic")
 
       mynode = dbcsr_mp_mynode(dbcsr_distribution_mp(dbcsr_distribution(matrix)))

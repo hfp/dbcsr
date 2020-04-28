@@ -159,7 +159,7 @@ CONTAINS
                                                nocopy, memory_type, zero_pad)
      !! Ensures that an array is appropriately large.
 
-      ${type1}$, DIMENSION(:), POINTER                 :: array
+      ${type1}$, DIMENSION(:), POINTER, CONTIGUOUS     :: array
         !! array to verify and possibly resize
       ${type1}$, DIMENSION(:), POINTER, OPTIONAL       :: array_resize
       INTEGER, INTENT(IN), OPTIONAL                  :: lb
@@ -183,7 +183,7 @@ CONTAINS
       TYPE(dbcsr_memtype_type)                 :: mem_type
       LOGICAL                                  :: dbg, docopy, &
                                                   pad
-      ${type1}$, DIMENSION(:), POINTER           :: newarray
+      ${type1}$, DIMENSION(:), POINTER, CONTIGUOUS    :: newarray
 
 !   ---------------------------------------------------------------------------
       !CALL timeset(routineN, error_handler)
@@ -324,7 +324,7 @@ CONTAINS
    SUBROUTINE mem_alloc_${nametype1}$ (mem, n, mem_type)
      !! Allocates memory
 
-      ${type1}$, DIMENSION(:), POINTER        :: mem
+      ${type1}$, DIMENSION(:), POINTER, CONTIGUOUS :: mem
         !! memory to allocate
       INTEGER, INTENT(IN)                   :: n
         !! length of elements to allocate
@@ -384,7 +384,7 @@ CONTAINS
    SUBROUTINE mem_dealloc_${nametype1}$ (mem, mem_type)
      !! Deallocates memory
 
-      ${type1}$, DIMENSION(:), POINTER        :: mem
+      ${type1}$, DIMENSION(:), POINTER, CONTIGUOUS :: mem
         !! memory to allocate
       TYPE(dbcsr_memtype_type), INTENT(IN)  :: mem_type
         !! memory type

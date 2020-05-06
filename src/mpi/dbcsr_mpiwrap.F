@@ -716,7 +716,7 @@ CONTAINS
 #else
       CALL mpi_errhandler_set(MPI_COMM_WORLD, MPI_ERRORS_RETURN, ierr)
 #endif
-      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_errhandler_set @ mp_world_init")
+      IF (ierr /= 0) CALL mp_stop(ierr, "mpi_comm_set_errhandler @ mp_world_init")
       mp_comm = MPI_COMM_WORLD
       debug_comm_count = 1
 #else

@@ -885,9 +885,8 @@ CONTAINS
                      data_block, found, data_block2)
 
       IF (.NOT. found) THEN
-!$OMP CRITICAL (critical_reserve_block2d)
+!$OMP ATOMIC WRITE
          matrix%valid = .FALSE.
-!$OMP END CRITICAL (critical_reserve_block2d)
          matrix%wms(iw)%lastblk = matrix%wms(iw)%lastblk + 1
          matrix%wms(iw)%datasize = matrix%wms(iw)%datasize + row_size*col_size
       ELSE
@@ -1093,9 +1092,8 @@ CONTAINS
          IF (.NOT. found) THEN
             matrix%wms(iw)%datasize = matrix%wms(iw)%datasize + nze
          ENDIF
-!$OMP CRITICAL (dbcsr_put_block_critical)
+!$OMP ATOMIC WRITE
          matrix%valid = .FALSE.
-!$OMP END CRITICAL (dbcsr_put_block_critical)
       ENDIF
       IF (PRESENT(flop)) flop = flop + my_flop
    END SUBROUTINE dbcsr_put_block_${nametype1}$

@@ -48,6 +48,14 @@ MODULE dbcsr_dist_util
 #include "base/dbcsr_base_uses.f90"
 
 !$ USE OMP_LIB, ONLY: omp_get_max_threads, omp_get_thread_num, omp_get_num_threads
+
+#if !defined(PURE_OMP)
+# if defined(_OPENMP)
+#   define PURE_OMP
+# else
+#   define PURE_OMP PURE
+# endif
+#endif
    IMPLICIT NONE
    PRIVATE
 
@@ -570,7 +578,7 @@ CONTAINS
       CALL timestop(handle)
    END FUNCTION dbcsr_checksum
 
-   PURE FUNCTION pd_blk_cs(ld, od, DATA, tr, ro, co) RESULT(pd_cs)
+   PURE_OMP FUNCTION pd_blk_cs(ld, od, DATA, tr, ro, co) RESULT(pd_cs)
       INTEGER, INTENT(IN)                                :: ld, od
       REAL(KIND=dp), DIMENSION(ld, od), INTENT(IN)       :: DATA
       LOGICAL, INTENT(IN)                                :: tr

@@ -885,8 +885,14 @@ CONTAINS
                      data_block, found, data_block2)
 
       IF (.NOT. found) THEN
+#if defined(_OPENMP) && (200711 <= _OPENMP)
 !$OMP ATOMIC WRITE
          matrix%valid = .FALSE.
+#else
+!$OMP CRITICAL (critical_reserve_block2d)
+         matrix%valid = .FALSE.
+!$OMP END CRITICAL (critical_reserve_block2d)
+#endif
          matrix%wms(iw)%lastblk = matrix%wms(iw)%lastblk + 1
          matrix%wms(iw)%datasize = matrix%wms(iw)%datasize + row_size*col_size
       ELSE

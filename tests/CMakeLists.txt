@@ -152,7 +152,7 @@ foreach (tests_src ${DBCSR_PERF_SRCS} ${dbcsr_unittest_common_SRCS} ${dbcsr_unit
 endforeach ()
 
 if (WITH_C_API)
- foreach (dbcsr_test_cpp ${DBCSR_TESTS_CPP})
+  foreach (dbcsr_test_cpp ${DBCSR_TESTS_CPP})
    add_executable(${dbcsr_test_cpp} ${${dbcsr_test_cpp}_SRCS})
    target_link_libraries(${dbcsr_test_cpp} dbcsr_c MPI::MPI_CXX)
    # register unittest executable with CMake

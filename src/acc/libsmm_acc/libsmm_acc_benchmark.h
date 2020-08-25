@@ -11,9 +11,9 @@
 #define LIBSMM_ACC_BENCHMARK_H
 
 #if defined(__CUDA)
-#include "../cuda/acc_cuda.h"
-#else
-#include "../hip/acc_hip.h"
+# include "../cuda/acc_cuda.h"
+#elif defined(__HIP)
+# include "../hip/acc_hip.h"
 #endif
 
 #define MAX_BLOCK_DIM 80

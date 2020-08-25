@@ -7,10 +7,8 @@
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
 
-#if defined(__HIP)
-#if not defined(__HIP_PLATFORM_NVCC__)
-#include <hip/hip_runtime.h>
-#endif
+#if defined(__HIP) && !defined(__HIP_PLATFORM_NVCC__)
+# include <hip/hip_runtime.h>
 #endif
 
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))

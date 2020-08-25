@@ -8,18 +8,19 @@
  *------------------------------------------------------------------------------------------------*/
 
 #if defined(__CUDA)
-#include "cuda/acc_cuda.h"
-#else
-#include "hip/acc_hip.h"
+# include "cuda/acc_cuda.h"
+#elif defined(__HIP)
+# include "hip/acc_hip.h"
 #endif
 
-#include <stdio.h>
-#include <math.h>
 #include "acc_error.h"
 #include "include/acc.h"
 
+#include <stdio.h>
+#include <math.h>
+
 #if defined(__CUDA)_PROFILING
-#include <nvToolsExtCudaRt.h>
+# include <nvToolsExtCudaRt.h>
 #endif
 
 static const int verbose_print = 0;

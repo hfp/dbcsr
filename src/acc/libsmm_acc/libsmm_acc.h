@@ -12,7 +12,7 @@
 
 #if defined(__CUDA)
 # include "../cuda/acc_cuda.h"
-#else
+#elif defined(__HIP)
 # include "../hip/acc_hip.h"
 #endif
 

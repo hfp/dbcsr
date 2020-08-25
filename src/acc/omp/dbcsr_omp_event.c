@@ -8,6 +8,7 @@
  *------------------------------------------------------------------------------------------------*/
 #include "dbcsr_omp.h"
 #include <stdlib.h>
+#include <assert.h>
 
 #if defined(__cplusplus)
 extern "C" {

@@ -18,7 +18,7 @@
 
 #include <stdio.h>
 
-#if defined(__CUDA)_PROFILING
+#if defined(__CUDA_PROFILING)
 # include <nvToolsExtCudaRt.h>
 #endif
 

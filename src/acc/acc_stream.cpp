@@ -19,7 +19,7 @@
 #include <stdio.h>
 #include <math.h>
 
-#if defined(__CUDA)_PROFILING
+#if defined(__CUDA_PROFILING)
 # include <nvToolsExtCudaRt.h>
 #endif
 
@@ -54,7 +54,7 @@ extern "C" int acc_stream_create(void** stream_p, const char* name, int priority
   if (acc_error_check(cErr)) return -1;
   if (acc_error_check(ACC(GetLastError)())) return -1;
 
-#if defined(__CUDA)_PROFILING
+#if defined(__CUDA_PROFILING)
   nvtxNameCudaStreamA(*acc_stream, name);
 #endif
 

@@ -10,7 +10,7 @@
 #ifndef LIBSMM_ACC_BENCHMARK_H
 #define LIBSMM_ACC_BENCHMARK_H
 
-#ifdef __CUDA
+#if defined(__CUDA)
 #include "../cuda/acc_cuda.h"
 #else
 #include "../hip/acc_hip.h"

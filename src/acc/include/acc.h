@@ -11,7 +11,7 @@
 
 #include <stddef.h>
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C" {
 #endif
 
@@ -63,7 +63,7 @@ int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t count, acc_s
 int acc_memset_zero(void* dev_mem, size_t offset, size_t length, acc_stream_t* stream);
 int acc_dev_mem_info(size_t* mem_free, size_t* mem_total);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

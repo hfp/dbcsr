@@ -7,7 +7,7 @@
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
 
-#ifdef __CUDA
+#if defined(__CUDA)
 #include "cuda/acc_cuda.h"
 #else
 #include "hip/acc_hip.h"
@@ -42,7 +42,7 @@ extern "C" int acc_set_active_device(int device_id){
   // establish context
   ACC_API_CALL(Free, (0));
 
-#ifdef __HIP_PLATFORM_NVCC__
+#if defined(__HIP_PLATFORM_NVCC__)
   if (verbose_print){
     ACC_API_CALL(DeviceSetLimit, (ACC(LimitPrintfFifoSize), (size_t) 1000000000));
   }

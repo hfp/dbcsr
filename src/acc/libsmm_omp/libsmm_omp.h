@@ -18,7 +18,7 @@
 #define ACC_EXIT_FALLBACK (EXIT_FAILURE + 1)
 #endif
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C" {
 #endif
 
@@ -36,7 +36,7 @@ int libsmm_acc_process_s(const dbcsr_omp_dependency_t* in, const dbcsr_omp_depen
   const float* dev_a_data, const float* dev_b_data, float* dev_c_data,
   int m_max, int n_max, int k_max);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

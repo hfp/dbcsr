@@ -140,7 +140,7 @@
 # include <omp.h>
 #endif
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C" {
 #endif
 
@@ -203,7 +203,7 @@ int dbcsr_omp_stream_depend_end(const acc_stream_t* stream);
 /** Clears status of all streams (if possible). */
 void dbcsr_omp_stream_clear_errors(void);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

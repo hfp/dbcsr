@@ -7,7 +7,7 @@
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
 
-#ifdef __CUDA
+#if defined(__CUDA)
 #include "cuda/acc_cuda.h"
 #else
 #include "hip/acc_hip.h"
@@ -18,7 +18,7 @@
 #include "acc_error.h"
 #include "include/acc.h"
 
-#ifdef __CUDA_PROFILING
+#if defined(__CUDA)_PROFILING
 #include <nvToolsExtCudaRt.h>
 #endif
 
@@ -53,7 +53,7 @@ extern "C" int acc_stream_create(void** stream_p, const char* name, int priority
   if (acc_error_check(cErr)) return -1;
   if (acc_error_check(ACC(GetLastError)())) return -1;
 
-#ifdef __CUDA_PROFILING
+#if defined(__CUDA)_PROFILING
   nvtxNameCudaStreamA(*acc_stream, name);
 #endif
 

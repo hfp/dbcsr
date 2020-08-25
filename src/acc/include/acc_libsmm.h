@@ -11,7 +11,7 @@
 
 #include "acc.h"
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 extern "C" {
 #endif
 
@@ -30,7 +30,7 @@ int libsmm_acc_process(const libsmm_acc_stack_descriptor_type* dev_param_stack, 
   int nparams, acc_data_t datatype, const void* dev_a_data, const void* dev_b_data, void* dev_c_data,
   int m_max, int n_max, int k_max, acc_bool_t def_mnk, acc_stream_t* stream);
 
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
 

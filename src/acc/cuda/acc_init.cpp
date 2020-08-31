@@ -13,8 +13,8 @@
 # include "../hip/acc_hip.h"
 #endif
 
-#include "include/acc.h"
-#include "include/acc_libsmm.h"
+#include "../include/acc.h"
+#include "../include/acc_libsmm.h"
 
 #include <stdio.h>
 

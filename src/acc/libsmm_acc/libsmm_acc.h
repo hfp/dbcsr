@@ -16,7 +16,7 @@
 # include "../hip/acc_hip.h"
 #endif
 
-#include "../include/acc_libsmm.h"
+#include "../acc_libsmm.h"
 #include "parameters_utils.h"
 
 #include <cstdio>

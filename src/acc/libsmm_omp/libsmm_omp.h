@@ -9,7 +9,7 @@
 #ifndef LIBSMM_ACC_H
 #define LIBSMM_ACC_H
 
-#include "../include/acc_libsmm.h"
+#include "../acc_libsmm.h"
 #include "../omp/dbcsr_omp.h"
 #include <stdlib.h>
 

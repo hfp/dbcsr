@@ -70,18 +70,24 @@ set_property(CACHE USE_SMM PROPERTY STRINGS blas libxsmm)
 option(USE_CUDA "Build with CUDA support" OFF)
 set(SUPPORTED_CUDA_ARCHITECTURES
     K20X K40 K80 P100 V100)
-set(WITH_GPU "P100" CACHE STRING "Set the CUDA GPU architecture if CUDA is enabled (default: P100)")
+set(WITH_GPU "P100" CACHE STRING "Set the GPU architecture if CUDA is enabled (default: P100)")
 set_property(CACHE WITH_GPU PROPERTY STRINGS ${SUPPORTED_CUDA_ARCHITECTURES})
 
 option(USE_HIP "Build with HIP support" OFF)
 set(SUPPORTED_HIP_ARCHITECTURES
     ${SUPPORTED_CUDA_ARCHITECTURES} Mi50)
-set(WITH_GPU "P100" CACHE STRING "Set the CUDA GPU architecture if HIP is enabled (default: P100)")
+set(WITH_GPU "P100" CACHE STRING "Set the GPU architecture if HIP is enabled (default: P100)")
 set_property(CACHE WITH_GPU PROPERTY STRINGS ${SUPPORTED_HIP_ARCHITECTURES})
 
-# USE_CUDA and USE_HIP are mutually exclusive options: we either compile with nvcc OR with hipcc
-if (USE_CUDA AND USE_HIP)
-  message(FATAL_ERROR "USE_CUDA and USE_HIP options are mutually exclusive. Please choose one.")
+option(USE_OPENCL "Build with OpenCL support" OFF)
+set(SUPPORTED_OPENCL_ARCHITECTURES
+    ${SUPPORTED_CUDA_ARCHITECTURES})
+set(WITH_GPU "P100" CACHE STRING "Set the GPU architecture if OpenCL is enabled (default: P100)")
+set_property(CACHE WITH_GPU PROPERTY STRINGS ${SUPPORTED_OPENCL_ARCHITECTURES})
+
+# USE_CUDA, USE_HIP, and USE_OPENCL shall be mutually exclusive options
+if ((USE_CUDA AND USE_HIP) OR (USE_CUDA AND USE_OPENCL) OR (USE_OPENCL AND USE_HIP))
+  message(FATAL_ERROR "USE_CUDA, USE_HIP, and USE_OPENCL are mutually exclusive. Please choose one.")
 endif()
 
 # =================================================================================================
@@ -113,8 +119,8 @@ find_package(LAPACK REQUIRED)  # needed for some of the integrated test routines
 # environment for a python interpreter before searching elsewhere in the system.
 # In CMake <3.15, the system is searched before the virtual environment.
 if (NOT Python_EXECUTABLE)
-    # If the python interpreter isn't specified as a command line option, look for it:
-    find_package(Python COMPONENTS Interpreter REQUIRED)
+  # If the python interpreter isn't specified as a command line option, look for it:
+  find_package(Python COMPONENTS Interpreter REQUIRED)
 endif ()
 
 # =================================== MPI
@@ -151,7 +157,7 @@ else()
 endif ()
 
 # =================================== GPU backend
-if (USE_CUDA OR USE_HIP)
+if (USE_CUDA OR USE_HIP OR USE_OPENCL)
   enable_language(CXX)
   set(GPU_ARCH_NUMBER_K20X 35)
   set(GPU_ARCH_NUMBER_K40  35)
@@ -162,7 +168,6 @@ if (USE_CUDA OR USE_HIP)
 endif()
 
 if (USE_CUDA)
-
   enable_language(CUDA)
   if (CMAKE_CUDA_COMPILER_VERSION LESS 5.5)
       message(FATAL_ERROR "CUDA version >= 5.5 is required.")
@@ -191,12 +196,10 @@ if (USE_CUDA)
   else ()
     message(STATUS "Found cuBLAS: ${CUBLAS}")
   endif ()
-
 endif ()
 
 # inspired from https://github.com/ROCm-Developer-Tools/HIP/tree/master/samples/2_Cookbook/12_cmake_hip_add_executable
 if (USE_HIP)
-
   # Make sure the GPU required is supported
   list(FIND SUPPORTED_HIP_ARCHITECTURES ${WITH_GPU} GPU_SUPPORTED)
   if (GPU_SUPPORTED EQUAL -1)
@@ -254,6 +257,14 @@ if (USE_HIP)
     message(STATUS "Found hipBLAS: ${HIPBLAS}")
   endif ()
 endif()
+
+if (USE_OPENCL)
+  # set OpenCL compilation flags
+  set(ACC_ARCH_NUMBER ${GPU_ARCH_NUMBER_${WITH_GPU}})
+  set(OPENCL_CFLAGS "${OPENCL_CFLAGS} -D__OPENCL")
+  message(STATUS "GPU target architecture: " ${WITH_GPU})
+  message(STATUS "OPENCL flags: " ${OPENCL_CFLAGS})
+endif ()
 
 # =================================================================================================
 # OPTION HANDLING

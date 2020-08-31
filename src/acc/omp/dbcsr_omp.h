@@ -131,7 +131,7 @@
 # endif
 #endif
 
-#include "../include/acc.h"
+#include "../acc.h"
 #include <stdint.h>
 #if !defined(NDEBUG)
 # include <assert.h>

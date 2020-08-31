@@ -8,9 +8,9 @@
  *------------------------------------------------------------------------------------------------*/
 
 #if defined(__CUDA)
-# include "cuda/acc_cuda.h"
+# include "acc_cuda.h"
 #elif defined(__HIP)
-# include "hip/acc_hip.h"
+# include "../hip/acc_hip.h"
 #endif
 
 int acc_error_check (ACC(Error_t) acc_error);

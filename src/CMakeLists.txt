@@ -196,7 +196,7 @@ if (MPI_FOUND)
 endif ()
 
 # =================================================================================================
-# DBCSR's OpenMP/offload backend
+# Link OpenMP runtime library even if DBCSR main code is not built with OpenMP
 
 if (OpenMP_FOUND)
   target_link_libraries(dbcsr PRIVATE OpenMP::OpenMP_Fortran)

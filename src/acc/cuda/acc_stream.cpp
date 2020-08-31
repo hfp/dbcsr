@@ -14,7 +14,7 @@
 #endif
 
 #include "acc_error.h"
-#include "../include/acc.h"
+#include "../acc.h"
 
 #include <stdio.h>
 #include <math.h>

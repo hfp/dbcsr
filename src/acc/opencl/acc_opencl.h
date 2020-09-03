@@ -27,6 +27,9 @@
 #if !defined(ACC_OPENCL_STRING_MAXLENGTH)
 # define ACC_OPENCL_STRING_MAXLENGTH 256
 #endif
+#if !defined(ACC_OPENCL_PLATFORM_MAXCOUNT)
+# define ACC_OPENCL_PLATFORM_MAXCOUNT 32
+#endif
 #if !defined(ACC_OPENCL_STREAM_MAXCOUNT)
 # define ACC_OPENCL_STREAM_MAXCOUNT 32
 #endif
@@ -80,9 +83,9 @@ extern int acc_opencl_ndevices;
 extern int acc_opencl_device;
 
 /** Helper function for lock-free allocation of preallocated items such as streams or events. */
-int acc_opencl_alloc(void** item, int typesize, int* counter, int maxcount, void* storage, void** pointer);
+int acc_opencl_alloc(void** item, size_t typesize, int* counter, int maxcount, void* storage, void** pointer);
 /** Helper function for lock-free deallocation (companion of acc_opencl_alloc). */
-int acc_opencl_dealloc(void* item, int typesize, int* counter, int maxcount, void* storage, void** pointer);
+int acc_opencl_dealloc(void* item, size_t typesize, int* counter, int maxcount, void* storage, void** pointer);
 /** Clears status of all streams (if possible). */
 void acc_opencl_stream_clear_errors(void);
 

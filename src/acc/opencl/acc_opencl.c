@@ -20,11 +20,10 @@ extern "C" {
 int acc_opencl_ndevices;
 int acc_opencl_device;
 
-
-int acc_opencl_alloc(void** item, int typesize, int* counter, int maxcount, void* storage, void** pointer)
+int acc_opencl_alloc(void** item, size_t typesize, int* counter, int maxcount, void* storage, void** pointer)
 {
   int result, i;
-  assert(NULL != item && 0 < typesize && NULL != counter);
+  assert(NULL != item && 0 != typesize && NULL != counter);
 #if defined(_OPENMP) && (200805 <= _OPENMP) /* OpenMP 3.0 */
 # pragma omp atomic capture
 #elif defined(_OPENMP)
@@ -67,10 +66,10 @@ int acc_opencl_alloc(void** item, int typesize, int* counter, int maxcount, void
 }
 
 
-int acc_opencl_dealloc(void* item, int typesize, int* counter, int maxcount, void* storage, void** pointer)
+int acc_opencl_dealloc(void* item, size_t typesize, int* counter, int maxcount, void* storage, void** pointer)
 {
   int result;
-  assert(0 < typesize && NULL != counter);
+  assert(0 != typesize && NULL != counter);
   if (NULL != item) {
     int i;
 #if defined(_OPENMP) && (200805 <= _OPENMP) /* OpenMP 3.0 */
@@ -101,13 +100,15 @@ int acc_opencl_dealloc(void* item, int typesize, int* counter, int maxcount, voi
 
 int acc_init(void)
 {
-  //acc_opencl_device = getenv("ACC_OPENCL_DEVICE");
-  cl_uint nplatforms = 1;
-  ACC_OPENCL_CHECK(clGetPlatformIDs(0, 0, &nplatforms), "failed to query number of platforms");
+#if defined(ACC_OPENCL_PLATFORM_MAXCOUNT) && (0 < ACC_OPENCL_PLATFORM_MAXCOUNT)
+  const char *const vendor = getenv("ACC_OPENCL_VENDOR");
+  cl_platform_id platforms[ACC_OPENCL_PLATFORM_MAXCOUNT];
+  cl_uint nplatforms = 0;
+  ACC_OPENCL_CHECK(clGetPlatformIDs(0, NULL, &nplatforms), "failed to query number of platforms");
+  ACC_OPENCL_CHECK(clGetPlatformIDs(
+    nplatforms <= (ACC_OPENCL_PLATFORM_MAXCOUNT) ? nplatforms : (ACC_OPENCL_PLATFORM_MAXCOUNT),
+    platforms, 0), "failed to query platform IDs");
 #if 0
-  std::vector<cl_platform_id> platforms(nplatforms);
-  ACC_OPENCL_CHECK(clGetPlatformIDs(nplatforms, &platforms[0], 0), "failed to query platform IDs");
-  const char *const vendor = (opencl_vendor && *opencl_vendor) ? opencl_vendor : getenv("OCL_VENDOR");
   cl_uint platform_id = 0;
   if (1 != nplatforms && vendor && *vendor) {
     std::vector<char> v(vendor, vendor + std::char_traits<char>::length(vendor) + 1);
@@ -127,10 +128,11 @@ int acc_init(void)
       ++platform_id;
     }
   }
-
-  local::OclPlatform = platforms[platform_id];
 #endif
-
+  acc_opencl_ndevices = -1;
+#else
+  acc_opencl_ndevices = -1;
+#endif
 #if defined(_OPENMP)
   assert(/*master*/0 == omp_get_thread_num());
 #endif

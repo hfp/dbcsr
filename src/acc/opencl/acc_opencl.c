@@ -137,10 +137,13 @@ int acc_init(void)
   const char *const device = getenv("ACC_OPENCL_DEVICE");
   cl_uint nplatforms = 0, ndevices = 0, i;
   cl_device_type type = CL_DEVICE_TYPE_ALL;
-  int result = EXIT_SUCCESS, n;
+  int n, result = (0 != acc_opencl_ndevices
 #if defined(_OPENMP)
-  if (/*master*/0 != omp_get_thread_num()) result = EXIT_FAILURE;
+             && /*master*/0 == omp_get_thread_num()
 #endif
+             && 0 == acc_opencl_stream_count
+             && 0 == acc_opencl_event_count)
+    ? EXIT_SUCCESS : EXIT_FAILURE;
   ACC_OPENCL_CHECK(clGetPlatformIDs(0, NULL, &nplatforms),
     "failed to query number of platforms", result);
   ACC_OPENCL_CHECK(clGetPlatformIDs(
@@ -191,22 +194,24 @@ int acc_init(void)
   else { /* mark as initialized */
     acc_opencl_ndevices = -1;
   }
-  ACC_OPENCL_RETURN((0 != acc_opencl_ndevices
-    && 0 == acc_opencl_stream_count
-    && 0 == acc_opencl_event_count)
-  ? EXIT_SUCCESS : EXIT_FAILURE);
+  ACC_OPENCL_RETURN(result);
 }
 
 
 int acc_finalize(void)
 {
+  int result = (0 != acc_opencl_ndevices
 #if defined(_OPENMP)
-  assert(/*master*/0 == omp_get_thread_num());
+             && /*master*/0 == omp_get_thread_num()
 #endif
-  ACC_OPENCL_RETURN((0 != acc_opencl_ndevices
-    && 0 == acc_opencl_stream_count
-    && 0 == acc_opencl_event_count)
-  ? EXIT_SUCCESS : EXIT_FAILURE);
+             && 0 == acc_opencl_stream_count
+             && 0 == acc_opencl_event_count)
+    ? EXIT_SUCCESS : EXIT_FAILURE;
+  if (NULL != acc_opencl_context) {
+    ACC_OPENCL_CHECK(clReleaseContext(acc_opencl_context),
+      "failed to release OpenCL context", result);
+  }
+  ACC_OPENCL_RETURN(result);
 }
 
 
@@ -241,8 +246,8 @@ int acc_set_active_device(int device_id)
     if (NULL != acc_opencl_context) {
       size_t n;
       ACC_OPENCL_CHECK(clGetContextInfo(acc_opencl_context, CL_CONTEXT_DEVICES,
-        1, &current_id, &n), "failed to query current device id", result);
-      assert(1 == n/*single-device context*/);
+        sizeof(cl_device_id), &current_id, &n), "failed to query current device id", result);
+      assert(sizeof(cl_device_id) == n/*single-device context*/);
     }
     if (acc_opencl_devices[device_id] != current_id) {
       const cl_context_properties properties[] = {
@@ -252,7 +257,7 @@ int acc_set_active_device(int device_id)
       };
       if (NULL != acc_opencl_context) {
         ACC_OPENCL_CHECK(clReleaseContext(acc_opencl_context),
-        "failed to release OpenCL context", result);
+          "failed to release OpenCL context", result);
       }
       acc_opencl_context = clCreateContext(properties,
         1/*num_devices*/, acc_opencl_devices + device_id,

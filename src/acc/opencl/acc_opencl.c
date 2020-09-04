@@ -9,6 +9,7 @@
 #include "acc_opencl.h"
 #include <stdlib.h>
 #include <assert.h>
+#include <ctype.h>
 #if defined(_OPENMP)
 # include <omp.h>
 #endif
@@ -17,8 +18,13 @@
 extern "C" {
 #endif
 
+cl_device_id acc_opencl_devices[ACC_OPENCL_DEVICES_MAXCOUNT];
 int acc_opencl_ndevices;
+#if defined(_OPENMP)
+# pragma omp threadprivate(acc_opencl_device)
+#endif
 int acc_opencl_device;
+
 
 int acc_opencl_alloc(void** item, size_t typesize, int* counter, int maxcount, void* storage, void** pointer)
 {
@@ -98,41 +104,72 @@ int acc_opencl_dealloc(void* item, size_t typesize, int* counter, int maxcount, 
 }
 
 
+const char* acc_opencl_stristr(const char* a, const char* b)
+{
+  const char* result = NULL;
+  if (NULL != a && NULL != b && '\0' != *a && '\0' != *b) {
+    do {
+      if (tolower(*a) != tolower(*b)) {
+        ++a;
+      }
+      else {
+        const char* c = b;
+        result = a;
+        while ('\0' != *++a && '\0' != *++c) {
+          if (tolower(*a) != tolower(*c)) {
+            result = NULL;
+            break;
+          }
+        }
+        if ('\0' == *c) break;
+      }
+    } while ('\0' != *a);
+  }
+  return result;
+}
+
+
 int acc_init(void)
 {
-#if defined(ACC_OPENCL_PLATFORM_MAXCOUNT) && (0 < ACC_OPENCL_PLATFORM_MAXCOUNT)
+  char buffer[ACC_OPENCL_STRING_MAXLENGTH];
   const char *const vendor = getenv("ACC_OPENCL_VENDOR");
+  const char *const device = getenv("ACC_OPENCL_DEVICE");
   cl_platform_id platforms[ACC_OPENCL_PLATFORM_MAXCOUNT];
-  cl_uint nplatforms = 0;
+  cl_uint nplatforms = 0, ndevices = 0, i;
+  cl_device_type type = CL_DEVICE_TYPE_ALL;
   ACC_OPENCL_CHECK(clGetPlatformIDs(0, NULL, &nplatforms), "failed to query number of platforms");
   ACC_OPENCL_CHECK(clGetPlatformIDs(
-    nplatforms <= (ACC_OPENCL_PLATFORM_MAXCOUNT) ? nplatforms : (ACC_OPENCL_PLATFORM_MAXCOUNT),
-    platforms, 0), "failed to query platform IDs");
-#if 0
-  cl_uint platform_id = 0;
-  if (1 != nplatforms && vendor && *vendor) {
-    std::vector<char> v(vendor, vendor + std::char_traits<char>::length(vendor) + 1);
-    tolower(&v[0]);
-    std::vector<char> info;
-    while (platform_id < nplatforms) {
-      std::size_t size;
-      ACC_OPENCL_CHECK(clGetPlatformInfo(platforms[platform_id], CL_PLATFORM_VENDOR, 0, 0, &size), "failed to query platform vendor");
-      if (info.size() * sizeof(char) < size) {
-        info.resize(std::max(info.size(), size / sizeof(char)));
-      }
-      ACC_OPENCL_CHECK(clGetPlatformInfo(platforms[platform_id], CL_PLATFORM_VENDOR, size, &info[0], 0), "failed to retrieve platform vendor");
-      tolower(&info[0], &info[0] + size);
-      if (0 != strstr(&info[0], &v[0])) {
-        break;
-      }
-      ++platform_id;
+    nplatforms <= ACC_OPENCL_PLATFORM_MAXCOUNT ? nplatforms : ACC_OPENCL_PLATFORM_MAXCOUNT,
+    platforms, 0), "failed to query platforms");
+  if (NULL != device && '\0' != *device) {
+    if (NULL != acc_opencl_stristr(device, "gpu")) {
+      type = CL_DEVICE_TYPE_GPU;
+    }
+    else if (NULL != acc_opencl_stristr(device, "cpu")) {
+      type = CL_DEVICE_TYPE_CPU;
+    }
+    else {
+      type = CL_DEVICE_TYPE_ACCELERATOR;
     }
   }
-#endif
-  acc_opencl_ndevices = -1;
-#else
-  acc_opencl_ndevices = -1;
-#endif
+  for (i = 0; i < nplatforms; ++i) {
+    int n = 0;
+    if (NULL != vendor && '\0' != *vendor) {
+      size_t size;
+      ACC_OPENCL_CHECK(clGetPlatformInfo(platforms[i], CL_PLATFORM_VENDOR, 0, NULL, &size), "failed to query platform vendor");
+      buffer[0] = '\0'; size = (size <= ACC_OPENCL_STRING_MAXLENGTH ? size : ACC_OPENCL_STRING_MAXLENGTH);
+      ACC_OPENCL_CHECK(clGetPlatformInfo(platforms[i], CL_PLATFORM_VENDOR,
+        size, buffer, NULL), "failed to retrieve platform vendor");
+      if (NULL == acc_opencl_stristr(buffer, vendor)) continue;
+    }
+    assert(acc_opencl_ndevices <= ACC_OPENCL_DEVICES_MAXCOUNT);
+    ACC_OPENCL_CHECK(clGetDeviceIDs(platforms[i], type, 0, NULL, &ndevices), "failed to query number of devices");
+    n = (acc_opencl_ndevices + ndevices) < ACC_OPENCL_DEVICES_MAXCOUNT ? (int)ndevices : (ACC_OPENCL_DEVICES_MAXCOUNT - acc_opencl_ndevices);
+    ACC_OPENCL_CHECK(clGetDeviceIDs(platforms[i], type,
+      n, acc_opencl_devices + acc_opencl_ndevices, NULL), "failed to query devices");
+    acc_opencl_ndevices += n;
+  }
+  if (0 == acc_opencl_ndevices) acc_opencl_ndevices = -1;
 #if defined(_OPENMP)
   assert(/*master*/0 == omp_get_thread_num());
 #endif
@@ -157,9 +194,10 @@ int acc_finalize(void)
 
 void acc_clear_errors(void)
 { assert(0 != acc_opencl_ndevices);
-  /* flush all pending work */
-  //ACC_OPENCL_EXPECT(EXIT_SUCCESS, acc_event_record(NULL/*event*/, NULL/*stream*/));
-  //acc_opencl_stream_clear_errors();
+#if 0 /* flush all pending work */
+  ACC_OPENCL_EXPECT(EXIT_SUCCESS, acc_event_record(NULL/*event*/, NULL/*stream*/));
+  acc_opencl_stream_clear_errors();
+#endif
 }
 
 
@@ -179,31 +217,15 @@ int acc_get_ndevices(int* n_devices)
 
 int acc_set_active_device(int device_id)
 {
-#if 0
-  const int device = ((NULL == acc_opencl_device || 0 == *acc_opencl_device)
-    ? device_id : (device_id + atoi(acc_opencl_device)));
-  int result = (0 <= device ? EXIT_SUCCESS : EXIT_FAILURE);
-#if defined(_OPENMP)
-# pragma omp master
-#endif
-  if (EXIT_SUCCESS == result && 0 != acc_opencl_ndevices) {
-#if !defined(NDEBUG)
-    if (device_id < acc_opencl_ndevices)
-#endif
-    {
-      //omp_set_default_device(device);
-      result = EXIT_SUCCESS;
-    }
-#if !defined(NDEBUG)
-    else {
-      result = EXIT_FAILURE;
-    }
-#endif
+  int result;
+  if (0 <= device_id && device_id < acc_opencl_ndevices) {
+    acc_opencl_device = device_id;
+    result = EXIT_SUCCESS;
+  }
+  else {
+    result = EXIT_FAILURE;
   }
   ACC_OPENCL_RETURN(result);
-#else
-  return -1;
-#endif
 }
 
 #if defined(__cplusplus)

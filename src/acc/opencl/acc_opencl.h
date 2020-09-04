@@ -30,6 +30,9 @@
 #if !defined(ACC_OPENCL_PLATFORM_MAXCOUNT)
 # define ACC_OPENCL_PLATFORM_MAXCOUNT 32
 #endif
+#if !defined(ACC_OPENCL_DEVICES_MAXCOUNT)
+# define ACC_OPENCL_DEVICES_MAXCOUNT 32
+#endif
 #if !defined(ACC_OPENCL_STREAM_MAXCOUNT)
 # define ACC_OPENCL_STREAM_MAXCOUNT 32
 #endif
@@ -57,7 +60,12 @@
 #define ACC_OPENCL_CHECK(EXPR, MSG) do { \
   const int acc_opencl_check_result_ = (EXPR); assert((MSG) && *(MSG)); \
   if (CL_SUCCESS != acc_opencl_check_result_) { \
-    fprintf(stderr, "ERROR ACC/OpenCL: " MSG " (code=%i)\n", acc_opencl_check_result_); \
+    if (-1001 != acc_opencl_check_result_) { \
+      fprintf(stderr, "ERROR ACC/OpenCL: " MSG " (code=%i)\n", acc_opencl_check_result_); \
+    } \
+    else { \
+      fprintf(stderr, "ERROR ACC/OpenCL: " MSG " (incomplete OpenCL installation?)\n"); \
+    } \
     assert(!MSG); \
   } \
 } while (0)
@@ -76,6 +84,7 @@ typedef struct acc_opencl_stream_t {
 #endif
 } acc_opencl_stream_t;
 
+extern cl_device_id acc_opencl_devices[/*ACC_OPENCL_DEVICES_MAXCOUNT*/];
 extern int acc_opencl_stream_count;
 extern int acc_opencl_event_count;
 /* non-zero if library is initialized, zero devices is signaled by nagative value */
@@ -86,6 +95,8 @@ extern int acc_opencl_device;
 int acc_opencl_alloc(void** item, size_t typesize, int* counter, int maxcount, void* storage, void** pointer);
 /** Helper function for lock-free deallocation (companion of acc_opencl_alloc). */
 int acc_opencl_dealloc(void* item, size_t typesize, int* counter, int maxcount, void* storage, void** pointer);
+/** Returns the pointer to the 1st match of "b" in "a". */
+const char* acc_opencl_stristr(const char* a, const char* b);
 /** Clears status of all streams (if possible). */
 void acc_opencl_stream_clear_errors(void);
 

@@ -27,9 +27,6 @@
 #if !defined(ACC_OPENCL_STRING_MAXLENGTH)
 # define ACC_OPENCL_STRING_MAXLENGTH 256
 #endif
-#if !defined(ACC_OPENCL_PLATFORM_MAXCOUNT)
-# define ACC_OPENCL_PLATFORM_MAXCOUNT 32
-#endif
 #if !defined(ACC_OPENCL_DEVICES_MAXCOUNT)
 # define ACC_OPENCL_DEVICES_MAXCOUNT 32
 #endif
@@ -57,16 +54,22 @@
   } while (0)
 #endif
 
-#define ACC_OPENCL_CHECK(EXPR, MSG) do { \
-  const int acc_opencl_check_result_ = (EXPR); assert((MSG) && *(MSG)); \
-  if (CL_SUCCESS != acc_opencl_check_result_) { \
-    if (-1001 != acc_opencl_check_result_) { \
-      fprintf(stderr, "ERROR ACC/OpenCL: " MSG " (code=%i)\n", acc_opencl_check_result_); \
+#define ACC_OPENCL_CHECK(EXPR, MSG, RESULT) do { \
+  if (EXIT_SUCCESS == (RESULT)) { \
+    const int acc_opencl_check_result_ = (EXPR); assert((MSG) && *(MSG)); \
+    if (CL_SUCCESS == acc_opencl_check_result_) { \
+      (RESULT) = EXIT_SUCCESS; \
     } \
     else { \
-      fprintf(stderr, "ERROR ACC/OpenCL: " MSG " (incomplete OpenCL installation?)\n"); \
+      if (-1001 != acc_opencl_check_result_) { \
+        fprintf(stderr, "ERROR ACC/OpenCL: " MSG " (code=%i)\n", acc_opencl_check_result_); \
+      } \
+      else { \
+        fprintf(stderr, "ERROR ACC/OpenCL: " MSG " (incomplete OpenCL installation?)\n"); \
+      } \
+      (RESULT) = EXIT_FAILURE; \
+      assert(!MSG); \
     } \
-    assert(!MSG); \
   } \
 } while (0)
 
@@ -84,12 +87,11 @@ typedef struct acc_opencl_stream_t {
 #endif
 } acc_opencl_stream_t;
 
-extern cl_device_id acc_opencl_devices[/*ACC_OPENCL_DEVICES_MAXCOUNT*/];
+extern cl_context acc_opencl_context;
 extern int acc_opencl_stream_count;
 extern int acc_opencl_event_count;
 /* non-zero if library is initialized, zero devices is signaled by nagative value */
 extern int acc_opencl_ndevices;
-extern int acc_opencl_device;
 
 /** Helper function for lock-free allocation of preallocated items such as streams or events. */
 int acc_opencl_alloc(void** item, size_t typesize, int* counter, int maxcount, void* storage, void** pointer);

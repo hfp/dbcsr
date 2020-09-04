@@ -18,12 +18,13 @@
 extern "C" {
 #endif
 
-cl_device_id acc_opencl_devices[ACC_OPENCL_DEVICES_MAXCOUNT];
 int acc_opencl_ndevices;
+cl_platform_id acc_opencl_platforms[ACC_OPENCL_DEVICES_MAXCOUNT];
+cl_device_id acc_opencl_devices[ACC_OPENCL_DEVICES_MAXCOUNT];
 #if defined(_OPENMP)
-# pragma omp threadprivate(acc_opencl_device)
+# pragma omp threadprivate(acc_opencl_context)
 #endif
-int acc_opencl_device;
+cl_context acc_opencl_context;
 
 
 int acc_opencl_alloc(void** item, size_t typesize, int* counter, int maxcount, void* storage, void** pointer)
@@ -134,45 +135,62 @@ int acc_init(void)
   char buffer[ACC_OPENCL_STRING_MAXLENGTH];
   const char *const vendor = getenv("ACC_OPENCL_VENDOR");
   const char *const device = getenv("ACC_OPENCL_DEVICE");
-  cl_platform_id platforms[ACC_OPENCL_PLATFORM_MAXCOUNT];
   cl_uint nplatforms = 0, ndevices = 0, i;
   cl_device_type type = CL_DEVICE_TYPE_ALL;
-  ACC_OPENCL_CHECK(clGetPlatformIDs(0, NULL, &nplatforms), "failed to query number of platforms");
+  int result = EXIT_SUCCESS, n;
+#if defined(_OPENMP)
+  if (/*master*/0 != omp_get_thread_num()) result = EXIT_FAILURE;
+#endif
+  ACC_OPENCL_CHECK(clGetPlatformIDs(0, NULL, &nplatforms),
+    "failed to query number of platforms", result);
   ACC_OPENCL_CHECK(clGetPlatformIDs(
-    nplatforms <= ACC_OPENCL_PLATFORM_MAXCOUNT ? nplatforms : ACC_OPENCL_PLATFORM_MAXCOUNT,
-    platforms, 0), "failed to query platforms");
+    nplatforms <= ACC_OPENCL_DEVICES_MAXCOUNT ? nplatforms : ACC_OPENCL_DEVICES_MAXCOUNT,
+    acc_opencl_platforms, 0), "failed to query platforms", result);
   if (NULL != device && '\0' != *device) {
-    if (NULL != acc_opencl_stristr(device, "gpu")) {
-      type = CL_DEVICE_TYPE_GPU;
-    }
-    else if (NULL != acc_opencl_stristr(device, "cpu")) {
-      type = CL_DEVICE_TYPE_CPU;
-    }
-    else {
-      type = CL_DEVICE_TYPE_ACCELERATOR;
-    }
+    if (NULL != acc_opencl_stristr(device, "gpu")) type = CL_DEVICE_TYPE_GPU;
+    else if (NULL != acc_opencl_stristr(device, "cpu")) type = CL_DEVICE_TYPE_CPU;
+    else type = CL_DEVICE_TYPE_ACCELERATOR;
   }
+  acc_opencl_ndevices = 0;
   for (i = 0; i < nplatforms; ++i) {
-    int n = 0;
     if (NULL != vendor && '\0' != *vendor) {
       size_t size;
-      ACC_OPENCL_CHECK(clGetPlatformInfo(platforms[i], CL_PLATFORM_VENDOR, 0, NULL, &size), "failed to query platform vendor");
-      buffer[0] = '\0'; size = (size <= ACC_OPENCL_STRING_MAXLENGTH ? size : ACC_OPENCL_STRING_MAXLENGTH);
-      ACC_OPENCL_CHECK(clGetPlatformInfo(platforms[i], CL_PLATFORM_VENDOR,
-        size, buffer, NULL), "failed to retrieve platform vendor");
+      ACC_OPENCL_CHECK(clGetPlatformInfo(acc_opencl_platforms[i], CL_PLATFORM_VENDOR,
+        0, NULL, &size), "failed to query platform vendor", result);
+      buffer[0] = '\0'; size = (size <= ACC_OPENCL_STRING_MAXLENGTH
+        ? size : ACC_OPENCL_STRING_MAXLENGTH);
+      ACC_OPENCL_CHECK(clGetPlatformInfo(acc_opencl_platforms[i], CL_PLATFORM_VENDOR,
+        size, buffer, NULL), "failed to retrieve platform vendor", result);
       if (NULL == acc_opencl_stristr(buffer, vendor)) continue;
     }
     assert(acc_opencl_ndevices <= ACC_OPENCL_DEVICES_MAXCOUNT);
-    ACC_OPENCL_CHECK(clGetDeviceIDs(platforms[i], type, 0, NULL, &ndevices), "failed to query number of devices");
-    n = (acc_opencl_ndevices + ndevices) < ACC_OPENCL_DEVICES_MAXCOUNT ? (int)ndevices : (ACC_OPENCL_DEVICES_MAXCOUNT - acc_opencl_ndevices);
-    ACC_OPENCL_CHECK(clGetDeviceIDs(platforms[i], type,
-      n, acc_opencl_devices + acc_opencl_ndevices, NULL), "failed to query devices");
+    ACC_OPENCL_CHECK(clGetDeviceIDs(acc_opencl_platforms[i], type, 0, NULL, &ndevices),
+      "failed to query number of devices", result);
+    n = (acc_opencl_ndevices + ndevices) < ACC_OPENCL_DEVICES_MAXCOUNT
+      ? (int)ndevices : (ACC_OPENCL_DEVICES_MAXCOUNT - acc_opencl_ndevices);
+    ACC_OPENCL_CHECK(clGetDeviceIDs(acc_opencl_platforms[i], type,
+      n, acc_opencl_devices + acc_opencl_ndevices, NULL),
+      "failed to query devices", result);
     acc_opencl_ndevices += n;
   }
-  if (0 == acc_opencl_ndevices) acc_opencl_ndevices = -1;
-#if defined(_OPENMP)
-  assert(/*master*/0 == omp_get_thread_num());
-#endif
+  assert(NULL == acc_opencl_context);
+  if (0 < acc_opencl_ndevices) {
+    n = 0;
+    if (1 < acc_opencl_ndevices) { /* preselect default device */
+      for (n = 0; n < acc_opencl_ndevices; ++n) {
+        ACC_OPENCL_CHECK(clGetDeviceInfo(acc_opencl_devices[n],
+          CL_DEVICE_TYPE, sizeof(cl_device_type), &type, NULL),
+          "failed to query device information", result);
+        if (CL_DEVICE_TYPE_DEFAULT & type) break;
+      }
+    }
+    if (EXIT_SUCCESS != acc_set_active_device(n)) {
+      acc_opencl_ndevices = 0; /* raise error below */
+    }
+  }
+  else { /* mark as initialized */
+    acc_opencl_ndevices = -1;
+  }
   ACC_OPENCL_RETURN((0 != acc_opencl_ndevices
     && 0 == acc_opencl_stream_count
     && 0 == acc_opencl_event_count)
@@ -217,10 +235,32 @@ int acc_get_ndevices(int* n_devices)
 
 int acc_set_active_device(int device_id)
 {
-  int result;
+  cl_int result = EXIT_SUCCESS;
   if (0 <= device_id && device_id < acc_opencl_ndevices) {
-    acc_opencl_device = device_id;
-    result = EXIT_SUCCESS;
+    cl_device_id current_id = NULL;
+    if (NULL != acc_opencl_context) {
+      size_t n;
+      ACC_OPENCL_CHECK(clGetContextInfo(acc_opencl_context, CL_CONTEXT_DEVICES,
+        1, &current_id, &n), "failed to query current device id", result);
+      assert(1 == n/*single-device context*/);
+    }
+    if (acc_opencl_devices[device_id] != current_id) {
+      const cl_context_properties properties[] = {
+        CL_CONTEXT_PLATFORM, (cl_context_properties)acc_opencl_platforms[device_id],
+        CL_CONTEXT_INTEROP_USER_SYNC, CL_FALSE, /* TODO */
+        0 /* end of properties */
+      };
+      if (NULL != acc_opencl_context) {
+        ACC_OPENCL_CHECK(clReleaseContext(acc_opencl_context),
+        "failed to release OpenCL context", result);
+      }
+      acc_opencl_context = clCreateContext(properties,
+        1/*num_devices*/, acc_opencl_devices + device_id,
+        NULL/*pfn_notify*/, NULL/* user_data*/,
+        &result);
+      ACC_OPENCL_CHECK(result,
+        "failed to create OpenCL context", result);
+    }
   }
   else {
     result = EXIT_FAILURE;

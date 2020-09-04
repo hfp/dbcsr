@@ -137,13 +137,12 @@ int acc_init(void)
   const char *const device = getenv("ACC_OPENCL_DEVICE");
   cl_uint nplatforms = 0, ndevices = 0, i;
   cl_device_type type = CL_DEVICE_TYPE_ALL;
-  int n, result = (0 != acc_opencl_ndevices
+  int n, result = (0 == acc_opencl_stream_count
+                && 0 == acc_opencl_event_count
 #if defined(_OPENMP)
-             && /*master*/0 == omp_get_thread_num()
+                && /*master*/0 == omp_get_thread_num()
 #endif
-             && 0 == acc_opencl_stream_count
-             && 0 == acc_opencl_event_count)
-    ? EXIT_SUCCESS : EXIT_FAILURE;
+  ) ? EXIT_SUCCESS : EXIT_FAILURE;
   ACC_OPENCL_CHECK(clGetPlatformIDs(0, NULL, &nplatforms),
     "failed to query number of platforms", result);
   ACC_OPENCL_CHECK(clGetPlatformIDs(
@@ -200,13 +199,12 @@ int acc_init(void)
 
 int acc_finalize(void)
 {
-  int result = (0 != acc_opencl_ndevices
+  int result = (0 == acc_opencl_stream_count
+             && 0 == acc_opencl_event_count
 #if defined(_OPENMP)
              && /*master*/0 == omp_get_thread_num()
 #endif
-             && 0 == acc_opencl_stream_count
-             && 0 == acc_opencl_event_count)
-    ? EXIT_SUCCESS : EXIT_FAILURE;
+  ) ? EXIT_SUCCESS : EXIT_FAILURE;
   if (NULL != acc_opencl_context) {
     ACC_OPENCL_CHECK(clReleaseContext(acc_opencl_context),
       "failed to release OpenCL context", result);

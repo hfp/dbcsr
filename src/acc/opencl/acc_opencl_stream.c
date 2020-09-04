@@ -92,8 +92,6 @@ void acc_opencl_stream_clear_errors(void)
     }
 #endif
   }
-#else
-  return -1;
 #endif
 }
 

@@ -55,7 +55,7 @@ MODULE dbcsr_tensor
    USE dbcsr_kinds, ONLY: &
       ${uselist(dtype_float_prec)}$, default_string_length, int_8, dp
    USE dbcsr_mpiwrap, ONLY: &
-      mp_environ, mp_max, mp_sum, mp_comm_free, mp_cart_create
+      mp_environ, mp_max, mp_sum, mp_comm_free, mp_cart_create, mp_sync
    USE dbcsr_toollib, ONLY: &
       sort
    USE dbcsr_tensor_reshape, ONLY: &
@@ -125,6 +125,7 @@ CONTAINS
       INTEGER, INTENT(IN), OPTIONAL                  :: unit_nr
       INTEGER :: handle
 
+      CALL mp_sync(tensor_in%pgrid%mp_comm_2d)
       CALL timeset("dbcsr_t_total", handle)
 
       ! make sure that it is safe to use dbcsr_t_copy during a batched contraction
@@ -132,6 +133,7 @@ CONTAINS
       CALL dbcsr_tas_batched_mm_complete(tensor_out%matrix_rep, warn=.TRUE.)
 
       CALL dbcsr_t_copy_expert(tensor_in, tensor_out, order, summation, bounds, move_data, unit_nr)
+      CALL mp_sync(tensor_in%pgrid%mp_comm_2d)
       CALL timestop(handle)
    END SUBROUTINE
 
@@ -517,6 +519,7 @@ CONTAINS
 
       INTEGER                     :: handle
 
+      CALL mp_sync(tensor_1%pgrid%mp_comm_2d)
       CALL timeset("dbcsr_t_total", handle)
       CALL dbcsr_t_contract_expert(alpha, tensor_1, tensor_2, beta, tensor_3, &
                                    contract_1, notcontract_1, &
@@ -535,6 +538,7 @@ CONTAINS
                                    retain_sparsity=retain_sparsity, &
                                    unit_nr=unit_nr, &
                                    log_verbose=log_verbose)
+      CALL mp_sync(tensor_1%pgrid%mp_comm_2d)
       CALL timestop(handle)
 
    END SUBROUTINE
@@ -1089,52 +1093,58 @@ CONTAINS
          pgrid_changed_any = .FALSE.
          SELECT CASE (max_mm_dim)
          CASE (1)
-            CALL dbcsr_t_change_pgrid_2d(tensor_1, tensor_1%pgrid%mp_comm_2d, pdims=pdims_2d_opt, &
-                                         nsplit=split_opt_avg%ngroup, dimsplit=split_opt_avg%split_rowcol, &
-                                         pgrid_changed=pgrid_changed, &
-                                         unit_nr=unit_nr_prv)
-            IF (pgrid_changed) pgrid_changed_any = .TRUE.
-            CALL dbcsr_t_change_pgrid_2d(tensor_3, tensor_3%pgrid%mp_comm_2d, pdims=pdims_2d_opt, &
-                                         nsplit=split_opt_avg%ngroup, dimsplit=split_opt_avg%split_rowcol, &
-                                         pgrid_changed=pgrid_changed, &
-                                         unit_nr=unit_nr_prv)
-            IF (pgrid_changed) pgrid_changed_any = .TRUE.
+            IF (ALLOCATED(tensor_1%contraction_storage) .AND. ALLOCATED(tensor_3%contraction_storage)) THEN
+               CALL dbcsr_t_change_pgrid_2d(tensor_1, tensor_1%pgrid%mp_comm_2d, pdims=pdims_2d_opt, &
+                                            nsplit=split_opt_avg%ngroup, dimsplit=split_opt_avg%split_rowcol, &
+                                            pgrid_changed=pgrid_changed, &
+                                            unit_nr=unit_nr_prv)
+               IF (pgrid_changed) pgrid_changed_any = .TRUE.
+               CALL dbcsr_t_change_pgrid_2d(tensor_3, tensor_3%pgrid%mp_comm_2d, pdims=pdims_2d_opt, &
+                                            nsplit=split_opt_avg%ngroup, dimsplit=split_opt_avg%split_rowcol, &
+                                            pgrid_changed=pgrid_changed, &
+                                            unit_nr=unit_nr_prv)
+               IF (pgrid_changed) pgrid_changed_any = .TRUE.
+            ENDIF
             IF (pgrid_changed_any) THEN
-               IF (tensor_2%matrix_rep%do_batched == 3 .AND. pgrid_changed_any) THEN
+               IF (tensor_2%matrix_rep%do_batched == 3) THEN
                   ! set flag that process grid has been optimized to make sure that no grid optimizations are done
                   ! in TAS multiply algorithm
                   CALL dbcsr_tas_batched_mm_complete(tensor_2%matrix_rep)
                ENDIF
             ENDIF
          CASE (2)
-            CALL dbcsr_t_change_pgrid_2d(tensor_1, tensor_1%pgrid%mp_comm_2d, pdims=pdims_2d_opt, &
-                                         nsplit=split_opt_avg%ngroup, dimsplit=split_opt_avg%split_rowcol, &
-                                         pgrid_changed=pgrid_changed, &
-                                         unit_nr=unit_nr_prv)
-            IF (pgrid_changed) pgrid_changed_any = .TRUE.
-            CALL dbcsr_t_change_pgrid_2d(tensor_2, tensor_2%pgrid%mp_comm_2d, pdims=pdims_2d_opt, &
-                                         nsplit=split_opt_avg%ngroup, dimsplit=split_opt_avg%split_rowcol, &
-                                         pgrid_changed=pgrid_changed, &
-                                         unit_nr=unit_nr_prv)
-            IF (pgrid_changed) pgrid_changed_any = .TRUE.
+            IF (ALLOCATED(tensor_1%contraction_storage) .AND. ALLOCATED(tensor_2%contraction_storage)) THEN
+               CALL dbcsr_t_change_pgrid_2d(tensor_1, tensor_1%pgrid%mp_comm_2d, pdims=pdims_2d_opt, &
+                                            nsplit=split_opt_avg%ngroup, dimsplit=split_opt_avg%split_rowcol, &
+                                            pgrid_changed=pgrid_changed, &
+                                            unit_nr=unit_nr_prv)
+               IF (pgrid_changed) pgrid_changed_any = .TRUE.
+               CALL dbcsr_t_change_pgrid_2d(tensor_2, tensor_2%pgrid%mp_comm_2d, pdims=pdims_2d_opt, &
+                                            nsplit=split_opt_avg%ngroup, dimsplit=split_opt_avg%split_rowcol, &
+                                            pgrid_changed=pgrid_changed, &
+                                            unit_nr=unit_nr_prv)
+               IF (pgrid_changed) pgrid_changed_any = .TRUE.
+            ENDIF
             IF (pgrid_changed_any) THEN
-               IF (tensor_3%matrix_rep%do_batched == 3 .AND. pgrid_changed_any) THEN
+               IF (tensor_3%matrix_rep%do_batched == 3) THEN
                   CALL dbcsr_tas_batched_mm_complete(tensor_3%matrix_rep)
                ENDIF
             ENDIF
          CASE (3)
-            CALL dbcsr_t_change_pgrid_2d(tensor_2, tensor_2%pgrid%mp_comm_2d, pdims=pdims_2d_opt, &
-                                         nsplit=split_opt_avg%ngroup, dimsplit=split_opt_avg%split_rowcol, &
-                                         pgrid_changed=pgrid_changed, &
-                                         unit_nr=unit_nr_prv)
-            IF (pgrid_changed) pgrid_changed_any = .TRUE.
-            CALL dbcsr_t_change_pgrid_2d(tensor_3, tensor_3%pgrid%mp_comm_2d, pdims=pdims_2d_opt, &
-                                         nsplit=split_opt_avg%ngroup, dimsplit=split_opt_avg%split_rowcol, &
-                                         pgrid_changed=pgrid_changed, &
-                                         unit_nr=unit_nr_prv)
-            IF (pgrid_changed) pgrid_changed_any = .TRUE.
+            IF (ALLOCATED(tensor_2%contraction_storage) .AND. ALLOCATED(tensor_3%contraction_storage)) THEN
+               CALL dbcsr_t_change_pgrid_2d(tensor_2, tensor_2%pgrid%mp_comm_2d, pdims=pdims_2d_opt, &
+                                            nsplit=split_opt_avg%ngroup, dimsplit=split_opt_avg%split_rowcol, &
+                                            pgrid_changed=pgrid_changed, &
+                                            unit_nr=unit_nr_prv)
+               IF (pgrid_changed) pgrid_changed_any = .TRUE.
+               CALL dbcsr_t_change_pgrid_2d(tensor_3, tensor_3%pgrid%mp_comm_2d, pdims=pdims_2d_opt, &
+                                            nsplit=split_opt_avg%ngroup, dimsplit=split_opt_avg%split_rowcol, &
+                                            pgrid_changed=pgrid_changed, &
+                                            unit_nr=unit_nr_prv)
+               IF (pgrid_changed) pgrid_changed_any = .TRUE.
+            ENDIF
             IF (pgrid_changed_any) THEN
-               IF (tensor_1%matrix_rep%do_batched == 3 .AND. pgrid_changed_any) THEN
+               IF (tensor_1%matrix_rep%do_batched == 3) THEN
                   CALL dbcsr_tas_batched_mm_complete(tensor_1%matrix_rep)
                ENDIF
             ENDIF
@@ -2012,7 +2022,9 @@ CONTAINS
       !!   contraction (todo: get rid of this requirement).
       !!
       !! Side effects:
-      !! - the parallel layout (process grid and distribution) of all tensors may change.
+      !! - the parallel layout (process grid and distribution) of all tensors may change. In order to
+      !!   disable the process grid optimization including this side effect, call this routine only on the
+      !!   smallest of the 3 tensors.
       !!
       !! @note
       !! Note 1: for an example of batched contraction see `examples/dbcsr_tensor_example.F`.
@@ -2041,7 +2053,7 @@ CONTAINS
 #:for idim in range(1, maxdim+1)
       IF (ndims_tensor(tensor) >= ${idim}$) THEN
          IF (PRESENT(batch_range_${idim}$)) THEN
-            ALLOCATE (batch_range_prv_${idim}$, SOURCE=batch_range_${idim}$)
+            CALL allocate_any(batch_range_prv_${idim}$, source=batch_range_${idim}$)
             static_range = .FALSE.
          ELSE
             ALLOCATE (batch_range_prv_${idim}$ (2))
@@ -2076,6 +2088,7 @@ CONTAINS
       LOGICAL :: do_write
       INTEGER :: unit_nr_prv, handle
 
+      CALL mp_sync(tensor%pgrid%mp_comm_2d)
       CALL timeset("dbcsr_t_total", handle)
       unit_nr_prv = prep_output_unit(unit_nr)
 
@@ -2099,6 +2112,7 @@ CONTAINS
 
       CALL destroy_array_list(tensor%contraction_storage%batch_ranges)
       DEALLOCATE (tensor%contraction_storage)
+      CALL mp_sync(tensor%pgrid%mp_comm_2d)
       CALL timestop(handle)
 
    END SUBROUTINE

@@ -43,7 +43,11 @@ endif
 
 # /usr/lib/x86_64-linux-gnu/libOpenCL.so.1
 dbcsr_test_acc: dbcsr_test_acc.o dbcsr_opencl.a
+ifneq (Darwin,$(shell uname))
 	$(CC) $(LDFLAGS) -o $@ $^ -lOpenCL
+else
+	$(CC) $(LDFLAGS) -o $@ $^ -framework OpenCL
+endif
 
 dbcsr_opencl.a: $(OBJFILES)
 	$(AR) -rs $@ $^

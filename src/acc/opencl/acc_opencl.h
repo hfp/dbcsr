@@ -97,6 +97,7 @@ typedef struct acc_opencl_stream_t {
   cl_command_queue queue;
 } acc_opencl_stream_t;
 
+/* allow separate contexts per each OpenMP thread */
 extern cl_context acc_opencl_context;
 extern int acc_opencl_stream_count;
 extern int acc_opencl_event_count;

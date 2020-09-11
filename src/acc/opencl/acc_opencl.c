@@ -159,7 +159,7 @@ int acc_init(void)
   for (i = 0; i < nplatforms; ++i) {
 #if defined(ACC_OPENCL_STRING_MAXLENGTH) && (0 < ACC_OPENCL_STRING_MAXLENGTH)
     if (NULL != vendor && '\0' != *vendor) {
-      size_t size;
+      size_t size = 0;
       ACC_OPENCL_CHECK(clGetPlatformInfo(acc_opencl_platforms[i], CL_PLATFORM_VENDOR,
         0, NULL, &size), "failed to query platform vendor", result);
       buffer[0] = '\0'; size = (size <= ACC_OPENCL_STRING_MAXLENGTH
@@ -247,7 +247,7 @@ int acc_set_active_device(int device_id)
   if (0 <= device_id && device_id < acc_opencl_ndevices) {
     cl_device_id current_id = NULL;
     if (NULL != acc_opencl_context) {
-      size_t n;
+      size_t n = 0;
       ACC_OPENCL_CHECK(clGetContextInfo(acc_opencl_context, CL_CONTEXT_DEVICES,
         sizeof(cl_device_id), &current_id, &n), "failed to query current device id", result);
       assert(sizeof(cl_device_id) == n/*single-device context*/);
@@ -266,8 +266,7 @@ int acc_set_active_device(int device_id)
         1/*num_devices*/, acc_opencl_devices + device_id,
         NULL/*pfn_notify*/, NULL/* user_data*/,
         &result);
-      ACC_OPENCL_CHECK(result,
-        "failed to create OpenCL context", result);
+      ACC_OPENCL_CHECK(result, "failed to create OpenCL context", result);
     }
   }
   else {

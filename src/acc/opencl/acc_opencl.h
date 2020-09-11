@@ -16,9 +16,21 @@
 #include <stdio.h>
 
 #if defined(__OPENCL)
-# include <CL/cl.h>
+# if defined(__APPLE__)
+#   include <OpenCL/cl.h>
+# else
+#   include <CL/cl.h>
+# endif
 #else
-# error Definition of OpenCL preprocessor symbol is missing!
+# error Definition of __OPENCL preprocessor symbol is missing!
+#endif
+
+#if !defined(ACC_OPENCL_NOEXT)
+# if defined(__APPLE__)
+#   include <OpenCL/cl_ext.h>
+# else
+#   include <CL/cl_ext.h>
+# endif
 #endif
 
 #if !defined(ACC_OPENCL_CACHELINE_NBYTES)
@@ -41,6 +53,7 @@
 #define ACC_OPENCL_STRINGIFY2(SYMBOL) #SYMBOL
 #define ACC_OPENCL_STRINGIFY(SYMBOL) ACC_OPENCL_STRINGIFY2(SYMBOL)
 #define ACC_OPENCL_UP2(N, NPOT) ((((uint64_t)N) + ((NPOT) - 1)) & ~((NPOT) - 1))
+#define ACC_OPENCL_UNUSED(VAR) (void)(VAR)
 
 #if defined(NDEBUG)
 # define ACC_OPENCL_EXPECT(EXPECTED, EXPR) EXPR
@@ -78,13 +91,10 @@ extern "C" {
 #endif
 
 typedef struct acc_opencl_stream_t {
-  /* address of each character is (side-)used to form OpenMP task dependencies */
+#if defined(ACC_OPENCL_STRING_MAXLENGTH) && (0 < ACC_OPENCL_STRING_MAXLENGTH) && !defined(NDEBUG)
   char name[ACC_OPENCL_STRING_MAXLENGTH];
-  volatile int pending, status;
-  int priority;
-#if !defined(NDEBUG)
-  int device_id; /* should match active device as set by acc_set_active_device */
 #endif
+  cl_command_queue queue;
 } acc_opencl_stream_t;
 
 extern cl_context acc_opencl_context;

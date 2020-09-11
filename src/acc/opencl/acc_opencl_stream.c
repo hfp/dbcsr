@@ -37,7 +37,7 @@ int acc_stream_create(acc_stream_t** stream_p, const char* name, int priority)
     0, NULL, NULL);
 #endif
 #if defined(CL_QUEUE_PRIORITY_LOW_KHR) && defined(CL_QUEUE_PRIORITY_MED_KHR) && defined(CL_QUEUE_PRIORITY_HIGH_KHR)
-  assert(CL_QUEUE_PRIORITY_LOW_KHR <= priority && CL_QUEUE_PRIORITY_HIGH_KHR >= priority);
+  assert(CL_QUEUE_PRIORITY_HIGH_KHR <= priority && CL_QUEUE_PRIORITY_LOW_KHR >= priority);
 #endif
   if (EXIT_SUCCESS == result) {
     assert(NULL != stream);
@@ -99,6 +99,7 @@ int acc_stream_priority_range(int* least, int* greatest)
 {
   int result;
   if (NULL != least || NULL != greatest) {
+    assert(least != greatest); /* no alias */
     if (NULL != least) {
 #if defined(CL_QUEUE_PRIORITY_LOW_KHR) && defined(CL_QUEUE_PRIORITY_MED_KHR) && defined(CL_QUEUE_PRIORITY_HIGH_KHR)
       *least = CL_QUEUE_PRIORITY_LOW_KHR;
@@ -115,8 +116,7 @@ int acc_stream_priority_range(int* least, int* greatest)
     }
     result =
 #if defined(CL_QUEUE_PRIORITY_LOW_KHR) && defined(CL_QUEUE_PRIORITY_MED_KHR) && defined(CL_QUEUE_PRIORITY_HIGH_KHR)
-      ((CL_QUEUE_PRIORITY_LOW_KHR > CL_QUEUE_PRIORITY_MED_KHR) ||
-       (CL_QUEUE_PRIORITY_MED_KHR > CL_QUEUE_PRIORITY_HIGH_KHR))
+      (CL_QUEUE_PRIORITY_HIGH_KHR > CL_QUEUE_PRIORITY_MED_KHR || CL_QUEUE_PRIORITY_MED_KHR > CL_QUEUE_PRIORITY_LOW_KHR)
     ? EXIT_FAILURE :
 #endif
       EXIT_SUCCESS;

@@ -39,7 +39,9 @@ int acc_set_active_device(int device_id);
 
 /** streams */
 int acc_stream_priority_range(int* least, int* greatest);
-int acc_stream_create(acc_stream_t** stream_p, const char* name, int priority);
+int acc_stream_create(acc_stream_t** stream_p, const char* name,
+  /** lower number is higher priority */
+  int priority);
 int acc_stream_destroy(acc_stream_t* stream);
 int acc_stream_sync(acc_stream_t* stream);
 int acc_stream_wait_event(acc_stream_t* stream, acc_event_t* event);

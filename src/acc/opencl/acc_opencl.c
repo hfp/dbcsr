@@ -246,14 +246,14 @@ int acc_set_active_device(int device_id)
   cl_int result = EXIT_SUCCESS;
   if (0 <= device_id && device_id < acc_opencl_ndevices) {
     cl_device_id current_id = NULL;
+    size_t n = 0;
     if (NULL != acc_opencl_context) {
-      size_t n = 0;
       ACC_OPENCL_CHECK(clGetContextInfo(acc_opencl_context, CL_CONTEXT_DEVICES,
         sizeof(cl_device_id), &current_id, &n), "failed to query current device id", result);
       assert(sizeof(cl_device_id) == n/*single-device context*/);
     }
     if (acc_opencl_devices[device_id] != current_id) {
-      const cl_context_properties properties[] = {
+      cl_context_properties properties[] = {
         CL_CONTEXT_PLATFORM, (cl_context_properties)acc_opencl_platforms[device_id],
         CL_CONTEXT_INTEROP_USER_SYNC, CL_FALSE, /* TODO */
         0 /* end of properties */
@@ -266,6 +266,15 @@ int acc_set_active_device(int device_id)
         1/*num_devices*/, acc_opencl_devices + device_id,
         NULL/*pfn_notify*/, NULL/* user_data*/,
         &result);
+      if (CL_INVALID_VALUE == result) { /* retry */
+        n = sizeof(properties) / sizeof(*properties);
+        assert(3 <= n);
+        properties[n-3] = 0;
+        acc_opencl_context = clCreateContext(properties,
+          1/*num_devices*/, acc_opencl_devices + device_id,
+          NULL/*pfn_notify*/, NULL/* user_data*/,
+          &result);
+      }
       ACC_OPENCL_CHECK(result, "failed to create OpenCL context", result);
     }
   }

@@ -40,7 +40,7 @@ int acc_event_create(acc_event_t** event_p)
   }
   ACC_OPENCL_RETURN(result);
 #else
-  return -1;
+  return EXIT_FAILURE;
 #endif
 }
 
@@ -55,7 +55,7 @@ int acc_event_destroy(acc_event_t* event)
     0, NULL, NULL);
 #endif
 #else
-  return -1;
+  return EXIT_FAILURE;
 #endif
 }
 
@@ -97,7 +97,7 @@ int acc_event_record(acc_event_t* event, acc_stream_t* stream)
   else result = EXIT_FAILURE;
   ACC_OPENCL_RETURN(result);
 #else
-  return -1;
+  return EXIT_FAILURE;
 #endif
 }
 
@@ -116,7 +116,7 @@ int acc_event_query(acc_event_t* event, acc_bool_t* has_occurred)
   }
   ACC_OPENCL_RETURN(result);
 #else
-  return -1;
+  return EXIT_FAILURE;
 #endif
 }
 
@@ -139,7 +139,7 @@ int acc_event_synchronize(acc_event_t* event)
   else result = EXIT_FAILURE;
   ACC_OPENCL_RETURN(result);
 #else
-  return -1;
+  return EXIT_FAILURE;
 #endif
 }
 

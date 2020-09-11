@@ -30,6 +30,7 @@ extern "C" {
 
 int acc_host_mem_allocate(void** host_mem, size_t n, acc_stream_t* stream)
 {
+#if 0
   /* TODO: currently not enqueued because another (function-)signature
    * which takes a host memory pointer is expecting a pointer rather
    * than a pointer to a pointer. The latter would be necessary to
@@ -54,6 +55,9 @@ int acc_host_mem_allocate(void** host_mem, size_t n, acc_stream_t* stream)
     *host_mem = NULL;
   }
   ACC_OPENCL_RETURN(result);
+#else
+  return EXIT_FAILURE;
+#endif
 }
 
 
@@ -61,7 +65,7 @@ int acc_host_mem_deallocate(void* host_mem, acc_stream_t* stream)
 {
   int result = EXIT_SUCCESS;
 #if !defined(ACC_OPENCL_OFFLOAD)
-  (void)(stream); /* unused */
+  ACC_OPENCL_UNUSED(stream);
 #else /* implies _OPENMP */
   if (0 < acc_opencl_ndevices()) {
     if (NULL != host_mem) {
@@ -76,7 +80,7 @@ int acc_host_mem_deallocate(void* host_mem, acc_stream_t* stream)
           acc_opencl_depend_t *const di = &deps[tid];
           const acc_opencl_dependency_t *const id = di->data.in, *const od = di->data.out;
           void *const ptr = di->data.args[0].ptr;
-          (void)(id); (void)(od); /* suppress incorrect warning */
+          ACC_OPENCL_UNUSED(id); ACC_OPENCL_UNUSED(od); /* suppress incorrect warning */
 #if !defined(NDEBUG)
           if (NULL == ptr) break; /* incorrect dependency-count */
 #endif
@@ -159,7 +163,7 @@ int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t count, acc_stream
   int result = EXIT_SUCCESS;
   assert((NULL != host_mem && NULL != dev_mem) || 0 == count);
 #if !defined(ACC_OPENCL_OFFLOAD)
-  (void)(stream); /* unused */
+  ACC_OPENCL_UNUSED(stream);
 #else /* implies _OPENMP */
   if (0 < acc_opencl_ndevices()) {
     if (0 != count) {
@@ -180,7 +184,7 @@ int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t count, acc_stream
           const acc_opencl_dependency_t *const id = di->data.in, *const od = di->data.out;
           acc_opencl_stream_t *const s = (acc_opencl_stream_t*)di->data.args[3].ptr;
           /*const*/ void *const ptr = di->data.args[0]./*const_*/ptr;
-          (void)(id); (void)(od); /* suppress incorrect warning */
+          ACC_OPENCL_UNUSED(id); ACC_OPENCL_UNUSED(od); /* suppress incorrect warning */
 #if !defined(NDEBUG)
           if (NULL == ptr) break; /* incorrect dependency-count */
 #endif
@@ -210,7 +214,7 @@ int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t count, acc_stream
   int result = EXIT_SUCCESS;
   assert((NULL != dev_mem && NULL != host_mem) || 0 == count);
 #if !defined(ACC_OPENCL_OFFLOAD)
-  (void)(stream); /* unused */
+  ACC_OPENCL_UNUSED(stream);
 #else /* implies _OPENMP */
   if (0 < acc_opencl_ndevices()) {
     if (0 != count) {
@@ -231,7 +235,7 @@ int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t count, acc_stream
           const acc_opencl_dependency_t *const id = di->data.in, *const od = di->data.out;
           acc_opencl_stream_t *const s = (acc_opencl_stream_t*)di->data.args[3].ptr;
           /*const*/ void *const ptr = di->data.args[0]./*const_*/ptr;
-          (void)(id); (void)(od); /* suppress incorrect warning */
+          ACC_OPENCL_UNUSED(id); ACC_OPENCL_UNUSED(od); /* suppress incorrect warning */
 #if !defined(NDEBUG)
           if (NULL == ptr) break; /* incorrect dependency-count */
 #endif
@@ -261,7 +265,7 @@ int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t count, acc_s
   int result = EXIT_SUCCESS;
   assert((NULL != devmem_src && NULL != devmem_dst) || 0 == count);
 #if !defined(ACC_OPENCL_OFFLOAD)
-  (void)(stream); /* unused */
+  ACC_OPENCL_UNUSED(stream);
 #else /* implies _OPENMP */
   if (0 < acc_opencl_ndevices()) {
     if (0 != count) {
@@ -282,7 +286,7 @@ int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t count, acc_s
           const acc_opencl_dependency_t *const id = di->data.in, *const od = di->data.out;
           acc_opencl_stream_t *const s = (acc_opencl_stream_t*)di->data.args[3].ptr;
           /*const*/ void *const ptr = di->data.args[0]./*const_*/ptr;
-          (void)(id); (void)(od); /* suppress incorrect warning */
+          ACC_OPENCL_UNUSED(id); ACC_OPENCL_UNUSED(od); /* suppress incorrect warning */
 #if !defined(NDEBUG)
           if (NULL == ptr) break; /* incorrect dependency-count */
 #endif
@@ -312,7 +316,7 @@ int acc_memset_zero(void* dev_mem, size_t offset, size_t length, acc_stream_t* s
   int result = EXIT_SUCCESS;
   assert(NULL != dev_mem || 0 == length);
 #if !defined(ACC_OPENCL_OFFLOAD)
-  (void)(stream); /* unused */
+  ACC_OPENCL_UNUSED(stream);
 #else /* implies _OPENMP */
   if (0 < acc_opencl_ndevices()) {
     if (0 != length) {
@@ -331,7 +335,7 @@ int acc_memset_zero(void* dev_mem, size_t offset, size_t length, acc_stream_t* s
           const size_t begin = di->data.args[1].size;
           const size_t size = di->data.args[2].size;
           char * /*const*/ dst = (char*)di->data.args[0].ptr;
-          (void)(id); (void)(od); /* suppress incorrect warning */
+          ACC_OPENCL_UNUSED(id); ACC_OPENCL_UNUSED(od); /* suppress incorrect warning */
 #if !defined(NDEBUG)
           if (NULL == dst) break; /* incorrect dependency-count */
 #endif

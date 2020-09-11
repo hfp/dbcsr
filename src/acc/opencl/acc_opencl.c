@@ -186,6 +186,7 @@ int acc_init(void)
         if (CL_DEVICE_TYPE_DEFAULT & type) break;
       }
     }
+    if (!(CL_DEVICE_TYPE_DEFAULT & type)) n = 0;
     if (EXIT_SUCCESS != acc_set_active_device(n)) {
       acc_opencl_ndevices = 0; /* raise error below */
     }

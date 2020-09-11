@@ -90,8 +90,8 @@ int main(int argc, char* argv[])
     (int)(mem_free >> 20), (int)(mem_total >> 20));
 
   ACC_CHECK(acc_stream_priority_range(&priomin, &priomax));
-  priospan = 1 + priomax - priomin;
-  PRINTF("stream priority: min=%i max=%i%s\n", priomin, priomax,
+  priospan = 1 + priomin - priomax;
+  PRINTF("stream priority: lowest=%i highest=%i%s\n", priomin, priomax,
     0 < priospan ? "" : " <-- WARNING: inconsistent values");
 
   for (i = 0; i < ACC_STREAM_MAXCOUNT; ++i) {

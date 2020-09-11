@@ -102,7 +102,15 @@ int main(int argc, char* argv[])
     event[i] = NULL;
   }
 
+  /* create stream with NULL-name and low priority */
+  ACC_CHECK(acc_stream_create(&s, NULL/*name*/, priomin));
+  ACC_CHECK(acc_stream_destroy(s));
+  /* create stream with empty name and medium priority */
+  ACC_CHECK(acc_stream_create(&s, "", (priomin + priomax) / 2));
+  ACC_CHECK(acc_stream_destroy(s));
+  /* destroying NULL-stream shall be valid (just like delete/free) */
   ACC_CHECK(acc_stream_destroy(NULL));
+
 #if defined(_OPENMP)
 # pragma omp parallel for num_threads(nthreads) private(i)
 #endif
@@ -165,7 +173,7 @@ int main(int argc, char* argv[])
     ACC_CHECK(has_occurred ? EXIT_SUCCESS : EXIT_FAILURE);
   }
 
-  ACC_CHECK(acc_stream_create(&s, "stream", priomin));
+  ACC_CHECK(acc_stream_create(&s, "stream", priomax));
   ACC_CHECK(acc_host_mem_allocate(&host_mem, mem_alloc, s));
   ACC_CHECK(acc_dev_mem_allocate(&dev_mem, mem_alloc));
   ACC_CHECK(acc_stream_sync(s)); /* wait for completion */

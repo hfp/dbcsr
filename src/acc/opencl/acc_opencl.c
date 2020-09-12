@@ -21,9 +21,6 @@ extern "C" {
 int acc_opencl_ndevices;
 cl_platform_id acc_opencl_platforms[ACC_OPENCL_DEVICES_MAXCOUNT];
 cl_device_id acc_opencl_devices[ACC_OPENCL_DEVICES_MAXCOUNT];
-#if defined(_OPENMP)
-# pragma omp threadprivate(acc_opencl_context)
-#endif
 cl_context acc_opencl_context;
 
 
@@ -219,7 +216,8 @@ int acc_finalize(void)
 
 
 void acc_clear_errors(void)
-{ assert(0 != acc_opencl_ndevices);
+{
+  assert(0 != acc_opencl_ndevices);
 #if 0 /* flush all pending work */
   ACC_OPENCL_EXPECT(EXIT_SUCCESS, acc_event_record(NULL/*event*/, NULL/*stream*/));
   acc_opencl_stream_clear_errors();
@@ -250,7 +248,7 @@ int acc_set_active_device(int device_id)
     if (NULL != acc_opencl_context) {
       ACC_OPENCL_CHECK(clGetContextInfo(acc_opencl_context, CL_CONTEXT_DEVICES,
         sizeof(cl_device_id), &current_id, &n), "failed to query current device id", result);
-      assert(sizeof(cl_device_id) == n/*single-device context*/);
+      assert(EXIT_SUCCESS != result || sizeof(cl_device_id) == n/*single-device context*/);
     }
     if (acc_opencl_devices[device_id] != current_id) {
       cl_context_properties properties[] = {

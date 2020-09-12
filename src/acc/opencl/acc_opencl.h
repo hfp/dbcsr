@@ -97,8 +97,12 @@ typedef struct acc_opencl_stream_t {
   cl_command_queue queue;
 } acc_opencl_stream_t;
 
-/* allow separate contexts per each OpenMP thread */
+/* allow a context per each OpenMP thread */
 extern cl_context acc_opencl_context;
+#if defined(_OPENMP)
+# pragma omp threadprivate(acc_opencl_context)
+#endif
+
 extern int acc_opencl_stream_count;
 extern int acc_opencl_event_count;
 /* non-zero if library is initialized, zero devices is signaled by nagative value */

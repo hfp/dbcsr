@@ -241,14 +241,14 @@ int acc_get_ndevices(int* n_devices)
 
 int acc_set_active_device(int device_id)
 {
-  cl_int result = ((NULL != acc_opencl_context && 0 <= device_id && device_id < acc_opencl_ndevices)
-    ? EXIT_SUCCESS
-    : EXIT_FAILURE);
+  cl_int result = ((0 <= device_id && device_id < acc_opencl_ndevices) ? EXIT_SUCCESS : EXIT_FAILURE);
   cl_device_id current_id = NULL;
   size_t n = 0;
-  ACC_OPENCL_CHECK(clGetContextInfo(acc_opencl_context, CL_CONTEXT_DEVICES,
-    sizeof(cl_device_id), &current_id, &n), "failed to query current device id", result);
-  assert(EXIT_SUCCESS != result || sizeof(cl_device_id) == n/*single-device context*/);
+  if (NULL != acc_opencl_context) {
+    ACC_OPENCL_CHECK(clGetContextInfo(acc_opencl_context, CL_CONTEXT_DEVICES,
+      sizeof(cl_device_id), &current_id, &n), "failed to query current device id", result);
+    assert(EXIT_SUCCESS != result || sizeof(cl_device_id) == n/*single-device context*/);
+  }
   if (acc_opencl_devices[device_id] != current_id) {
     cl_context_properties properties[] = {
       CL_CONTEXT_PLATFORM, (cl_context_properties)acc_opencl_platforms[device_id],

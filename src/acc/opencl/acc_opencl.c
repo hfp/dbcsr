@@ -259,20 +259,22 @@ int acc_set_active_device(int device_id)
       ACC_OPENCL_CHECK(clReleaseContext(acc_opencl_context),
         "failed to release OpenCL context", result);
     }
-    acc_opencl_context = clCreateContext(properties,
-      1/*num_devices*/, acc_opencl_devices + device_id,
-      NULL/*pfn_notify*/, NULL/* user_data*/,
-      &result);
-    if (CL_INVALID_VALUE == result) { /* retry */
-      n = sizeof(properties) / sizeof(*properties);
-      assert(3 <= n);
-      properties[n-3] = 0;
+    if (EXIT_SUCCESS == result) {
       acc_opencl_context = clCreateContext(properties,
         1/*num_devices*/, acc_opencl_devices + device_id,
         NULL/*pfn_notify*/, NULL/* user_data*/,
         &result);
+      if (CL_INVALID_VALUE == result) { /* retry */
+        n = sizeof(properties) / sizeof(*properties);
+        assert(3 <= n);
+        properties[n-3] = 0;
+        acc_opencl_context = clCreateContext(properties,
+          1/*num_devices*/, acc_opencl_devices + device_id,
+          NULL/*pfn_notify*/, NULL/* user_data*/,
+          &result);
+      }
+      ACC_OPENCL_CHECK(result, "failed to create OpenCL context", result);
     }
-    ACC_OPENCL_CHECK(result, "failed to create OpenCL context", result);
   }
   ACC_OPENCL_RETURN(result);
 }

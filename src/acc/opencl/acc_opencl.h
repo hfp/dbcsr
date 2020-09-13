@@ -67,21 +67,26 @@
   } while (0)
 #endif
 
+#define ACC_OPENCL_ERROR(MSG, RESULT) do { \
+  if (-1001 != (RESULT)) { \
+    fprintf(stderr, "ERROR ACC/OpenCL: " MSG " (code=%i)\n", RESULT); \
+    assert(CL_SUCCESS != (RESULT)); \
+  } \
+  else { \
+    fprintf(stderr, "ERROR ACC/OpenCL: " MSG " (incomplete OpenCL installation?)\n"); \
+  } \
+  assert(!MSG); \
+  (RESULT) = EXIT_FAILURE; \
+} while (0)
+
 #define ACC_OPENCL_CHECK(EXPR, MSG, RESULT) do { \
   if (EXIT_SUCCESS == (RESULT)) { \
-    const int acc_opencl_check_result_ = (EXPR); assert((MSG) && *(MSG)); \
-    if (CL_SUCCESS == acc_opencl_check_result_) { \
+    (RESULT) = (EXPR); assert((MSG) && *(MSG)); \
+    if (CL_SUCCESS == (RESULT)) { \
       (RESULT) = EXIT_SUCCESS; \
     } \
     else { \
-      if (-1001 != acc_opencl_check_result_) { \
-        fprintf(stderr, "ERROR ACC/OpenCL: " MSG " (code=%i)\n", acc_opencl_check_result_); \
-      } \
-      else { \
-        fprintf(stderr, "ERROR ACC/OpenCL: " MSG " (incomplete OpenCL installation?)\n"); \
-      } \
-      (RESULT) = EXIT_FAILURE; \
-      assert(!MSG); \
+      ACC_OPENCL_ERROR(MSG, RESULT); \
     } \
   } \
 } while (0)

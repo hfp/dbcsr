@@ -15,6 +15,12 @@
 # define ACC_OPENCL_STREAM_PRIORITY_INVALID -1
 #endif
 
+#if defined(CL_VERSION_2_0)
+# define ACC_OPENCL_CREATE_COMMAND_QUEUE clCreateCommandQueueWithProperties
+#else
+# define ACC_OPENCL_CREATE_COMMAND_QUEUE clCreateCommandQueue
+#endif
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -28,18 +34,33 @@ int acc_opencl_stream_count;
 
 int acc_stream_create(acc_stream_t** stream_p, const char* name, int priority)
 {
+  cl_int result = (NULL != acc_opencl_context ? EXIT_SUCCESS : EXIT_FAILURE);
+  cl_command_queue_properties properties = NULL;
+  cl_command_queue queue = NULL;
+  cl_device_id device_id = NULL;
   acc_opencl_stream_t* stream;
-  int result = acc_opencl_alloc((void**)&stream,
-    sizeof(acc_opencl_stream_t), &acc_opencl_stream_count,
-#if defined(ACC_OPENCL_STREAM_MAXCOUNT) && (0 < ACC_OPENCL_STREAM_MAXCOUNT)
-    ACC_OPENCL_STREAM_MAXCOUNT, acc_opencl_streams, (void**)acc_opencl_streamp);
-#else
-    0, NULL, NULL);
-#endif
+  size_t n = 0;
 #if defined(CL_QUEUE_PRIORITY_LOW_KHR) && defined(CL_QUEUE_PRIORITY_MED_KHR) && defined(CL_QUEUE_PRIORITY_HIGH_KHR)
   assert(CL_QUEUE_PRIORITY_HIGH_KHR <= priority && CL_QUEUE_PRIORITY_LOW_KHR >= priority);
 #endif
+  ACC_OPENCL_CHECK(clGetContextInfo(acc_opencl_context, CL_CONTEXT_DEVICES,
+    sizeof(cl_device_id), &device_id, &n), "failed to query current device id", result);
+  assert(EXIT_SUCCESS != result || sizeof(cl_device_id) == n/*single-device context*/);
   if (EXIT_SUCCESS == result) {
+    queue = ACC_OPENCL_CREATE_COMMAND_QUEUE(acc_opencl_context,
+      device_id, properties, &result);
+  }
+  else {
+    ACC_OPENCL_ERROR("failed to create OpenCL command queue", result);
+  }
+  if (NULL != queue) {
+    result = acc_opencl_alloc((void**)&stream,
+      sizeof(acc_opencl_stream_t), &acc_opencl_stream_count,
+#if defined(ACC_OPENCL_STREAM_MAXCOUNT) && (0 < ACC_OPENCL_STREAM_MAXCOUNT)
+      ACC_OPENCL_STREAM_MAXCOUNT, acc_opencl_streams, (void**)acc_opencl_streamp);
+#else
+      0, NULL, NULL);
+#endif
     assert(NULL != stream);
 #if defined(ACC_OPENCL_STRING_MAXLENGTH) && (0 < ACC_OPENCL_STRING_MAXLENGTH) && !defined(NDEBUG)
     strncpy(stream->name, NULL != name ? name : "", ACC_OPENCL_STRING_MAXLENGTH);
@@ -47,6 +68,7 @@ int acc_stream_create(acc_stream_t** stream_p, const char* name, int priority)
 #else
     ACC_OPENCL_UNUSED(name);
 #endif
+    stream->queue = queue;
     assert(NULL != stream_p);
     *stream_p = stream;
   }

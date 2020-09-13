@@ -146,7 +146,7 @@ int acc_init(void)
     "failed to query number of platforms", result);
   ACC_OPENCL_CHECK(clGetPlatformIDs(
     nplatforms <= ACC_OPENCL_DEVICES_MAXCOUNT ? nplatforms : ACC_OPENCL_DEVICES_MAXCOUNT,
-    acc_opencl_platforms, 0), "failed to query platforms", result);
+    acc_opencl_platforms, 0), "failed to retrieve platforms", result);
   if (NULL != device && '\0' != *device) {
     if (NULL != acc_opencl_stristr(device, "gpu")) type = CL_DEVICE_TYPE_GPU;
     else if (NULL != acc_opencl_stristr(device, "cpu")) type = CL_DEVICE_TYPE_CPU;
@@ -173,7 +173,7 @@ int acc_init(void)
       ? (int)ndevices : (ACC_OPENCL_DEVICES_MAXCOUNT - acc_opencl_ndevices);
     ACC_OPENCL_CHECK(clGetDeviceIDs(acc_opencl_platforms[i], type,
       n, acc_opencl_devices + acc_opencl_ndevices, NULL),
-      "failed to query devices", result);
+      "failed to retrieve devices", result);
     acc_opencl_ndevices += n;
   }
   assert(NULL == acc_opencl_context);
@@ -183,7 +183,7 @@ int acc_init(void)
       for (n = 0; n < acc_opencl_ndevices; ++n) {
         ACC_OPENCL_CHECK(clGetDeviceInfo(acc_opencl_devices[n],
           CL_DEVICE_TYPE, sizeof(cl_device_type), &type, NULL),
-          "failed to query device information", result);
+          "failed to retrieve device information", result);
         if (CL_DEVICE_TYPE_DEFAULT & type) break;
       }
     }
@@ -246,7 +246,7 @@ int acc_set_active_device(int device_id)
   size_t n = 0;
   if (NULL != acc_opencl_context) {
     ACC_OPENCL_CHECK(clGetContextInfo(acc_opencl_context, CL_CONTEXT_DEVICES,
-      sizeof(cl_device_id), &current_id, &n), "failed to query current device id", result);
+      sizeof(cl_device_id), &current_id, &n), "failed to retrieve id of active device", result);
     assert(EXIT_SUCCESS != result || sizeof(cl_device_id) == n/*single-device context*/);
   }
   if (acc_opencl_devices[device_id] != current_id) {

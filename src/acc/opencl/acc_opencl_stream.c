@@ -21,6 +21,13 @@
 # define ACC_OPENCL_CREATE_COMMAND_QUEUE clCreateCommandQueue
 #endif
 
+#if defined(CL_VERSION_1_2)
+# define ACC_OPENCL_WAIT_EVENT(QUEUE, EVENT) clEnqueueMarkerWithWaitList(QUEUE, NULL != (EVENT) ? 1 : 0, EVENT, NULL)
+#else
+# define ACC_OPENCL_WAIT_EVENT(QUEUE, EVENT) clEnqueueWaitForEvents(QUEUE, NULL != (EVENT) ? 1 : 0, EVENT)
+#endif
+
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -154,8 +161,8 @@ int acc_stream_wait_event(acc_stream_t* stream, acc_event_t* event)
 { /* Wait for an event (device-side). */
   int result = EXIT_SUCCESS;
   if (NULL != stream) {
-    ACC_OPENCL_CHECK(clEnqueueMarkerWithWaitList(stream->queue,
-      1, NULL != event ? &event->event : NULL, NULL),
+    ACC_OPENCL_CHECK(ACC_OPENCL_WAIT_EVENT(stream->queue,
+      NULL != event ? &event->event : NULL),
       "failed to wait for an event", result);
   }
   else result = acc_stream_sync(stream);

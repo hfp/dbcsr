@@ -98,12 +98,12 @@
 extern "C" {
 #endif
 
-typedef struct acc_opencl_stream_t {
+struct acc_stream_t {
 #if defined(ACC_OPENCL_STRING_MAXLENGTH) && (0 < ACC_OPENCL_STRING_MAXLENGTH) && !defined(NDEBUG)
   char name[ACC_OPENCL_STRING_MAXLENGTH];
 #endif
   cl_command_queue queue;
-} acc_opencl_stream_t;
+};
 
 /* allow a context per each OpenMP thread */
 extern cl_context acc_opencl_context;

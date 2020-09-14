@@ -36,17 +36,16 @@ int acc_host_mem_allocate(void** host_mem, size_t n, acc_stream_t* stream)
    * than a pointer to a pointer. The latter would be necessary to
    * allow for asynchronous delivery.
    */
-  acc_opencl_stream_t *const s = (acc_opencl_stream_t*)stream;
-  int result = (NULL != s ? s->status : EXIT_SUCCESS);
+  int result = (NULL != stream ? stream->status : EXIT_SUCCESS);
   assert(NULL != host_mem || 0 == n);
   if (EXIT_SUCCESS == result && 0 != n) {
     *host_mem = ACC_OPENCL_MEM_ALLOC(n);
     if (NULL == *host_mem) {
-      if (NULL != s) {
+      if (NULL != stream) {
 #if defined(_OPENMP)
 #       pragma omp atomic
 #endif
-        s->status = s->status | EXIT_FAILURE;
+        stream->status = stream->status | EXIT_FAILURE;
       }
       result = EXIT_FAILURE;
     }
@@ -182,7 +181,7 @@ int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t count, acc_stream
         for (; tid < ndepend; ++tid) {
           acc_opencl_depend_t *const di = &deps[tid];
           const acc_opencl_dependency_t *const id = di->data.in, *const od = di->data.out;
-          acc_opencl_stream_t *const s = (acc_opencl_stream_t*)di->data.args[3].ptr;
+          acc_stream_t *const s = (acc_stream_t*)di->data.args[3].ptr;
           /*const*/ void *const ptr = di->data.args[0]./*const_*/ptr;
           ACC_OPENCL_UNUSED(id); ACC_OPENCL_UNUSED(od); /* suppress incorrect warning */
 #if !defined(NDEBUG)
@@ -233,7 +232,7 @@ int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t count, acc_stream
         for (; tid < ndepend; ++tid) {
           acc_opencl_depend_t *const di = &deps[tid];
           const acc_opencl_dependency_t *const id = di->data.in, *const od = di->data.out;
-          acc_opencl_stream_t *const s = (acc_opencl_stream_t*)di->data.args[3].ptr;
+          acc_stream_t *const s = (acc_stream_t*)di->data.args[3].ptr;
           /*const*/ void *const ptr = di->data.args[0]./*const_*/ptr;
           ACC_OPENCL_UNUSED(id); ACC_OPENCL_UNUSED(od); /* suppress incorrect warning */
 #if !defined(NDEBUG)
@@ -284,7 +283,7 @@ int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t count, acc_s
         for (; tid < ndepend; ++tid) {
           acc_opencl_depend_t *const di = &deps[tid];
           const acc_opencl_dependency_t *const id = di->data.in, *const od = di->data.out;
-          acc_opencl_stream_t *const s = (acc_opencl_stream_t*)di->data.args[3].ptr;
+          acc_stream_t *const s = (acc_stream_t*)di->data.args[3].ptr;
           /*const*/ void *const ptr = di->data.args[0]./*const_*/ptr;
           ACC_OPENCL_UNUSED(id); ACC_OPENCL_UNUSED(od); /* suppress incorrect warning */
 #if !defined(NDEBUG)

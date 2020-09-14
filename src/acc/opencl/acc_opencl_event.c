@@ -65,7 +65,6 @@ int acc_event_record(acc_event_t* event, acc_stream_t* stream)
 #if 0
   int result;
   if (NULL != stream) {
-    acc_opencl_stream_t *const s = (acc_opencl_stream_t*)stream;
     acc_opencl_event_t *const e = (acc_opencl_event_t*)event;
 #if defined(ACC_OPENCL_OFFLOAD)
     if (0 < acc_opencl_ndevices()) {
@@ -80,7 +79,7 @@ int acc_event_record(acc_event_t* event, acc_stream_t* stream)
       result = EXIT_SUCCESS;
     }
     else {
-      s->pending = 0;
+      stream->pending = 0;
       result = EXIT_SUCCESS;
     }
   }

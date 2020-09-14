@@ -26,8 +26,8 @@ extern "C" {
 #endif
 
 #if defined(ACC_OPENCL_STREAM_MAXCOUNT) && (0 < ACC_OPENCL_STREAM_MAXCOUNT)
-acc_opencl_stream_t  acc_opencl_streams[ACC_OPENCL_STREAM_MAXCOUNT];
-acc_opencl_stream_t* acc_opencl_streamp[ACC_OPENCL_STREAM_MAXCOUNT];
+acc_stream_t  acc_opencl_streams[ACC_OPENCL_STREAM_MAXCOUNT];
+acc_stream_t* acc_opencl_streamp[ACC_OPENCL_STREAM_MAXCOUNT];
 #endif
 int acc_opencl_stream_count;
 
@@ -44,7 +44,6 @@ int acc_stream_create(acc_stream_t** stream_p, const char* name, int priority)
   };
   cl_command_queue queue = NULL;
   cl_device_id device_id = NULL;
-  acc_opencl_stream_t* stream;
   size_t n = 0;
   assert(ACC_OPENCL_STREAM_PRIORITY_INVALID == priority ||
     (CL_QUEUE_PRIORITY_HIGH_KHR <= priority && CL_QUEUE_PRIORITY_LOW_KHR >= priority));
@@ -59,23 +58,23 @@ int acc_stream_create(acc_stream_t** stream_p, const char* name, int priority)
     ACC_OPENCL_ERROR("failed to create OpenCL command queue", result);
   }
   if (NULL != queue) {
-    result = acc_opencl_alloc((void**)&stream,
-      sizeof(acc_opencl_stream_t), &acc_opencl_stream_count,
+    assert(NULL != stream_p);
+    result = acc_opencl_alloc((void**)stream_p, sizeof(acc_stream_t), &acc_opencl_stream_count,
 #if defined(ACC_OPENCL_STREAM_MAXCOUNT) && (0 < ACC_OPENCL_STREAM_MAXCOUNT)
       ACC_OPENCL_STREAM_MAXCOUNT, acc_opencl_streams, (void**)acc_opencl_streamp);
 #else
       0, NULL, NULL);
 #endif
-    assert(NULL != stream);
+    if (EXIT_SUCCESS == result) {
+      assert(NULL != *stream_p);
 #if defined(ACC_OPENCL_STRING_MAXLENGTH) && (0 < ACC_OPENCL_STRING_MAXLENGTH) && !defined(NDEBUG)
-    strncpy(stream->name, NULL != name ? name : "", ACC_OPENCL_STRING_MAXLENGTH);
-    stream->name[ACC_OPENCL_STRING_MAXLENGTH-1] = '\0';
+      strncpy((*stream_p)->name, NULL != name ? name : "", ACC_OPENCL_STRING_MAXLENGTH);
+      (*stream_p)->name[ACC_OPENCL_STRING_MAXLENGTH-1] = '\0';
 #else
-    ACC_OPENCL_UNUSED(name);
+      ACC_OPENCL_UNUSED(name);
 #endif
-    stream->queue = queue;
-    assert(NULL != stream_p);
-    *stream_p = stream;
+      (*stream_p)->queue = queue;
+    }
   }
   ACC_OPENCL_RETURN(result);
 }
@@ -83,24 +82,17 @@ int acc_stream_create(acc_stream_t** stream_p, const char* name, int priority)
 
 int acc_stream_destroy(acc_stream_t* stream)
 {
-#if 0
-  acc_opencl_stream_t *const s = (acc_opencl_stream_t*)stream;
-  int result = ((NULL != s && 0 < s->pending) ? acc_stream_sync(stream) : EXIT_SUCCESS);
+  int result;
 #if defined(ACC_OPENCL_STREAM_MAXCOUNT) && (0 < ACC_OPENCL_STREAM_MAXCOUNT)
-  assert(NULL == s || (acc_opencl_streams <= s && s < (acc_opencl_streams + ACC_OPENCL_STREAM_MAXCOUNT)));
+  assert(NULL == stream || (acc_opencl_streams <= stream && stream < (acc_opencl_streams + ACC_OPENCL_STREAM_MAXCOUNT)));
 #endif
-  if (EXIT_SUCCESS == result) {
-    result = acc_opencl_dealloc(stream, sizeof(acc_opencl_stream_t), &acc_opencl_stream_count,
+  result = acc_opencl_dealloc(stream, sizeof(acc_stream_t), &acc_opencl_stream_count,
 #if defined(ACC_OPENCL_STREAM_MAXCOUNT) && (0 < ACC_OPENCL_STREAM_MAXCOUNT)
-      ACC_OPENCL_STREAM_MAXCOUNT, acc_opencl_streams, (void**)acc_opencl_streamp);
+    ACC_OPENCL_STREAM_MAXCOUNT, acc_opencl_streams, (void**)acc_opencl_streamp);
 #else
-      0, NULL, NULL);
+    0, NULL, NULL);
 #endif
-  }
   ACC_OPENCL_RETURN(result);
-#else
-  return EXIT_FAILURE;
-#endif
 }
 
 
@@ -175,7 +167,6 @@ int acc_stream_sync(acc_stream_t* stream)
   if (EXIT_SUCCESS == result) {
     result = acc_event_record(NULL/*event*/, stream);
     if (EXIT_SUCCESS == result) {
-      acc_opencl_stream_t* const s = (acc_opencl_stream_t*)stream;
     }
   }
   ACC_OPENCL_RETURN(result);

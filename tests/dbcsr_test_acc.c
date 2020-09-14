@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
   const int cli_nthreads = (2 < argc ? atoi(argv[2]) : max_nthreads);
   const int nthreads = ((0 < cli_nthreads && cli_nthreads <= max_nthreads) ? cli_nthreads : max_nthreads);
   int priority[ACC_STREAM_MAXCOUNT], priomin, priomax, priospan;
-  int randnums[ACC_EVENT_MAXCOUNT], ndevices, i, n;
+  int randnums[ACC_EVENT_MAXCOUNT], ndevices, i, n, nt;
   acc_stream_t *stream[ACC_STREAM_MAXCOUNT], *s;
   acc_event_t *event[ACC_EVENT_MAXCOUNT];
   const size_t mem_alloc = (16/*MB*/ << 20);
@@ -95,7 +95,7 @@ int main(int argc, char* argv[])
     0 < priospan ? "" : " <-- WARNING: inconsistent values");
 
   for (i = 0; i < ACC_STREAM_MAXCOUNT; ++i) {
-    priority[i] = priomin + (0 < priospan ? (randnums[i%ACC_STREAM_MAXCOUNT] % priospan) : 0);
+    priority[i] = priomax + (0 < priospan ? (randnums[i%ACC_STREAM_MAXCOUNT] % priospan) : 0);
     stream[i] = NULL;
   }
   for (i = 0; i < ACC_EVENT_MAXCOUNT; ++i) {
@@ -112,7 +112,8 @@ int main(int argc, char* argv[])
   ACC_CHECK(acc_stream_destroy(NULL));
 
 #if defined(_OPENMP)
-# pragma omp parallel for num_threads(nthreads) private(i)
+  nt = (nthreads < ACC_STREAM_MAXCOUNT ? nthreads : ACC_STREAM_MAXCOUNT);
+# pragma omp parallel for num_threads(nt) private(i)
 #endif
   for (i = 0; i < ACC_STREAM_MAXCOUNT; ++i) {
     const int r = randnums[i%ACC_STREAM_MAXCOUNT] % ACC_STREAM_MAXCOUNT;
@@ -127,7 +128,7 @@ int main(int argc, char* argv[])
   }
 
 #if defined(_OPENMP)
-# pragma omp parallel for num_threads(nthreads) private(i)
+# pragma omp parallel for num_threads(nt) private(i)
 #endif
   for (i = 0; i < ACC_STREAM_MAXCOUNT; ++i) {
     if (NULL == stream[i]) {
@@ -140,8 +141,9 @@ int main(int argc, char* argv[])
   }
 
   ACC_CHECK(acc_event_destroy(NULL));
+  nt = (nthreads < ACC_EVENT_MAXCOUNT ? nthreads : ACC_EVENT_MAXCOUNT);
 #if defined(_OPENMP)
-# pragma omp parallel for num_threads(nthreads) private(i)
+# pragma omp parallel for num_threads(nt) private(i)
 #endif
   for (i = 0; i < ACC_EVENT_MAXCOUNT; ++i) {
     const int r = randnums[i%ACC_EVENT_MAXCOUNT] % ACC_EVENT_MAXCOUNT;
@@ -153,7 +155,7 @@ int main(int argc, char* argv[])
   }
 
 #if defined(_OPENMP)
-# pragma omp parallel for num_threads(nthreads) private(i)
+# pragma omp parallel for num_threads(nt) private(i)
 #endif
   for (i = 0; i < ACC_EVENT_MAXCOUNT; ++i) {
     if (NULL == event[i]) {
@@ -162,12 +164,11 @@ int main(int argc, char* argv[])
     ACC_CHECK(acc_event_destroy(event[i]));
   }
 
-  n = (nthreads <= ACC_EVENT_MAXCOUNT ? nthreads : ACC_EVENT_MAXCOUNT);
 #if defined(_OPENMP)
-# pragma omp parallel for num_threads(n) private(i)
+# pragma omp parallel for num_threads(nt) private(i)
 #endif
-  for (i = 0; i < n; ++i) ACC_CHECK(acc_event_create(event + i));
-  for (i = 0; i < n; ++i) {
+  for (i = 0; i < nt; ++i) ACC_CHECK(acc_event_create(event + i));
+  for (i = 0; i < nt; ++i) {
     acc_bool_t has_occurred = 0;
     ACC_CHECK(acc_event_query(event[i], &has_occurred));
     ACC_CHECK(has_occurred ? EXIT_SUCCESS : EXIT_FAILURE);

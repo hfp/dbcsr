@@ -143,22 +143,15 @@ int acc_stream_priority_range(int* least, int* greatest)
 
 int acc_stream_sync(acc_stream_t* stream)
 { /* Blocks the host-thread. */
-#if 0
-  int result = (NULL != stream ? EXIT_SUCCESS : EXIT_FAILURE);
-  if (EXIT_SUCCESS == result) {
-    result = acc_event_record(NULL/*event*/, stream);
-    if (EXIT_SUCCESS == result) {
-    }
-  }
+  int result = EXIT_SUCCESS;
+  ACC_OPENCL_CHECK(clFinish(NULL != stream ? stream->queue : NULL),
+    "failed to synchronize stream", result);
   ACC_OPENCL_RETURN(result);
-#else
-  return EXIT_FAILURE;
-#endif
 }
 
 
 int acc_stream_wait_event(acc_stream_t* stream, acc_event_t* event)
-{ /* Waits (device-side) for an event. */
+{ /* Wait for an event (device-side). */
 #if 0
   int result;
   if (NULL != stream && NULL != event) {

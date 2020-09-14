@@ -86,6 +86,7 @@ int acc_stream_create(acc_stream_t** stream_p, const char* name, int priority)
     }
     else {
       clReleaseCommandQueue(queue);
+      *stream_p = NULL;
     }
   }
   else {

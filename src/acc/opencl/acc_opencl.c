@@ -139,7 +139,7 @@ int acc_init(void)
   int n, result = (0 == acc_opencl_stream_count
                 && 0 == acc_opencl_event_count
 #if defined(_OPENMP)
-                && /*master*/0 == omp_get_thread_num()
+                && 0 == omp_in_parallel()
 #endif
   ) ? EXIT_SUCCESS : EXIT_FAILURE;
   ACC_OPENCL_CHECK(clGetPlatformIDs(0, NULL, &nplatforms),
@@ -187,9 +187,19 @@ int acc_init(void)
         if (CL_DEVICE_TYPE_DEFAULT & type) break;
       }
     }
-    if (!(CL_DEVICE_TYPE_DEFAULT & type)) n = 0;
-    if (EXIT_SUCCESS != acc_set_active_device(n)) {
-      acc_opencl_ndevices = 0; /* raise error below */
+    if (EXIT_SUCCESS == result) {
+      if (!(CL_DEVICE_TYPE_DEFAULT & type)) n = 0;
+      result = acc_set_active_device(n);
+#if defined(_OPENMP)
+      if (EXIT_SUCCESS == result) {
+        const cl_context context = acc_opencl_context;
+#       pragma omp parallel shared(context)
+        if (context != acc_opencl_context) {
+          ACC_OPENCL_CHECK(clRetainContext(context), "failed to retain context", result);
+          acc_opencl_context = context;
+        }
+      }
+#endif
     }
   }
   else { /* mark as initialized */
@@ -204,7 +214,7 @@ int acc_finalize(void)
   int result = (0 == acc_opencl_stream_count
              && 0 == acc_opencl_event_count
 #if defined(_OPENMP)
-             && /*master*/0 == omp_get_thread_num()
+             && 0 == omp_in_parallel()
 #endif
   ) ? EXIT_SUCCESS : EXIT_FAILURE;
   if (NULL != acc_opencl_context) {
@@ -242,14 +252,14 @@ int acc_get_ndevices(int* n_devices)
 int acc_set_active_device(int device_id)
 {
   cl_int result = ((0 <= device_id && device_id < acc_opencl_ndevices) ? EXIT_SUCCESS : EXIT_FAILURE);
-  cl_device_id current_id = NULL;
+  cl_device_id active_id = NULL;
   size_t n = 0;
   if (NULL != acc_opencl_context) {
     ACC_OPENCL_CHECK(clGetContextInfo(acc_opencl_context, CL_CONTEXT_DEVICES,
-      sizeof(cl_device_id), &current_id, &n), "failed to retrieve id of active device", result);
+      sizeof(cl_device_id), &active_id, &n), "failed to retrieve id of active device", result);
     assert(EXIT_SUCCESS != result || sizeof(cl_device_id) == n/*single-device context*/);
   }
-  if (acc_opencl_devices[device_id] != current_id) {
+  if (acc_opencl_devices[device_id] != active_id) {
     cl_context_properties properties[] = {
       CL_CONTEXT_PLATFORM, (cl_context_properties)acc_opencl_platforms[device_id],
       CL_CONTEXT_INTEROP_USER_SYNC, CL_FALSE, /* TODO */

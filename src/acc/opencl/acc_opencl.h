@@ -75,7 +75,7 @@
       assert(CL_SUCCESS != (RESULT)); \
     } \
     else { \
-      fprintf(stderr, "ERROR ACC/OpenCL: " MSG " (incomplete OpenCL installation?)\n"); \
+      fprintf(stderr, "ERROR ACC/OpenCL: incomplete OpenCL installation (" MSG ")\n"); \
     } \
     assert(!MSG); \
     (RESULT) = EXIT_FAILURE; \

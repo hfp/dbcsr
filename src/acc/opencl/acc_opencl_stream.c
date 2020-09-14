@@ -35,16 +35,21 @@ int acc_opencl_stream_count;
 int acc_stream_create(acc_stream_t** stream_p, const char* name, int priority)
 {
   cl_int result = (NULL != acc_opencl_context ? EXIT_SUCCESS : EXIT_FAILURE);
-  cl_command_queue_properties properties = NULL;
+  cl_command_queue_properties properties[] = {
+#if defined(CL_QUEUE_PRIORITY_KHR)
+    ACC_OPENCL_STREAM_PRIORITY_INVALID != priority ? CL_QUEUE_PRIORITY_KHR : 0,
+    ACC_OPENCL_STREAM_PRIORITY_INVALID != priority ? priority : 0,
+#endif
+    0
+  };
   cl_command_queue queue = NULL;
   cl_device_id device_id = NULL;
   acc_opencl_stream_t* stream;
   size_t n = 0;
-#if defined(CL_QUEUE_PRIORITY_LOW_KHR) && defined(CL_QUEUE_PRIORITY_MED_KHR) && defined(CL_QUEUE_PRIORITY_HIGH_KHR)
-  assert(CL_QUEUE_PRIORITY_HIGH_KHR <= priority && CL_QUEUE_PRIORITY_LOW_KHR >= priority);
-#endif
+  assert(ACC_OPENCL_STREAM_PRIORITY_INVALID == priority ||
+    (CL_QUEUE_PRIORITY_HIGH_KHR <= priority && CL_QUEUE_PRIORITY_LOW_KHR >= priority));
   ACC_OPENCL_CHECK(clGetContextInfo(acc_opencl_context, CL_CONTEXT_DEVICES,
-    sizeof(cl_device_id), &device_id, &n), "failed to query current device id", result);
+    sizeof(cl_device_id), &device_id, &n), "failed to retrieve id of active device", result);
   assert(EXIT_SUCCESS != result || sizeof(cl_device_id) == n/*single-device context*/);
   if (EXIT_SUCCESS == result) {
     queue = ACC_OPENCL_CREATE_COMMAND_QUEUE(acc_opencl_context,
@@ -119,32 +124,46 @@ void acc_opencl_stream_clear_errors(void)
 
 int acc_stream_priority_range(int* least, int* greatest)
 {
-  int result;
-  if (NULL != least || NULL != greatest) {
-    assert(least != greatest); /* no alias */
-    if (NULL != least) {
-#if defined(CL_QUEUE_PRIORITY_LOW_KHR) && defined(CL_QUEUE_PRIORITY_MED_KHR) && defined(CL_QUEUE_PRIORITY_HIGH_KHR)
-      *least = CL_QUEUE_PRIORITY_LOW_KHR;
-#else
-      *least = ACC_OPENCL_STREAM_PRIORITY_INVALID;
-#endif
+  int result = ((NULL != least || NULL != greatest) ? EXIT_SUCCESS : EXIT_FAILURE);
+  char *buffer[ACC_OPENCL_BUFFER_MAXSIZE];
+  cl_context_properties *const properties = (cl_context_properties*)buffer;
+  cl_platform_id platform = NULL;
+  size_t size = 0;
+  assert(least != greatest); /* no alias */
+  if (CL_SUCCESS == clGetContextInfo(acc_opencl_context, CL_CONTEXT_PROPERTIES,
+    ACC_OPENCL_BUFFER_MAXSIZE, properties, &size))
+  {
+    size_t i;
+    for (i = 0; i < size; ++i) if (CL_CONTEXT_PLATFORM == properties[i]) {
+      assert((i + 1) < size && 0 != properties[i+1]);
+      platform = (cl_platform_id)properties[i+1];
     }
-    if (NULL != greatest) {
-#if defined(CL_QUEUE_PRIORITY_LOW_KHR) && defined(CL_QUEUE_PRIORITY_MED_KHR) && defined(CL_QUEUE_PRIORITY_HIGH_KHR)
-      *greatest = CL_QUEUE_PRIORITY_HIGH_KHR;
-#else
-      *greatest = ACC_OPENCL_STREAM_PRIORITY_INVALID;
-#endif
-    }
-    result =
-#if defined(CL_QUEUE_PRIORITY_LOW_KHR) && defined(CL_QUEUE_PRIORITY_MED_KHR) && defined(CL_QUEUE_PRIORITY_HIGH_KHR)
-      (CL_QUEUE_PRIORITY_HIGH_KHR > CL_QUEUE_PRIORITY_MED_KHR || CL_QUEUE_PRIORITY_MED_KHR > CL_QUEUE_PRIORITY_LOW_KHR)
-    ? EXIT_FAILURE :
-#endif
-      EXIT_SUCCESS;
   }
   else {
-    result = EXIT_FAILURE;
+    ACC_OPENCL_ERROR("failed to retrieve context properties", result);
+  }
+  if (NULL != platform) {
+    if (CL_SUCCESS == clGetPlatformInfo(platform, CL_PLATFORM_EXTENSIONS,
+      ACC_OPENCL_BUFFER_MAXSIZE, buffer, &size))
+    {
+      if (NULL != least) {
+#if defined(CL_QUEUE_PRIORITY_KHR)
+        *least = CL_QUEUE_PRIORITY_LOW_KHR;
+#else
+        *least = ACC_OPENCL_STREAM_PRIORITY_INVALID;
+#endif
+      }
+      if (NULL != greatest) {
+#if defined(CL_QUEUE_PRIORITY_KHR)
+        *greatest = CL_QUEUE_PRIORITY_HIGH_KHR;
+#else
+        *greatest = ACC_OPENCL_STREAM_PRIORITY_INVALID;
+#endif
+      }
+    }
+    else {
+      ACC_OPENCL_ERROR("failed to retrieve platform extensions", result);
+    }
   }
   ACC_OPENCL_RETURN(result);
 }

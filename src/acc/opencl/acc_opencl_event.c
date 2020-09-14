@@ -44,6 +44,8 @@ int acc_event_create(acc_event_t** event_p)
   }
   else {
     ACC_OPENCL_ERROR("failed to create user-defined event", result);
+    assert(NULL != event_p);
+    *event_p = NULL;
   }
   ACC_OPENCL_RETURN(result);
 }

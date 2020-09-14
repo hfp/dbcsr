@@ -40,7 +40,6 @@ int acc_event_create(acc_event_t** event_p)
     }
     else {
       clReleaseEvent(event);
-      *event_p = NULL;
     }
   }
   else {

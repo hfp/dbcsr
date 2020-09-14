@@ -35,13 +35,6 @@ int acc_opencl_stream_count;
 int acc_stream_create(acc_stream_t** stream_p, const char* name, int priority)
 {
   cl_int result = (NULL != acc_opencl_context ? EXIT_SUCCESS : EXIT_FAILURE);
-  cl_command_queue_properties properties[] = {
-#if defined(CL_QUEUE_PRIORITY_KHR)
-    ACC_OPENCL_STREAM_PRIORITY_INVALID != priority ? CL_QUEUE_PRIORITY_KHR : 0,
-    ACC_OPENCL_STREAM_PRIORITY_INVALID != priority ? priority : 0,
-#endif
-    0
-  };
   cl_command_queue queue = NULL;
   cl_device_id device_id = NULL;
   size_t n = 0;
@@ -51,11 +44,14 @@ int acc_stream_create(acc_stream_t** stream_p, const char* name, int priority)
     sizeof(cl_device_id), &device_id, &n), "failed to retrieve id of active device", result);
   assert(EXIT_SUCCESS != result || sizeof(cl_device_id) == n/*single-device context*/);
   if (EXIT_SUCCESS == result) {
-    queue = ACC_OPENCL_CREATE_COMMAND_QUEUE(acc_opencl_context,
-      device_id, properties, &result);
-  }
-  else {
-    ACC_OPENCL_ERROR("failed to create OpenCL command queue", result);
+    cl_command_queue_properties properties[] = {
+#if defined(CL_QUEUE_PRIORITY_KHR)
+      ACC_OPENCL_STREAM_PRIORITY_INVALID != priority ? CL_QUEUE_PRIORITY_KHR : 0,
+      ACC_OPENCL_STREAM_PRIORITY_INVALID != priority ? priority : 0,
+#endif
+      0
+    };
+    queue = ACC_OPENCL_CREATE_COMMAND_QUEUE(acc_opencl_context, device_id, properties, &result);
   }
   if (NULL != queue) {
     assert(NULL != stream_p);
@@ -75,6 +71,9 @@ int acc_stream_create(acc_stream_t** stream_p, const char* name, int priority)
 #endif
       (*stream_p)->queue = queue;
     }
+  }
+  else {
+    ACC_OPENCL_ERROR("failed to create OpenCL command queue", result);
   }
   ACC_OPENCL_RETURN(result);
 }

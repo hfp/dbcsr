@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
   const int cli_nthreads = (2 < argc ? atoi(argv[2]) : max_nthreads);
   const int nthreads = ((0 < cli_nthreads && cli_nthreads <= max_nthreads) ? cli_nthreads : max_nthreads);
   int priority[ACC_STREAM_MAXCOUNT], priomin, priomax, priospan;
-  int randnums[ACC_EVENT_MAXCOUNT], ndevices, i, n, nt;
+  int randnums[ACC_EVENT_MAXCOUNT], ndevices, i, nt;
   acc_stream_t *stream[ACC_STREAM_MAXCOUNT], *s;
   acc_event_t *event[ACC_EVENT_MAXCOUNT];
   const size_t mem_alloc = (16/*MB*/ << 20);
@@ -181,7 +181,7 @@ int main(int argc, char* argv[])
   memset(host_mem, 0xFF, mem_alloc); /* non-zero pattern */
 
 #if defined(_OPENMP)
-# pragma omp parallel num_threads(n)
+# pragma omp parallel num_threads(nt)
 #endif
   {
 #if defined(_OPENMP)
@@ -212,9 +212,9 @@ int main(int argc, char* argv[])
   ACC_CHECK(acc_stream_destroy(s));
 
 #if defined(_OPENMP)
-# pragma omp parallel for num_threads(n) private(i)
+# pragma omp parallel for num_threads(nt) private(i)
 #endif
-  for (i = 0; i < n; ++i) ACC_CHECK(acc_event_destroy(event[i]));
+  for (i = 0; i < nt; ++i) ACC_CHECK(acc_event_destroy(event[i]));
 
   acc_clear_errors(); /* no result code */
   ACC_CHECK(acc_finalize());

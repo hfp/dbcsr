@@ -95,24 +95,6 @@ int acc_stream_destroy(acc_stream_t* stream)
 }
 
 
-void acc_opencl_stream_clear_errors(void)
-{
-#if 0
-#if defined(_OPENMP)
-# pragma omp critical
-#endif
-  {
-#if defined(ACC_OPENCL_STREAM_MAXCOUNT) && (0 < ACC_OPENCL_STREAM_MAXCOUNT)
-    int i = 0;
-    for (; i < ACC_OPENCL_STREAM_MAXCOUNT; ++i) {
-      acc_opencl_streams[i].status = EXIT_SUCCESS;
-    }
-#endif
-  }
-#endif
-}
-
-
 int acc_stream_priority_range(int* least, int* greatest)
 {
   int result = ((NULL != least || NULL != greatest) ? EXIT_SUCCESS : EXIT_FAILURE);

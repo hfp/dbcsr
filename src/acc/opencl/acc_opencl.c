@@ -227,11 +227,6 @@ int acc_finalize(void)
 
 void acc_clear_errors(void)
 {
-  assert(0 != acc_opencl_ndevices);
-#if 0 /* flush all pending work */
-  ACC_OPENCL_EXPECT(EXIT_SUCCESS, acc_event_record(NULL/*event*/, NULL/*stream*/));
-  acc_opencl_stream_clear_errors();
-#endif
 }
 
 

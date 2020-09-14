@@ -193,7 +193,7 @@ int acc_init(void)
 #if defined(_OPENMP)
       if (EXIT_SUCCESS == result) {
         const cl_context context = acc_opencl_context;
-#       pragma omp parallel shared(context)
+#       pragma omp parallel
         if (context != acc_opencl_context) {
           ACC_OPENCL_CHECK(clRetainContext(context), "failed to retain context", result);
           acc_opencl_context = context;

@@ -125,11 +125,11 @@ void acc_opencl_stream_clear_errors(void)
 int acc_stream_priority_range(int* least, int* greatest)
 {
   int result = ((NULL != least || NULL != greatest) ? EXIT_SUCCESS : EXIT_FAILURE);
-  char *buffer[ACC_OPENCL_BUFFER_MAXSIZE];
+#if defined(CL_QUEUE_PRIORITY_KHR)
+  char buffer[ACC_OPENCL_BUFFER_MAXSIZE];
   cl_context_properties *const properties = (cl_context_properties*)buffer;
   cl_platform_id platform = NULL;
   size_t size = 0;
-  assert(least != greatest); /* no alias */
   if (CL_SUCCESS == clGetContextInfo(acc_opencl_context, CL_CONTEXT_PROPERTIES,
     ACC_OPENCL_BUFFER_MAXSIZE, properties, &size))
   {
@@ -144,27 +144,26 @@ int acc_stream_priority_range(int* least, int* greatest)
   }
   if (NULL != platform) {
     if (CL_SUCCESS == clGetPlatformInfo(platform, CL_PLATFORM_EXTENSIONS,
-      ACC_OPENCL_BUFFER_MAXSIZE, buffer, &size))
+      ACC_OPENCL_BUFFER_MAXSIZE, buffer, NULL))
     {
-      if (NULL != least) {
-#if defined(CL_QUEUE_PRIORITY_KHR)
-        *least = CL_QUEUE_PRIORITY_LOW_KHR;
-#else
-        *least = ACC_OPENCL_STREAM_PRIORITY_INVALID;
-#endif
+      if (NULL != strstr(buffer, "cl_khr_priority_hints")) {
+        if (NULL != least) *least = CL_QUEUE_PRIORITY_LOW_KHR;
+        if (NULL != greatest) *greatest = CL_QUEUE_PRIORITY_HIGH_KHR;
       }
-      if (NULL != greatest) {
-#if defined(CL_QUEUE_PRIORITY_KHR)
-        *greatest = CL_QUEUE_PRIORITY_HIGH_KHR;
-#else
-        *greatest = ACC_OPENCL_STREAM_PRIORITY_INVALID;
+      else
 #endif
+      {
+        if (NULL != least) *least = ACC_OPENCL_STREAM_PRIORITY_INVALID;
+        if (NULL != greatest) *greatest = ACC_OPENCL_STREAM_PRIORITY_INVALID;
       }
+#if defined(CL_QUEUE_PRIORITY_KHR)
     }
     else {
       ACC_OPENCL_ERROR("failed to retrieve platform extensions", result);
     }
   }
+#endif
+  assert(least != greatest); /* no alias */
   ACC_OPENCL_RETURN(result);
 }
 

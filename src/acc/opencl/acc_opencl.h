@@ -33,6 +33,9 @@
 # endif
 #endif
 
+#if !defined(ACC_OPENCL_THREADLOCAL_CONTEXTACC_OPENCL_THREADLOCAL_CONTEXT)
+# define ACC_OPENCL_THREADLOCAL_CONTEXT
+#endif
 #if !defined(ACC_OPENCL_CACHELINE_NBYTES)
 # define ACC_OPENCL_CACHELINE_NBYTES 64
 #endif
@@ -111,7 +114,7 @@ struct acc_event_t {
 
 /* allow a context per each OpenMP thread */
 extern cl_context acc_opencl_context;
-#if defined(_OPENMP)
+#if defined(_OPENMP) && defined(ACC_OPENCL_THREADLOCAL_CONTEXT)
 # pragma omp threadprivate(acc_opencl_context)
 #endif
 

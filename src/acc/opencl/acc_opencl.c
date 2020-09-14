@@ -138,7 +138,7 @@ int acc_init(void)
   cl_device_type type = CL_DEVICE_TYPE_ALL;
   int n, result = (0 == acc_opencl_stream_count
                 && 0 == acc_opencl_event_count
-#if defined(_OPENMP)
+#if defined(_OPENMP) && defined(ACC_OPENCL_THREADLOCAL_CONTEXT)
                 && 0 == omp_in_parallel()
 #endif
   ) ? EXIT_SUCCESS : EXIT_FAILURE;
@@ -190,7 +190,7 @@ int acc_init(void)
     if (EXIT_SUCCESS == result) {
       if (!(CL_DEVICE_TYPE_DEFAULT & type)) n = 0;
       result = acc_set_active_device(n);
-#if defined(_OPENMP)
+#if defined(_OPENMP) && defined(ACC_OPENCL_THREADLOCAL_CONTEXT)
       if (EXIT_SUCCESS == result) {
         const cl_context context = acc_opencl_context;
 #       pragma omp parallel
@@ -213,7 +213,7 @@ int acc_finalize(void)
 {
   int result = (0 == acc_opencl_stream_count
              && 0 == acc_opencl_event_count
-#if defined(_OPENMP)
+#if defined(_OPENMP) && defined(ACC_OPENCL_THREADLOCAL_CONTEXT)
              && 0 == omp_in_parallel()
 #endif
   ) ? EXIT_SUCCESS : EXIT_FAILURE;

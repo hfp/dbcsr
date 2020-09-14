@@ -152,21 +152,14 @@ int acc_stream_sync(acc_stream_t* stream)
 
 int acc_stream_wait_event(acc_stream_t* stream, acc_event_t* event)
 { /* Wait for an event (device-side). */
-#if 0
-  int result;
-  if (NULL != stream && NULL != event) {
-#if defined(ACC_OPENCL_OFFLOAD)
-    if (0 < acc_opencl_ndevices()) {
-    }
-    else
-#endif
-    result = acc_event_synchronize(event);
+  int result = EXIT_SUCCESS;
+  if (NULL != stream) {
+    ACC_OPENCL_CHECK(clEnqueueMarkerWithWaitList(stream->queue,
+      1, NULL != event ? &event->event : NULL, NULL),
+      "failed to wait for an event", result);
   }
-  else result = (NULL == event ? EXIT_SUCCESS : EXIT_FAILURE);
+  else result = acc_stream_sync(stream);
   ACC_OPENCL_RETURN(result);
-#else
-  return EXIT_FAILURE;
-#endif
 }
 
 #if defined(__cplusplus)

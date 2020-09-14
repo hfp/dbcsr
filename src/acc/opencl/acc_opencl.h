@@ -105,6 +105,10 @@ struct acc_stream_t {
   cl_command_queue queue;
 };
 
+struct acc_event_t {
+  cl_event event;
+};
+
 /* allow a context per each OpenMP thread */
 extern cl_context acc_opencl_context;
 #if defined(_OPENMP)

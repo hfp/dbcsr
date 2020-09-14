@@ -16,9 +16,12 @@
 #endif
 
 #if defined(CL_VERSION_2_0)
-# define ACC_OPENCL_CREATE_COMMAND_QUEUE clCreateCommandQueueWithProperties
+# define ACC_OPENCL_CREATE_COMMAND_QUEUE(CTX, DEV, PROPS, RESULT) \
+    clCreateCommandQueueWithProperties(CTX, DEV, PROPS, RESULT)
 #else
-# define ACC_OPENCL_CREATE_COMMAND_QUEUE clCreateCommandQueue
+# define ACC_OPENCL_CREATE_COMMAND_QUEUE(CTX, DEV, PROPS, RESULT) \
+    clCreateCommandQueue(CTX, DEV, /* avoid warning about unused argument */ \
+      NULL != (PROPS) ? ((PROPS)[sizeof(PROPS)/sizeof(*(PROPS))-1]) : 0, RESULT)
 #endif
 
 #if defined(CL_VERSION_1_2)
@@ -45,8 +48,12 @@ int acc_stream_create(acc_stream_t** stream_p, const char* name, int priority)
   cl_command_queue queue = NULL;
   cl_device_id device_id = NULL;
   size_t n = 0;
+#if defined(CL_QUEUE_PRIORITY_KHR)
   assert(ACC_OPENCL_STREAM_PRIORITY_INVALID == priority ||
     (CL_QUEUE_PRIORITY_HIGH_KHR <= priority && CL_QUEUE_PRIORITY_LOW_KHR >= priority));
+#else
+  assert(ACC_OPENCL_STREAM_PRIORITY_INVALID == priority);
+#endif
   ACC_OPENCL_CHECK(clGetContextInfo(acc_opencl_context, CL_CONTEXT_DEVICES,
     sizeof(cl_device_id), &device_id, &n), "failed to retrieve id of active device", result);
   assert(EXIT_SUCCESS != result || sizeof(cl_device_id) == n/*single-device context*/);

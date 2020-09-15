@@ -15,6 +15,10 @@
 #endif
 #include <stdio.h>
 
+#if !defined(CL_TARGET_OPENCL_VERSION)
+# define CL_TARGET_OPENCL_VERSION 220
+#endif
+
 #if defined(__OPENCL)
 # if defined(__APPLE__)
 #   include <OpenCL/cl.h>

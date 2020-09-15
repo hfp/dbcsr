@@ -44,7 +44,7 @@ int acc_event_destroy(acc_event_t* event)
 {
   int result = (NULL == event || NULL != event->event) ? EXIT_SUCCESS : EXIT_FAILURE;
   if (NULL != event) {
-    ACC_OPENCL_CHECK(clReleaseCommandQueue(event->event),
+    ACC_OPENCL_CHECK(clReleaseEvent(event->event),
       "failed to release user-defined event", result);
     free(event);
   }

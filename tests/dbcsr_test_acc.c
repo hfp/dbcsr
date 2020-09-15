@@ -122,8 +122,8 @@ int main(int argc, char* argv[])
     ACC_CHECK((0 <= n && n < ACC_STRING_MAXLEN) ? EXIT_SUCCESS : EXIT_FAILURE);
     ACC_CHECK(acc_stream_create(stream + i, name, priority[i]));
     if (ACC_STREAM_MAXNTH_DESTROY * r < ACC_STREAM_MAXCOUNT) {
-      ACC_CHECK(acc_stream_destroy(stream[i]));
-      stream[i] = NULL;
+      acc_stream_t *const si = stream[i]; stream[i] = NULL;
+      ACC_CHECK(acc_stream_destroy(si));
     }
   }
 
@@ -149,8 +149,8 @@ int main(int argc, char* argv[])
     const int r = randnums[i%ACC_EVENT_MAXCOUNT] % ACC_EVENT_MAXCOUNT;
     ACC_CHECK(acc_event_create(event + i));
     if (ACC_EVENT_MAXNTH_DESTROY * r < ACC_EVENT_MAXCOUNT) {
-      ACC_CHECK(acc_event_destroy(event[i]));
-      event[i] = NULL;
+      acc_event_t *const ei = event[i]; event[i] = NULL;
+      ACC_CHECK(acc_event_destroy(ei));
     }
   }
 

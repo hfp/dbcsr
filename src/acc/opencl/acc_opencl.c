@@ -32,84 +32,6 @@ void acc_opencl_notify(const char* errinfo, const void* private_info, size_t cb,
 }
 
 
-int acc_opencl_alloc(void** item, size_t typesize, volatile int* counter, int maxcount, void* storage, void** pointer)
-{
-  int result, i;
-  assert(NULL != item && 0 != typesize && NULL != counter);
-#if defined(_OPENMP) && (200805 <= _OPENMP) /* OpenMP 3.0 */
-# pragma omp atomic capture
-#elif defined(_OPENMP)
-# pragma omp critical(acc_opencl_alloc_critical)
-#endif
-  i = (*counter)++;
-  if (0 < maxcount) { /* fast allocation */
-    if (i < maxcount) {
-      assert(NULL != storage && NULL != pointer);
-      *item = pointer[i];
-      if (NULL == *item) {
-        *item = &((char*)storage)[i*typesize];
-      }
-      assert(((const char*)storage) <= ((const char*)*item) && ((const char*)*item) < &((const char*)storage)[maxcount*typesize]);
-      result = EXIT_SUCCESS;
-    }
-    else { /* out of space */
-      result = EXIT_FAILURE;
-#if defined(_OPENMP)
-#     pragma omp atomic
-#endif
-      --(*counter);
-      *item = NULL;
-    }
-  }
-  else {
-    *item = malloc(typesize);
-    if (NULL != *item) {
-      result = EXIT_SUCCESS;
-    }
-    else {
-      result = EXIT_FAILURE;
-#if defined(_OPENMP)
-#     pragma omp atomic
-#endif
-      --(*counter);
-    }
-  }
-  ACC_OPENCL_RETURN(result);
-}
-
-
-int acc_opencl_dealloc(void* item, size_t typesize, volatile int* counter, int maxcount, void* storage, void** pointer)
-{
-  int result;
-  assert(0 != typesize && NULL != counter);
-  if (NULL != item) {
-    int i;
-#if defined(_OPENMP) && (200805 <= _OPENMP) /* OpenMP 3.0 */
-#   pragma omp atomic capture
-#elif defined(_OPENMP)
-#   pragma omp critical(acc_opencl_alloc_critical)
-#endif
-    i = (*counter)--;
-    assert(0 <= i);
-    if (0 < maxcount) { /* fast allocation */
-      assert(NULL != storage && NULL != pointer);
-      result = ((0 <= i && i < maxcount && storage <= item && /* check if item came from storage */
-          ((const char*)item) < &((const char*)storage)[maxcount*typesize])
-        ? EXIT_SUCCESS : EXIT_FAILURE);
-      pointer[i] = item;
-    }
-    else {
-      result = EXIT_SUCCESS;
-      free(item);
-    }
-  }
-  else {
-    result = EXIT_SUCCESS;
-  }
-  ACC_OPENCL_RETURN(result);
-}
-
-
 const char* acc_opencl_stristr(const char* a, const char* b)
 {
   const char* result = NULL;
@@ -144,12 +66,11 @@ int acc_init(void)
   const char *const device = getenv("ACC_OPENCL_DEVICE");
   cl_uint nplatforms = 0, ndevices = 0, i;
   cl_device_type type = CL_DEVICE_TYPE_ALL;
-  int n, result = (0 == acc_opencl_stream_count
-                && 0 == acc_opencl_event_count
 #if defined(_OPENMP) && defined(ACC_OPENCL_THREADLOCAL_CONTEXT)
-                && 0 == omp_in_parallel()
+  int result = (0 == omp_in_parallel() ? EXIT_SUCCESS : EXIT_FAILURE);
+#else
+  int result = EXIT_SUCCESS;
 #endif
-  ) ? EXIT_SUCCESS : EXIT_FAILURE;
   ACC_OPENCL_CHECK(clGetPlatformIDs(0, NULL, &nplatforms),
     "failed to query number of platforms", result);
   ACC_OPENCL_CHECK(clGetPlatformIDs(
@@ -162,6 +83,7 @@ int acc_init(void)
   }
   acc_opencl_ndevices = 0;
   for (i = 0; i < nplatforms; ++i) {
+    int n;
 #if defined(ACC_OPENCL_STRING_MAXLENGTH) && (0 < ACC_OPENCL_STRING_MAXLENGTH)
     if (NULL != vendor && '\0' != *vendor) {
       size_t size = 0;
@@ -186,7 +108,7 @@ int acc_init(void)
   }
   assert(NULL == acc_opencl_context);
   if (0 < acc_opencl_ndevices) {
-    n = 0;
+    int n = 0;
     if (1 < acc_opencl_ndevices) { /* preselect default device */
       for (n = 0; n < acc_opencl_ndevices; ++n) {
         ACC_OPENCL_CHECK(clGetDeviceInfo(acc_opencl_devices[n],
@@ -219,12 +141,11 @@ int acc_init(void)
 
 int acc_finalize(void)
 {
-  int result = (0 == acc_opencl_stream_count
-             && 0 == acc_opencl_event_count
 #if defined(_OPENMP) && defined(ACC_OPENCL_THREADLOCAL_CONTEXT)
-             && 0 == omp_in_parallel()
+  int result = (0 == omp_in_parallel() ? EXIT_SUCCESS : EXIT_FAILURE);
+#else
+  int result = EXIT_SUCCESS;
 #endif
-  ) ? EXIT_SUCCESS : EXIT_FAILURE;
   if (NULL != acc_opencl_context) {
     ACC_OPENCL_CHECK(clReleaseContext(acc_opencl_context),
       "failed to release OpenCL context", result);

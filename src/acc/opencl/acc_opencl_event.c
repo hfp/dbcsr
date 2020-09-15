@@ -14,37 +14,26 @@
 extern "C" {
 #endif
 
-#if defined(ACC_OPENCL_EVENT_MAXCOUNT) && (0 < ACC_OPENCL_EVENT_MAXCOUNT)
-acc_event_t  acc_opencl_events[ACC_OPENCL_EVENT_MAXCOUNT];
-acc_event_t* acc_opencl_eventp[ACC_OPENCL_EVENT_MAXCOUNT];
-#endif
-volatile int acc_opencl_event_count;
-
-
 int acc_event_create(acc_event_t** event_p)
 {
   cl_int result = EXIT_SUCCESS;
   const cl_event event = clCreateUserEvent(acc_opencl_context, &result);
+  assert(NULL != event_p);
   if (NULL != event) {
     assert(CL_SUCCESS == result);
-    result = acc_opencl_alloc((void**)event_p,
-      sizeof(acc_event_t), &acc_opencl_event_count,
-#if defined(ACC_OPENCL_EVENT_MAXCOUNT) && (0 < ACC_OPENCL_EVENT_MAXCOUNT)
-      ACC_OPENCL_EVENT_MAXCOUNT, acc_opencl_events, (void**)acc_opencl_eventp);
-#else
-      0, NULL, NULL);
-#endif
-    if (EXIT_SUCCESS == result) {
-      assert(NULL != *event_p);
+    *event_p = (acc_event_t*)malloc(sizeof(acc_event_t));
+    if (NULL != *event_p) {
       (*event_p)->event = event;
+      result = EXIT_SUCCESS;
     }
     else {
       clReleaseEvent(event);
+      result = EXIT_FAILURE;
     }
   }
   else {
+    assert(CL_SUCCESS != result);
     ACC_OPENCL_ERROR("failed to create user-defined event", result);
-    assert(NULL != event_p);
     *event_p = NULL;
   }
   ACC_OPENCL_RETURN(result);
@@ -53,16 +42,13 @@ int acc_event_create(acc_event_t** event_p)
 
 int acc_event_destroy(acc_event_t* event)
 {
-#if 0
-  return acc_opencl_dealloc(event, sizeof(acc_event_t), &acc_opencl_event_count,
-#if defined(ACC_OPENCL_EVENT_MAXCOUNT) && (0 < ACC_OPENCL_EVENT_MAXCOUNT)
-    ACC_OPENCL_EVENT_MAXCOUNT, acc_opencl_events, (void**)acc_opencl_eventp);
-#else
-    0, NULL, NULL);
-#endif
-#else
-  return EXIT_FAILURE;
-#endif
+  int result = (NULL == event || NULL != event->event) ? EXIT_SUCCESS : EXIT_FAILURE;
+  if (NULL != event) {
+    ACC_OPENCL_CHECK(clReleaseCommandQueue(event->event),
+      "failed to release user-defined event", result);
+    free(event);
+  }
+  ACC_OPENCL_RETURN(result);
 }
 
 

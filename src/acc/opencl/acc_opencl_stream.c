@@ -35,13 +35,6 @@
 extern "C" {
 #endif
 
-#if defined(ACC_OPENCL_STREAM_MAXCOUNT) && (0 < ACC_OPENCL_STREAM_MAXCOUNT)
-acc_stream_t  acc_opencl_streams[ACC_OPENCL_STREAM_MAXCOUNT];
-acc_stream_t* acc_opencl_streamp[ACC_OPENCL_STREAM_MAXCOUNT];
-#endif
-volatile int acc_opencl_stream_count;
-
-
 int acc_stream_create(acc_stream_t** stream_p, const char* name, int priority)
 {
   cl_int result = (NULL != acc_opencl_context ? EXIT_SUCCESS : EXIT_FAILURE);
@@ -67,15 +60,11 @@ int acc_stream_create(acc_stream_t** stream_p, const char* name, int priority)
     };
     queue = ACC_OPENCL_CREATE_COMMAND_QUEUE(acc_opencl_context, device_id, properties, &result);
   }
+  assert(NULL != stream_p);
   if (NULL != queue) {
-    result = acc_opencl_alloc((void**)stream_p, sizeof(acc_stream_t), &acc_opencl_stream_count,
-#if defined(ACC_OPENCL_STREAM_MAXCOUNT) && (0 < ACC_OPENCL_STREAM_MAXCOUNT)
-      ACC_OPENCL_STREAM_MAXCOUNT, acc_opencl_streams, (void**)acc_opencl_streamp);
-#else
-      0, NULL, NULL);
-#endif
-    if (EXIT_SUCCESS == result) {
-      assert(NULL != *stream_p);
+    assert(CL_SUCCESS == result);
+    *stream_p = (acc_stream_t*)malloc(sizeof(acc_stream_t));
+    if (NULL != *stream_p) {
 #if defined(ACC_OPENCL_STRING_MAXLENGTH) && (0 < ACC_OPENCL_STRING_MAXLENGTH) && !defined(NDEBUG)
       strncpy((*stream_p)->name, NULL != name ? name : "", ACC_OPENCL_STRING_MAXLENGTH);
       (*stream_p)->name[ACC_OPENCL_STRING_MAXLENGTH-1] = '\0';
@@ -83,14 +72,16 @@ int acc_stream_create(acc_stream_t** stream_p, const char* name, int priority)
       ACC_OPENCL_UNUSED(name);
 #endif
       (*stream_p)->queue = queue;
+      result = EXIT_SUCCESS;
     }
     else {
       clReleaseCommandQueue(queue);
+      result = EXIT_FAILURE;
     }
   }
   else {
+    assert(CL_SUCCESS != result);
     ACC_OPENCL_ERROR("failed to create OpenCL command queue", result);
-    assert(NULL != stream_p);
     *stream_p = NULL;
   }
   ACC_OPENCL_RETURN(result);
@@ -100,19 +91,10 @@ int acc_stream_create(acc_stream_t** stream_p, const char* name, int priority)
 int acc_stream_destroy(acc_stream_t* stream)
 {
   int result = (NULL == stream || NULL != stream->queue) ? EXIT_SUCCESS : EXIT_FAILURE;
-#if defined(ACC_OPENCL_STREAM_MAXCOUNT) && (0 < ACC_OPENCL_STREAM_MAXCOUNT)
-  assert(NULL == stream || (acc_opencl_streams <= stream && stream < (acc_opencl_streams + ACC_OPENCL_STREAM_MAXCOUNT)));
-#endif
   if (NULL != stream) {
-    ACC_OPENCL_CHECK(clReleaseCommandQueue(stream->queue), "failed to release command queue", result);
-  }
-  if (EXIT_SUCCESS == result) {
-    result = acc_opencl_dealloc(stream, sizeof(acc_stream_t), &acc_opencl_stream_count,
-#if defined(ACC_OPENCL_STREAM_MAXCOUNT) && (0 < ACC_OPENCL_STREAM_MAXCOUNT)
-      ACC_OPENCL_STREAM_MAXCOUNT, acc_opencl_streams, (void**)acc_opencl_streamp);
-#else
-      0, NULL, NULL);
-#endif
+    ACC_OPENCL_CHECK(clReleaseCommandQueue(stream->queue),
+      "failed to release command queue", result);
+    free(stream);
   }
   ACC_OPENCL_RETURN(result);
 }

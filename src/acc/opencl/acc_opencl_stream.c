@@ -25,9 +25,9 @@
 #endif
 
 #if defined(CL_VERSION_1_2)
-# define ACC_OPENCL_WAIT_EVENT(QUEUE, EVENT) clEnqueueMarkerWithWaitList(QUEUE, NULL != (EVENT) ? 1 : 0, EVENT, NULL)
+# define ACC_OPENCL_WAIT_EVENT(QUEUE, EVENT) clEnqueueMarkerWithWaitList(QUEUE, 1, EVENT, NULL)
 #else
-# define ACC_OPENCL_WAIT_EVENT(QUEUE, EVENT) clEnqueueWaitForEvents(QUEUE, NULL != (EVENT) ? 1 : 0, EVENT)
+# define ACC_OPENCL_WAIT_EVENT(QUEUE, EVENT) clEnqueueWaitForEvents(QUEUE, 1, EVENT)
 #endif
 
 
@@ -158,12 +158,10 @@ int acc_stream_sync(acc_stream_t* stream)
 int acc_stream_wait_event(acc_stream_t* stream, acc_event_t* event)
 { /* Wait for an event (device-side). */
   int result = EXIT_SUCCESS;
-  if (NULL != stream) {
-    ACC_OPENCL_CHECK(ACC_OPENCL_WAIT_EVENT(stream->queue,
-      NULL != event ? &event->event : NULL),
-      "failed to wait for an event", result);
-  }
-  else result = acc_stream_sync(stream);
+  assert(NULL != stream && NULL != stream->queue);
+  assert(NULL != event && NULL != event->event);
+  ACC_OPENCL_CHECK(ACC_OPENCL_WAIT_EVENT(stream->queue, &event->event),
+    "failed to wait for an event", result);
   ACC_OPENCL_RETURN(result);
 }
 

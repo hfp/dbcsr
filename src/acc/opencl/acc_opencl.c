@@ -65,7 +65,7 @@ int acc_init(void)
 #else
   int result = EXIT_SUCCESS;
 #endif
-  if (NULL == disable || "0" == *disable) {
+  if (NULL == disable || '0' == *disable) {
 #if defined(ACC_OPENCL_STRING_MAXLENGTH) && (0 < ACC_OPENCL_STRING_MAXLENGTH)
     char buffer[ACC_OPENCL_STRING_MAXLENGTH];
     const char *const vendor = getenv("ACC_OPENCL_VENDOR");

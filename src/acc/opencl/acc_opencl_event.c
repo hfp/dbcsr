@@ -95,20 +95,17 @@ int acc_event_record(acc_event_t* event, acc_stream_t* stream)
 
 int acc_event_query(acc_event_t* event, acc_bool_t* has_occurred)
 {
-#if 0
-  int result = EXIT_FAILURE;
-  if (NULL != has_occurred) {
-    if (NULL != event) {
-      const acc_event_t *const e = (acc_event_t*)event;
-      *has_occurred = (NULL == e->dependency);
-      result = EXIT_SUCCESS;
-    }
-    else *has_occurred = 0;
+  int result = EXIT_SUCCESS;
+  cl_int occurred = 0;
+  if (NULL != event) {
+    ACC_OPENCL_CHECK(clGetEventInfo(event->event, CL_EVENT_COMMAND_EXECUTION_STATUS,
+      sizeof(cl_int), &occurred, NULL), "", result);
+  }
+  assert(NULL != has_occurred);
+  if (EXIT_SUCCESS == result) {
+    *has_occurred = occurred;
   }
   ACC_OPENCL_RETURN(result);
-#else
-  return EXIT_FAILURE;
-#endif
 }
 
 

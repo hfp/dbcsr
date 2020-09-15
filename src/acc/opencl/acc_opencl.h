@@ -9,12 +9,6 @@
 #ifndef ACC_OPENCL_H
 #define ACC_OPENCL_H
 
-#include "../acc.h"
-#if !defined(NDEBUG)
-# include <assert.h>
-#endif
-#include <stdio.h>
-
 #if !defined(CL_TARGET_OPENCL_VERSION)
 # define CL_TARGET_OPENCL_VERSION 220
 #endif
@@ -36,6 +30,12 @@
 #   include <CL/cl_ext.h>
 # endif
 #endif
+
+#include "../acc.h"
+#if !defined(NDEBUG)
+# include <assert.h>
+#endif
+#include <stdio.h>
 
 #if !defined(ACC_OPENCL_THREADLOCAL_CONTEXTACC_OPENCL_THREADLOCAL_CONTEXT)
 # define ACC_OPENCL_THREADLOCAL_CONTEXT

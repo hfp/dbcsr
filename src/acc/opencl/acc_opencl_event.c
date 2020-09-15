@@ -10,6 +10,12 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#if defined(CL_VERSION_1_2)
+# define ACC_OPENCL_ENQUEUE_EVENT(QUEUE, EVENT) clEnqueueMarkerWithWaitList(QUEUE, 0, NULL, EVENT)
+#else
+# define ACC_OPENCL_ENQUEUE_EVENT(QUEUE, EVENT) clEnqueueMarker(QUEUE, EVENT)
+#endif
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -54,56 +60,27 @@ int acc_event_destroy(acc_event_t* event)
 
 int acc_event_record(acc_event_t* event, acc_stream_t* stream)
 {
-#if 0
-  int result;
-  if (NULL != stream) {
-    acc_event_t *const e = (acc_event_t*)event;
-#if defined(ACC_OPENCL_OFFLOAD)
-    if (0 < acc_opencl_ndevices()) {
-      if (NULL != e) { /* reset if reused (re-enqueued) */
-        e->dependency = deps->data.out;
-      }
-    }
-    else
-#endif
-    if (NULL != e) {
-      e->dependency = NULL;
-      result = EXIT_SUCCESS;
-    }
-    else {
-      stream->pending = 0;
-      result = EXIT_SUCCESS;
-    }
-  }
-  else if (NULL == event) { /* flush all pending work */
-    result = EXIT_SUCCESS;
-#if defined(ACC_OPENCL_OFFLOAD) && 0
-#   pragma omp master
-#   pragma omp task if(0)
-    result = EXIT_FAILURE;
-#elif defined(_OPENMP)
-#   pragma omp barrier
-#endif
-  }
-  else result = EXIT_FAILURE;
+  int result = EXIT_SUCCESS;
+  assert(NULL != event && NULL != event->event);
+  assert(NULL != stream && NULL != stream->queue);
+  ACC_OPENCL_CHECK(ACC_OPENCL_ENQUEUE_EVENT(stream->queue, &event->event),
+    "failed to record event", result);
   ACC_OPENCL_RETURN(result);
-#else
-  return EXIT_FAILURE;
-#endif
 }
 
 
 int acc_event_query(acc_event_t* event, acc_bool_t* has_occurred)
 {
   int result = EXIT_SUCCESS;
-  cl_int occurred = 0;
+  cl_int status = CL_QUEUED;
+  assert(CL_COMPLETE != status);
   if (NULL != event) {
     ACC_OPENCL_CHECK(clGetEventInfo(event->event, CL_EVENT_COMMAND_EXECUTION_STATUS,
-      sizeof(cl_int), &occurred, NULL), "", result);
+      sizeof(cl_int), &status, NULL), "failed to retrieve event status", result);
   }
   assert(NULL != has_occurred);
   if (EXIT_SUCCESS == result) {
-    *has_occurred = occurred;
+    *has_occurred = (CL_COMPLETE != status ? 0 : 1);
   }
   ACC_OPENCL_RETURN(result);
 }

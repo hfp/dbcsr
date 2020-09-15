@@ -114,24 +114,11 @@ int acc_event_query(acc_event_t* event, acc_bool_t* has_occurred)
 
 int acc_event_synchronize(acc_event_t* event)
 { /* Waits on the host-side. */
-#if 0
-  const acc_event_t *const e = (acc_event_t*)event;
-  int result;
-#if defined(ACC_OPENCL_OFFLOAD)
-  if (0 < acc_opencl_ndevices()) {
-    if (NULL != e) {
-    }
-  }
-  else
-#endif
-  if (NULL != e) {
-    result = EXIT_SUCCESS;
-  }
-  else result = EXIT_FAILURE;
+  int result = EXIT_SUCCESS;
+  assert(NULL != event && NULL != event->event);
+  ACC_OPENCL_CHECK(clWaitForEvents(1, &event->event),
+    "failed to synchronize event", result);
   ACC_OPENCL_RETURN(result);
-#else
-  return EXIT_FAILURE;
-#endif
 }
 
 #if defined(__cplusplus)

@@ -112,8 +112,7 @@ int main(int argc, char* argv[])
   ACC_CHECK(acc_stream_destroy(NULL));
 
 #if defined(_OPENMP)
-  nt = (nthreads < ACC_STREAM_MAXCOUNT ? nthreads : ACC_STREAM_MAXCOUNT);
-# pragma omp parallel for num_threads(nt) private(i)
+# pragma omp parallel for num_threads(nthreads) private(i)
 #endif
   for (i = 0; i < ACC_STREAM_MAXCOUNT; ++i) {
     const int r = randnums[i%ACC_STREAM_MAXCOUNT] % ACC_STREAM_MAXCOUNT;
@@ -128,7 +127,7 @@ int main(int argc, char* argv[])
   }
 
 #if defined(_OPENMP)
-# pragma omp parallel for num_threads(nt) private(i)
+# pragma omp parallel for num_threads(num_threads(nthreads)) private(i)
 #endif
   for (i = 0; i < ACC_STREAM_MAXCOUNT; ++i) {
     if (NULL == stream[i]) {
@@ -141,9 +140,8 @@ int main(int argc, char* argv[])
   }
 
   ACC_CHECK(acc_event_destroy(NULL));
-  nt = (nthreads < ACC_EVENT_MAXCOUNT ? nthreads : ACC_EVENT_MAXCOUNT);
 #if defined(_OPENMP)
-# pragma omp parallel for num_threads(nt) private(i)
+# pragma omp parallel for num_threads(nthreads) private(i)
 #endif
   for (i = 0; i < ACC_EVENT_MAXCOUNT; ++i) {
     const int r = randnums[i%ACC_EVENT_MAXCOUNT] % ACC_EVENT_MAXCOUNT;
@@ -155,7 +153,7 @@ int main(int argc, char* argv[])
   }
 
 #if defined(_OPENMP)
-# pragma omp parallel for num_threads(nt) private(i)
+# pragma omp parallel for num_threads(nthreads) private(i)
 #endif
   for (i = 0; i < ACC_EVENT_MAXCOUNT; ++i) {
     if (NULL == event[i]) {
@@ -164,6 +162,7 @@ int main(int argc, char* argv[])
     ACC_CHECK(acc_event_destroy(event[i]));
   }
 
+  nt = (nthreads < ACC_EVENT_MAXCOUNT ? nthreads : ACC_EVENT_MAXCOUNT);
 #if defined(_OPENMP)
 # pragma omp parallel for num_threads(nt) private(i)
 #endif
@@ -181,7 +180,7 @@ int main(int argc, char* argv[])
   memset(host_mem, 0xFF, mem_alloc); /* non-zero pattern */
 
 #if defined(_OPENMP)
-# pragma omp parallel num_threads(nt)
+# pragma omp parallel num_threads(nthreads)
 #endif
   {
 #if defined(_OPENMP)

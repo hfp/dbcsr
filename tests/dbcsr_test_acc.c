@@ -127,7 +127,7 @@ int main(int argc, char* argv[])
   }
 
 #if defined(_OPENMP)
-# pragma omp parallel for num_threads(num_threads(nthreads)) private(i)
+# pragma omp parallel for num_threads(nthreads) private(i)
 #endif
   for (i = 0; i < ACC_STREAM_MAXCOUNT; ++i) {
     if (NULL == stream[i]) {

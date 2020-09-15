@@ -59,77 +59,83 @@ const char* acc_opencl_stristr(const char* a, const char* b)
 
 int acc_init(void)
 {
-#if defined(ACC_OPENCL_STRING_MAXLENGTH) && (0 < ACC_OPENCL_STRING_MAXLENGTH)
-  char buffer[ACC_OPENCL_STRING_MAXLENGTH];
-  const char *const vendor = getenv("ACC_OPENCL_VENDOR");
-#endif
-  const char *const device = getenv("ACC_OPENCL_DEVICE");
-  cl_uint nplatforms = 0, ndevices = 0, i;
-  cl_device_type type = CL_DEVICE_TYPE_ALL;
+  const char *const disable = getenv("ACC_OPENCL_DISABLE");
 #if defined(_OPENMP) && defined(ACC_OPENCL_THREADLOCAL_CONTEXT)
   int result = (0 == omp_in_parallel() ? EXIT_SUCCESS : EXIT_FAILURE);
 #else
   int result = EXIT_SUCCESS;
 #endif
-  ACC_OPENCL_CHECK(clGetPlatformIDs(0, NULL, &nplatforms),
-    "failed to query number of platforms", result);
-  ACC_OPENCL_CHECK(clGetPlatformIDs(
-    nplatforms <= ACC_OPENCL_DEVICES_MAXCOUNT ? nplatforms : ACC_OPENCL_DEVICES_MAXCOUNT,
-    acc_opencl_platforms, 0), "failed to retrieve platforms", result);
-  if (NULL != device && '\0' != *device) {
-    if (NULL != acc_opencl_stristr(device, "gpu")) type = CL_DEVICE_TYPE_GPU;
-    else if (NULL != acc_opencl_stristr(device, "cpu")) type = CL_DEVICE_TYPE_CPU;
-    else type = CL_DEVICE_TYPE_ACCELERATOR;
-  }
-  acc_opencl_ndevices = 0;
-  for (i = 0; i < nplatforms; ++i) {
-    int n;
+  if (NULL == disable || "0" == *disable) {
 #if defined(ACC_OPENCL_STRING_MAXLENGTH) && (0 < ACC_OPENCL_STRING_MAXLENGTH)
-    if (NULL != vendor && '\0' != *vendor) {
-      size_t size = 0;
-      ACC_OPENCL_CHECK(clGetPlatformInfo(acc_opencl_platforms[i], CL_PLATFORM_VENDOR,
-        0, NULL, &size), "failed to query platform vendor", result);
-      buffer[0] = '\0'; size = (size <= ACC_OPENCL_STRING_MAXLENGTH
-        ? size : ACC_OPENCL_STRING_MAXLENGTH);
-      ACC_OPENCL_CHECK(clGetPlatformInfo(acc_opencl_platforms[i], CL_PLATFORM_VENDOR,
-        size, buffer, NULL), "failed to retrieve platform vendor", result);
-      if (NULL == acc_opencl_stristr(buffer, vendor)) continue;
-    }
+    char buffer[ACC_OPENCL_STRING_MAXLENGTH];
+    const char *const vendor = getenv("ACC_OPENCL_VENDOR");
 #endif
-    assert(acc_opencl_ndevices <= ACC_OPENCL_DEVICES_MAXCOUNT);
-    ACC_OPENCL_CHECK(clGetDeviceIDs(acc_opencl_platforms[i], type, 0, NULL, &ndevices),
-      "failed to query number of devices", result);
-    n = (acc_opencl_ndevices + ndevices) < ACC_OPENCL_DEVICES_MAXCOUNT
-      ? (int)ndevices : (ACC_OPENCL_DEVICES_MAXCOUNT - acc_opencl_ndevices);
-    ACC_OPENCL_CHECK(clGetDeviceIDs(acc_opencl_platforms[i], type,
-      n, acc_opencl_devices + acc_opencl_ndevices, NULL),
-      "failed to retrieve devices", result);
-    acc_opencl_ndevices += n;
-  }
-  assert(NULL == acc_opencl_context);
-  if (0 < acc_opencl_ndevices) {
-    int n = 0;
-    if (1 < acc_opencl_ndevices) { /* preselect default device */
-      for (n = 0; n < acc_opencl_ndevices; ++n) {
-        ACC_OPENCL_CHECK(clGetDeviceInfo(acc_opencl_devices[n],
-          CL_DEVICE_TYPE, sizeof(cl_device_type), &type, NULL),
-          "failed to retrieve device information", result);
-        if (CL_DEVICE_TYPE_DEFAULT & type) break;
-      }
+    const char *const device = getenv("ACC_OPENCL_DEVICE");
+    cl_uint nplatforms = 0, ndevices = 0, i;
+    cl_device_type type = CL_DEVICE_TYPE_ALL;
+    ACC_OPENCL_CHECK(clGetPlatformIDs(0, NULL, &nplatforms),
+      "failed to query number of platforms", result);
+    ACC_OPENCL_CHECK(clGetPlatformIDs(
+      nplatforms <= ACC_OPENCL_DEVICES_MAXCOUNT ? nplatforms : ACC_OPENCL_DEVICES_MAXCOUNT,
+      acc_opencl_platforms, 0), "failed to retrieve platforms", result);
+    if (NULL != device && '\0' != *device) {
+      if (NULL != acc_opencl_stristr(device, "gpu")) type = CL_DEVICE_TYPE_GPU;
+      else if (NULL != acc_opencl_stristr(device, "cpu")) type = CL_DEVICE_TYPE_CPU;
+      else type = CL_DEVICE_TYPE_ACCELERATOR;
     }
-    if (EXIT_SUCCESS == result) {
-      if (!(CL_DEVICE_TYPE_DEFAULT & type)) n = 0;
-      result = acc_set_active_device(n);
-#if defined(_OPENMP) && defined(ACC_OPENCL_THREADLOCAL_CONTEXT)
-      if (EXIT_SUCCESS == result) {
-        const cl_context context = acc_opencl_context;
-#       pragma omp parallel
-        if (context != acc_opencl_context) {
-          ACC_OPENCL_CHECK(clRetainContext(context), "failed to retain context", result);
-          acc_opencl_context = context;
+    acc_opencl_ndevices = 0;
+    for (i = 0; i < nplatforms; ++i) {
+      int n;
+#if defined(ACC_OPENCL_STRING_MAXLENGTH) && (0 < ACC_OPENCL_STRING_MAXLENGTH)
+      if (NULL != vendor && '\0' != *vendor) {
+        size_t size = 0;
+        ACC_OPENCL_CHECK(clGetPlatformInfo(acc_opencl_platforms[i], CL_PLATFORM_VENDOR,
+          0, NULL, &size), "failed to query platform vendor", result);
+        buffer[0] = '\0'; size = (size <= ACC_OPENCL_STRING_MAXLENGTH
+          ? size : ACC_OPENCL_STRING_MAXLENGTH);
+        ACC_OPENCL_CHECK(clGetPlatformInfo(acc_opencl_platforms[i], CL_PLATFORM_VENDOR,
+          size, buffer, NULL), "failed to retrieve platform vendor", result);
+        if (NULL == acc_opencl_stristr(buffer, vendor)) continue;
+      }
+#endif
+      assert(acc_opencl_ndevices <= ACC_OPENCL_DEVICES_MAXCOUNT);
+      ACC_OPENCL_CHECK(clGetDeviceIDs(acc_opencl_platforms[i], type, 0, NULL, &ndevices),
+        "failed to query number of devices", result);
+      n = (acc_opencl_ndevices + ndevices) < ACC_OPENCL_DEVICES_MAXCOUNT
+        ? (int)ndevices : (ACC_OPENCL_DEVICES_MAXCOUNT - acc_opencl_ndevices);
+      ACC_OPENCL_CHECK(clGetDeviceIDs(acc_opencl_platforms[i], type,
+        n, acc_opencl_devices + acc_opencl_ndevices, NULL),
+        "failed to retrieve devices", result);
+      acc_opencl_ndevices += n;
+    }
+    assert(NULL == acc_opencl_context);
+    if (0 < acc_opencl_ndevices) {
+      int n = 0;
+      if (1 < acc_opencl_ndevices) { /* preselect default device */
+        for (n = 0; n < acc_opencl_ndevices; ++n) {
+          ACC_OPENCL_CHECK(clGetDeviceInfo(acc_opencl_devices[n],
+            CL_DEVICE_TYPE, sizeof(cl_device_type), &type, NULL),
+            "failed to retrieve device information", result);
+          if (CL_DEVICE_TYPE_DEFAULT & type) break;
         }
       }
+      if (EXIT_SUCCESS == result) {
+        if (!(CL_DEVICE_TYPE_DEFAULT & type)) n = 0;
+        result = acc_set_active_device(n);
+#if defined(_OPENMP) && defined(ACC_OPENCL_THREADLOCAL_CONTEXT)
+        if (EXIT_SUCCESS == result) {
+          const cl_context context = acc_opencl_context;
+#         pragma omp parallel
+          if (context != acc_opencl_context) {
+            ACC_OPENCL_CHECK(clRetainContext(context), "failed to retain context", result);
+            acc_opencl_context = context;
+          }
+        }
 #endif
+      }
+    }
+    else { /* mark as initialized */
+      acc_opencl_ndevices = -1;
     }
   }
   else { /* mark as initialized */

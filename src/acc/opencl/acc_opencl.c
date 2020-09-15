@@ -24,6 +24,14 @@ cl_device_id acc_opencl_devices[ACC_OPENCL_DEVICES_MAXCOUNT];
 cl_context acc_opencl_context;
 
 
+void acc_opencl_notify(const char* /*errinfo*/, const void* /*private_info*/, size_t /*cb*/, void* /*user_data*/);
+void acc_opencl_notify(const char* errinfo, const void* private_info, size_t cb, void* user_data)
+{
+  ACC_OPENCL_UNUSED(private_info); ACC_OPENCL_UNUSED(cb); ACC_OPENCL_UNUSED(user_data);
+  fprintf(stderr, "ERROR ACC/OpenCL: %s\n", errinfo);
+}
+
+
 int acc_opencl_alloc(void** item, size_t typesize, volatile int* counter, int maxcount, void* storage, void** pointer)
 {
   int result, i;
@@ -267,7 +275,7 @@ int acc_set_active_device(int device_id)
     if (EXIT_SUCCESS == result) {
       acc_opencl_context = clCreateContext(properties,
         1/*num_devices*/, acc_opencl_devices + device_id,
-        NULL/*pfn_notify*/, NULL/* user_data*/,
+        acc_opencl_notify, NULL/* user_data*/,
         &result);
       if (CL_INVALID_VALUE == result) { /* retry */
         n = sizeof(properties) / sizeof(*properties);
@@ -275,7 +283,7 @@ int acc_set_active_device(int device_id)
         properties[n-3] = 0;
         acc_opencl_context = clCreateContext(properties,
           1/*num_devices*/, acc_opencl_devices + device_id,
-          NULL/*pfn_notify*/, NULL/* user_data*/,
+          acc_opencl_notify, NULL/* user_data*/,
           &result);
       }
       ACC_OPENCL_CHECK(result, "failed to create OpenCL context", result);

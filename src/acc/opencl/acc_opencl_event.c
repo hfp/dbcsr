@@ -18,7 +18,7 @@ extern "C" {
 acc_event_t  acc_opencl_events[ACC_OPENCL_EVENT_MAXCOUNT];
 acc_event_t* acc_opencl_eventp[ACC_OPENCL_EVENT_MAXCOUNT];
 #endif
-int acc_opencl_event_count;
+volatile int acc_opencl_event_count;
 
 
 int acc_event_create(acc_event_t** event_p)

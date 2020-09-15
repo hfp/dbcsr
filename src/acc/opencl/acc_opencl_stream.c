@@ -39,7 +39,7 @@ extern "C" {
 acc_stream_t  acc_opencl_streams[ACC_OPENCL_STREAM_MAXCOUNT];
 acc_stream_t* acc_opencl_streamp[ACC_OPENCL_STREAM_MAXCOUNT];
 #endif
-int acc_opencl_stream_count;
+volatile int acc_opencl_stream_count;
 
 
 int acc_stream_create(acc_stream_t** stream_p, const char* name, int priority)

@@ -24,7 +24,7 @@ cl_device_id acc_opencl_devices[ACC_OPENCL_DEVICES_MAXCOUNT];
 cl_context acc_opencl_context;
 
 
-int acc_opencl_alloc(void** item, size_t typesize, int* counter, int maxcount, void* storage, void** pointer)
+int acc_opencl_alloc(void** item, size_t typesize, volatile int* counter, int maxcount, void* storage, void** pointer)
 {
   int result, i;
   assert(NULL != item && 0 != typesize && NULL != counter);
@@ -70,7 +70,7 @@ int acc_opencl_alloc(void** item, size_t typesize, int* counter, int maxcount, v
 }
 
 
-int acc_opencl_dealloc(void* item, size_t typesize, int* counter, int maxcount, void* storage, void** pointer)
+int acc_opencl_dealloc(void* item, size_t typesize, volatile int* counter, int maxcount, void* storage, void** pointer)
 {
   int result;
   assert(0 != typesize && NULL != counter);

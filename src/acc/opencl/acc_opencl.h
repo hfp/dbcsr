@@ -118,15 +118,15 @@ extern cl_context acc_opencl_context;
 # pragma omp threadprivate(acc_opencl_context)
 #endif
 
-extern int acc_opencl_stream_count;
-extern int acc_opencl_event_count;
+extern volatile int acc_opencl_stream_count;
+extern volatile int acc_opencl_event_count;
 /* non-zero if library is initialized, zero devices is signaled by nagative value */
 extern int acc_opencl_ndevices;
 
 /** Helper function for lock-free allocation of preallocated items such as streams or events. */
-int acc_opencl_alloc(void** item, size_t typesize, int* counter, int maxcount, void* storage, void** pointer);
+int acc_opencl_alloc(void** item, size_t typesize, volatile int* counter, int maxcount, void* storage, void** pointer);
 /** Helper function for lock-free deallocation (companion of acc_opencl_alloc). */
-int acc_opencl_dealloc(void* item, size_t typesize, int* counter, int maxcount, void* storage, void** pointer);
+int acc_opencl_dealloc(void* item, size_t typesize, volatile int* counter, int maxcount, void* storage, void** pointer);
 /** Returns the pointer to the 1st match of "b" in "a". */
 const char* acc_opencl_stristr(const char* a, const char* b);
 /** Clears status of all streams (if possible). */

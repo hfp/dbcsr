@@ -26,7 +26,7 @@ int acc_finalize(void);
 void acc_clear_errors(void);
 
 /** devices */
-int acc_get_ndevices(int* n_devices);
+int acc_get_ndevices(int* ndevices);
 int acc_set_active_device(int device_id);
 
 /** streams */
@@ -46,10 +46,10 @@ int acc_event_query(acc_event_t* event, acc_bool_t* has_occurred);
 int acc_event_synchronize(acc_event_t* event);
 
 /** memory */
-int acc_dev_mem_allocate(void** dev_mem, size_t n);
+int acc_dev_mem_allocate(void** dev_mem, size_t nbytes);
 int acc_dev_mem_deallocate(void* dev_mem);
 int acc_dev_mem_set_ptr(void** dev_mem, void* other, size_t lb);
-int acc_host_mem_allocate(void** host_mem, size_t n, acc_stream_t* stream);
+int acc_host_mem_allocate(void** host_mem, size_t nbytes, acc_stream_t* stream);
 int acc_host_mem_deallocate(void* host_mem, acc_stream_t* stream);
 int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t count, acc_stream_t* stream);
 int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t count, acc_stream_t* stream);

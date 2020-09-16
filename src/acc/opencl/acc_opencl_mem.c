@@ -182,26 +182,48 @@ int acc_dev_mem_set_ptr(void** dev_mem, void* other, size_t lb)
 
 int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t count, acc_stream_t* stream)
 {
-  return EXIT_FAILURE;
+  int result = EXIT_SUCCESS;
+  assert((NULL != host_mem || 0 == count) && (NULL != dev_mem || 0 == count) && NULL != stream);
+  assert(sizeof(void*) >= sizeof(cl_mem)); /* can depend on OpenCL implementation */
+  if (NULL != host_mem && NULL != dev_mem && 0 != count) {
+    ACC_OPENCL_CHECK(clEnqueueWriteBuffer(stream->queue, (cl_mem)dev_mem, CL_FALSE/*non-blocking*/,
+      0/*offset*/, count, host_mem, 0, NULL, NULL), "failed to enqueue h2d copy", result);
+  }
+  ACC_OPENCL_RETURN(result);
 }
 
 
 int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t count, acc_stream_t* stream)
 {
-  return EXIT_FAILURE;
+  int result = EXIT_SUCCESS;
+  assert((NULL != dev_mem || 0 == count) && (NULL != host_mem || 0 == count) && NULL != stream);
+  assert(sizeof(void*) >= sizeof(cl_mem)); /* can depend on OpenCL implementation */
+  if (NULL != host_mem && NULL != dev_mem && 0 != count) {
+    ACC_OPENCL_CHECK(clEnqueueReadBuffer(stream->queue, (cl_mem)dev_mem, CL_FALSE/*non-blocking*/,
+      0/*offset*/, count, host_mem, 0, NULL, NULL), "failed to enqueue d2h copy", result);
+  }
+  ACC_OPENCL_RETURN(result);
 }
 
 
 int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t count, acc_stream_t* stream)
 {
-  return EXIT_FAILURE;
+  int result = EXIT_SUCCESS;
+  assert((NULL != devmem_src || 0 == count) && (NULL != devmem_dst || 0 == count) && NULL != stream);
+  assert(sizeof(void*) >= sizeof(cl_mem)); /* can depend on OpenCL implementation */
+  if (NULL != devmem_src && NULL != devmem_dst && 0 != count) {
+    ACC_OPENCL_CHECK(clEnqueueCopyBuffer(stream->queue, (cl_mem)devmem_src, (cl_mem)devmem_dst,
+      0/*src_offset*/, 0/*dst_offset*/, count, 0, NULL, NULL),
+      "failed to enqueue d2d copy", result);
+  }
+  ACC_OPENCL_RETURN(result);
 }
 
 
 int acc_memset_zero(void* dev_mem, size_t offset, size_t length, acc_stream_t* stream)
 {
   int result = EXIT_SUCCESS;
-  assert((NULL != dev_mem || 0 == length) && offset <= length && NULL != stream);
+  assert((NULL != dev_mem || 0 == length) && NULL != stream);
   assert(sizeof(void*) >= sizeof(cl_mem)); /* can depend on OpenCL implementation */
   if (NULL != dev_mem) {
     const cl_uchar pattern = 0; /* fill with zeros */

@@ -112,44 +112,51 @@ int acc_stream_destroy(acc_stream_t* stream)
 int acc_stream_priority_range(int* least, int* greatest)
 {
   int result = ((NULL != least || NULL != greatest) ? EXIT_SUCCESS : EXIT_FAILURE);
+  if (NULL != acc_opencl_context) {
 #if defined(CL_QUEUE_PRIORITY_KHR)
-  char buffer[ACC_OPENCL_BUFFER_MAXSIZE];
-  cl_context_properties *const properties = (cl_context_properties*)buffer;
-  cl_platform_id platform = NULL;
-  size_t size = 0;
-  if (CL_SUCCESS == clGetContextInfo(acc_opencl_context, CL_CONTEXT_PROPERTIES,
-    ACC_OPENCL_BUFFER_MAXSIZE, properties, &size))
-  {
-    size_t i;
-    for (i = 0; i < size; ++i) if (CL_CONTEXT_PLATFORM == properties[i]) {
-      assert((i + 1) < size && 0 != properties[i+1]);
-      platform = (cl_platform_id)properties[i+1];
-    }
-  }
-  else {
-    ACC_OPENCL_ERROR("failed to retrieve context properties", result);
-  }
-  if (NULL != platform) {
-    if (CL_SUCCESS == clGetPlatformInfo(platform, CL_PLATFORM_EXTENSIONS,
-      ACC_OPENCL_BUFFER_MAXSIZE, buffer, NULL))
+    char buffer[ACC_OPENCL_BUFFER_MAXSIZE];
+    cl_context_properties *const properties = (cl_context_properties*)buffer;
+    cl_platform_id platform = NULL;
+    size_t size = 0;
+    assert(0 < acc_opencl_ndevices);
+    if (CL_SUCCESS == clGetContextInfo(acc_opencl_context, CL_CONTEXT_PROPERTIES,
+      ACC_OPENCL_BUFFER_MAXSIZE, properties, &size))
     {
-      if (NULL != strstr(buffer, "cl_khr_priority_hints")) {
-        if (NULL != least) *least = CL_QUEUE_PRIORITY_LOW_KHR;
-        if (NULL != greatest) *greatest = CL_QUEUE_PRIORITY_HIGH_KHR;
+      size_t i;
+      for (i = 0; i < size; ++i) if (CL_CONTEXT_PLATFORM == properties[i]) {
+        assert((i + 1) < size && 0 != properties[i+1]);
+        platform = (cl_platform_id)properties[i+1];
       }
-      else
-#endif
-      {
-        if (NULL != least) *least = ACC_OPENCL_STREAM_PRIORITY_INVALID;
-        if (NULL != greatest) *greatest = ACC_OPENCL_STREAM_PRIORITY_INVALID;
-      }
-#if defined(CL_QUEUE_PRIORITY_KHR)
     }
     else {
-      ACC_OPENCL_ERROR("failed to retrieve platform extensions", result);
+      ACC_OPENCL_ERROR("failed to retrieve context properties", result);
     }
-  }
+    if (NULL != platform) {
+      if (CL_SUCCESS == clGetPlatformInfo(platform, CL_PLATFORM_EXTENSIONS,
+        ACC_OPENCL_BUFFER_MAXSIZE, buffer, NULL))
+      {
+        if (NULL != strstr(buffer, "cl_khr_priority_hints")) {
+          if (NULL != least) *least = CL_QUEUE_PRIORITY_LOW_KHR;
+          if (NULL != greatest) *greatest = CL_QUEUE_PRIORITY_HIGH_KHR;
+        }
+        else
 #endif
+        {
+          if (NULL != least) *least = ACC_OPENCL_STREAM_PRIORITY_INVALID;
+          if (NULL != greatest) *greatest = ACC_OPENCL_STREAM_PRIORITY_INVALID;
+        }
+#if defined(CL_QUEUE_PRIORITY_KHR)
+      }
+      else {
+        ACC_OPENCL_ERROR("failed to retrieve platform extensions", result);
+      }
+    }
+#endif
+  }
+  else {
+    if (NULL != least) *least = ACC_OPENCL_STREAM_PRIORITY_INVALID;
+    if (NULL != greatest) *greatest = ACC_OPENCL_STREAM_PRIORITY_INVALID;
+  }
   assert(least != greatest); /* no alias */
   ACC_OPENCL_RETURN(result);
 }

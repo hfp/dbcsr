@@ -155,6 +155,7 @@ int acc_finalize(void)
   int result = EXIT_SUCCESS;
 #endif
   if (NULL != acc_opencl_context) {
+    assert(0 < acc_opencl_ndevices);
     ACC_OPENCL_CHECK(clReleaseContext(acc_opencl_context),
       "failed to release context", result);
   }
@@ -183,40 +184,44 @@ int acc_get_ndevices(int* ndevices)
 
 int acc_set_active_device(int device_id)
 {
-  cl_int result = ((0 <= device_id && device_id < acc_opencl_ndevices) ? EXIT_SUCCESS : EXIT_FAILURE);
-  cl_device_id active_id = NULL;
-  size_t n = 0;
-  if (NULL != acc_opencl_context) {
-    ACC_OPENCL_CHECK(clGetContextInfo(acc_opencl_context, CL_CONTEXT_DEVICES,
-      sizeof(cl_device_id), &active_id, &n), "failed to retrieve id of active device", result);
-    assert(EXIT_SUCCESS != result || sizeof(cl_device_id) == n/*single-device context*/);
-  }
-  if (acc_opencl_devices[device_id] != active_id) {
-    cl_context_properties properties[] = {
-      CL_CONTEXT_PLATFORM, 0/*placeholder filled-in below*/,
-      CL_CONTEXT_INTEROP_USER_SYNC, CL_FALSE, /* TODO */
-      0 /* end of properties */
-    };
-    properties[1] = (cl_context_properties)acc_opencl_platforms[device_id];
+  cl_int result = (((0 <= device_id && device_id < acc_opencl_ndevices) ||
+    /* allow successful completion if no device was found */
+    0 > acc_opencl_ndevices) ? EXIT_SUCCESS : EXIT_FAILURE);
+  if (0 < acc_opencl_ndevices) {
+    cl_device_id active_id = NULL;
+    size_t n = 0;
     if (NULL != acc_opencl_context) {
-      ACC_OPENCL_CHECK(clReleaseContext(acc_opencl_context),
-        "failed to release context", result);
+      ACC_OPENCL_CHECK(clGetContextInfo(acc_opencl_context, CL_CONTEXT_DEVICES,
+        sizeof(cl_device_id), &active_id, &n), "failed to retrieve id of active device", result);
+      assert(EXIT_SUCCESS != result || sizeof(cl_device_id) == n/*single-device context*/);
     }
-    if (EXIT_SUCCESS == result) {
-      acc_opencl_context = clCreateContext(properties,
-        1/*num_devices*/, acc_opencl_devices + device_id,
-        acc_opencl_notify, NULL/* user_data*/,
-        &result);
-      if (CL_INVALID_VALUE == result) { /* retry */
-        n = sizeof(properties) / sizeof(*properties);
-        assert(3 <= n);
-        properties[n-3] = 0;
+    if (acc_opencl_devices[device_id] != active_id) {
+      cl_context_properties properties[] = {
+        CL_CONTEXT_PLATFORM, 0/*placeholder filled-in below*/,
+        CL_CONTEXT_INTEROP_USER_SYNC, CL_FALSE, /* TODO */
+        0 /* end of properties */
+      };
+      properties[1] = (cl_context_properties)acc_opencl_platforms[device_id];
+      if (NULL != acc_opencl_context) {
+        ACC_OPENCL_CHECK(clReleaseContext(acc_opencl_context),
+          "failed to release context", result);
+      }
+      if (EXIT_SUCCESS == result) {
         acc_opencl_context = clCreateContext(properties,
           1/*num_devices*/, acc_opencl_devices + device_id,
           acc_opencl_notify, NULL/* user_data*/,
           &result);
+        if (CL_INVALID_VALUE == result) { /* retry */
+          n = sizeof(properties) / sizeof(*properties);
+          assert(3 <= n);
+          properties[n-3] = 0;
+          acc_opencl_context = clCreateContext(properties,
+            1/*num_devices*/, acc_opencl_devices + device_id,
+            acc_opencl_notify, NULL/* user_data*/,
+            &result);
+        }
+        ACC_OPENCL_CHECK(result, "failed to create context", result);
       }
-      ACC_OPENCL_CHECK(result, "failed to create context", result);
     }
   }
   ACC_OPENCL_RETURN(result);

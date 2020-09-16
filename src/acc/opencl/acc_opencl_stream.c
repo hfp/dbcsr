@@ -51,14 +51,21 @@ int acc_stream_create(acc_stream_t** stream_p, const char* name, int priority)
     sizeof(cl_device_id), &device_id, &n), "failed to retrieve id of active device", result);
   assert(EXIT_SUCCESS != result || sizeof(cl_device_id) == n/*single-device context*/);
   if (EXIT_SUCCESS == result) {
-    cl_command_queue_properties properties[] = {
 #if defined(CL_QUEUE_PRIORITY_KHR)
-      ACC_OPENCL_STREAM_PRIORITY_INVALID != priority ? CL_QUEUE_PRIORITY_KHR : 0,
-      ACC_OPENCL_STREAM_PRIORITY_INVALID != priority ? priority : 0,
+    if (ACC_OPENCL_STREAM_PRIORITY_INVALID != priority) {
+      cl_command_queue_properties properties[] = {
+        CL_QUEUE_PRIORITY_KHR, 0/*placeholder filled-in below*/,
+        0
+      };
+      properties[1] = priority;
+      queue = ACC_OPENCL_CREATE_COMMAND_QUEUE(acc_opencl_context, device_id, properties, &result);
+    }
+    else
 #endif
-      0
-    };
-    queue = ACC_OPENCL_CREATE_COMMAND_QUEUE(acc_opencl_context, device_id, properties, &result);
+    {
+      const cl_command_queue_properties properties[] = { 0 };
+      queue = ACC_OPENCL_CREATE_COMMAND_QUEUE(acc_opencl_context, device_id, properties, &result);
+    }
   }
   assert(NULL != stream_p);
   if (NULL != queue) {

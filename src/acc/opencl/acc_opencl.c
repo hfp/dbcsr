@@ -193,10 +193,11 @@ int acc_set_active_device(int device_id)
   }
   if (acc_opencl_devices[device_id] != active_id) {
     cl_context_properties properties[] = {
-      CL_CONTEXT_PLATFORM, (cl_context_properties)acc_opencl_platforms[device_id],
+      CL_CONTEXT_PLATFORM, 0/*placeholder filled-in below*/,
       CL_CONTEXT_INTEROP_USER_SYNC, CL_FALSE, /* TODO */
       0 /* end of properties */
     };
+    properties[1] = (cl_context_properties)acc_opencl_platforms[device_id];
     if (NULL != acc_opencl_context) {
       ACC_OPENCL_CHECK(clReleaseContext(acc_opencl_context),
         "failed to release OpenCL context", result);

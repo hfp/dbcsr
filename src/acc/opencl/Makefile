@@ -1,4 +1,4 @@
-CFLAGS = -Wall -Wextra -pedantic -D__OPENCL
+CFLAGS = -std=c89 -Wall -Wextra -pedantic -D__OPENCL
 INCFILES = $(wildcard *.h*)
 SRCFILES = $(wildcard *.c*)
 OBJFILES = $(SRCFILES:.c=.o)

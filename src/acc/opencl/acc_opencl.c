@@ -214,7 +214,7 @@ int acc_set_active_device(int device_id)
           n = sizeof(properties) / sizeof(*properties);
           assert(3 <= n);
           properties[n-3] = 0;
-          acc_opencl_context = clCreateContext(properties,
+          acc_opencl_context = clCreateContext(0 != properties[0] ? properties : NULL,
             1/*num_devices*/, acc_opencl_devices + device_id,
             acc_opencl_notify, NULL/* user_data*/,
             &result);

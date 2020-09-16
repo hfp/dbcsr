@@ -64,8 +64,8 @@ int acc_stream_create(acc_stream_t** stream_p, const char* name, int priority)
       else
 #endif
       {
-        const cl_command_queue_properties properties[] = { 0 };
-        queue = ACC_OPENCL_CREATE_COMMAND_QUEUE(acc_opencl_context, device_id, properties, &result);
+        /*const cl_command_queue_properties properties[] = { 0 };*/
+        queue = ACC_OPENCL_CREATE_COMMAND_QUEUE(acc_opencl_context, device_id, NULL/*properties*/, &result);
       }
     }
     assert(NULL != stream_p);

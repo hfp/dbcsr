@@ -88,7 +88,7 @@ int acc_host_mem_allocate(void** host_mem, size_t nbytes, acc_stream_t* stream)
     }
     else {
       assert(CL_SUCCESS != result);
-      ACC_OPENCL_ERROR("failed to map buffer", result);
+      ACC_OPENCL_ERROR("failed to map host buffer", result);
       *host_mem = NULL;
     }
   }
@@ -103,7 +103,17 @@ int acc_host_mem_allocate(void** host_mem, size_t nbytes, acc_stream_t* stream)
 
 int acc_host_mem_deallocate(void* host_mem, acc_stream_t* stream)
 {
-  return EXIT_FAILURE;
+  cl_int result = EXIT_SUCCESS;
+  assert(NULL != stream);
+  if (NULL != host_mem) {
+    const acc_opencl_meminfo_t meminfo = *(acc_opencl_meminfo_t*)(
+      (char*)host_mem - sizeof(acc_opencl_meminfo_t)); /* copy meminfo prior to unmap */
+    ACC_OPENCL_CHECK(clEnqueueUnmapMemObject(stream->queue, meminfo.buffer, meminfo.mapped,
+      0, NULL, NULL), "failed to unmap host memory", result);
+    ACC_OPENCL_CHECK(clReleaseMemObject(meminfo.buffer),
+      "failed to release host memory buffer", result);
+  }
+  ACC_OPENCL_RETURN(result);
 }
 
 

@@ -81,7 +81,7 @@ int acc_stream_create(acc_stream_t** stream_p, const char* name, int priority)
   }
   else {
     assert(CL_SUCCESS != result);
-    ACC_OPENCL_ERROR("failed to create OpenCL command queue", result);
+    ACC_OPENCL_ERROR("failed to create OpenCL queue", result);
     *stream_p = NULL;
   }
   ACC_OPENCL_RETURN(result);
@@ -93,7 +93,7 @@ int acc_stream_destroy(acc_stream_t* stream)
   int result = (NULL == stream || NULL != stream->queue) ? EXIT_SUCCESS : EXIT_FAILURE;
   if (NULL != stream) {
     ACC_OPENCL_CHECK(clReleaseCommandQueue(stream->queue),
-      "failed to release command queue", result);
+      "failed to release OpenCL queue", result);
     free(stream);
   }
   ACC_OPENCL_RETURN(result);

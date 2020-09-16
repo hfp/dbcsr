@@ -165,11 +165,11 @@ void acc_clear_errors(void)
 }
 
 
-int acc_get_ndevices(int* n_devices)
+int acc_get_ndevices(int* ndevices)
 {
   int result;
-  if (NULL != n_devices && 0 != acc_opencl_ndevices) {
-    *n_devices = (0 < acc_opencl_ndevices ? acc_opencl_ndevices : 0);
+  if (NULL != ndevices && 0 != acc_opencl_ndevices) {
+    *ndevices = (0 < acc_opencl_ndevices ? acc_opencl_ndevices : 0);
     result = EXIT_SUCCESS;
   }
   else {

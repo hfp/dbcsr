@@ -54,6 +54,14 @@ int acc_opencl_memalignment(size_t size)
 }
 
 
+acc_opencl_meminfo_t* acc_opencl_meminfo(void* /*memory*/);
+acc_opencl_meminfo_t* acc_opencl_meminfo(void* memory)
+{
+  assert(NULL != memory && sizeof(acc_opencl_meminfo_t) <= (uintptr_t)memory);
+  return (acc_opencl_meminfo_t*)((char*)memory - sizeof(acc_opencl_meminfo_t));
+}
+
+
 int acc_host_mem_allocate(void** host_mem, size_t nbytes, acc_stream_t* stream)
 {
   cl_int result;
@@ -106,11 +114,13 @@ int acc_host_mem_deallocate(void* host_mem, acc_stream_t* stream)
   cl_int result = EXIT_SUCCESS;
   assert(NULL != stream);
   if (NULL != host_mem) {
-    const acc_opencl_meminfo_t meminfo = *(acc_opencl_meminfo_t*)(
-      (char*)host_mem - sizeof(acc_opencl_meminfo_t)); /* copy meminfo prior to unmap */
-    ACC_OPENCL_CHECK(clEnqueueUnmapMemObject(stream->queue, meminfo.buffer, meminfo.mapped,
+    acc_opencl_meminfo_t *const meminfo = acc_opencl_meminfo(host_mem);
+    const acc_opencl_meminfo_t info = *meminfo; /* copy meminfo prior to unmap */
+    ACC_OPENCL_CHECK(clEnqueueUnmapMemObject(stream->queue, meminfo.buffer, meminfo,
+      0, NULL, NULL), "failed to unmap memory info", result);
+    ACC_OPENCL_CHECK(clEnqueueUnmapMemObject(stream->queue, info.buffer, info.mapped,
       0, NULL, NULL), "failed to unmap host memory", result);
-    ACC_OPENCL_CHECK(clReleaseMemObject(meminfo.buffer),
+    ACC_OPENCL_CHECK(clReleaseMemObject(info.buffer),
       "failed to release host memory buffer", result);
   }
   ACC_OPENCL_RETURN(result);
@@ -162,7 +172,16 @@ int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t count, acc_s
 
 int acc_memset_zero(void* dev_mem, size_t offset, size_t length, acc_stream_t* stream)
 {
-  return EXIT_FAILURE;
+  int result = EXIT_SUCCESS;
+  assert((NULL != dev_mem || 0 == length) && offset <= length && NULL != stream);
+  assert(sizeof(void*) == sizeof(cl_mem));
+  if (NULL != dev_mem) {
+    const cl_uchar pattern = 0; /* fill with zeros */
+    ACC_OPENCL_CHECK(clEnqueueFillBuffer(stream->queue, (cl_mem)dev_mem,
+      &pattern, sizeof(pattern), offset, length, 0, NULL, NULL),
+      "failed to enqueue zero-initialization", result);
+  }
+  ACC_OPENCL_RETURN(result);
 }
 
 

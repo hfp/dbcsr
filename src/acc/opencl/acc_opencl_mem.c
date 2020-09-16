@@ -131,7 +131,14 @@ int acc_dev_mem_deallocate(void* dev_mem)
 
 int acc_dev_mem_set_ptr(void** dev_mem, void* other, size_t lb)
 {
-  return EXIT_FAILURE;
+  int result;
+  assert(NULL != dev_mem);
+  if (NULL != other || 0 == lb) {
+    *dev_mem = (char*)other + lb;
+    result = EXIT_SUCCESS;
+  }
+  else result = EXIT_FAILURE;
+  ACC_OPENCL_RETURN(result);
 }
 
 

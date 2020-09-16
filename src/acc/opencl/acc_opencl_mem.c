@@ -14,6 +14,10 @@
 #if defined(_WIN32)
 # include <Windows.h>
 #else
+# if !defined(__linux__)
+#   include <sys/types.h>
+#   include <sys/sysctl.h>
+# endif
 # include <unistd.h>
 #endif
 
@@ -260,31 +264,41 @@ int acc_dev_mem_info(size_t* mem_free, size_t* mem_total)
 # else
       const long page_size = 4096;
 # endif
-# if defined(_SC_AVPHYS_PAGES)
+# if defined(__linux__)
+#   if defined(_SC_AVPHYS_PAGES)
       const long pages_free = sysconf(_SC_AVPHYS_PAGES);
-# else
+#   else
       const long pages_free = 0;
-# endif
-# if defined(_SC_PHYS_PAGES)
+#   endif
+#   if defined(_SC_PHYS_PAGES)
       const long pages_total = sysconf(_SC_PHYS_PAGES);
-# else
+#   else
       const long pages_total = pages_free;
+#   endif
+# else
+      /*const*/ size_t size_pages_free = sizeof(const long), size_pages_total = sizeof(const long);
+      long pages_free = 0, pages_total = 0;
+      ACC_OPENCL_EXPECT(0, sysctlbyname("vm.page_free_count", &pages_free, &size_pages_free, NULL, 0));
+      if (0 < page_size && 0 == sysctlbyname("hw.memsize", &pages_total, &size_pages_total, NULL, 0)) {
+        pages_total /= page_size;
+      }
+      else pages_total = pages_free;
 # endif
-      if (0 < page_size && 0 <= pages_free && 0 <= pages_total) {
+      if (0 < page_size && 0 <= pages_free && 0 <= pages_total && pages_free <= pages_total) {
         const size_t size_page = (size_t)page_size;
-        size_total = (size_page * (size_t)pages_total);
-        size_free = (size_page * (size_t)pages_free);
+        size_total = size_page * (size_t)pages_total;
+        size_free  = size_page * (size_t)pages_free;
       }
       else result = EXIT_FAILURE;
 #endif
       if (EXIT_SUCCESS == result) {
         size_total /= ndevices;
-        size_free /= ndevices;
+        size_free  /= ndevices;
       }
     }
     if (size_free <= size_total) { /* EXIT_SUCCESS != result is ok */
       if (NULL != mem_total) *mem_total = size_total;
-      if (NULL != mem_free) *mem_free = size_free;
+      if (NULL != mem_free)  *mem_free  = size_free;
     }
     else if (EXIT_SUCCESS == result) {
       result = EXIT_FAILURE;

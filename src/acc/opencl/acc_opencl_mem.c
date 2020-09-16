@@ -109,7 +109,7 @@ int acc_host_mem_allocate(void** host_mem, size_t nbytes, acc_stream_t* stream)
   }
   else {
     assert(CL_SUCCESS != result);
-    ACC_OPENCL_ERROR("failed to create OpenCL buffer", result);
+    ACC_OPENCL_ERROR("failed to create host buffer", result);
     *host_mem = NULL;
   }
   ACC_OPENCL_RETURN(result);
@@ -118,7 +118,7 @@ int acc_host_mem_allocate(void** host_mem, size_t nbytes, acc_stream_t* stream)
 
 int acc_host_mem_deallocate(void* host_mem, acc_stream_t* stream)
 {
-  cl_int result = EXIT_SUCCESS;
+  int result = EXIT_SUCCESS;
   assert(NULL != stream);
   if (NULL != host_mem) {
     acc_opencl_meminfo_t *const meminfo = acc_opencl_meminfo(host_mem);
@@ -138,13 +138,32 @@ int acc_host_mem_deallocate(void* host_mem, acc_stream_t* stream)
 
 int acc_dev_mem_allocate(void** dev_mem, size_t nbytes)
 {
-  return EXIT_FAILURE;
+  cl_int result;
+  const cl_mem buffer = clCreateBuffer(acc_opencl_context, CL_MEM_READ_WRITE, nbytes,
+    NULL/*host_ptr*/, &result);
+  assert(sizeof(void*) >= sizeof(cl_mem)); /* can depend on OpenCL implementation */
+  assert(NULL != dev_mem);
+  if (NULL != buffer) {
+    *dev_mem = (void*)buffer;
+  }
+  else {
+    assert(CL_SUCCESS != result);
+    ACC_OPENCL_ERROR("failed to create device buffer", result);
+    *dev_mem = NULL;
+  }
+  ACC_OPENCL_RETURN(result);
 }
 
 
 int acc_dev_mem_deallocate(void* dev_mem)
 {
-  return EXIT_FAILURE;
+  int result = EXIT_SUCCESS;
+  assert(sizeof(void*) >= sizeof(cl_mem)); /* can depend on OpenCL implementation */
+  if (NULL != dev_mem) {
+    ACC_OPENCL_CHECK(clReleaseMemObject((cl_mem)dev_mem),
+      "failed to release device memory buffer", result);
+  }
+  ACC_OPENCL_RETURN(result);
 }
 
 

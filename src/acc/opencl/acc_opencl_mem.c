@@ -26,6 +26,9 @@
 #if !defined(ACC_OPENCL_DEVMEMSET) && 1
 # define ACC_OPENCL_DEVMEMSET
 #endif
+#if !defined(ACC_OPENCL_MAP_MULTI) && 0
+# define ACC_OPENCL_MAP_MULTI
+#endif
 
 #if defined(__cplusplus)
 extern "C" {
@@ -78,11 +81,15 @@ int acc_host_mem_allocate(void** host_mem, size_t nbytes, acc_stream_t* stream)
       const size_t offset = ACC_OPENCL_UP2(address + sizeof(acc_opencl_meminfo_t), alignment) - address;
       acc_opencl_meminfo_t* meminfo;
       assert(sizeof(acc_opencl_meminfo_t) <= offset);
+#if defined(ACC_OPENCL_MAP_MULTI)
       meminfo = (acc_opencl_meminfo_t*)clEnqueueMapBuffer(stream->queue, buffer,
         CL_TRUE/*blocking*/, CL_MAP_READ | CL_MAP_WRITE,
         offset - sizeof(acc_opencl_meminfo_t),
         sizeof(acc_opencl_meminfo_t),
         0, NULL, NULL, &result);
+#else
+      meminfo = (acc_opencl_meminfo_t*)(address + offset - sizeof(acc_opencl_meminfo_t));
+#endif
       if (NULL != meminfo) {
         meminfo->buffer = buffer;
         meminfo->mapped = (void*)address;
@@ -116,8 +123,10 @@ int acc_host_mem_deallocate(void* host_mem, acc_stream_t* stream)
   if (NULL != host_mem) {
     acc_opencl_meminfo_t *const meminfo = acc_opencl_meminfo(host_mem);
     const acc_opencl_meminfo_t info = *meminfo; /* copy meminfo prior to unmap */
+#if defined(ACC_OPENCL_MAP_MULTI)
     ACC_OPENCL_CHECK(clEnqueueUnmapMemObject(stream->queue, meminfo->buffer, meminfo,
       0, NULL, NULL), "failed to unmap memory info", result);
+#endif
     ACC_OPENCL_CHECK(clEnqueueUnmapMemObject(stream->queue, info.buffer, info.mapped,
       0, NULL, NULL), "failed to unmap host memory", result);
     ACC_OPENCL_CHECK(clReleaseMemObject(info.buffer),

@@ -174,12 +174,12 @@ int acc_memset_zero(void* dev_mem, size_t offset, size_t length, acc_stream_t* s
 {
   int result = EXIT_SUCCESS;
   assert((NULL != dev_mem || 0 == length) && offset <= length && NULL != stream);
-  assert(sizeof(void*) == sizeof(cl_mem));
+  assert(sizeof(void*) >= sizeof(cl_mem)); /* can depend on OpenCL implementation */
   if (NULL != dev_mem) {
     const cl_uchar pattern = 0; /* fill with zeros */
     ACC_OPENCL_CHECK(clEnqueueFillBuffer(stream->queue, (cl_mem)dev_mem,
       &pattern, sizeof(pattern), offset, length, 0, NULL, NULL),
-      "failed to enqueue zero-initialization", result);
+      "failed to enqueue zero-filling buffer", result);
   }
   ACC_OPENCL_RETURN(result);
 }

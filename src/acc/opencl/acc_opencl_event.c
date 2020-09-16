@@ -81,7 +81,7 @@ int acc_event_query(acc_event_t* event, acc_bool_t* has_occurred)
   assert(NULL != has_occurred);
   if (EXIT_SUCCESS == result) {
     /* an unrecorded, i.e., an empty event has no work to wait for hence everything has occurred */
-    *has_occurred = (CL_COMPLETE != status || CL_SUBMITTED != status ? 0 : 1);
+    *has_occurred = (CL_COMPLETE != status && CL_SUBMITTED != status ? 0 : 1);
   }
   ACC_OPENCL_RETURN(result);
 }

@@ -17,11 +17,11 @@
 
 #if defined(CL_VERSION_2_0)
 # define ACC_OPENCL_CREATE_COMMAND_QUEUE(CTX, DEV, PROPS, RESULT) \
-    clCreateCommandQueueWithProperties(CTX, DEV, PROPS, RESULT)
+    clCreateCommandQueueWithProperties(CTX, DEV, (const cl_queue_properties*)(PROPS), RESULT)
 #else
 # define ACC_OPENCL_CREATE_COMMAND_QUEUE(CTX, DEV, PROPS, RESULT) \
     clCreateCommandQueue(CTX, DEV, /* avoid warning about unused argument */ \
-      NULL != (PROPS) ? ((PROPS)[sizeof(PROPS)/sizeof(*(PROPS))-1]) : 0, RESULT)
+      (cl_command_queue_properties)(NULL != (PROPS) ? (((cl_int*)(PROPS))[sizeof(PROPS)/sizeof(*(PROPS))-1]) : 0), RESULT)
 #endif
 
 #if defined(CL_VERSION_1_2)
@@ -54,7 +54,7 @@ int acc_stream_create(acc_stream_t** stream_p, const char* name, int priority)
     if (EXIT_SUCCESS == result) {
 #if defined(CL_QUEUE_PRIORITY_KHR)
       if (ACC_OPENCL_STREAM_PRIORITY_INVALID != priority) {
-        cl_command_queue_properties properties[] = {
+        cl_int properties[] = {
           CL_QUEUE_PRIORITY_KHR, 0/*placeholder filled-in below*/,
           0
         };
@@ -64,7 +64,7 @@ int acc_stream_create(acc_stream_t** stream_p, const char* name, int priority)
       else
 #endif
       {
-        /*const cl_command_queue_properties properties[] = { 0 };*/
+        /*const cl_int properties[] = { 0 };*/
         queue = ACC_OPENCL_CREATE_COMMAND_QUEUE(acc_opencl_context, device_id, NULL/*properties*/, &result);
       }
     }

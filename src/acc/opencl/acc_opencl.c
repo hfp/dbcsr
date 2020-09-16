@@ -19,7 +19,6 @@ extern "C" {
 #endif
 
 int acc_opencl_ndevices;
-cl_platform_id acc_opencl_platforms[ACC_OPENCL_DEVICES_MAXCOUNT];
 cl_device_id acc_opencl_devices[ACC_OPENCL_DEVICES_MAXCOUNT];
 cl_context acc_opencl_context;
 
@@ -68,6 +67,7 @@ int acc_init(void)
   int result = EXIT_SUCCESS;
 #endif
   if (NULL == disable || '0' == *disable) {
+    cl_platform_id platforms[ACC_OPENCL_DEVICES_MAXCOUNT];
 #if defined(ACC_OPENCL_STRING_MAXLENGTH) && (0 < ACC_OPENCL_STRING_MAXLENGTH)
     char buffer[ACC_OPENCL_STRING_MAXLENGTH];
     const char *const vendor = getenv("ACC_OPENCL_VENDOR");
@@ -79,7 +79,7 @@ int acc_init(void)
       "failed to query number of platforms", result);
     ACC_OPENCL_CHECK(clGetPlatformIDs(
       nplatforms <= ACC_OPENCL_DEVICES_MAXCOUNT ? nplatforms : ACC_OPENCL_DEVICES_MAXCOUNT,
-      acc_opencl_platforms, 0), "failed to retrieve platforms", result);
+      platforms, 0), "failed to retrieve platforms", result);
     if (NULL != device && '\0' != *device) {
       if (NULL != acc_opencl_stristr(device, "gpu")) type = CL_DEVICE_TYPE_GPU;
       else if (NULL != acc_opencl_stristr(device, "cpu")) type = CL_DEVICE_TYPE_CPU;
@@ -91,21 +91,21 @@ int acc_init(void)
 #if defined(ACC_OPENCL_STRING_MAXLENGTH) && (0 < ACC_OPENCL_STRING_MAXLENGTH)
       if (NULL != vendor && '\0' != *vendor) {
         size_t size = 0;
-        ACC_OPENCL_CHECK(clGetPlatformInfo(acc_opencl_platforms[i], CL_PLATFORM_VENDOR,
+        ACC_OPENCL_CHECK(clGetPlatformInfo(platforms[i], CL_PLATFORM_VENDOR,
           0, NULL, &size), "failed to query platform vendor", result);
         buffer[0] = '\0'; size = (size <= ACC_OPENCL_STRING_MAXLENGTH
           ? size : ACC_OPENCL_STRING_MAXLENGTH);
-        ACC_OPENCL_CHECK(clGetPlatformInfo(acc_opencl_platforms[i], CL_PLATFORM_VENDOR,
+        ACC_OPENCL_CHECK(clGetPlatformInfo(platforms[i], CL_PLATFORM_VENDOR,
           size, buffer, NULL), "failed to retrieve platform vendor", result);
         if (NULL == acc_opencl_stristr(buffer, vendor)) continue;
       }
 #endif
       assert(acc_opencl_ndevices <= ACC_OPENCL_DEVICES_MAXCOUNT);
-      ACC_OPENCL_CHECK(clGetDeviceIDs(acc_opencl_platforms[i], type, 0, NULL, &ndevices),
+      ACC_OPENCL_CHECK(clGetDeviceIDs(platforms[i], type, 0, NULL, &ndevices),
         "failed to query number of devices", result);
       n = (acc_opencl_ndevices + ndevices) < ACC_OPENCL_DEVICES_MAXCOUNT
         ? (int)ndevices : (ACC_OPENCL_DEVICES_MAXCOUNT - acc_opencl_ndevices);
-      ACC_OPENCL_CHECK(clGetDeviceIDs(acc_opencl_platforms[i], type,
+      ACC_OPENCL_CHECK(clGetDeviceIDs(platforms[i], type,
         n, acc_opencl_devices + acc_opencl_ndevices, NULL),
         "failed to retrieve devices", result);
       acc_opencl_ndevices += n;
@@ -117,7 +117,7 @@ int acc_init(void)
         for (n = 0; n < acc_opencl_ndevices; ++n) {
           ACC_OPENCL_CHECK(clGetDeviceInfo(acc_opencl_devices[n],
             CL_DEVICE_TYPE, sizeof(cl_device_type), &type, NULL),
-            "failed to retrieve device information", result);
+            "failed to retrieve device type", result);
           if (CL_DEVICE_TYPE_DEFAULT & type) break;
         }
       }
@@ -196,17 +196,16 @@ int acc_set_active_device(int device_id)
       assert(EXIT_SUCCESS != result || sizeof(cl_device_id) == n/*single-device context*/);
     }
     if (acc_opencl_devices[device_id] != active_id) {
-      cl_context_properties properties[] = {
-        CL_CONTEXT_PLATFORM, 0/*placeholder filled-in below*/,
-        CL_CONTEXT_INTEROP_USER_SYNC, CL_FALSE, /* TODO */
-        0 /* end of properties */
-      };
-      properties[1] = (cl_context_properties)acc_opencl_platforms[device_id];
       if (NULL != acc_opencl_context) {
         ACC_OPENCL_CHECK(clReleaseContext(acc_opencl_context),
           "failed to release context", result);
       }
       if (EXIT_SUCCESS == result) {
+        cl_context_properties properties[] = {
+          /* insert other properties in front of below property */
+          CL_CONTEXT_INTEROP_USER_SYNC, CL_FALSE, /* TODO */
+          0 /* end of properties */
+        };
         acc_opencl_context = clCreateContext(properties,
           1/*num_devices*/, acc_opencl_devices + device_id,
           acc_opencl_notify, NULL/* user_data*/,

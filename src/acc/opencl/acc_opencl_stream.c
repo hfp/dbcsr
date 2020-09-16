@@ -115,41 +115,28 @@ int acc_stream_priority_range(int* least, int* greatest)
   if (NULL != acc_opencl_context) {
 #if defined(CL_QUEUE_PRIORITY_KHR)
     char buffer[ACC_OPENCL_BUFFER_MAXSIZE];
-    cl_context_properties *const properties = (cl_context_properties*)buffer;
     cl_platform_id platform = NULL;
-    size_t size = 0;
+    cl_device_id active_id = NULL;
+    size_t n = 0;
     assert(0 < acc_opencl_ndevices);
-    if (CL_SUCCESS == clGetContextInfo(acc_opencl_context, CL_CONTEXT_PROPERTIES,
-      ACC_OPENCL_BUFFER_MAXSIZE, properties, &size))
-    {
-      size_t i;
-      for (i = 0; i < size; ++i) if (CL_CONTEXT_PLATFORM == properties[i]) {
-        assert((i + 1) < size && 0 != properties[i+1]);
-        platform = (cl_platform_id)properties[i+1];
+    ACC_OPENCL_CHECK(clGetContextInfo(acc_opencl_context, CL_CONTEXT_DEVICES,
+      sizeof(cl_device_id), &active_id, &n), "failed to retrieve id of active device", result);
+    ACC_OPENCL_CHECK(clGetDeviceInfo(active_id, CL_DEVICE_PLATFORM,
+      sizeof(cl_platform_id), &platform, NULL), "failed to retrieve device platform", result);
+    ACC_OPENCL_CHECK(clGetPlatformInfo(platform, CL_PLATFORM_EXTENSIONS,
+      ACC_OPENCL_BUFFER_MAXSIZE, buffer, NULL), "failed to retrieve platform extensions", result);
+    if (EXIT_SUCCESS == result) {
+      if (NULL != strstr(buffer, "cl_khr_priority_hints")) {
+        if (NULL != least) *least = CL_QUEUE_PRIORITY_LOW_KHR;
+        if (NULL != greatest) *greatest = CL_QUEUE_PRIORITY_HIGH_KHR;
       }
-    }
-    else {
-      ACC_OPENCL_ERROR("failed to retrieve context properties", result);
-    }
-    if (NULL != platform) {
-      if (CL_SUCCESS == clGetPlatformInfo(platform, CL_PLATFORM_EXTENSIONS,
-        ACC_OPENCL_BUFFER_MAXSIZE, buffer, NULL))
-      {
-        if (NULL != strstr(buffer, "cl_khr_priority_hints")) {
-          if (NULL != least) *least = CL_QUEUE_PRIORITY_LOW_KHR;
-          if (NULL != greatest) *greatest = CL_QUEUE_PRIORITY_HIGH_KHR;
-        }
-        else
+      else
 #endif
-        {
-          if (NULL != least) *least = ACC_OPENCL_STREAM_PRIORITY_INVALID;
-          if (NULL != greatest) *greatest = ACC_OPENCL_STREAM_PRIORITY_INVALID;
-        }
+      {
+        if (NULL != least) *least = ACC_OPENCL_STREAM_PRIORITY_INVALID;
+        if (NULL != greatest) *greatest = ACC_OPENCL_STREAM_PRIORITY_INVALID;
+      }
 #if defined(CL_QUEUE_PRIORITY_KHR)
-      }
-      else {
-        ACC_OPENCL_ERROR("failed to retrieve platform extensions", result);
-      }
     }
 #endif
   }

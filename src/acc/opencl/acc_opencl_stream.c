@@ -37,59 +37,61 @@ extern "C" {
 
 int acc_stream_create(acc_stream_t** stream_p, const char* name, int priority)
 {
-  cl_int result = (NULL != acc_opencl_context ? EXIT_SUCCESS : EXIT_FAILURE);
-  cl_command_queue queue = NULL;
-  cl_device_id device_id = NULL;
-  size_t n = 0;
+  cl_int result = EXIT_SUCCESS;
+  if (NULL != acc_opencl_context) {
+    cl_command_queue queue = NULL;
+    cl_device_id device_id = NULL;
+    size_t n = 0;
 #if defined(CL_QUEUE_PRIORITY_KHR)
-  assert(ACC_OPENCL_STREAM_PRIORITY_INVALID == priority ||
-    (CL_QUEUE_PRIORITY_HIGH_KHR <= priority && CL_QUEUE_PRIORITY_LOW_KHR >= priority));
+    assert(ACC_OPENCL_STREAM_PRIORITY_INVALID == priority ||
+      (CL_QUEUE_PRIORITY_HIGH_KHR <= priority && CL_QUEUE_PRIORITY_LOW_KHR >= priority));
 #else
-  assert(ACC_OPENCL_STREAM_PRIORITY_INVALID == priority);
+    assert(ACC_OPENCL_STREAM_PRIORITY_INVALID == priority);
 #endif
-  ACC_OPENCL_CHECK(clGetContextInfo(acc_opencl_context, CL_CONTEXT_DEVICES,
-    sizeof(cl_device_id), &device_id, &n), "failed to retrieve id of active device", result);
-  assert(EXIT_SUCCESS != result || sizeof(cl_device_id) == n/*single-device context*/);
-  if (EXIT_SUCCESS == result) {
+    ACC_OPENCL_CHECK(clGetContextInfo(acc_opencl_context, CL_CONTEXT_DEVICES,
+      sizeof(cl_device_id), &device_id, &n), "failed to retrieve id of active device", result);
+    assert(EXIT_SUCCESS != result || sizeof(cl_device_id) == n/*single-device context*/);
+    if (EXIT_SUCCESS == result) {
 #if defined(CL_QUEUE_PRIORITY_KHR)
-    if (ACC_OPENCL_STREAM_PRIORITY_INVALID != priority) {
-      cl_command_queue_properties properties[] = {
-        CL_QUEUE_PRIORITY_KHR, 0/*placeholder filled-in below*/,
-        0
-      };
-      properties[1] = priority;
-      queue = ACC_OPENCL_CREATE_COMMAND_QUEUE(acc_opencl_context, device_id, properties, &result);
-    }
-    else
+      if (ACC_OPENCL_STREAM_PRIORITY_INVALID != priority) {
+        cl_command_queue_properties properties[] = {
+          CL_QUEUE_PRIORITY_KHR, 0/*placeholder filled-in below*/,
+          0
+        };
+        properties[1] = priority;
+        queue = ACC_OPENCL_CREATE_COMMAND_QUEUE(acc_opencl_context, device_id, properties, &result);
+      }
+      else
 #endif
-    {
-      const cl_command_queue_properties properties[] = { 0 };
-      queue = ACC_OPENCL_CREATE_COMMAND_QUEUE(acc_opencl_context, device_id, properties, &result);
+      {
+        const cl_command_queue_properties properties[] = { 0 };
+        queue = ACC_OPENCL_CREATE_COMMAND_QUEUE(acc_opencl_context, device_id, properties, &result);
+      }
     }
-  }
-  assert(NULL != stream_p);
-  if (NULL != queue) {
-    assert(CL_SUCCESS == result);
-    *stream_p = (acc_stream_t*)malloc(sizeof(acc_stream_t));
-    if (NULL != *stream_p) {
+    assert(NULL != stream_p);
+    if (NULL != queue) {
+      assert(CL_SUCCESS == result);
+      *stream_p = (acc_stream_t*)malloc(sizeof(acc_stream_t));
+      if (NULL != *stream_p) {
 #if defined(ACC_OPENCL_STRING_MAXLENGTH) && (0 < ACC_OPENCL_STRING_MAXLENGTH) && !defined(NDEBUG)
-      strncpy((*stream_p)->name, NULL != name ? name : "", ACC_OPENCL_STRING_MAXLENGTH);
-      (*stream_p)->name[ACC_OPENCL_STRING_MAXLENGTH-1] = '\0';
+        strncpy((*stream_p)->name, NULL != name ? name : "", ACC_OPENCL_STRING_MAXLENGTH);
+        (*stream_p)->name[ACC_OPENCL_STRING_MAXLENGTH-1] = '\0';
 #else
-      ACC_OPENCL_UNUSED(name);
+        ACC_OPENCL_UNUSED(name);
 #endif
-      (*stream_p)->queue = queue;
-      result = EXIT_SUCCESS;
+        (*stream_p)->queue = queue;
+        result = EXIT_SUCCESS;
+      }
+      else {
+        clReleaseCommandQueue(queue);
+        result = EXIT_FAILURE;
+      }
     }
     else {
-      clReleaseCommandQueue(queue);
-      result = EXIT_FAILURE;
+      assert(CL_SUCCESS != result);
+      ACC_OPENCL_ERROR("failed to create command queue", result);
+      *stream_p = NULL;
     }
-  }
-  else {
-    assert(CL_SUCCESS != result);
-    ACC_OPENCL_ERROR("failed to create command queue", result);
-    *stream_p = NULL;
   }
   ACC_OPENCL_RETURN(result);
 }

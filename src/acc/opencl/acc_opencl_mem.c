@@ -20,6 +20,9 @@
 #define ACC_OPENCL_MEM_ALLOC(SIZE) malloc(SIZE)
 #define ACC_OPENCL_MEM_FREE(PTR) free(PTR)
 
+#if !defined(ACC_OPENCL_MEM_ALIGNSCALE)
+# define ACC_OPENCL_MEM_ALIGNSCALE 8
+#endif
 #if !defined(ACC_OPENCL_DEVMEMSET) && 1
 # define ACC_OPENCL_DEVMEMSET
 #endif
@@ -28,339 +31,121 @@
 extern "C" {
 #endif
 
-int acc_host_mem_allocate(void** host_mem, size_t n, acc_stream_t* stream)
+typedef struct acc_opencl_meminfo_t {
+  cl_mem buffer;
+  void* mapped;
+} acc_opencl_meminfo_t;
+
+
+int acc_opencl_memalignment(size_t /*size*/);
+int acc_opencl_memalignment(size_t size)
 {
-#if 0
-  /* TODO: currently not enqueued because another (function-)signature
-   * which takes a host memory pointer is expecting a pointer rather
-   * than a pointer to a pointer. The latter would be necessary to
-   * allow for asynchronous delivery.
-   */
-  int result = (NULL != stream ? stream->status : EXIT_SUCCESS);
-  assert(NULL != host_mem || 0 == n);
-  if (EXIT_SUCCESS == result && 0 != n) {
-    *host_mem = ACC_OPENCL_MEM_ALLOC(n);
-    if (NULL == *host_mem) {
-      if (NULL != stream) {
-#if defined(_OPENMP)
-#       pragma omp atomic
-#endif
-        stream->status = stream->status | EXIT_FAILURE;
+  int result;
+  if ((ACC_OPENCL_MEM_ALIGNSCALE * ACC_OPENCL_MAXALIGN_NBYTES) <= size) {
+    result = ACC_OPENCL_MAXALIGN_NBYTES;
+  }
+  else if ((ACC_OPENCL_MEM_ALIGNSCALE * ACC_OPENCL_CACHELINE_NBYTES) <= size) {
+    result = ACC_OPENCL_CACHELINE_NBYTES;
+  }
+  else {
+    result = sizeof(void*);
+  }
+  return result;
+}
+
+
+int acc_host_mem_allocate(void** host_mem, size_t nbytes, acc_stream_t* stream)
+{
+  cl_int result;
+  const int alignment = acc_opencl_memalignment(nbytes);
+  const size_t size = nbytes + alignment + sizeof(acc_opencl_meminfo_t) - 1;
+  const cl_mem buffer = clCreateBuffer(acc_opencl_context, CL_MEM_ALLOC_HOST_PTR, size,
+    NULL/*host_ptr*/, &result);
+  assert(NULL != host_mem && NULL != stream);
+  if (NULL != buffer) {
+    const uintptr_t address = (uintptr_t)clEnqueueMapBuffer(stream->queue, buffer,
+      CL_FALSE/*non-blocking*/, CL_MAP_READ | CL_MAP_WRITE,
+      0/*offset*/, size, 0, NULL, NULL, &result);
+    if (0 != address) {
+      const size_t offset = ACC_OPENCL_UP2(address + sizeof(acc_opencl_meminfo_t), alignment) - address;
+      acc_opencl_meminfo_t* meminfo;
+      assert(sizeof(acc_opencl_meminfo_t) <= offset);
+      meminfo = (acc_opencl_meminfo_t*)clEnqueueMapBuffer(stream->queue, buffer,
+        CL_TRUE/*blocking*/, CL_MAP_READ | CL_MAP_WRITE,
+        offset - sizeof(acc_opencl_meminfo_t),
+        sizeof(acc_opencl_meminfo_t),
+        0, NULL, NULL, &result);
+      if (NULL != meminfo) {
+        meminfo->buffer = buffer;
+        meminfo->mapped = (void*)address;
+        *host_mem = (void*)(address + offset);
       }
-      result = EXIT_FAILURE;
+      else {
+        assert(CL_SUCCESS != result);
+        ACC_OPENCL_ERROR("failed to map buffer info", result);
+        *host_mem = NULL;
+      }
+    }
+    else {
+      assert(CL_SUCCESS != result);
+      ACC_OPENCL_ERROR("failed to map buffer", result);
+      *host_mem = NULL;
     }
   }
-  else if (NULL != host_mem) {
+  else {
+    assert(CL_SUCCESS != result);
+    ACC_OPENCL_ERROR("failed to create OpenCL buffer", result);
     *host_mem = NULL;
   }
   ACC_OPENCL_RETURN(result);
-#else
-  return EXIT_FAILURE;
-#endif
 }
 
 
 int acc_host_mem_deallocate(void* host_mem, acc_stream_t* stream)
 {
-  int result = EXIT_SUCCESS;
-#if !defined(ACC_OPENCL_OFFLOAD)
-  ACC_OPENCL_UNUSED(stream);
-#else /* implies _OPENMP */
-  if (0 < acc_opencl_ndevices()) {
-    if (NULL != host_mem) {
-      acc_opencl_depend_t* deps;
-      acc_opencl_stream_depend(stream, &deps);
-      deps->data.args[0].ptr = host_mem;
-      acc_opencl_stream_depend_begin();
-#     pragma omp master
-      { const int ndepend = acc_opencl_stream_depend_get_count();
-        int tid = 0;
-        for (; tid < ndepend; ++tid) {
-          acc_opencl_depend_t *const di = &deps[tid];
-          const acc_opencl_dependency_t *const id = di->data.in, *const od = di->data.out;
-          void *const ptr = di->data.args[0].ptr;
-          ACC_OPENCL_UNUSED(id); ACC_OPENCL_UNUSED(od); /* suppress incorrect warning */
-#if !defined(NDEBUG)
-          if (NULL == ptr) break; /* incorrect dependency-count */
-#endif
-#         pragma omp task depend(in:ACC_OPENCL_DEP(id)) depend(out:ACC_OPENCL_DEP(od))
-          ACC_OPENCL_MEM_FREE(ptr);
-        }
-      }
-    }
-    else { /* branch must participate in barrier */
-      acc_opencl_stream_depend_begin();
-    }
-    result = acc_opencl_stream_depend_end(stream);
-  }
-  else
-#endif
-  if (NULL != host_mem) {
-    ACC_OPENCL_MEM_FREE(host_mem);
-  }
-  ACC_OPENCL_RETURN(result);
+  return EXIT_FAILURE;
 }
 
 
-int acc_dev_mem_allocate(void** dev_mem, size_t n)
+int acc_dev_mem_allocate(void** dev_mem, size_t nbytes)
 {
-  int result;
-  assert(NULL != dev_mem || 0 == n);
-  if (0 != n) {
-#if defined(ACC_OPENCL_OFFLOAD)
-    if (0 < acc_opencl_ndevices()) {
-      *dev_mem = omp_target_alloc(n, omp_get_default_device());
-    }
-    else
-#endif
-    {
-      *dev_mem = malloc(n);
-    }
-    result = (NULL != *dev_mem ? EXIT_SUCCESS : EXIT_FAILURE);
-  }
-  else {
-    if (NULL != dev_mem) *dev_mem = NULL;
-    result = EXIT_SUCCESS;
-  }
-  ACC_OPENCL_RETURN(result);
+  return EXIT_FAILURE;
 }
 
 
 int acc_dev_mem_deallocate(void* dev_mem)
 {
-  if (NULL != dev_mem) {
-#if defined(ACC_OPENCL_OFFLOAD)
-    if (0 < acc_opencl_ndevices()) {
-      omp_target_free(dev_mem, omp_get_default_device());
-    }
-    else
-#endif
-    {
-      ACC_OPENCL_MEM_FREE(dev_mem);
-    }
-  }
-  return EXIT_SUCCESS;
+  return EXIT_FAILURE;
 }
 
 
 int acc_dev_mem_set_ptr(void** dev_mem, void* other, size_t lb)
 {
-  int result;
-  assert(NULL != dev_mem);
-  if (NULL != other || 0 == lb) {
-    /* OpenMP specification: pointer arithmetic may not be valid */
-    *dev_mem = (char*)other + lb;
-    result = EXIT_SUCCESS;
-  }
-  else result = EXIT_FAILURE;
-  ACC_OPENCL_RETURN(result);
+  return EXIT_FAILURE;
 }
 
 
 int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t count, acc_stream_t* stream)
 {
-  int result = EXIT_SUCCESS;
-  assert((NULL != host_mem && NULL != dev_mem) || 0 == count);
-#if !defined(ACC_OPENCL_OFFLOAD)
-  ACC_OPENCL_UNUSED(stream);
-#else /* implies _OPENMP */
-  if (0 < acc_opencl_ndevices()) {
-    if (0 != count) {
-      acc_opencl_depend_t* deps;
-      acc_opencl_stream_depend(stream, &deps);
-      deps->data.args[0].const_ptr = host_mem;
-      deps->data.args[1].ptr = dev_mem;
-      deps->data.args[2].size = count;
-      deps->data.args[3].ptr = stream;
-      acc_opencl_stream_depend_begin();
-#     pragma omp master
-      { const int ndepend = acc_opencl_stream_depend_get_count();
-        /* capture current default device before spawning task (acc_set_active_device) */
-        const int dev_src = omp_get_initial_device(), dev_dst = omp_get_default_device();
-        int tid = 0;
-        for (; tid < ndepend; ++tid) {
-          acc_opencl_depend_t *const di = &deps[tid];
-          const acc_opencl_dependency_t *const id = di->data.in, *const od = di->data.out;
-          acc_stream_t *const s = (acc_stream_t*)di->data.args[3].ptr;
-          /*const*/ void *const ptr = di->data.args[0]./*const_*/ptr;
-          ACC_OPENCL_UNUSED(id); ACC_OPENCL_UNUSED(od); /* suppress incorrect warning */
-#if !defined(NDEBUG)
-          if (NULL == ptr) break; /* incorrect dependency-count */
-#endif
-          assert(NULL != s);
-#         pragma omp task depend(in:ACC_OPENCL_DEP(id)) depend(out:ACC_OPENCL_DEP(od))
-          s->status |= omp_target_memcpy(di->data.args[1].ptr, ptr, di->data.args[2].size,
-            0/*dst_offset*/, 0/*src_offset*/, dev_dst, dev_src);
-        }
-      }
-    }
-    else { /* branch must participate in barrier */
-      acc_opencl_stream_depend_begin();
-    }
-    result = acc_opencl_stream_depend_end(stream);
-  }
-  else
-#endif
-  if (0 != count) {
-    memcpy(dev_mem, host_mem, count);
-  }
-  ACC_OPENCL_RETURN(result);
+  return EXIT_FAILURE;
 }
 
 
 int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t count, acc_stream_t* stream)
 {
-  int result = EXIT_SUCCESS;
-  assert((NULL != dev_mem && NULL != host_mem) || 0 == count);
-#if !defined(ACC_OPENCL_OFFLOAD)
-  ACC_OPENCL_UNUSED(stream);
-#else /* implies _OPENMP */
-  if (0 < acc_opencl_ndevices()) {
-    if (0 != count) {
-      acc_opencl_depend_t* deps;
-      acc_opencl_stream_depend(stream, &deps);
-      deps->data.args[0].const_ptr = dev_mem;
-      deps->data.args[1].ptr = host_mem;
-      deps->data.args[2].size = count;
-      deps->data.args[3].ptr = stream;
-      acc_opencl_stream_depend_begin();
-#     pragma omp master
-      { const int ndepend = acc_opencl_stream_depend_get_count();
-        /* capture current default device before spawning task (acc_set_active_device) */
-        const int dev_src = omp_get_default_device(), dev_dst = omp_get_initial_device();
-        int tid = 0;
-        for (; tid < ndepend; ++tid) {
-          acc_opencl_depend_t *const di = &deps[tid];
-          const acc_opencl_dependency_t *const id = di->data.in, *const od = di->data.out;
-          acc_stream_t *const s = (acc_stream_t*)di->data.args[3].ptr;
-          /*const*/ void *const ptr = di->data.args[0]./*const_*/ptr;
-          ACC_OPENCL_UNUSED(id); ACC_OPENCL_UNUSED(od); /* suppress incorrect warning */
-#if !defined(NDEBUG)
-          if (NULL == ptr) break; /* incorrect dependency-count */
-#endif
-          assert(NULL != s);
-#         pragma omp task depend(in:ACC_OPENCL_DEP(id)) depend(out:ACC_OPENCL_DEP(od))
-          s->status |= omp_target_memcpy(di->data.args[1].ptr, ptr, di->data.args[2].size,
-            0/*dst_offset*/, 0/*src_offset*/, dev_dst, dev_src);
-        }
-      }
-    }
-    else { /* branch must participate in barrier */
-      acc_opencl_stream_depend_begin();
-    }
-    result = acc_opencl_stream_depend_end(stream);
-  }
-  else
-#endif
-  if (0 != count) {
-    memcpy(host_mem, dev_mem, count);
-  }
-  ACC_OPENCL_RETURN(result);
+  return EXIT_FAILURE;
 }
 
 
 int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t count, acc_stream_t* stream)
 {
-  int result = EXIT_SUCCESS;
-  assert((NULL != devmem_src && NULL != devmem_dst) || 0 == count);
-#if !defined(ACC_OPENCL_OFFLOAD)
-  ACC_OPENCL_UNUSED(stream);
-#else /* implies _OPENMP */
-  if (0 < acc_opencl_ndevices()) {
-    if (0 != count) {
-      acc_opencl_depend_t* deps;
-      acc_opencl_stream_depend(stream, &deps);
-      deps->data.args[0].const_ptr = devmem_src;
-      deps->data.args[1].ptr = devmem_dst;
-      deps->data.args[2].size = count;
-      deps->data.args[3].ptr = stream;
-      acc_opencl_stream_depend_begin();
-#     pragma omp master
-      { const int ndepend = acc_opencl_stream_depend_get_count();
-        /* capture current default device before spawning task (acc_set_active_device) */
-        const int dev_src = omp_get_default_device(), dev_dst = dev_src;
-        int tid = 0;
-        for (; tid < ndepend; ++tid) {
-          acc_opencl_depend_t *const di = &deps[tid];
-          const acc_opencl_dependency_t *const id = di->data.in, *const od = di->data.out;
-          acc_stream_t *const s = (acc_stream_t*)di->data.args[3].ptr;
-          /*const*/ void *const ptr = di->data.args[0]./*const_*/ptr;
-          ACC_OPENCL_UNUSED(id); ACC_OPENCL_UNUSED(od); /* suppress incorrect warning */
-#if !defined(NDEBUG)
-          if (NULL == ptr) break; /* incorrect dependency-count */
-#endif
-          assert(NULL != s);
-#         pragma omp task depend(in:ACC_OPENCL_DEP(id)) depend(out:ACC_OPENCL_DEP(od))
-          s->status |= omp_target_memcpy(di->data.args[1].ptr, ptr, di->data.args[2].size,
-            0/*dst_offset*/, 0/*src_offset*/, dev_dst, dev_src);
-        }
-      }
-    }
-    else { /* branch must participate in barrier */
-      acc_opencl_stream_depend_begin();
-    }
-    result = acc_opencl_stream_depend_end(stream);
-  }
-  else
-#endif
-  if (0 != count) {
-    memcpy(devmem_dst, devmem_src, count);
-  }
-  ACC_OPENCL_RETURN(result);
+  return EXIT_FAILURE;
 }
 
 
 int acc_memset_zero(void* dev_mem, size_t offset, size_t length, acc_stream_t* stream)
 {
-  int result = EXIT_SUCCESS;
-  assert(NULL != dev_mem || 0 == length);
-#if !defined(ACC_OPENCL_OFFLOAD)
-  ACC_OPENCL_UNUSED(stream);
-#else /* implies _OPENMP */
-  if (0 < acc_opencl_ndevices()) {
-    if (0 != length) {
-      acc_opencl_depend_t* deps;
-      acc_opencl_stream_depend(stream, &deps);
-      deps->data.args[0].ptr = dev_mem;
-      deps->data.args[1].size = offset;
-      deps->data.args[2].size = length;
-      acc_opencl_stream_depend_begin();
-#     pragma omp master
-      { const int ndepend = acc_opencl_stream_depend_get_count();
-        int tid = 0;
-        for (; tid < ndepend; ++tid) {
-          acc_opencl_depend_t *const di = &deps[tid];
-          const acc_opencl_dependency_t *const id = di->data.in, *const od = di->data.out;
-          const size_t begin = di->data.args[1].size;
-          const size_t size = di->data.args[2].size;
-          char * /*const*/ dst = (char*)di->data.args[0].ptr;
-          ACC_OPENCL_UNUSED(id); ACC_OPENCL_UNUSED(od); /* suppress incorrect warning */
-#if !defined(NDEBUG)
-          if (NULL == dst) break; /* incorrect dependency-count */
-#endif
-#if defined(ACC_OPENCL_DEVMEMSET)
-#         pragma omp target depend(in:ACC_OPENCL_DEP(id)) depend(out:ACC_OPENCL_DEP(od)) nowait is_device_ptr(dst)
-          memset(dst + begin, 0, size);
-#else
-          { size_t i; /* private(i) */
-#           pragma omp target teams distribute parallel for simd depend(in:ACC_OPENCL_DEP(id)) depend(out:ACC_OPENCL_DEP(od)) nowait is_device_ptr(dst)
-            for (i = begin; i < (begin + size); ++i) dst[i] = '\0';
-          }
-#endif
-        }
-      }
-    }
-    else { /* branch must participate in barrier */
-      acc_opencl_stream_depend_begin();
-    }
-    result = acc_opencl_stream_depend_end(stream);
-  }
-  else
-#endif
-  if (0 != length) {
-    memset((char*)dev_mem + offset, 0, length);
-  }
-  ACC_OPENCL_RETURN(result);
+  return EXIT_FAILURE;
 }
 
 

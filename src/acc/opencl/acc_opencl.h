@@ -113,19 +113,13 @@ struct acc_event_t {
   cl_event event;
 };
 
+/* non-zero if library is initialized, zero devices is signaled by nagative value */
+extern int acc_opencl_ndevices;
 /* allow a context per each OpenMP thread */
 extern cl_context acc_opencl_context;
 #if defined(_OPENMP) && defined(ACC_OPENCL_THREADLOCAL_CONTEXT)
 # pragma omp threadprivate(acc_opencl_context)
 #endif
-
-/* non-zero if library is initialized, zero devices is signaled by nagative value */
-extern int acc_opencl_ndevices;
-
-/** Returns the pointer to the 1st match of "b" in "a". */
-const char* acc_opencl_stristr(const char* a, const char* b);
-/** Clears status of all streams (if possible). */
-void acc_opencl_stream_clear_errors(void);
 
 #if defined(__cplusplus)
 }

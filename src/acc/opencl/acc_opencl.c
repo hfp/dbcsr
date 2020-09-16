@@ -32,6 +32,8 @@ void acc_opencl_notify(const char* errinfo, const void* private_info, size_t cb,
 }
 
 
+/** Returns the pointer to the 1st match of "b" in "a". */
+const char* acc_opencl_stristr(const char* /*a*/, const char* /*b*/);
 const char* acc_opencl_stristr(const char* a, const char* b)
 {
   const char* result = NULL;

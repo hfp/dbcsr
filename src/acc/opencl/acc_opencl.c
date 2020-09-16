@@ -156,7 +156,7 @@ int acc_finalize(void)
 #endif
   if (NULL != acc_opencl_context) {
     ACC_OPENCL_CHECK(clReleaseContext(acc_opencl_context),
-      "failed to release OpenCL context", result);
+      "failed to release context", result);
   }
   ACC_OPENCL_RETURN(result);
 }
@@ -200,7 +200,7 @@ int acc_set_active_device(int device_id)
     properties[1] = (cl_context_properties)acc_opencl_platforms[device_id];
     if (NULL != acc_opencl_context) {
       ACC_OPENCL_CHECK(clReleaseContext(acc_opencl_context),
-        "failed to release OpenCL context", result);
+        "failed to release context", result);
     }
     if (EXIT_SUCCESS == result) {
       acc_opencl_context = clCreateContext(properties,
@@ -216,7 +216,7 @@ int acc_set_active_device(int device_id)
           acc_opencl_notify, NULL/* user_data*/,
           &result);
       }
-      ACC_OPENCL_CHECK(result, "failed to create OpenCL context", result);
+      ACC_OPENCL_CHECK(result, "failed to create context", result);
     }
   }
   ACC_OPENCL_RETURN(result);

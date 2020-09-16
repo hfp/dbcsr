@@ -116,7 +116,7 @@ int acc_host_mem_deallocate(void* host_mem, acc_stream_t* stream)
   if (NULL != host_mem) {
     acc_opencl_meminfo_t *const meminfo = acc_opencl_meminfo(host_mem);
     const acc_opencl_meminfo_t info = *meminfo; /* copy meminfo prior to unmap */
-    ACC_OPENCL_CHECK(clEnqueueUnmapMemObject(stream->queue, meminfo.buffer, meminfo,
+    ACC_OPENCL_CHECK(clEnqueueUnmapMemObject(stream->queue, meminfo->buffer, meminfo,
       0, NULL, NULL), "failed to unmap memory info", result);
     ACC_OPENCL_CHECK(clEnqueueUnmapMemObject(stream->queue, info.buffer, info.mapped,
       0, NULL, NULL), "failed to unmap host memory", result);

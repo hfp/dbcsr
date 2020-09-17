@@ -14,6 +14,10 @@
 #if !defined(ACC_OPENCL_STREAM_PRIORITY_INVALID)
 # define ACC_OPENCL_STREAM_PRIORITY_INVALID -1
 #endif
+/* can depend on OpenCL implementation */
+#if !defined(ACC_OPENCL_STREAM_NOALLOC) && 1
+# define ACC_OPENCL_STREAM_NOALLOC
+#endif
 
 #if defined(CL_VERSION_2_0)
 # define ACC_OPENCL_COMMAND_QUEUE_PROPERTIES cl_queue_properties
@@ -73,16 +77,21 @@ int acc_stream_create(void** stream_p, const char* name, int priority)
     assert(NULL != stream_p);
     if (NULL != queue) {
       assert(CL_SUCCESS == result);
+#if defined(ACC_OPENCL_STREAM_NOALLOC)
+      assert(sizeof(void*) >= sizeof(cl_command_queue));
+      *stream_p = (void*)queue;
+#else
       *stream_p = malloc(sizeof(cl_command_queue));
       if (NULL != *stream_p) {
         ACC_OPENCL_UNUSED(name);
-        (*stream_p) = (void*)queue;
+        *stream_p = (void*)queue;
         result = EXIT_SUCCESS;
       }
       else {
         clReleaseCommandQueue(queue);
         result = EXIT_FAILURE;
       }
+#endif
     }
     else {
       assert(CL_SUCCESS != result);
@@ -100,7 +109,11 @@ int acc_stream_destroy(void* stream)
   if (NULL != stream) {
     ACC_OPENCL_CHECK(clReleaseCommandQueue((cl_command_queue)stream),
       "failed to release command queue", result);
+#if defined(ACC_OPENCL_STREAM_NOALLOC)
+    assert(sizeof(void*) >= sizeof(cl_command_queue));
+#else
     free(stream);
+#endif
   }
   ACC_OPENCL_RETURN(result);
 }

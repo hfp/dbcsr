@@ -32,20 +32,31 @@ int acc_event_create(void** event_p)
   assert(NULL != event_p);
   if (NULL != event) {
     assert(CL_SUCCESS == result);
+    /* an empty event (unrecorded) has no work to wait for
+     * hence it is considered occurred
+     */
+    if (CL_SUCCESS == clSetUserEventStatus(event, CL_COMPLETE)) {
 #if defined(ACC_OPENCL_EVENT_NOALLOC)
-    assert(sizeof(void*) >= sizeof(cl_event));
-    *event_p = (void*)event;
-#else
-    *event_p = malloc(sizeof(cl_event));
-    if (NULL != *event_p) {
+      assert(sizeof(void*) >= sizeof(cl_event));
       *event_p = (void*)event;
-      result = EXIT_SUCCESS;
+#else
+      *event_p = malloc(sizeof(cl_event));
+      if (NULL != *event_p) {
+        *event_p = (void*)event;
+        result = EXIT_SUCCESS;
+      }
+      else {
+        clReleaseEvent(event);
+        result = EXIT_FAILURE;
+      }
+#endif
     }
     else {
+      assert(CL_SUCCESS != result);
+      ACC_OPENCL_ERROR("failed to set initial event state", result);
       clReleaseEvent(event);
-      result = EXIT_FAILURE;
+      *event_p = NULL;
     }
-#endif
   }
   else {
     assert(CL_SUCCESS != result);
@@ -93,8 +104,7 @@ int acc_event_query(void* event, acc_bool_t* has_occurred)
   }
   assert(NULL != has_occurred);
   if (EXIT_SUCCESS == result) {
-    /* an unrecorded, i.e., an empty event has no work to wait for hence everything has occurred */
-    *has_occurred = (CL_COMPLETE != status && CL_SUBMITTED != status ? 0 : 1);
+    *has_occurred = (CL_COMPLETE != status ? 0 : 1);
   }
   ACC_OPENCL_RETURN(result);
 }

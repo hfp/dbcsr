@@ -196,13 +196,12 @@ int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t nbytes, void* str
   int result = EXIT_SUCCESS;
   assert((NULL != host_mem || 0 == nbytes) && (NULL != dev_mem || 0 == nbytes) && NULL != stream);
   if (NULL != host_mem && NULL != dev_mem && 0 != nbytes) {
-    const cl_command_queue queue = (cl_command_queue)stream;
 #if defined(ACC_OPENCL_MEM_NOALLOC)
     const cl_mem buffer = (cl_mem)dev_mem;
     assert(sizeof(void*) >= sizeof(cl_mem));
 #else
 #endif
-    ACC_OPENCL_CHECK(clEnqueueWriteBuffer(queue, buffer, CL_FALSE/*non-blocking*/,
+    ACC_OPENCL_CHECK(clEnqueueWriteBuffer((cl_command_queue)stream, buffer, CL_FALSE/*non-blocking*/,
       0/*offset*/, nbytes, host_mem, 0, NULL, NULL), "failed to enqueue h2d copy", result);
   }
   ACC_OPENCL_RETURN(result);
@@ -214,13 +213,12 @@ int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t nbytes, void* str
   int result = EXIT_SUCCESS;
   assert((NULL != dev_mem || 0 == nbytes) && (NULL != host_mem || 0 == nbytes) && NULL != stream);
   if (NULL != host_mem && NULL != dev_mem && 0 != nbytes) {
-    const cl_command_queue queue = (cl_command_queue)stream;
 #if defined(ACC_OPENCL_MEM_NOALLOC)
     const cl_mem buffer = (cl_mem)dev_mem;
     assert(sizeof(void*) >= sizeof(cl_mem));
 #else
 #endif
-    ACC_OPENCL_CHECK(clEnqueueReadBuffer(queue, buffer, CL_FALSE/*non-blocking*/,
+    ACC_OPENCL_CHECK(clEnqueueReadBuffer((cl_command_queue)stream, buffer, CL_FALSE/*non-blocking*/,
       0/*offset*/, nbytes, host_mem, 0, NULL, NULL), "failed to enqueue d2h copy", result);
   }
   ACC_OPENCL_RETURN(result);
@@ -232,14 +230,13 @@ int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t nbytes, void
   int result = EXIT_SUCCESS;
   assert((NULL != devmem_src || 0 == nbytes) && (NULL != devmem_dst || 0 == nbytes) && NULL != stream);
   if (NULL != devmem_src && NULL != devmem_dst && 0 != nbytes) {
-    const cl_command_queue queue = (cl_command_queue)stream;
 #if defined(ACC_OPENCL_MEM_NOALLOC)
     const cl_mem buffer_src = (cl_mem)devmem_src;
     const cl_mem buffer_dst = (cl_mem)devmem_dst;
     assert(sizeof(void*) >= sizeof(cl_mem));
 #else
 #endif
-    ACC_OPENCL_CHECK(clEnqueueCopyBuffer(queue, buffer_src, buffer_dst,
+    ACC_OPENCL_CHECK(clEnqueueCopyBuffer((cl_command_queue)stream, buffer_src, buffer_dst,
       0/*src_offset*/, 0/*dst_offset*/, nbytes, 0, NULL, NULL),
       "failed to enqueue d2d copy", result);
   }
@@ -252,14 +249,13 @@ int acc_memset_zero(void* dev_mem, size_t offset, size_t nbytes, void* stream)
   int result = EXIT_SUCCESS;
   assert((NULL != dev_mem || 0 == nbytes) && NULL != stream);
   if (NULL != dev_mem) {
-    const cl_command_queue queue = (cl_command_queue)stream;
     const cl_uchar pattern = 0; /* fill with zeros */
 #if defined(ACC_OPENCL_MEM_NOALLOC)
     const cl_mem buffer = (cl_mem)dev_mem;
     assert(sizeof(void*) >= sizeof(cl_mem));
 #else
 #endif
-    ACC_OPENCL_CHECK(clEnqueueFillBuffer(queue, buffer,
+    ACC_OPENCL_CHECK(clEnqueueFillBuffer((cl_command_queue)stream, buffer,
       &pattern, sizeof(pattern), offset, nbytes, 0, NULL, NULL),
       "failed to enqueue zero-filling buffer", result);
   }

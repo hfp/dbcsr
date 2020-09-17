@@ -25,7 +25,7 @@
 extern "C" {
 #endif
 
-int acc_event_create(acc_event_t** event_p)
+int acc_event_create(void** event_p)
 {
   cl_int result = EXIT_SUCCESS;
   const cl_event event = clCreateUserEvent(acc_opencl_context, &result);
@@ -33,13 +33,13 @@ int acc_event_create(acc_event_t** event_p)
   if (NULL != event) {
     assert(CL_SUCCESS == result);
 #if defined(ACC_OPENCL_EVENT_NOALLOC)
-    assert(sizeof(void*) >= sizeof(acc_event_t));
-    *event_p = (acc_event_t*)event;
+    assert(sizeof(void*) >= sizeof(cl_event));
+    *event_p = (void*)event;
 #else
-    *event_p = (acc_event_t*)malloc(sizeof(acc_event_t));
+    *event_p = malloc(sizeof(cl_event));
 #endif
     if (NULL != *event_p) {
-      (*event_p)->event = event;
+      (*event_p) = (void*)event;
       result = EXIT_SUCCESS;
     }
     else {
@@ -56,11 +56,11 @@ int acc_event_create(acc_event_t** event_p)
 }
 
 
-int acc_event_destroy(acc_event_t* event)
+int acc_event_destroy(void* event)
 {
-  int result = (NULL == event || NULL != event->event) ? EXIT_SUCCESS : EXIT_FAILURE;
+  int result = EXIT_SUCCESS;
   if (NULL != event) {
-    ACC_OPENCL_CHECK(clReleaseEvent(event->event),
+    ACC_OPENCL_CHECK(clReleaseEvent((cl_event)event),
       "failed to release user-defined event", result);
 #if defined(ACC_OPENCL_EVENT_NOALLOC)
     assert(sizeof(void*) >= sizeof(cl_event));
@@ -72,24 +72,23 @@ int acc_event_destroy(acc_event_t* event)
 }
 
 
-int acc_event_record(acc_event_t* event, acc_stream_t* stream)
+int acc_event_record(void* event, void* stream)
 {
   int result = EXIT_SUCCESS;
-  assert(NULL != event && NULL != event->event);
-  assert(NULL != stream && NULL != stream->queue);
-  ACC_OPENCL_CHECK(ACC_OPENCL_ENQUEUE_EVENT(stream->queue, &event->event),
+  assert(NULL != event && NULL != stream);
+  ACC_OPENCL_CHECK(ACC_OPENCL_ENQUEUE_EVENT((cl_command_queue)stream, (cl_event*)&event),
     "failed to record event", result);
   ACC_OPENCL_RETURN(result);
 }
 
 
-int acc_event_query(acc_event_t* event, acc_bool_t* has_occurred)
+int acc_event_query(void* event, acc_bool_t* has_occurred)
 {
   int result = EXIT_SUCCESS;
   cl_int status = CL_QUEUED;
   assert(CL_COMPLETE != status);
   if (NULL != event) {
-    ACC_OPENCL_CHECK(clGetEventInfo(event->event, CL_EVENT_COMMAND_EXECUTION_STATUS,
+    ACC_OPENCL_CHECK(clGetEventInfo((cl_event)event, CL_EVENT_COMMAND_EXECUTION_STATUS,
       sizeof(cl_int), &status, NULL), "failed to retrieve event status", result);
   }
   assert(NULL != has_occurred);
@@ -101,11 +100,11 @@ int acc_event_query(acc_event_t* event, acc_bool_t* has_occurred)
 }
 
 
-int acc_event_synchronize(acc_event_t* event)
+int acc_event_synchronize(void* event)
 { /* Waits on the host-side. */
   int result = EXIT_SUCCESS;
-  assert(NULL != event && NULL != event->event);
-  ACC_OPENCL_CHECK(clWaitForEvents(1, &event->event),
+  assert(NULL != event);
+  ACC_OPENCL_CHECK(clWaitForEvents(1, (cl_event*)&event),
     "failed to synchronize event", result);
   ACC_OPENCL_RETURN(result);
 }

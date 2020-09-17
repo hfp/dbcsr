@@ -68,10 +68,8 @@ int acc_init(void)
 #endif
   if (NULL == disable || '0' == *disable) {
     cl_platform_id platforms[ACC_OPENCL_DEVICES_MAXCOUNT];
-#if defined(ACC_OPENCL_STRING_MAXLENGTH) && (0 < ACC_OPENCL_STRING_MAXLENGTH)
-    char buffer[ACC_OPENCL_STRING_MAXLENGTH];
+    char buffer[ACC_OPENCL_BUFFER_MAXSIZE];
     const char *const vendor = getenv("ACC_OPENCL_VENDOR");
-#endif
     const char *const device = getenv("ACC_OPENCL_DEVICE");
     cl_uint nplatforms = 0, ndevices = 0, i;
     cl_device_type type = CL_DEVICE_TYPE_ALL;
@@ -88,18 +86,16 @@ int acc_init(void)
     acc_opencl_ndevices = 0;
     for (i = 0; i < nplatforms; ++i) {
       int n;
-#if defined(ACC_OPENCL_STRING_MAXLENGTH) && (0 < ACC_OPENCL_STRING_MAXLENGTH)
       if (NULL != vendor && '\0' != *vendor) {
         size_t size = 0;
         ACC_OPENCL_CHECK(clGetPlatformInfo(platforms[i], CL_PLATFORM_VENDOR,
           0, NULL, &size), "failed to query platform vendor", result);
-        buffer[0] = '\0'; size = (size <= ACC_OPENCL_STRING_MAXLENGTH
-          ? size : ACC_OPENCL_STRING_MAXLENGTH);
+        buffer[0] = '\0'; size = (size <= ACC_OPENCL_BUFFER_MAXSIZE
+          ? size : ACC_OPENCL_BUFFER_MAXSIZE);
         ACC_OPENCL_CHECK(clGetPlatformInfo(platforms[i], CL_PLATFORM_VENDOR,
           size, buffer, NULL), "failed to retrieve platform vendor", result);
         if (NULL == acc_opencl_stristr(buffer, vendor)) continue;
       }
-#endif
       assert(acc_opencl_ndevices <= ACC_OPENCL_DEVICES_MAXCOUNT);
       ACC_OPENCL_CHECK(clGetDeviceIDs(platforms[i], type, 0, NULL, &ndevices),
         "failed to query number of devices", result);

@@ -67,7 +67,7 @@ acc_opencl_meminfo_t* acc_opencl_meminfo(void* memory)
 }
 
 
-int acc_host_mem_allocate(void** host_mem, size_t nbytes, acc_stream_t* stream)
+int acc_host_mem_allocate(void** host_mem, size_t nbytes, void* stream)
 {
   cl_int result;
   const int alignment = acc_opencl_memalignment(nbytes);
@@ -76,7 +76,8 @@ int acc_host_mem_allocate(void** host_mem, size_t nbytes, acc_stream_t* stream)
     NULL/*host_ptr*/, &result);
   assert(NULL != host_mem && NULL != stream);
   if (NULL != buffer) {
-    const uintptr_t address = (uintptr_t)clEnqueueMapBuffer(stream->queue, buffer,
+    const cl_command_queue queue = (cl_command_queue)stream;
+    const uintptr_t address = (uintptr_t)clEnqueueMapBuffer(queue, buffer,
       CL_FALSE/*non-blocking*/, CL_MAP_READ | CL_MAP_WRITE,
       0/*offset*/, size, 0, NULL, NULL, &result);
     if (0 != address) {
@@ -84,7 +85,7 @@ int acc_host_mem_allocate(void** host_mem, size_t nbytes, acc_stream_t* stream)
       acc_opencl_meminfo_t* meminfo;
       assert(sizeof(acc_opencl_meminfo_t) <= offset);
 #if defined(ACC_OPENCL_MEM_MAPMULTI)
-      meminfo = (acc_opencl_meminfo_t*)clEnqueueMapBuffer(stream->queue, buffer,
+      meminfo = (acc_opencl_meminfo_t*)clEnqueueMapBuffer(queue, buffer,
         CL_TRUE/*blocking*/, CL_MAP_READ | CL_MAP_WRITE,
         offset - sizeof(acc_opencl_meminfo_t),
         sizeof(acc_opencl_meminfo_t),
@@ -118,18 +119,19 @@ int acc_host_mem_allocate(void** host_mem, size_t nbytes, acc_stream_t* stream)
 }
 
 
-int acc_host_mem_deallocate(void* host_mem, acc_stream_t* stream)
+int acc_host_mem_deallocate(void* host_mem, void* stream)
 {
   int result = EXIT_SUCCESS;
   assert(NULL != stream);
   if (NULL != host_mem) {
     acc_opencl_meminfo_t *const meminfo = acc_opencl_meminfo(host_mem);
     const acc_opencl_meminfo_t info = *meminfo; /* copy meminfo prior to unmap */
+    const cl_command_queue queue = (cl_command_queue)stream;
 #if defined(ACC_OPENCL_MEM_MAPMULTI)
-    ACC_OPENCL_CHECK(clEnqueueUnmapMemObject(stream->queue, meminfo->buffer, meminfo,
+    ACC_OPENCL_CHECK(clEnqueueUnmapMemObject(queue, meminfo->buffer, meminfo,
       0, NULL, NULL), "failed to unmap memory info", result);
 #endif
-    ACC_OPENCL_CHECK(clEnqueueUnmapMemObject(stream->queue, info.buffer, info.mapped,
+    ACC_OPENCL_CHECK(clEnqueueUnmapMemObject(queue, info.buffer, info.mapped,
       0, NULL, NULL), "failed to unmap host memory", result);
     ACC_OPENCL_CHECK(clReleaseMemObject(info.buffer),
       "failed to release host memory buffer", result);
@@ -189,52 +191,55 @@ int acc_dev_mem_set_ptr(void** dev_mem, void* other, size_t lb)
 }
 
 
-int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t nbytes, acc_stream_t* stream)
+int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t nbytes, void* stream)
 {
   int result = EXIT_SUCCESS;
   assert((NULL != host_mem || 0 == nbytes) && (NULL != dev_mem || 0 == nbytes) && NULL != stream);
   if (NULL != host_mem && NULL != dev_mem && 0 != nbytes) {
+    const cl_command_queue queue = (cl_command_queue)stream;
 #if defined(ACC_OPENCL_MEM_NOALLOC)
     const cl_mem buffer = (cl_mem)dev_mem;
     assert(sizeof(void*) >= sizeof(cl_mem));
 #else
 #endif
-    ACC_OPENCL_CHECK(clEnqueueWriteBuffer(stream->queue, buffer, CL_FALSE/*non-blocking*/,
+    ACC_OPENCL_CHECK(clEnqueueWriteBuffer(queue, buffer, CL_FALSE/*non-blocking*/,
       0/*offset*/, nbytes, host_mem, 0, NULL, NULL), "failed to enqueue h2d copy", result);
   }
   ACC_OPENCL_RETURN(result);
 }
 
 
-int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t nbytes, acc_stream_t* stream)
+int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t nbytes, void* stream)
 {
   int result = EXIT_SUCCESS;
   assert((NULL != dev_mem || 0 == nbytes) && (NULL != host_mem || 0 == nbytes) && NULL != stream);
   if (NULL != host_mem && NULL != dev_mem && 0 != nbytes) {
+    const cl_command_queue queue = (cl_command_queue)stream;
 #if defined(ACC_OPENCL_MEM_NOALLOC)
     const cl_mem buffer = (cl_mem)dev_mem;
     assert(sizeof(void*) >= sizeof(cl_mem));
 #else
 #endif
-    ACC_OPENCL_CHECK(clEnqueueReadBuffer(stream->queue, buffer, CL_FALSE/*non-blocking*/,
+    ACC_OPENCL_CHECK(clEnqueueReadBuffer(queue, buffer, CL_FALSE/*non-blocking*/,
       0/*offset*/, nbytes, host_mem, 0, NULL, NULL), "failed to enqueue d2h copy", result);
   }
   ACC_OPENCL_RETURN(result);
 }
 
 
-int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t nbytes, acc_stream_t* stream)
+int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t nbytes, void* stream)
 {
   int result = EXIT_SUCCESS;
   assert((NULL != devmem_src || 0 == nbytes) && (NULL != devmem_dst || 0 == nbytes) && NULL != stream);
   if (NULL != devmem_src && NULL != devmem_dst && 0 != nbytes) {
+    const cl_command_queue queue = (cl_command_queue)stream;
 #if defined(ACC_OPENCL_MEM_NOALLOC)
     const cl_mem buffer_src = (cl_mem)devmem_src;
     const cl_mem buffer_dst = (cl_mem)devmem_dst;
     assert(sizeof(void*) >= sizeof(cl_mem));
 #else
 #endif
-    ACC_OPENCL_CHECK(clEnqueueCopyBuffer(stream->queue, buffer_src, buffer_dst,
+    ACC_OPENCL_CHECK(clEnqueueCopyBuffer(queue, buffer_src, buffer_dst,
       0/*src_offset*/, 0/*dst_offset*/, nbytes, 0, NULL, NULL),
       "failed to enqueue d2d copy", result);
   }
@@ -242,18 +247,19 @@ int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t nbytes, acc_
 }
 
 
-int acc_memset_zero(void* dev_mem, size_t offset, size_t nbytes, acc_stream_t* stream)
+int acc_memset_zero(void* dev_mem, size_t offset, size_t nbytes, void* stream)
 {
   int result = EXIT_SUCCESS;
   assert((NULL != dev_mem || 0 == nbytes) && NULL != stream);
   if (NULL != dev_mem) {
+    const cl_command_queue queue = (cl_command_queue)stream;
     const cl_uchar pattern = 0; /* fill with zeros */
 #if defined(ACC_OPENCL_MEM_NOALLOC)
     const cl_mem buffer = (cl_mem)dev_mem;
     assert(sizeof(void*) >= sizeof(cl_mem));
 #else
 #endif
-    ACC_OPENCL_CHECK(clEnqueueFillBuffer(stream->queue, buffer,
+    ACC_OPENCL_CHECK(clEnqueueFillBuffer(queue, buffer,
       &pattern, sizeof(pattern), offset, nbytes, 0, NULL, NULL),
       "failed to enqueue zero-filling buffer", result);
   }

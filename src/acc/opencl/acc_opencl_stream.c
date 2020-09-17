@@ -37,7 +37,7 @@
 extern "C" {
 #endif
 
-int acc_stream_create(acc_stream_t** stream_p, const char* name, int priority)
+int acc_stream_create(void** stream_p, const char* name, int priority)
 {
   cl_int result = EXIT_SUCCESS;
   if (NULL != acc_opencl_context) {
@@ -73,15 +73,10 @@ int acc_stream_create(acc_stream_t** stream_p, const char* name, int priority)
     assert(NULL != stream_p);
     if (NULL != queue) {
       assert(CL_SUCCESS == result);
-      *stream_p = (acc_stream_t*)malloc(sizeof(acc_stream_t));
+      *stream_p = malloc(sizeof(cl_command_queue));
       if (NULL != *stream_p) {
-#if defined(ACC_OPENCL_STRING_MAXLENGTH) && (0 < ACC_OPENCL_STRING_MAXLENGTH) && !defined(NDEBUG)
-        strncpy((*stream_p)->name, NULL != name ? name : "", ACC_OPENCL_STRING_MAXLENGTH);
-        (*stream_p)->name[ACC_OPENCL_STRING_MAXLENGTH-1] = '\0';
-#else
         ACC_OPENCL_UNUSED(name);
-#endif
-        (*stream_p)->queue = queue;
+        (*stream_p) = (void*)queue;
         result = EXIT_SUCCESS;
       }
       else {
@@ -99,11 +94,11 @@ int acc_stream_create(acc_stream_t** stream_p, const char* name, int priority)
 }
 
 
-int acc_stream_destroy(acc_stream_t* stream)
+int acc_stream_destroy(void* stream)
 {
-  int result = (NULL == stream || NULL != stream->queue) ? EXIT_SUCCESS : EXIT_FAILURE;
+  int result = EXIT_SUCCESS;
   if (NULL != stream) {
-    ACC_OPENCL_CHECK(clReleaseCommandQueue(stream->queue),
+    ACC_OPENCL_CHECK(clReleaseCommandQueue((cl_command_queue)stream),
       "failed to release command queue", result);
     free(stream);
   }
@@ -151,21 +146,21 @@ int acc_stream_priority_range(int* least, int* greatest)
 }
 
 
-int acc_stream_sync(acc_stream_t* stream)
+int acc_stream_sync(void* stream)
 { /* Blocks the host-thread. */
   int result = EXIT_SUCCESS;
-  ACC_OPENCL_CHECK(clFinish(NULL != stream ? stream->queue : NULL),
+  assert(NULL != stream);
+  ACC_OPENCL_CHECK(clFinish((cl_command_queue)stream),
     "failed to synchronize stream", result);
   ACC_OPENCL_RETURN(result);
 }
 
 
-int acc_stream_wait_event(acc_stream_t* stream, acc_event_t* event)
+int acc_stream_wait_event(void* stream, void* event)
 { /* Wait for an event (device-side). */
   int result = EXIT_SUCCESS;
-  assert(NULL != stream && NULL != stream->queue);
-  assert(NULL != event && NULL != event->event);
-  ACC_OPENCL_CHECK(ACC_OPENCL_WAIT_EVENT(stream->queue, &event->event),
+  assert(NULL != stream && NULL != event);
+  ACC_OPENCL_CHECK(ACC_OPENCL_WAIT_EVENT((cl_command_queue)stream, (cl_event*)&event),
     "failed to wait for an event", result);
   ACC_OPENCL_RETURN(result);
 }

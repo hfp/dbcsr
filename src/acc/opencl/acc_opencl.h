@@ -46,9 +46,6 @@
 #if !defined(ACC_OPENCL_MAXALIGN_NBYTES)
 # define ACC_OPENCL_MAXALIGN_NBYTES (2 << 20/*2MB*/)
 #endif
-#if !defined(ACC_OPENCL_STRING_MAXLENGTH)
-# define ACC_OPENCL_STRING_MAXLENGTH 256
-#endif
 #if !defined(ACC_OPENCL_BUFFER_MAXSIZE)
 # define ACC_OPENCL_BUFFER_MAXSIZE (8 << 10/*8kB*/)
 #endif
@@ -101,17 +98,6 @@
 #if defined(__cplusplus)
 extern "C" {
 #endif
-
-struct acc_stream_t {
-#if defined(ACC_OPENCL_STRING_MAXLENGTH) && (0 < ACC_OPENCL_STRING_MAXLENGTH) && !defined(NDEBUG)
-  char name[ACC_OPENCL_STRING_MAXLENGTH];
-#endif
-  cl_command_queue queue;
-};
-
-struct acc_event_t {
-  cl_event event;
-};
 
 /* non-zero if library is initialized, zero devices is signaled by nagative value */
 extern int acc_opencl_ndevices;

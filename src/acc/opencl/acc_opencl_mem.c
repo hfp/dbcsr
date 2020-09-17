@@ -21,11 +21,15 @@
 # include <unistd.h>
 #endif
 
+/* can depend on OpenCL implementation */
+#if !defined(ACC_OPENCL_MEM_NOALLOC) && 1
+# define ACC_OPENCL_MEM_NOALLOC
+#endif
+#if !defined(ACC_OPENCL_MEM_MAPMULTI) && 0
+# define ACC_OPENCL_MEM_MAPMULTI
+#endif
 #if !defined(ACC_OPENCL_MEM_ALIGNSCALE)
 # define ACC_OPENCL_MEM_ALIGNSCALE 8
-#endif
-#if !defined(ACC_OPENCL_MAP_MULTI) && 0
-# define ACC_OPENCL_MAP_MULTI
 #endif
 
 #if defined(__cplusplus)
@@ -79,7 +83,7 @@ int acc_host_mem_allocate(void** host_mem, size_t nbytes, acc_stream_t* stream)
       const size_t offset = ACC_OPENCL_UP2(address + sizeof(acc_opencl_meminfo_t), alignment) - address;
       acc_opencl_meminfo_t* meminfo;
       assert(sizeof(acc_opencl_meminfo_t) <= offset);
-#if defined(ACC_OPENCL_MAP_MULTI)
+#if defined(ACC_OPENCL_MEM_MAPMULTI)
       meminfo = (acc_opencl_meminfo_t*)clEnqueueMapBuffer(stream->queue, buffer,
         CL_TRUE/*blocking*/, CL_MAP_READ | CL_MAP_WRITE,
         offset - sizeof(acc_opencl_meminfo_t),
@@ -121,7 +125,7 @@ int acc_host_mem_deallocate(void* host_mem, acc_stream_t* stream)
   if (NULL != host_mem) {
     acc_opencl_meminfo_t *const meminfo = acc_opencl_meminfo(host_mem);
     const acc_opencl_meminfo_t info = *meminfo; /* copy meminfo prior to unmap */
-#if defined(ACC_OPENCL_MAP_MULTI)
+#if defined(ACC_OPENCL_MEM_MAPMULTI)
     ACC_OPENCL_CHECK(clEnqueueUnmapMemObject(stream->queue, meminfo->buffer, meminfo,
       0, NULL, NULL), "failed to unmap memory info", result);
 #endif
@@ -139,10 +143,13 @@ int acc_dev_mem_allocate(void** dev_mem, size_t nbytes)
   cl_int result;
   const cl_mem buffer = clCreateBuffer(acc_opencl_context, CL_MEM_READ_WRITE, nbytes,
     NULL/*host_ptr*/, &result);
-  assert(sizeof(void*) >= sizeof(cl_mem)); /* can depend on OpenCL implementation */
   assert(NULL != dev_mem);
   if (NULL != buffer) {
+#if defined(ACC_OPENCL_MEM_NOALLOC)
+    assert(sizeof(void*) >= sizeof(cl_mem));
     *dev_mem = (void*)buffer;
+#else
+#endif
   }
   else {
     assert(CL_SUCCESS != result);
@@ -156,9 +163,13 @@ int acc_dev_mem_allocate(void** dev_mem, size_t nbytes)
 int acc_dev_mem_deallocate(void* dev_mem)
 {
   int result = EXIT_SUCCESS;
-  assert(sizeof(void*) >= sizeof(cl_mem)); /* can depend on OpenCL implementation */
   if (NULL != dev_mem) {
-    ACC_OPENCL_CHECK(clReleaseMemObject((cl_mem)dev_mem),
+#if defined(ACC_OPENCL_MEM_NOALLOC)
+    const cl_mem buffer = (cl_mem)dev_mem;
+    assert(sizeof(void*) >= sizeof(cl_mem));
+#else
+#endif
+    ACC_OPENCL_CHECK(clReleaseMemObject(buffer),
       "failed to release device memory buffer", result);
   }
   ACC_OPENCL_RETURN(result);
@@ -182,9 +193,13 @@ int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t count, acc_stream
 {
   int result = EXIT_SUCCESS;
   assert((NULL != host_mem || 0 == count) && (NULL != dev_mem || 0 == count) && NULL != stream);
-  assert(sizeof(void*) >= sizeof(cl_mem)); /* can depend on OpenCL implementation */
   if (NULL != host_mem && NULL != dev_mem && 0 != count) {
-    ACC_OPENCL_CHECK(clEnqueueWriteBuffer(stream->queue, (cl_mem)dev_mem, CL_FALSE/*non-blocking*/,
+#if defined(ACC_OPENCL_MEM_NOALLOC)
+    const cl_mem buffer = (cl_mem)dev_mem;
+    assert(sizeof(void*) >= sizeof(cl_mem));
+#else
+#endif
+    ACC_OPENCL_CHECK(clEnqueueWriteBuffer(stream->queue, buffer, CL_FALSE/*non-blocking*/,
       0/*offset*/, count, host_mem, 0, NULL, NULL), "failed to enqueue h2d copy", result);
   }
   ACC_OPENCL_RETURN(result);
@@ -195,9 +210,13 @@ int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t count, acc_stream
 {
   int result = EXIT_SUCCESS;
   assert((NULL != dev_mem || 0 == count) && (NULL != host_mem || 0 == count) && NULL != stream);
-  assert(sizeof(void*) >= sizeof(cl_mem)); /* can depend on OpenCL implementation */
   if (NULL != host_mem && NULL != dev_mem && 0 != count) {
-    ACC_OPENCL_CHECK(clEnqueueReadBuffer(stream->queue, (cl_mem)dev_mem, CL_FALSE/*non-blocking*/,
+#if defined(ACC_OPENCL_MEM_NOALLOC)
+    const cl_mem buffer = (cl_mem)dev_mem;
+    assert(sizeof(void*) >= sizeof(cl_mem));
+#else
+#endif
+    ACC_OPENCL_CHECK(clEnqueueReadBuffer(stream->queue, buffer, CL_FALSE/*non-blocking*/,
       0/*offset*/, count, host_mem, 0, NULL, NULL), "failed to enqueue d2h copy", result);
   }
   ACC_OPENCL_RETURN(result);
@@ -208,9 +227,14 @@ int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t count, acc_s
 {
   int result = EXIT_SUCCESS;
   assert((NULL != devmem_src || 0 == count) && (NULL != devmem_dst || 0 == count) && NULL != stream);
-  assert(sizeof(void*) >= sizeof(cl_mem)); /* can depend on OpenCL implementation */
   if (NULL != devmem_src && NULL != devmem_dst && 0 != count) {
-    ACC_OPENCL_CHECK(clEnqueueCopyBuffer(stream->queue, (cl_mem)devmem_src, (cl_mem)devmem_dst,
+#if defined(ACC_OPENCL_MEM_NOALLOC)
+    const cl_mem buffer_src = (cl_mem)devmem_src;
+    const cl_mem buffer_dst = (cl_mem)devmem_dst;
+    assert(sizeof(void*) >= sizeof(cl_mem));
+#else
+#endif
+    ACC_OPENCL_CHECK(clEnqueueCopyBuffer(stream->queue, buffer_src, buffer_dst,
       0/*src_offset*/, 0/*dst_offset*/, count, 0, NULL, NULL),
       "failed to enqueue d2d copy", result);
   }
@@ -222,10 +246,14 @@ int acc_memset_zero(void* dev_mem, size_t offset, size_t length, acc_stream_t* s
 {
   int result = EXIT_SUCCESS;
   assert((NULL != dev_mem || 0 == length) && NULL != stream);
-  assert(sizeof(void*) >= sizeof(cl_mem)); /* can depend on OpenCL implementation */
   if (NULL != dev_mem) {
     const cl_uchar pattern = 0; /* fill with zeros */
-    ACC_OPENCL_CHECK(clEnqueueFillBuffer(stream->queue, (cl_mem)dev_mem,
+#if defined(ACC_OPENCL_MEM_NOALLOC)
+    const cl_mem buffer = (cl_mem)dev_mem;
+    assert(sizeof(void*) >= sizeof(cl_mem));
+#else
+#endif
+    ACC_OPENCL_CHECK(clEnqueueFillBuffer(stream->queue, buffer,
       &pattern, sizeof(pattern), offset, length, 0, NULL, NULL),
       "failed to enqueue zero-filling buffer", result);
   }

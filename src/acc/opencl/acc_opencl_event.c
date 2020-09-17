@@ -10,6 +10,11 @@
 #include <stdlib.h>
 #include <assert.h>
 
+/* can depend on OpenCL implementation */
+#if !defined(ACC_OPENCL_EVENT_NOALLOC) && 0
+# define ACC_OPENCL_EVENT_NOALLOC
+#endif
+
 #if defined(CL_VERSION_1_2)
 # define ACC_OPENCL_ENQUEUE_EVENT(QUEUE, EVENT) clEnqueueMarkerWithWaitList(QUEUE, 0, NULL, EVENT)
 #else
@@ -27,7 +32,12 @@ int acc_event_create(acc_event_t** event_p)
   assert(NULL != event_p);
   if (NULL != event) {
     assert(CL_SUCCESS == result);
+#if defined(ACC_OPENCL_EVENT_NOALLOC)
+    assert(sizeof(void*) >= sizeof(acc_event_t));
+    *event_p = (acc_event_t*)event;
+#else
     *event_p = (acc_event_t*)malloc(sizeof(acc_event_t));
+#endif
     if (NULL != *event_p) {
       (*event_p)->event = event;
       result = EXIT_SUCCESS;
@@ -52,7 +62,11 @@ int acc_event_destroy(acc_event_t* event)
   if (NULL != event) {
     ACC_OPENCL_CHECK(clReleaseEvent(event->event),
       "failed to release user-defined event", result);
+#if defined(ACC_OPENCL_EVENT_NOALLOC)
+    assert(sizeof(void*) >= sizeof(cl_event));
+#else
     free(event);
+#endif
   }
   ACC_OPENCL_RETURN(result);
 }

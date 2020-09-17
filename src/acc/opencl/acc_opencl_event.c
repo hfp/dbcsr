@@ -11,7 +11,7 @@
 #include <assert.h>
 
 /* can depend on OpenCL implementation */
-#if !defined(ACC_OPENCL_EVENT_NOALLOC) && 0
+#if !defined(ACC_OPENCL_EVENT_NOALLOC) && 1
 # define ACC_OPENCL_EVENT_NOALLOC
 #endif
 
@@ -37,15 +37,15 @@ int acc_event_create(void** event_p)
     *event_p = (void*)event;
 #else
     *event_p = malloc(sizeof(cl_event));
-#endif
     if (NULL != *event_p) {
-      (*event_p) = (void*)event;
+      *event_p = (void*)event;
       result = EXIT_SUCCESS;
     }
     else {
       clReleaseEvent(event);
       result = EXIT_FAILURE;
     }
+#endif
   }
   else {
     assert(CL_SUCCESS != result);
@@ -104,7 +104,7 @@ int acc_event_synchronize(void* event)
 { /* Waits on the host-side. */
   int result = EXIT_SUCCESS;
   assert(NULL != event);
-  ACC_OPENCL_CHECK(clWaitForEvents(1, (cl_event*)&event),
+  ACC_OPENCL_CHECK(clWaitForEvents(1, (const cl_event*)&event),
     "failed to synchronize event", result);
   ACC_OPENCL_RETURN(result);
 }

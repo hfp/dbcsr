@@ -67,6 +67,7 @@
 # define ACC_OPENCL_STREAM(A) ((cl_command_queue*)(A))
 #endif
 #if !defined(ACC_OPENCL_EVENT_NOALLOC) && 0
+/* incompatible with acc_event_record */
 # define ACC_OPENCL_EVENT_NOALLOC
 # define ACC_OPENCL_EVENT(A) ((cl_event*)&(A))
 #else

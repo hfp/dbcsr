@@ -51,10 +51,10 @@ int acc_dev_mem_deallocate(void* dev_mem);
 int acc_dev_mem_set_ptr(void** dev_mem, void* other, size_t lb);
 int acc_host_mem_allocate(void** host_mem, size_t nbytes, acc_stream_t* stream);
 int acc_host_mem_deallocate(void* host_mem, acc_stream_t* stream);
-int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t count, acc_stream_t* stream);
-int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t count, acc_stream_t* stream);
-int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t count, acc_stream_t* stream);
-int acc_memset_zero(void* dev_mem, size_t offset, size_t length, acc_stream_t* stream);
+int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t nbytes, acc_stream_t* stream);
+int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t nbytes, acc_stream_t* stream);
+int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t nbytes, acc_stream_t* stream);
+int acc_memset_zero(void* dev_mem, size_t offset, size_t nbytes, acc_stream_t* stream);
 int acc_dev_mem_info(size_t* mem_free, size_t* mem_total);
 
 #if defined(__cplusplus)

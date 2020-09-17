@@ -53,6 +53,26 @@
 # define ACC_OPENCL_DEVICES_MAXCOUNT 32
 #endif
 
+/* can depend on OpenCL implementation */
+#if !defined(ACC_OPENCL_MEM_NOALLOC) && 1
+# define ACC_OPENCL_MEM_NOALLOC
+# define ACC_OPENCL_MEM(A) ((cl_mem*)&(A))
+#else
+# define ACC_OPENCL_MEM(A)
+#endif
+#if !defined(ACC_OPENCL_STREAM_NOALLOC) && 1
+# define ACC_OPENCL_STREAM_NOALLOC
+# define ACC_OPENCL_STREAM(A) ((cl_command_queue*)&(A))
+#else
+# define ACC_OPENCL_STREAM(A)
+#endif
+#if !defined(ACC_OPENCL_EVENT_NOALLOC) && 1
+# define ACC_OPENCL_EVENT_NOALLOC
+# define ACC_OPENCL_EVENT(A) ((cl_event*)&(A))
+#else
+# define ACC_OPENCL_EVENT(A)
+#endif
+
 #define ACC_OPENCL_EXPAND(SYMBOL) SYMBOL
 #define ACC_OPENCL_STRINGIFY2(SYMBOL) #SYMBOL
 #define ACC_OPENCL_STRINGIFY(SYMBOL) ACC_OPENCL_STRINGIFY2(SYMBOL)

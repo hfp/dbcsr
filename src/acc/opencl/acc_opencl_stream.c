@@ -14,10 +14,6 @@
 #if !defined(ACC_OPENCL_STREAM_PRIORITY_INVALID)
 # define ACC_OPENCL_STREAM_PRIORITY_INVALID -1
 #endif
-/* can depend on OpenCL implementation */
-#if !defined(ACC_OPENCL_STREAM_NOALLOC) && 1
-# define ACC_OPENCL_STREAM_NOALLOC
-#endif
 
 #if defined(CL_VERSION_2_0)
 # define ACC_OPENCL_COMMAND_QUEUE_PROPERTIES cl_queue_properties
@@ -106,7 +102,7 @@ int acc_stream_destroy(void* stream)
 {
   int result = EXIT_SUCCESS;
   if (NULL != stream) {
-    ACC_OPENCL_CHECK(clReleaseCommandQueue((cl_command_queue)stream),
+    ACC_OPENCL_CHECK(clReleaseCommandQueue(*ACC_OPENCL_STREAM(stream)),
       "failed to release command queue", result);
 #if defined(ACC_OPENCL_STREAM_NOALLOC)
     assert(sizeof(void*) >= sizeof(cl_command_queue));
@@ -162,7 +158,7 @@ int acc_stream_sync(void* stream)
 { /* Blocks the host-thread. */
   int result = EXIT_SUCCESS;
   assert(NULL != stream);
-  ACC_OPENCL_CHECK(clFinish((cl_command_queue)stream),
+  ACC_OPENCL_CHECK(clFinish(*ACC_OPENCL_STREAM(stream)),
     "failed to synchronize stream", result);
   ACC_OPENCL_RETURN(result);
 }
@@ -172,7 +168,7 @@ int acc_stream_wait_event(void* stream, void* event)
 { /* Wait for an event (device-side). */
   int result = EXIT_SUCCESS;
   assert(NULL != stream && NULL != event);
-  ACC_OPENCL_CHECK(ACC_OPENCL_WAIT_EVENT((cl_command_queue)stream, (cl_event*)&event),
+  ACC_OPENCL_CHECK(ACC_OPENCL_WAIT_EVENT(*ACC_OPENCL_STREAM(stream), ACC_OPENCL_EVENT(event)),
     "failed to wait for an event", result);
   ACC_OPENCL_RETURN(result);
 }

@@ -10,11 +10,6 @@
 #include <stdlib.h>
 #include <assert.h>
 
-/* can depend on OpenCL implementation */
-#if !defined(ACC_OPENCL_EVENT_NOALLOC) && 1
-# define ACC_OPENCL_EVENT_NOALLOC
-#endif
-
 #if defined(CL_VERSION_1_2)
 # define ACC_OPENCL_ENQUEUE_EVENT(QUEUE, EVENT) clEnqueueMarkerWithWaitList(QUEUE, 0, NULL, EVENT)
 #else
@@ -71,7 +66,7 @@ int acc_event_destroy(void* event)
 {
   int result = EXIT_SUCCESS;
   if (NULL != event) {
-    ACC_OPENCL_CHECK(clReleaseEvent((cl_event)event),
+    ACC_OPENCL_CHECK(clReleaseEvent(*ACC_OPENCL_EVENT(event)),
       "failed to release user-defined event", result);
 #if defined(ACC_OPENCL_EVENT_NOALLOC)
     assert(sizeof(void*) >= sizeof(cl_event));
@@ -87,7 +82,7 @@ int acc_event_record(void* event, void* stream)
 {
   int result = EXIT_SUCCESS;
   assert(NULL != event && NULL != stream);
-  ACC_OPENCL_CHECK(ACC_OPENCL_ENQUEUE_EVENT((cl_command_queue)stream, (cl_event*)&event),
+  ACC_OPENCL_CHECK(ACC_OPENCL_ENQUEUE_EVENT(*ACC_OPENCL_STREAM(stream), ACC_OPENCL_EVENT(event)),
     "failed to record event", result);
   ACC_OPENCL_RETURN(result);
 }
@@ -99,7 +94,7 @@ int acc_event_query(void* event, acc_bool_t* has_occurred)
   cl_int status = CL_QUEUED;
   assert(CL_COMPLETE != status);
   if (NULL != event) {
-    ACC_OPENCL_CHECK(clGetEventInfo((cl_event)event, CL_EVENT_COMMAND_EXECUTION_STATUS,
+    ACC_OPENCL_CHECK(clGetEventInfo(*ACC_OPENCL_EVENT(event), CL_EVENT_COMMAND_EXECUTION_STATUS,
       sizeof(cl_int), &status, NULL), "failed to retrieve event status", result);
   }
   assert(NULL != has_occurred);
@@ -114,7 +109,7 @@ int acc_event_synchronize(void* event)
 { /* Waits on the host-side. */
   int result = EXIT_SUCCESS;
   assert(NULL != event);
-  ACC_OPENCL_CHECK(clWaitForEvents(1, (const cl_event*)&event),
+  ACC_OPENCL_CHECK(clWaitForEvents(1, ACC_OPENCL_EVENT(event)),
     "failed to synchronize event", result);
   ACC_OPENCL_RETURN(result);
 }

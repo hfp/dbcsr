@@ -21,14 +21,8 @@
 # include <unistd.h>
 #endif
 
-#define ACC_OPENCL_MEM_ALLOC(SIZE) malloc(SIZE)
-#define ACC_OPENCL_MEM_FREE(PTR) free(PTR)
-
 #if !defined(ACC_OPENCL_MEM_ALIGNSCALE)
 # define ACC_OPENCL_MEM_ALIGNSCALE 8
-#endif
-#if !defined(ACC_OPENCL_DEVMEMSET) && 1
-# define ACC_OPENCL_DEVMEMSET
 #endif
 #if !defined(ACC_OPENCL_MAP_MULTI) && 0
 # define ACC_OPENCL_MAP_MULTI

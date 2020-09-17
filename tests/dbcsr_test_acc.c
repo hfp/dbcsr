@@ -192,6 +192,7 @@ int main(int argc, char* argv[])
     const size_t size = (mem_chunk <= mem_rest ? mem_chunk : mem_rest);
     acc_bool_t has_occurred = 0;
     ACC_CHECK(acc_memset_zero(dev_mem, offset, size, s));
+    /* can enqueue multiple/duplicate copies for the same memory region */
     ACC_CHECK(acc_memcpy_d2h(dev_mem, host_mem, mem_alloc, s));
     ACC_CHECK(acc_event_query(event[tid], &has_occurred));
     /* unrecorded event has no work to wait for, hence it occurred */

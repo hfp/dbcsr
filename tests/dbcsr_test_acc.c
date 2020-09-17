@@ -64,12 +64,11 @@ int main(int argc, char* argv[])
   const int cli_nthreads = (2 < argc ? atoi(argv[2]) : max_nthreads);
   const int nthreads = ((0 < cli_nthreads && cli_nthreads <= max_nthreads) ? cli_nthreads : max_nthreads);
   int priority[ACC_STREAM_MAXCOUNT], priomin, priomax, priospan;
-  int randnums[ACC_EVENT_MAXCOUNT], ndevices, i;
+  int randnums[ACC_EVENT_MAXCOUNT], ndevices, i, nt;
   void *stream[ACC_STREAM_MAXCOUNT], *s;
   void *event[ACC_EVENT_MAXCOUNT];
   const size_t mem_alloc = (16/*MB*/ << 20);
-  const size_t mem_chunk = (mem_alloc + nthreads - 1) / nthreads;
-  size_t mem_free, mem_total;
+  size_t mem_free, mem_total, mem_chunk;
   void *host_mem, *dev_mem;
 
   for (i = 0; i < ACC_EVENT_MAXCOUNT; ++i) {
@@ -178,8 +177,10 @@ int main(int argc, char* argv[])
   ACC_CHECK(acc_stream_sync(s)); /* wait for completion */
   memset(host_mem, 0xFF, mem_alloc); /* non-zero pattern */
 
+  nt = (nthreads < ACC_EVENT_MAXCOUNT ? nthreads : ACC_EVENT_MAXCOUNT);
+  mem_chunk = (mem_alloc + nt - 1) / nt;
 #if defined(_OPENMP)
-# pragma omp parallel num_threads(nthreads < ACC_EVENT_MAXCOUNT ? nthreads : ACC_EVENT_MAXCOUNT)
+# pragma omp parallel num_threads(nt)
 #endif
   {
 #if defined(_OPENMP)

@@ -125,8 +125,13 @@ int acc_init(void)
           const cl_context context = acc_opencl_context;
 #         pragma omp parallel
           if (context != acc_opencl_context) {
-            ACC_OPENCL_CHECK(clRetainContext(context), "failed to retain context", result);
-            acc_opencl_context = context;
+            if (CL_SUCCESS == clRetainContext(context)) {
+              acc_opencl_context = context;
+            else {
+              assert(CL_SUCCESS != result);
+              ACC_OPENCL_ERROR("failed to retain context", result);
+              acc_opencl_context = NULL;
+            }
           }
         }
 #endif

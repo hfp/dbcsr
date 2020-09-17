@@ -127,6 +127,7 @@ int acc_init(void)
           if (context != acc_opencl_context) {
             if (CL_SUCCESS == clRetainContext(context)) {
               acc_opencl_context = context;
+            }
             else {
               assert(CL_SUCCESS != result);
               ACC_OPENCL_ERROR("failed to retain context", result);

@@ -79,7 +79,7 @@ int acc_stream_create(void** stream_p, const char* name, int priority)
 #else
       *stream_p = malloc(sizeof(cl_command_queue));
       if (NULL != *stream_p) {
-        *stream_p = (void*)queue;
+        *(cl_command_queue*)*stream_p = queue;
         result = EXIT_SUCCESS;
       }
       else {

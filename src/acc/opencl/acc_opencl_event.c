@@ -37,7 +37,7 @@ int acc_event_create(void** event_p)
 #else
       *event_p = malloc(sizeof(cl_event));
       if (NULL != *event_p) {
-        *event_p = (void*)event;
+        *(cl_event*)*event_p = event;
         result = EXIT_SUCCESS;
       }
       else {

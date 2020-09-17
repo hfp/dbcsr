@@ -60,17 +60,17 @@
 #else
 # define ACC_OPENCL_MEM(A)
 #endif
-#if !defined(ACC_OPENCL_STREAM_NOALLOC) && 1
+#if !defined(ACC_OPENCL_STREAM_NOALLOC) && 0
 # define ACC_OPENCL_STREAM_NOALLOC
 # define ACC_OPENCL_STREAM(A) ((cl_command_queue*)&(A))
 #else
-# define ACC_OPENCL_STREAM(A)
+# define ACC_OPENCL_STREAM(A) ((cl_command_queue*)(A))
 #endif
-#if !defined(ACC_OPENCL_EVENT_NOALLOC) && 1
+#if !defined(ACC_OPENCL_EVENT_NOALLOC) && 0
 # define ACC_OPENCL_EVENT_NOALLOC
 # define ACC_OPENCL_EVENT(A) ((cl_event*)&(A))
 #else
-# define ACC_OPENCL_EVENT(A)
+# define ACC_OPENCL_EVENT(A) ((cl_event*)(A))
 #endif
 
 #define ACC_OPENCL_EXPAND(SYMBOL) SYMBOL

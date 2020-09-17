@@ -65,8 +65,8 @@ int main(int argc, char* argv[])
   const int nthreads = ((0 < cli_nthreads && cli_nthreads <= max_nthreads) ? cli_nthreads : max_nthreads);
   int priority[ACC_STREAM_MAXCOUNT], priomin, priomax, priospan;
   int randnums[ACC_EVENT_MAXCOUNT], ndevices, i, nt;
-  acc_stream_t *stream[ACC_STREAM_MAXCOUNT], *s;
-  acc_event_t *event[ACC_EVENT_MAXCOUNT];
+  void *stream[ACC_STREAM_MAXCOUNT], *s;
+  void *event[ACC_EVENT_MAXCOUNT];
   const size_t mem_alloc = (16/*MB*/ << 20);
   const size_t mem_chunk = (mem_alloc + nthreads - 1) / nthreads;
   size_t mem_free, mem_total;
@@ -121,7 +121,7 @@ int main(int argc, char* argv[])
     ACC_CHECK((0 <= n && n < ACC_STRING_MAXLEN) ? EXIT_SUCCESS : EXIT_FAILURE);
     ACC_CHECK(acc_stream_create(stream + i, name, priority[i]));
     if (ACC_STREAM_MAXNTH_DESTROY * r < ACC_STREAM_MAXCOUNT) {
-      acc_stream_t *const si = stream[i]; stream[i] = NULL;
+      void *const si = stream[i]; stream[i] = NULL;
       ACC_CHECK(acc_stream_destroy(si));
     }
   }
@@ -147,7 +147,7 @@ int main(int argc, char* argv[])
     const int r = randnums[i%ACC_EVENT_MAXCOUNT] % ACC_EVENT_MAXCOUNT;
     ACC_CHECK(acc_event_create(event + i));
     if (ACC_EVENT_MAXNTH_DESTROY * r < ACC_EVENT_MAXCOUNT) {
-      acc_event_t *const ei = event[i]; event[i] = NULL;
+      void *const ei = event[i]; event[i] = NULL;
       ACC_CHECK(acc_event_destroy(ei));
     }
   }

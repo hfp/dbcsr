@@ -59,17 +59,23 @@
 #define ACC_OPENCL_UP2(N, NPOT) ((((uint64_t)N) + ((NPOT) - 1)) & ~((NPOT) - 1))
 #define ACC_OPENCL_UNUSED(VAR) (void)(VAR)
 
+#if defined(__FUNCTION__)
+# define ACC_OPENCL_FUNCNAME __FUNCTION__
+#elif defined(__PRETTY_FUNCTION__)
+# define ACC_OPENCL_FUNCNAME __PRETTY_FUNCTION__
+#elif defined(__FUNCNAME__)
+# define ACC_OPENCL_FUNCNAME __FUNCNAME__
+#elif defined(__FUNCDNAME__)
+# define ACC_OPENCL_FUNCNAME __FUNCDNAME__
+#else
+# define ACC_OPENCL_FUNCNAME ""
+#endif
+
 #if defined(NDEBUG)
-# define ACC_OPENCL_EXPECT(EXPECTED, EXPR) EXPR
-# define ACC_OPENCL_RETURN(RESULT) return RESULT
+# define ACC_OPENCL_EXPECT(EXPECTED, EXPR) (EXPR)
 # define ACC_OPENCL_ERROR(MSG, RESULT) (RESULT) = EXIT_FAILURE
 #else
 # define ACC_OPENCL_EXPECT(EXPECTED, EXPR) assert((EXPECTED) == (EXPR))
-# define ACC_OPENCL_RETURN(RESULT) do { \
-    const int acc_opencl_return_result_ = (RESULT); \
-    assert(EXIT_SUCCESS == acc_opencl_return_result_); \
-    return acc_opencl_return_result_; \
-  } while (0)
 # define ACC_OPENCL_ERROR(MSG, RESULT) do { \
     if (-1001 != (RESULT)) { \
       fprintf(stderr, "ERROR ACC/OpenCL: " MSG " (code=%i)\n", RESULT); \
@@ -82,6 +88,15 @@
     (RESULT) = EXIT_FAILURE; \
   } while (0)
 #endif
+
+#define ACC_OPENCL_RETURN_CAUSE(RESULT, CAUSE) do { \
+  const int acc_opencl_return_msg_result_ = (RESULT); \
+  if (NULL != (CAUSE)) fprintf(stderr, "ERROR ACC/OpenCL: " ACC_OPENCL_FUNCNAME \
+    " failed for %s\n", (const char*)(CAUSE)); \
+  assert(EXIT_SUCCESS == acc_opencl_return_msg_result_); \
+  return acc_opencl_return_msg_result_; \
+} while (0)
+#define ACC_OPENCL_RETURN(RESULT) ACC_OPENCL_RETURN_CAUSE(RESULT, NULL)
 
 #define ACC_OPENCL_CHECK(EXPR, MSG, RESULT) do { \
   if (EXIT_SUCCESS == (RESULT)) { \

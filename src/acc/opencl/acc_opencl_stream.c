@@ -83,7 +83,6 @@ int acc_stream_create(void** stream_p, const char* name, int priority)
 #else
       *stream_p = malloc(sizeof(cl_command_queue));
       if (NULL != *stream_p) {
-        ACC_OPENCL_UNUSED(name);
         *stream_p = (void*)queue;
         result = EXIT_SUCCESS;
       }
@@ -99,7 +98,7 @@ int acc_stream_create(void** stream_p, const char* name, int priority)
       *stream_p = NULL;
     }
   }
-  ACC_OPENCL_RETURN(result);
+  ACC_OPENCL_RETURN_CAUSE(result, name);
 }
 
 

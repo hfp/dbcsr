@@ -151,9 +151,19 @@ int acc_finalize(void)
   int result = EXIT_SUCCESS;
 #endif
   if (NULL != acc_opencl_context) {
+    const cl_context context = acc_opencl_context;
     assert(0 < acc_opencl_ndevices);
-    ACC_OPENCL_CHECK(clReleaseContext(acc_opencl_context),
+#if defined(_OPENMP) && defined(ACC_OPENCL_THREADLOCAL_CONTEXT)
+#   pragma omp parallel
+    if (context != acc_opencl_context) {
+      ACC_OPENCL_CHECK(clReleaseContext(acc_opencl_context),
+        "failed to release context", result);
+      acc_opencl_context = NULL;
+    }
+#endif
+    ACC_OPENCL_CHECK(clReleaseContext(context),
       "failed to release context", result);
+    acc_opencl_context = NULL;
   }
   ACC_OPENCL_RETURN(result);
 }

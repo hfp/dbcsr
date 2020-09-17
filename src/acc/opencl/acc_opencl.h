@@ -58,9 +58,9 @@
 # define ACC_OPENCL_MEM_NOALLOC
 # define ACC_OPENCL_MEM(A) ((cl_mem*)&(A))
 #else
-# define ACC_OPENCL_MEM(A)
+# define ACC_OPENCL_MEM(A) ((cl_mem*)(A))
 #endif
-#if !defined(ACC_OPENCL_STREAM_NOALLOC) && 0
+#if !defined(ACC_OPENCL_STREAM_NOALLOC) && 1
 # define ACC_OPENCL_STREAM_NOALLOC
 # define ACC_OPENCL_STREAM(A) ((cl_command_queue*)&(A))
 #else

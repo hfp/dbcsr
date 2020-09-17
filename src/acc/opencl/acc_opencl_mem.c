@@ -147,6 +147,15 @@ int acc_dev_mem_allocate(void** dev_mem, size_t nbytes)
     assert(sizeof(void*) >= sizeof(cl_mem));
     *dev_mem = (void*)buffer;
 #else
+    *dev_mem = malloc(sizeof(cl_mem));
+    if (NULL != *dev_mem) {
+      *(cl_mem*)*dev_mem = buffer;
+      result = EXIT_SUCCESS;
+    }
+    else {
+      clReleaseMemObject(buffer);
+      result = EXIT_FAILURE;
+    }
 #endif
   }
   else {
@@ -167,6 +176,7 @@ int acc_dev_mem_deallocate(void* dev_mem)
 #if defined(ACC_OPENCL_MEM_NOALLOC)
     assert(sizeof(void*) >= sizeof(cl_mem));
 #else
+    free(dev_mem);
 #endif
   }
   ACC_OPENCL_RETURN(result);

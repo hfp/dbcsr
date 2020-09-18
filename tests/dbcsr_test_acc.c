@@ -204,7 +204,8 @@ int main(int argc, char* argv[])
     ACC_CHECK(has_occurred ? EXIT_SUCCESS : EXIT_FAILURE);
   }
 
-  for (i = 0; i < (int)mem_alloc; ++i) {
+  /* validate backwards from where the last transfers occurred */
+  for (i = (int)(mem_alloc - 1); 0 <= i; --i) {
     ACC_CHECK(0 == ((char*)host_mem)[i] ? EXIT_SUCCESS : EXIT_FAILURE);
   }
   ACC_CHECK(acc_dev_mem_deallocate(dev_mem));

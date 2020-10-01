@@ -29,6 +29,14 @@ set(LIBSMM_ACC_FILES
   ${LIBSMM_ACC_HEADER_FILES}
 )
 
+set(DBCSR_TIMING_SRCS_FTN
+  ../dbcsr_acc_timings.F
+  ../../base/dbcsr_base_hooks.F
+  ../../base/dbcsr_machine.F
+  ../../base/dbcsr_kinds.F
+  ../../base/dbcsr_machine_internal.F
+)
+
 add_custom_command(
   COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_parameters.py --gpu_version=${WITH_GPU} --base_dir=${CMAKE_CURRENT_SOURCE_DIR}/parameters
   DEPENDS generate_parameters.py parameters/parameters_${WITH_GPU}.json
@@ -54,6 +62,19 @@ else () # i.e. USE_HIP
   set_source_files_properties(${LIBSMM_ACC_SRC_FILES} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT 1)
   # hip_add_library does not support OBJECT libraries. For this reason, we are forced to use a static library
   hip_add_library(libsmm_acc STATIC ${LIBSMM_ACC_FILES})
+  target_compile_options(libsmm_acc PUBLIC "-fPIC")
+  target_link_libraries(libsmm_acc INTERFACE "stdc++")
+  if (USE_OPENMP)
+    # since HIP is based on clang, not GCC, doing:
+    # target_link_libraries(libsmm_acc PUBLIC OpenMP::OpenMP_CXX)
+    # does not work - it links to GNU's OpenMP (libgomp.so) and not clang's libomp.so
+    target_link_libraries(libsmm_acc PUBLIC ${HIP_OpenMP_FLAGS})
+  endif ()
+
+  # libsmm_acc calls timing functions - since we're compiling libsmm_acc as a static library, we have to link
+  add_library(dbcsr_timings OBJECT ${DBCSR_TIMING_SRCS_FTN})
+  target_include_directories(dbcsr_timings PRIVATE "${CMAKE_SOURCE_DIR}/src")
+  target_sources(libsmm_acc PRIVATE $<TARGET_OBJECTS:dbcsr_timings>)
 
   # Workaround issue in hip_add_library: explicitely write dependency between
   # the generation of header files and the compilation of the libsmm_acc files

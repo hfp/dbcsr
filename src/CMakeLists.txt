@@ -289,12 +289,13 @@ endif ()
 
 if (USE_HIP)
 
-  if (OpenMP_FOUND)
+  if (USE_OPENMP)
     set(HIP_HIPCC_FLAGS "${HIP_HIPCC_FLAGS} ${OpenMP_CXX_FLAGS}")
   endif ()
 
   # add libsmm_acc which has its own CMakeLists.txt due to code generation
   add_subdirectory(acc/libsmm_acc)
+  include_directories(${HIP_PATH}/../include)
   target_link_libraries(dbcsr PUBLIC libsmm_acc)
   target_link_libraries(dbcsr PUBLIC ${ROCM_HIPRTC_LIB})
 
@@ -306,9 +307,10 @@ if (USE_HIP)
   hip_add_library(acc STATIC ${DBCSR_ACC_SRCS})
   target_compile_definitions(acc PRIVATE ARCH_NUMBER=${ACC_ARCH_NUMBER})
   target_compile_definitions(acc PRIVATE __HIP)
+  target_compile_options(acc PRIVATE "-fPIC")
   target_link_libraries(dbcsr PUBLIC acc)
   install(TARGETS acc
-    EXPORT libsmm_accTargets
+    EXPORT accTargets
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
   )
@@ -393,6 +395,10 @@ write_basic_package_version_file("${CMAKE_CURRENT_BINARY_DIR}/DBCSRConfigVersion
   )
 if (USE_HIP)
   install(EXPORT libsmm_accTargets
+    NAMESPACE "${config_namespace}"
+    DESTINATION "${config_install_dir}"
+    )
+  install(EXPORT accTargets
     NAMESPACE "${config_namespace}"
     DESTINATION "${config_install_dir}"
     )

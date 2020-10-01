@@ -17,7 +17,6 @@ set(DBCSR_PERF_SRCS
   dbcsr_performance_multiply.F)
 if (USE_HIP)
   hip_add_executable(dbcsr_perf ${DBCSR_PERF_SRCS})
-  target_link_options(dbcsr_perf PRIVATE ${HIP_ARCH_FLAGS})
 else ()
   add_executable(dbcsr_perf ${DBCSR_PERF_SRCS})
 endif ()
@@ -124,7 +123,6 @@ target_link_libraries(dbcsr_unittest_common PUBLIC dbcsr)
 foreach (dbcsr_test ${DBCSR_TESTS})
   if (USE_HIP)
     hip_add_executable(${dbcsr_test} ${${dbcsr_test}_SRCS})
-    target_link_options(${dbcsr_test} PRIVATE ${HIP_ARCH_FLAGS})
   else ()
     add_executable(${dbcsr_test} ${${dbcsr_test}_SRCS})
   endif ()
@@ -242,11 +240,6 @@ if (USE_CUDA OR USE_HIP)
 
       target_link_libraries(${libsmm_acc_test} dbcsr)
       target_compile_definitions(${libsmm_acc_test} PRIVATE __HIP)
-
-      if (OpenMP_FOUND)
-        target_link_libraries(${libsmm_acc_test} OpenMP::OpenMP_CXX)
-        target_link_libraries(${libsmm_acc_test} /opt/rh/llvm-toolset-7/root/usr/lib64/libomp.so)
-      endif ()
 
     endforeach ()
 

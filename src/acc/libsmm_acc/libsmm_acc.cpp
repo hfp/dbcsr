@@ -11,11 +11,11 @@
 #include "parameters_utils.h"
 #include "libsmm_acc.h"
 #include "libsmm_acc_benchmark.h"
+#include "../cuda/acc_blas.h"
 #include "smm_acc_kernels.h"
 
 #include <sstream>
 #include <fstream>
-#include <string>
 #include <cstring>
 #include <algorithm>
 #include <array>
@@ -45,17 +45,6 @@
 #endif
 #define ARCH_OPTION STRINGIFY(CONCAT(ARCH_OPTION_NAME, ARCH_NUMBER))
 
-
-//===========================================================================
-void timeset(std::string routine_name, int& handle){
-    const char* routine_name_ = routine_name.c_str();
-    int routine_name_length  = routine_name.length();
-    dbcsr_timeset(&routine_name_, &routine_name_length, &handle);
-}
-
-void timestop(int handle){
-    dbcsr_timestop(&handle);
-}
 
 //===========================================================================
 inline int launch_kernel_from_handle(ACC_DRV(function) const& kern_func, int nblks, int threads, ACC_DRV(stream) stream, void** args){
@@ -236,7 +225,39 @@ kernel_map_iterator add_kernel_handle_to_jitted_kernels(ACC_DRV(function) kern_f
 
 
 //===========================================================================
-int libsmm_acc_process_d(const int *param_stack, int stack_size, ACC_DRV(stream) stream, int m, int n, int k, const double *a_data, const double *b_data, double *c_data){
+int libsmm_acc_process_blas(const int *param_stack, int stack_size, ACC_DRV(stream) stream, int m, int n, int k, int max_kernel_dim, const double *a_data, const double *b_data, double *c_data, std::vector<ACC_BLAS(Handle_t)*> handles = acc_blashandles){
+
+#if defined _OPENMP
+    int ithread = omp_get_thread_num();
+#else
+    int ithread = 0;
+#endif
+
+    int istat = 0;
+
+    char transb = 'N';
+    if(n <= max_kernel_dim && k <= max_kernel_dim){
+        transb = 'T';
+    }
+
+    for(int stack_entry = 0; stack_entry < stack_size; stack_entry++){
+        istat = acc_blas_dgemm(acc_blashandles[ithread],
+                               'N', transb,
+                               m, n, k,
+                               param_stack[7 * stack_entry + 3] - 1,
+                               param_stack[7 * stack_entry + 4] - 1,
+                               param_stack[7 * stack_entry + 5] - 1,
+                               a_data, b_data, c_data,
+                               1.f, 1.f, &stream);
+        ACC_API_CALL(StreamSynchronize, (stream));
+    }
+    ACC_API_CALL(StreamSynchronize, (stream));
+
+    return istat;
+}
+
+//===========================================================================
+int libsmm_acc_process_d(const int* param_stack, int stack_size, ACC_DRV(stream) stream, int m, int n, int k, const double *a_data, const double *b_data, double *c_data){
 
     ACC_DRV(function) kern_func = NULL;
     int threads, grouping;
@@ -272,6 +293,7 @@ int libsmm_acc_process_d(const int *param_stack, int stack_size, ACC_DRV(stream)
 
         // Construct argument pointer list and launch kernel
         void *args[] = { &param_stack, &stack_size, &a_data, &b_data, &c_data };
+
         return launch_kernel_from_handle(kern_func, ((stack_size + grouping - 1) / grouping), threads, stream, args);
 
     }
@@ -280,17 +302,18 @@ int libsmm_acc_process_d(const int *param_stack, int stack_size, ACC_DRV(stream)
 
 
 //===========================================================================
-extern "C" int libsmm_acc_process (const libsmm_acc_stack_descriptor_type *param_stack, int stack_size, int nparams, acc_data_t datatype, const void *a_data, const void *b_data, void *c_data, int m, int n, int k, int def_mnk, acc_stream_t *stream){
+int libsmm_acc_process (const int* param_stack_host, const int *param_stack_dev, int stack_size, int nparams, acc_data_t datatype, const void *a_data, const void *b_data, void *c_data, int m, int n, int k, int max_kernel_dim, int def_mnk, acc_stream_t *stream){
     if(def_mnk!=1)
         return -1; // inhomogeneous stacks not supported
     if(datatype==dbcsr_type_real_8) {
-      if(m>MAX_BLOCK_DIM || n>MAX_BLOCK_DIM || k>MAX_BLOCK_DIM)
-        return -1; // maximum size over any dimension
+      if(m>max_kernel_dim || n>max_kernel_dim || k>max_kernel_dim)
+        // maximum size over any dimension
+        return (libsmm_acc_process_blas ((const int *) param_stack_host, stack_size, *((ACC_DRV(stream) *) stream), m, n, k, max_kernel_dim, (const double *) a_data, (const double *) b_data, (double *) c_data));
       else
-        return (libsmm_acc_process_d ((const int *) param_stack, stack_size, *((ACC_DRV(stream) *) stream), m, n, k, (const double *) a_data, (const double *) b_data, (double *) c_data));
+        return (libsmm_acc_process_d ((const int *) param_stack_dev, stack_size, *((ACC_DRV(stream) *) stream), m, n, k, (const double *) a_data, (const double *) b_data, (double *) c_data));
     }
     return -1; // datatype not supported
-};
+}
 
 
 //===========================================================================
@@ -423,10 +446,10 @@ int libsmm_acc_transpose_d(const int *trs_stack, int offset, int stack_size,
 
 
 //===========================================================================
-extern "C" int libsmm_acc_transpose (const int *trs_stack, int offset, int stack_size, void *buffer, acc_data_t datatype, int m, int n, acc_stream_t* stream) {
+extern "C" int libsmm_acc_transpose (const int *trs_stack, int offset, int stack_size, void *buffer, acc_data_t datatype, int m, int n, int max_kernel_dim, acc_stream_t* stream) {
     if(datatype != dbcsr_type_real_8)
         return 0; // transpose not needed
-    if(m>MAX_BLOCK_DIM || n>MAX_BLOCK_DIM)
+    if(m>max_kernel_dim || n>max_kernel_dim)
       return 0; // maximum size over any dimension
     return libsmm_acc_transpose_d(trs_stack, offset, stack_size, (double *) buffer, m, n, *((ACC_DRV(stream) *) stream));
 }

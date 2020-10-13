@@ -21,7 +21,7 @@ acc_bool_t libsmm_acc_is_thread_safe(void)
 
 
 int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int nblks,
-  void* dev_data, acc_data_t datatype, int m, int n, acc_stream_t* stream)
+  void* dev_data, dbcsr_type_t datatype, int m, int n, acc_stream_t* stream)
 {
   int result = EXIT_SUCCESS;
   assert(ACC_EXIT_FALLBACK != EXIT_FAILURE && ACC_EXIT_FALLBACK != EXIT_SUCCESS);
@@ -99,14 +99,14 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int nblks,
 }
 
 
-int libsmm_acc_process(const libsmm_acc_stack_descriptor_type* dev_param_stack, int stack_size,
-  int nparams, acc_data_t datatype, const void* dev_a_data, const void* dev_b_data, void* dev_c_data,
+int libsmm_acc_process(const libsmm_acc_stackdesc_t* dev_param_stack, int stack_size,
+  int nparams, dbcsr_type_t datatype, const void* dev_a_data, const void* dev_b_data, void* dev_c_data,
   int m_max, int n_max, int k_max, acc_bool_t def_mnk, acc_stream_t* stream)
 {
   int result = EXIT_SUCCESS;
   assert(ACC_EXIT_FALLBACK != EXIT_FAILURE && ACC_EXIT_FALLBACK != EXIT_SUCCESS);
   assert((NULL != dev_param_stack && NULL != dev_a_data && NULL != dev_b_data && NULL != dev_c_data) || 0 == stack_size);
-  assert(7 == nparams); /* layout of libsmm_acc_stack_descriptor_type is accordingly */
+  assert(7 == nparams); /* layout of libsmm_acc_stackdesc_t is accordingly */
   if (0 != stack_size && def_mnk/*homogeneous*/) {
 #if defined(DBCSR_OMP_OFFLOAD)
     const int ndevices = omp_get_num_devices();
@@ -132,13 +132,13 @@ int libsmm_acc_process(const libsmm_acc_stack_descriptor_type* dev_param_stack, 
           switch (datatype) {
             case ACC_DATA_F64: {
               result = libsmm_acc_process_d(di->data.in, di->data.out,
-                (const libsmm_acc_stack_descriptor_type*)di->data.args[0].const_ptr, deps->data.args[1].i32/*stack_size*/, nparams,
+                (const libsmm_acc_stackdesc_t*)di->data.args[0].const_ptr, deps->data.args[1].i32/*stack_size*/, nparams,
                 (const double*)di->data.args[3].const_ptr, (const double*)di->data.args[4].const_ptr, (double*)di->data.args[5].ptr,
                 deps->data.args[6].i32/*m_max*/, deps->data.args[7].i32/*n_max*/, deps->data.args[8].i32/*k_max*/);
             } break;
             case ACC_DATA_F32: {
               result = libsmm_acc_process_s(di->data.in, di->data.out,
-                (const libsmm_acc_stack_descriptor_type*)di->data.args[0].const_ptr, deps->data.args[1].i32/*stack_size*/, nparams,
+                (const libsmm_acc_stackdesc_t*)di->data.args[0].const_ptr, deps->data.args[1].i32/*stack_size*/, nparams,
                 (const float*)di->data.args[3].const_ptr, (const float*)di->data.args[4].const_ptr, (float*)di->data.args[5].ptr,
                 deps->data.args[6].i32/*m_max*/, deps->data.args[7].i32/*n_max*/, deps->data.args[8].i32/*k_max*/);
             } break;

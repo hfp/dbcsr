@@ -16,7 +16,7 @@ extern "C" {
 #endif
 
 int libsmm_acc_process_d(const dbcsr_omp_dependency_t* in, const dbcsr_omp_dependency_t* out,
-  const libsmm_acc_stack_descriptor_type* dev_param_stack, int stack_size, int nparams,
+  const libsmm_acc_stackdesc_t* dev_param_stack, int stack_size, int nparams,
   const double* dev_a_data, const double* dev_b_data, double* dev_c_data,
   int m_max, int n_max, int k_max)
 {
@@ -28,7 +28,7 @@ int libsmm_acc_process_d(const dbcsr_omp_dependency_t* in, const dbcsr_omp_depen
 
 
 int libsmm_acc_process_s(const dbcsr_omp_dependency_t* in, const dbcsr_omp_dependency_t* out,
-  const libsmm_acc_stack_descriptor_type* dev_param_stack, int stack_size, int nparams,
+  const libsmm_acc_stackdesc_t* dev_param_stack, int stack_size, int nparams,
   const float* dev_a_data, const float* dev_b_data, float* dev_c_data,
   int m_max, int n_max, int k_max)
 {

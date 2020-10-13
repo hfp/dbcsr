@@ -25,11 +25,6 @@
 #include <omp.h>
 #endif
 
-#define dbcsr_type_real_4     1
-#define dbcsr_type_real_8     3
-#define dbcsr_type_complex_4  5
-#define dbcsr_type_complex_8  7
-
 // MACRO HELPERS
 #define STRINGIFY_NX(x) #x
 #define STRINGIFY(x) STRINGIFY_NX(x)
@@ -302,7 +297,7 @@ int libsmm_acc_process_d(const int* param_stack, int stack_size, ACC_DRV(stream)
 
 
 //===========================================================================
-int libsmm_acc_process (const int* param_stack_host, const int *param_stack_dev, int stack_size, int nparams, acc_data_t datatype, const void *a_data, const void *b_data, void *c_data, int m, int n, int k, int max_kernel_dim, int def_mnk, acc_stream_t *stream){
+int libsmm_acc_process (const int* param_stack_host, const int *param_stack_dev, int stack_size, int nparams, dbcsr_type_t datatype, const void *a_data, const void *b_data, void *c_data, int m, int n, int k, int max_kernel_dim, int def_mnk, acc_stream_t *stream){
     if(def_mnk!=1)
         return -1; // inhomogeneous stacks not supported
     if(datatype==dbcsr_type_real_8) {
@@ -446,7 +441,7 @@ int libsmm_acc_transpose_d(const int *trs_stack, int offset, int stack_size,
 
 
 //===========================================================================
-extern "C" int libsmm_acc_transpose (const int *trs_stack, int offset, int stack_size, void *buffer, acc_data_t datatype, int m, int n, int max_kernel_dim, acc_stream_t* stream) {
+extern "C" int libsmm_acc_transpose (const int *trs_stack, int offset, int stack_size, void *buffer, dbcsr_type_t datatype, int m, int n, int max_kernel_dim, acc_stream_t* stream) {
     if(datatype != dbcsr_type_real_8)
         return 0; // transpose not needed
     if(m>max_kernel_dim || n>max_kernel_dim)

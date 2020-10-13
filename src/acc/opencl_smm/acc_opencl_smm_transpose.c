@@ -7,7 +7,6 @@
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
 #include "libsmm_omp.h"
-#include <stdlib.h>
 #include <assert.h>
 
 
@@ -15,26 +14,18 @@
 extern "C" {
 #endif
 
-int libsmm_acc_process_d(const dbcsr_omp_dependency_t* in, const dbcsr_omp_dependency_t* out,
-  const libsmm_acc_stackdesc_t* dev_param_stack, int stack_size, int nparams,
-  const double* dev_a_data, const double* dev_b_data, double* dev_c_data,
-  int m_max, int n_max, int k_max)
+int libsmm_acc_transpose_s(const libsmm_acc_stackdesc_t* dev_trs_stack, int offset, int nblks,
+  float* dev_data, int m, int n, int max_kernel_dim, void* stream)
 {
   int result = EXIT_FAILURE; /* TODO */
-  (void)(in); (void)(out); /* suppress incorrect warning */
-/*pragma omp target depend(in:DBCSR_OMP_DEP(id)) depend(out:DBCSR_OMP_DEP(od)) nowait is_device_ptr(params,a_data,b_data,c_data)*/
   return result;
 }
 
 
-int libsmm_acc_process_s(const dbcsr_omp_dependency_t* in, const dbcsr_omp_dependency_t* out,
-  const libsmm_acc_stackdesc_t* dev_param_stack, int stack_size, int nparams,
-  const float* dev_a_data, const float* dev_b_data, float* dev_c_data,
-  int m_max, int n_max, int k_max)
+int libsmm_acc_transpose_d(const libsmm_acc_stackdesc_t* dev_trs_stack, int offset, int nblks,
+  double* dev_data, int m, int n, int max_kernel_dim, void* stream)
 {
   int result = EXIT_FAILURE; /* TODO */
-  (void)(in); (void)(out); /* suppress incorrect warning */
-/*pragma omp target depend(in:DBCSR_OMP_DEP(id)) depend(out:DBCSR_OMP_DEP(od)) nowait is_device_ptr(params,a_data,b_data,c_data)*/
   return result;
 }
 

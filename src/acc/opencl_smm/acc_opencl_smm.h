@@ -16,19 +16,19 @@
 extern "C" {
 #endif
 
-int libsmm_acc_transpose_s(const libsmm_acc_stackdesc_t* dev_trs_stack, int offset, int nblks,
-  float* dev_data, int m, int n, int max_kernel_dim, void* stream);
-int libsmm_acc_transpose_d(const libsmm_acc_stackdesc_t* dev_trs_stack, int offset, int nblks,
+int acc_opencl_transpose_d(const libsmm_acc_stackdesc_t* dev_trs_stack, int offset, int nblks,
   double* dev_data, int m, int n, int max_kernel_dim, void* stream);
+int acc_opencl_transpose_s(const libsmm_acc_stackdesc_t* dev_trs_stack, int offset, int nblks,
+  float* dev_data, int m, int n, int max_kernel_dim, void* stream);
 
-int libsmm_acc_process_s(
-  const libsmm_acc_stackdesc_t* host_param_stack, const libsmm_acc_stackdesc_t* dev_param_stack, int stack_size,
-  const float* dev_a_data, const float* dev_b_data, float* dev_c_data,
-  int m_max, int n_max, int k_max, int max_kernel_dim, acc_bool_t def_mnk, void* stream);
-int libsmm_acc_process_d(
-  const libsmm_acc_stackdesc_t* host_param_stack, const libsmm_acc_stackdesc_t* dev_param_stack, int stack_size,
+int acc_opencl_process_d(const libsmm_acc_stackdesc_t* host_param_stack,
+  const libsmm_acc_stackdesc_t* dev_param_stack, int stack_size,
   const double* dev_a_data, const double* dev_b_data, double* dev_c_data,
-  int m_max, int n_max, int k_max, int max_kernel_dim, acc_bool_t def_mnk, void* stream);
+  int m_max, int n_max, int k_max, int max_kernel_dim, void* stream);
+int acc_opencl_process_s(const libsmm_acc_stackdesc_t* host_param_stack,
+  const libsmm_acc_stackdesc_t* dev_param_stack, int stack_size,
+  const float* dev_a_data, const float* dev_b_data, float* dev_c_data,
+  int m_max, int n_max, int k_max, int max_kernel_dim, void* stream);
 
 #if defined(__cplusplus)
 }

@@ -21,19 +21,19 @@ acc_bool_t libsmm_acc_is_thread_safe(void)
 
 
 int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int nblks,
-  void* dev_data, libsmm_acc_data_t datatype, int m, int n, void* stream)
+  void* dev_data, libsmm_acc_data_t datatype, int m, int n, int max_kernel_dim, void* stream)
 {
   int result = EXIT_SUCCESS;
   assert((NULL != dev_trs_stack && NULL != dev_data) || 0 == nblks);
   if (0 != nblks) {
     switch (datatype) {
       case dbcsr_type_real_8: {
-        result = libsmm_acc_transpose_d(NULL/*dep_in*/, NULL/*dep_out*/,
-          dev_trs_stack, offset, nblks, (double*)dev_data, m, n);
+        result = acc_opencl_transpose_d(dev_trs_stack, offset, nblks,
+          (double*)dev_data, m, n, max_kernel_dim, stream);
       } break;
       case dbcsr_type_real_4: {
-        result = libsmm_acc_transpose_s(NULL/*dep_in*/, NULL/*dep_out*/,
-          dev_trs_stack, offset, nblks, (float*)dev_data, m, n);
+        result = acc_opencl_transpose_s(dev_trs_stack, offset, nblks,
+          (float*)dev_data, m, n, max_kernel_dim, stream);
       } break;
       default: {
         result = EXIT_FAILURE;
@@ -44,22 +44,24 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int nblks,
 }
 
 
-int libsmm_acc_process(const libsmm_acc_stackdesc_t* dev_param_stack, int stack_size,
+int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, int stack_size,
   int nparams, libsmm_acc_data_t datatype, const void* dev_a_data, const void* dev_b_data, void* dev_c_data,
-  int m_max, int n_max, int k_max, acc_bool_t def_mnk, void* stream)
+  int m_max, int n_max, int k_max, int max_kernel_dim, acc_bool_t def_mnk, void* stream)
 {
   int result = EXIT_SUCCESS;
   assert((NULL != dev_param_stack && NULL != dev_a_data && NULL != dev_b_data && NULL != dev_c_data) || 0 == stack_size);
-  assert(7 == nparams); /* layout of libsmm_acc_stackdesc_t is accordingly */
+  assert((nparams * sizeof(int)) == sizeof(libsmm_acc_stackdesc_t));
   if (0 != stack_size && def_mnk/*homogeneous*/) {
     switch (datatype) {
       case dbcsr_type_real_8: {
-        result = libsmm_acc_process_d(NULL/*dep_in*/, NULL/*dep_out*/, dev_param_stack, stack_size, nparams,
-          (const double*)dev_a_data, (const double*)dev_b_data, (double*)dev_c_data, m_max, n_max, k_max);
+        result = acc_opencl_process_d(host_param_stack, dev_param_stack, stack_size,
+          (const double*)dev_a_data, (const double*)dev_b_data, (double*)dev_c_data,
+          m_max, n_max, k_max, max_kernel_dim, stream);
       } break;
       case dbcsr_type_real_4: {
-        result = libsmm_acc_process_s(NULL/*dep_in*/, NULL/*dep_out*/, dev_param_stack, stack_size, nparams,
-          (const float*)dev_a_data, (const float*)dev_b_data, (float*)dev_c_data, m_max, n_max, k_max);
+        result = acc_opencl_process_s(host_param_stack, dev_param_stack, stack_size,
+          (const float*)dev_a_data, (const float*)dev_b_data, (float*)dev_c_data,
+          m_max, n_max, k_max, max_kernel_dim, stream);
       } break;
       default: {
         result = EXIT_FAILURE;

@@ -16,9 +16,6 @@
 extern "C" {
 #endif
 
-int acc_opencl_template(FILE* source, char* buffer[], int max_nlines, int skip_lines,
-  const char* type, const int params[], int nparams);
-
 int acc_opencl_transpose_d(const libsmm_acc_stackdesc_t* dev_trs_stack, int offset, int nblks,
   double* dev_data, int m, int n, int max_kernel_dim, void* stream);
 int acc_opencl_transpose_s(const libsmm_acc_stackdesc_t* dev_trs_stack, int offset, int nblks,

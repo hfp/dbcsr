@@ -9,75 +9,10 @@
 #include "libsmm_omp.h"
 #include <assert.h>
 
-#if !defined(ACC_OPENCL_SMM_MAXLINELEN)
-# define ACC_OPENCL_SMM_MAXLINELEN 128
-#endif
-
-#if defined(__STDC_VERSION__) && (199901L <= __STDC_VERSION__ || defined(__GNUC__))
-# define ACC_OPENCL_SMM_SNPRINTF(S, N, ...) snprintf(S, N, __VA_ARGS__)
-#else
-# define ACC_OPENCL_SMM_SNPRINTF(S, N, ...) sprintf((S) + /*unused*/(N) * 0, __VA_ARGS__)
-#endif
-
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
-
-int acc_opencl_template(FILE* source, char* lines[], int max_nlines, int skip_lines,
-  const char* type, const int params[], int nparams)
-{
-  int nlines = 0;
-  if (((NULL != source && NULL != lines && 0 < max_nlines) || 0 >= max_nlines)
-    && 0 <= skip_lines && ((NULL != type && 0 != *type) || NULL == type)
-    && ((NULL != params && 0 < nparams) || 0 >= nparams))
-  {
-    if (0 < max_nlines) {
-      const int* param = params;
-      lines[0] = (char*)malloc(max_nlines * sizeof(line));
-      while (nlines < max_nlines && NULL != lines[nlines]
-        && NULL != fgets(lines[nlines], ACC_OPENCL_SMM_MAXLINELEN, source))
-      {
-        if (0 == skip_lines) {
-          char* subst = ((NULL != type || 0 < nparams) ? strchr(lines[nlines], '%') : NULL);
-          int next = nlines + 1;
-          if (next < max_nlines) lines[next] = lines[nlines] + ACC_OPENCL_SMM_MAXLINELEN;
-          while (NULL != subst) {
-            int maxlen, len;
-            if (NULL != type && 's' == subst[1]) {
-              subst = (0 < nparams ? strchr(lines[nlines], '%') : NULL);
-              maxlen = ACC_OPENCL_SMM_MAXLINELEN - (subst - lines[nlines]);
-              len = (ACC_OPENCL_SMM_SNPRINTF(subst, maxlen, type));
-              type = NULL;
-            }
-            else if (0 < nparams && 'i' == subst[1]) {
-              subst = (NULL != type ? strchr(lines[nlines], '%') : NULL);
-              maxlen = ACC_OPENCL_SMM_MAXLINELEN - (subst - lines[nlines]);
-              len = ACC_OPENCL_SMM_SNPRINTF(subst, maxlen, *param);
-              --nparams;
-              ++param;
-            }
-            else {
-              maxlen = len = 0;
-            }
-            if (0 > len || len >= maxlen) {
-              free(lines[0]);
-              lines[0] = NULL;
-              subst = NULL;
-              next = 0;
-            }
-          }
-          nlines = next;
-        }
-        else { /* skip line */
-          --skip_lines;
-        }
-      }
-    }
-  }
-  return nlines;
-}
-
 
 acc_bool_t libsmm_acc_is_thread_safe(void)
 {

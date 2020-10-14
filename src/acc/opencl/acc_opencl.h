@@ -52,6 +52,9 @@
 #if !defined(ACC_OPENCL_DEVICES_MAXCOUNT)
 # define ACC_OPENCL_DEVICES_MAXCOUNT 32
 #endif
+#if !defined(ACC_OPENCL_MAXLINELEN)
+# define ACC_OPENCL_MAXLINELEN 128
+#endif
 
 /* can depend on OpenCL implementation */
 #if !defined(ACC_OPENCL_MEM_NOALLOC) && 1
@@ -79,6 +82,12 @@
 #define ACC_OPENCL_STRINGIFY(SYMBOL) ACC_OPENCL_STRINGIFY2(SYMBOL)
 #define ACC_OPENCL_UP2(N, NPOT) ((((uint64_t)N) + ((NPOT) - 1)) & ~((NPOT) - 1))
 #define ACC_OPENCL_UNUSED(VAR) (void)(VAR)
+
+#if defined(__STDC_VERSION__) && (199901L <= __STDC_VERSION__ || defined(__GNUC__))
+# define ACC_OPENCL_SNPRINTF(S, N, ...) snprintf(S, N, __VA_ARGS__)
+#else
+# define ACC_OPENCL_SNPRINTF(S, N, ...) sprintf((S) + /*unused*/(N) * 0, __VA_ARGS__)
+#endif
 
 #if defined(NDEBUG)
 # define ACC_OPENCL_EXPECT(EXPECTED, EXPR) (EXPR)
@@ -133,6 +142,15 @@ extern cl_context acc_opencl_context;
 #if defined(_OPENMP) && defined(ACC_OPENCL_THREADLOCAL_CONTEXT)
 # pragma omp threadprivate(acc_opencl_context)
 #endif
+
+/**
+ * Read source file or buffer[0] (if source is NULL), and build array of strings (buffer)
+ * with line-wise content.The content is instantiated such that type replaces %s and
+ * params replace %i (in order). Returns number processed lines, and if non-zero
+ * buffer[0] shall be released by the caller (free).
+ */
+int acc_opencl_template(FILE* source, char* buffer[], int max_nlines, int skip_lines,
+  const char* type, const int params[], int nparams);
 
 #if defined(__cplusplus)
 }

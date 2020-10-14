@@ -279,24 +279,29 @@ int acc_opencl_template(FILE* source, char* lines[], int max_nlines, int skip_li
               ++param;
             }
             else { /* unexpected placeholder */
+              subst = NULL;
               offset = 0;
             }
-            if (0 <= offset && offset < ACC_OPENCL_MAXLINELEN) { /* try next substitution */
+            if (0 < offset && offset < ACC_OPENCL_MAXLINELEN) { /* try next */
               format[len] = c;
               memcpy(lines[nlines] + offset, format + len, size - len);
               subst = ((NULL != type || 0 < nparams) ? strchr(lines[nlines] + offset, '%') : NULL);
               size = offset + size - len;
             }
-            else { /* error */
+            else if (0 != offset) { /* error */
               if (NULL != source) free(lines[0]);
               lines[0] = NULL;
               subst = NULL;
               next = 0;
             }
           }
-          if (next != nlines) {
-            if (next < max_nlines) lines[next] = lines[nlines] + size;
-            nlines = next;
+          if (next != nlines) { /* no error */
+            assert(NULL != lines[0]);
+            if (1 < size || '\0' != *lines[nlines]) {
+              if (next < max_nlines) lines[next] = lines[nlines] + size;
+              nlines = next;
+            }
+            else break;
           }
         }
         else { /* skip line */
@@ -304,6 +309,9 @@ int acc_opencl_template(FILE* source, char* lines[], int max_nlines, int skip_li
         }
       }
     }
+  }
+  if (0 < max_nlines && NULL != lines) {
+    lines[nlines] = NULL; /* terminator */
   }
   return nlines;
 }

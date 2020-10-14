@@ -89,6 +89,12 @@
 # define ACC_OPENCL_SNPRINTF(S, N, ...) sprintf((S) + /*unused*/(N) * 0, __VA_ARGS__)
 #endif
 
+#if defined(_DEBUG)
+# define ACC_OPENCL_DEBUG_PRINTF(A, ...) printf(A, __VA_ARGS__)
+#else
+# define ACC_OPENCL_DEBUG_PRINTF(A, ...)
+#endif
+
 #if defined(NDEBUG)
 # define ACC_OPENCL_EXPECT(EXPECTED, EXPR) (EXPR)
 # define ACC_OPENCL_ERROR(MSG, RESULT) (RESULT) = EXIT_FAILURE

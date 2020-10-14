@@ -13,24 +13,47 @@
 #endif
 
 
-int main(void)
+int main(int argc, char* argv[])
 {
   char* buffer[ACC_OPENCL_TEST_MAXNLINES];
   const int params[] = { 23, 24, 24*24 };
   FILE *const source = fopen("../opencl_smm/kernels/acc_opencl_smm_transpose.cl", "r");
+  int result = EXIT_SUCCESS, nlines = 0;
   if (NULL != source) {
-    const int nlines = acc_opencl_template(source, buffer, ACC_OPENCL_TEST_MAXNLINES,
+    nlines = acc_opencl_template(source, buffer, ACC_OPENCL_TEST_MAXNLINES,
       8/*skip banner*/, "double", params, sizeof(params) / sizeof(*params));
-    if (0 < nlines) {
+    if (0 < nlines && (1 < argc ? 1 == atoi(argv[1]) : 1)) {
       int i = 0;
       do {
-        printf("%s", buffer[i]);
-        ++i;
-      } while (i < nlines);
-      free(buffer[0]);
+        ACC_OPENCL_DEBUG_PRINTF("%s", buffer[i]);
+      } while (++i < nlines);
     }
     fclose(source);
   }
-  return EXIT_SUCCESS;
+  if (0 < nlines) {
+    if (NULL == buffer[nlines]) {
+      if (nlines == acc_opencl_template(NULL, buffer, ACC_OPENCL_TEST_MAXNLINES,
+        0, "double", params, sizeof(params) / sizeof(*params)))
+      {
+        if (0 < nlines && (1 < argc ? 2 == atoi(argv[1]) : 1)) {
+          int i = 0;
+          do {
+            ACC_OPENCL_DEBUG_PRINTF("%s", buffer[i]);
+          } while (++i < nlines);
+        }
+      }
+      else {
+        result = EXIT_FAILURE;
+      }
+    }
+    else {
+      result = EXIT_FAILURE;
+    }
+    free(buffer[0]);
+  }
+  else if (NULL != buffer[0]) {
+    result = EXIT_FAILURE;
+  }
+  return result;
 }
 

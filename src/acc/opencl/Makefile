@@ -23,6 +23,9 @@ ifneq (0,$(DBG))
   ifeq (,$(DBG))
     CFLAGS += -O2
   else
+    ifneq (1,$(DBG))
+      CFLAGS += -D_DEBUG
+    endif
     CFLAGS += -O0
   endif
 else

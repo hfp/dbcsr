@@ -41,8 +41,18 @@ else
 endif
 endif
 
+.PHONE: all
+all: dbcsr_test_acc acc_opencl_test
+
 # /usr/lib/x86_64-linux-gnu/libOpenCL.so.1
 dbcsr_test_acc: dbcsr_test_acc.o dbcsr_opencl.a
+ifneq (Darwin,$(shell uname))
+	$(CC) $(LDFLAGS) -o $@ $^ -lOpenCL
+else
+	$(CC) $(LDFLAGS) -o $@ $^ -framework OpenCL
+endif
+
+acc_opencl_test: acc_opencl_test.o dbcsr_opencl.a
 ifneq (Darwin,$(shell uname))
 	$(CC) $(LDFLAGS) -o $@ $^ -lOpenCL
 else
@@ -64,4 +74,4 @@ clean:
 
 .PHONE: realclean
 realclean: clean
-	@rm -f dbcsr_opencl.a dbcsr_test_acc
+	@rm -f dbcsr_opencl.a dbcsr_test_acc acc_opencl_test

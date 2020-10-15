@@ -7,34 +7,22 @@
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
 #include "acc_opencl_smm.h"
-#include <assert.h>
 
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
-int acc_opencl_dbatchtrans(const libsmm_acc_stackdesc_t* dev_trs_stack, int offset, int nblks,
-  double* dev_data, int m, int n, int max_kernel_dim, void* stream)
+int main(int argc, char* argv[])
 {
-  int result = EXIT_FAILURE; /* TODO */
-  const char *const envs = getenv("ACC_OPENCL_TRANS_S");
-  const int s = (NULL == envs ? 0/*TODO*/ : atoi(envs));
-  struct { int m, n, s; } key;
-  key.m = m;
-  key.n = n;
-  key.s = ACC_OPENCL_MAX(m*n, s);
+  int result = EXIT_SUCCESS;
+  const int max_kernel_dim = 80;
+  int offset = 0, nblks = 100;
+  void *stream = NULL;
+
+  libsmm_acc_stackdesc_t *dev_trs_stack = NULL;
+  double *dev_data = NULL;
+  int m = 23, n = 23;
+
+  result = acc_opencl_dbatchtrans(dev_trs_stack, offset, nblks,
+    dev_data, m, n, max_kernel_dim, stream);
+
   return result;
 }
 
-
-int acc_opencl_sbatchtrans(const libsmm_acc_stackdesc_t* dev_trs_stack, int offset, int nblks,
-  float* dev_data, int m, int n, int max_kernel_dim, void* stream)
-{
-  int result = EXIT_FAILURE; /* TODO */
-  return result;
-}
-
-#if defined(__cplusplus)
-}
-#endif

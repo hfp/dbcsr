@@ -82,6 +82,8 @@
 #define ACC_OPENCL_STRINGIFY(SYMBOL) ACC_OPENCL_STRINGIFY2(SYMBOL)
 #define ACC_OPENCL_UP2(N, NPOT) ((((uint64_t)N) + ((NPOT) - 1)) & ~((NPOT) - 1))
 #define ACC_OPENCL_UNUSED(VAR) (void)(VAR)
+#define ACC_OPENCL_MAX(A, B) (((A) > (B)) ? (A) : (B))
+#define ACC_OPENCL_MIN(A, B) (((A) < (B)) ? (A) : (B))
 
 #if defined(__STDC_VERSION__) && (199901L <= __STDC_VERSION__ || defined(__GNUC__))
 # define ACC_OPENCL_SNPRINTF(S, N, ...) snprintf(S, N, __VA_ARGS__)

@@ -3,6 +3,7 @@ INCFILES = $(wildcard *.h*)
 SRCFILES = $(wildcard *.c*)
 OBJFILES = $(SRCFILES:.c=.o)
 
+LIBXSMMROOT ?= $(wildcard ../../../../libxsmm)
 INTEL ?= 0
 IBM ?= 0
 
@@ -45,36 +46,25 @@ endif
 endif
 
 .PHONE: all
-all: dbcsr_test_acc acc_opencl_test
+all: acc_opencl_smm_test
 
-# /usr/lib/x86_64-linux-gnu/libOpenCL.so.1
-dbcsr_test_acc: dbcsr_test_acc.o dbcsr_opencl.a
+acc_opencl_smm_test: acc_opencl_smm_test.o dbcsr_opencl_smm.a ../opencl/dbcsr_opencl.a $(LIBXSMMROOT)/lib/libxsmm.a
 ifneq (Darwin,$(shell uname))
 	$(CC) $(LDFLAGS) -o $@ $^ -lOpenCL
 else
 	$(CC) $(LDFLAGS) -o $@ $^ -framework OpenCL
 endif
 
-acc_opencl_test: acc_opencl_test.o dbcsr_opencl.a
-ifneq (Darwin,$(shell uname))
-	$(CC) $(LDFLAGS) -o $@ $^ -lOpenCL
-else
-	$(CC) $(LDFLAGS) -o $@ $^ -framework OpenCL
-endif
-
-dbcsr_opencl.a: $(OBJFILES)
+dbcsr_opencl_smm.a: $(OBJFILES)
 	$(AR) -rs $@ $^
 
 %.o: %.c $(INCFILES) Makefile
 	$(CC) $(CFLAGS) -c $< -o $@
 
-dbcsr_test_acc.o: ../../../tests/dbcsr_test_acc.c Makefile
-	$(CC) $(CFLAGS) -c $< -o $@
-
 .PHONE: clean
 clean:
-	@rm -f $(OBJFILES) dbcsr_test_acc.o
+	@rm -f $(OBJFILES)
 
 .PHONE: realclean
 realclean: clean
-	@rm -f dbcsr_opencl.a dbcsr_test_acc acc_opencl_test
+	@rm -f dbcsr_opencl_smm.a acc_opencl_smm_test

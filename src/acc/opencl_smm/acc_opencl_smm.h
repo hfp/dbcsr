@@ -12,6 +12,10 @@
 #include "../acc_libsmm.h"
 #include "../opencl/acc_opencl.h"
 
+#if !defined(__LIBXSMM)
+# error OpenCL backend currently depends on LIBXSMM!
+#endif
+
 #define ACC_OPENCL_CONCAT2(A, B) A##B
 #define ACC_OPENCL_CONCAT3(A, B, C) A##B##C
 #define ACC_OPENCL_CONCAT4(A, B, C, D) A##B##C##D

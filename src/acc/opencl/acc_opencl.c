@@ -252,12 +252,24 @@ int acc_opencl_template(FILE* source, char* lines[], int max_nlines, int skip_li
     && ((0 <= skip_lines)))
   {
     if (0 < max_nlines) {
-      char format[ACC_OPENCL_MAXLINELEN];
+      char *const buffer = (char*)malloc(max_nlines * ACC_OPENCL_MAXLINELEN);
+      char format[ACC_OPENCL_MAXLINELEN], *line = lines[0];
       const int* param = params;
-      if (NULL != source) lines[0] = (char*)malloc(max_nlines * ACC_OPENCL_MAXLINELEN);
+      lines[0] = buffer;
       while (nlines < max_nlines && NULL != lines[nlines]
         && (NULL == source || NULL != fgets(lines[nlines], ACC_OPENCL_MAXLINELEN, source)))
       {
+        if (NULL == source) {
+          char* end = strchr(line, '\n');
+          if (NULL == end) end = strchr(line, '\0');
+          if (NULL != end) {
+            const int size = end - line;
+            memcpy(lines[nlines], line, size);
+            lines[nlines][size+0] = '\n';
+            lines[nlines][size+1] = '\0';
+            line += size + 1;
+          }
+        }
         if (0 == skip_lines) {
           char* subst = ((NULL != type || 0 < nparams) ? strchr(lines[nlines], '%') : NULL);
           size_t size = strlen(lines[nlines]) + 1;

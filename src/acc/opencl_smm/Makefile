@@ -1,4 +1,4 @@
-CFLAGS = -std=c89 -Wall -Wextra -pedantic -Wno-variadic-macros -D__OPENCL
+CFLAGS = -std=c89 -Wall -Wextra -pedantic -Wno-variadic-macros -D__OPENCL -D__LIBXSMM
 INCFILES = $(wildcard *.h*)
 SRCFILES = $(wildcard *.c*)
 OBJFILES = $(SRCFILES:.c=.o)

@@ -6,7 +6,7 @@
  * For further information please visit https://dbcsr.cp2k.org                                    *
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
-#include "libsmm_omp.h"
+#include "acc_opencl_smm.h"
 #include <stdlib.h>
 #include <assert.h>
 

@@ -28,11 +28,11 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int nblks,
   if (0 != nblks) {
     switch (datatype) {
       case dbcsr_type_real_8: {
-        result = acc_opencl_transpose_d(dev_trs_stack, offset, nblks,
+        result = acc_opencl_dbatchtrans(dev_trs_stack, offset, nblks,
           (double*)dev_data, m, n, max_kernel_dim, stream);
       } break;
       case dbcsr_type_real_4: {
-        result = acc_opencl_transpose_s(dev_trs_stack, offset, nblks,
+        result = acc_opencl_sbatchtrans(dev_trs_stack, offset, nblks,
           (float*)dev_data, m, n, max_kernel_dim, stream);
       } break;
       default: {
@@ -54,12 +54,12 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
   if (0 != stack_size && def_mnk/*homogeneous*/) {
     switch (datatype) {
       case dbcsr_type_real_8: {
-        result = acc_opencl_process_d(host_param_stack, dev_param_stack, stack_size,
+        result = acc_opencl_dbatchmm(host_param_stack, dev_param_stack, stack_size,
           (const double*)dev_a_data, (const double*)dev_b_data, (double*)dev_c_data,
           m_max, n_max, k_max, max_kernel_dim, stream);
       } break;
       case dbcsr_type_real_4: {
-        result = acc_opencl_process_s(host_param_stack, dev_param_stack, stack_size,
+        result = acc_opencl_sbatchmm(host_param_stack, dev_param_stack, stack_size,
           (const float*)dev_a_data, (const float*)dev_b_data, (float*)dev_c_data,
           m_max, n_max, k_max, max_kernel_dim, stream);
       } break;

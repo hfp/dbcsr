@@ -150,13 +150,11 @@ extern cl_context acc_opencl_context;
 #endif
 
 /**
- * Read source file or buffer[0] (if source is NULL), and build array of strings (buffer)
- * with line-wise content.The content is instantiated such that type replaces %s and
- * params replace %i (in order). Returns number processed lines, and if non-zero
- * buffer[0] shall be released by the caller (free).
+ * Reads source file or buffer[0] (if source is NULL), and builds an array of strings
+ * with line-wise content (buffer). Returns the number of processed lines, and when
+ * non-zero, buffer[0] shall be released by the caller (free).
  */
-int acc_opencl_template(FILE* source, char* buffer[], int max_nlines, int skip_lines,
-  const char* type, const int params[], int nparams);
+int acc_opencl_source(FILE* source, char* buffer[], int max_nlines, int cleanup);
 
 #if defined(__cplusplus)
 }

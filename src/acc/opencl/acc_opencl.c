@@ -241,89 +241,58 @@ int acc_set_active_device(int device_id)
 }
 
 
-int acc_opencl_template(FILE* source, char* lines[], int max_nlines, int skip_lines,
-  const char* type, const int params[], int nparams)
+int acc_opencl_source(FILE* source, char* lines[], int max_nlines, int cleanup)
 {
   int nlines = 0;
-  if  (((NULL != source || (0 < max_nlines && NULL != lines[0])))
-    && ((NULL != lines && 0 < max_nlines) || 0 >= max_nlines)
-    && ((NULL != params && 0 < nparams) || 0 >= nparams)
-    && ((NULL != type && 0 != *type) || NULL == type)
-    && ((0 <= skip_lines)))
+  if  ((NULL != lines && 0 < max_nlines)
+    && (NULL != source || NULL != lines[0]))
   {
-    if (0 < max_nlines) {
-      char *const buffer = (char*)malloc(max_nlines * ACC_OPENCL_MAXLINELEN);
-      char format[ACC_OPENCL_MAXLINELEN], *line = lines[0];
-      const int* param = params;
-      lines[0] = buffer;
-      while (nlines < max_nlines && NULL != lines[nlines]
-        && (NULL == source || NULL != fgets(lines[nlines], ACC_OPENCL_MAXLINELEN, source)))
-      {
-        if (NULL == source) {
-          char* end = strchr(line, '\n');
-          if (NULL == end) end = strchr(line, '\0');
-          if (NULL != end) {
-            const int size = end - line;
-            memcpy(lines[nlines], line, size);
-            lines[nlines][size+0] = '\n';
-            lines[nlines][size+1] = '\0';
-            line += size + 1;
-          }
-        }
-        if (0 == skip_lines) {
-          char* subst = ((NULL != type || 0 < nparams) ? strchr(lines[nlines], '%') : NULL);
-          size_t size = strlen(lines[nlines]) + 1;
-          int next = nlines + 1, offset;
-          while (NULL != subst) {
-            const int len = subst - lines[nlines] + 2;
-            const char c = lines[nlines][len];
-            if (NULL != type && 's' == subst[1]) {
-              memcpy(format, lines[nlines], size);
-              format[len] = '\0';
-              offset = ACC_OPENCL_SNPRINTF(lines[nlines], ACC_OPENCL_MAXLINELEN, format, type);
-              type = NULL;
-            }
-            else if (0 < nparams && 'i' == subst[1]) {
-              memcpy(format, lines[nlines], size);
-              format[len] = '\0';
-              offset = ACC_OPENCL_SNPRINTF(lines[nlines], ACC_OPENCL_MAXLINELEN, format, *param);
-              --nparams;
-              ++param;
-            }
-            else { /* unexpected placeholder */
-              subst = NULL;
-              offset = 0;
-            }
-            if (0 < offset && offset < ACC_OPENCL_MAXLINELEN) { /* try next */
-              format[len] = c;
-              memcpy(lines[nlines] + offset, format + len, size - len);
-              subst = ((NULL != type || 0 < nparams) ? strchr(lines[nlines] + offset, '%') : NULL);
-              size = offset + size - len;
-            }
-            else if (0 != offset) { /* error */
-              if (NULL != source) free(lines[0]);
-              lines[0] = NULL;
-              subst = NULL;
-              next = 0;
-            }
-          }
-          if (next != nlines) { /* no error */
-            assert(NULL != lines[0]);
-            if (1 < size || '\0' != *lines[nlines]) {
-              if (next < max_nlines) lines[next] = lines[nlines] + size;
-              nlines = next;
-            }
-            else break;
-          }
-        }
-        else { /* skip line */
-          --skip_lines;
-        }
+    char *input = (NULL != source ? ((char*)malloc(max_nlines * ACC_OPENCL_MAXLINELEN)) : lines[0]);
+    int cleanup_begin = cleanup;
+    while (nlines < max_nlines && NULL != input && (NULL == source
+      || NULL != fgets(input, ACC_OPENCL_MAXLINELEN, source)))
+    {
+      char *const begin = input, *end = strchr(input, '\n');
+      int inc = 1;
+      lines[nlines] = input;
+      if (NULL != source) {
+        input += ACC_OPENCL_MAXLINELEN;
+        if (NULL != end) *end = '\0';
       }
+      else if (NULL != end) {
+        input = end + 1;
+        *end = '\0';
+      }
+      else input = NULL;
+      if (0 != cleanup) {
+        const char *const line = lines[nlines] + strspn(lines[nlines], " \t");
+        size_t len = strlen(line);
+        if (0 == len) inc = 0;
+        else if (2 <= len) {
+          if ('/' == line[0] && '/' == line[1]) inc = 0;
+          else {
+            end = strstr(line, "*/");
+            if ('/' == line[0] && '*' == line[1]) {
+              ++cleanup_begin;
+              inc = 0;
+            }
+            if (NULL != end && '\0' == end[2+strspn(end + 2, " \t")]) {
+              --cleanup_begin;
+              inc = 0;
+            }
+          }
+        }
+        if (cleanup < cleanup_begin) inc = 0;
+        if (0 == inc && 0 == nlines && NULL != source) input = begin;
+      }
+      nlines += inc;
     }
   }
   if (0 < max_nlines && NULL != lines) {
     lines[nlines] = NULL; /* terminator */
+  }
+  else if (0 == nlines && NULL != source) {
+    free(lines[nlines]);
   }
   return nlines;
 }

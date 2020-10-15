@@ -24,6 +24,11 @@ int acc_opencl_dbatchtrans(const libsmm_acc_stackdesc_t* dev_trs_stack, int offs
   key.m = m;
   key.n = n;
   key.s = ACC_OPENCL_MAX(m*n, s);
+  cl_kernel kernel = (cl_kernel)libxsmm_xdispatch(&key, sizeof(key));
+  if (NULL == kernel) {
+    /* TODO: create kernel here */
+    libxsmm_xregister(&key, sizeof(key), sizeof(kernel), kernel);
+  }
   return result;
 }
 

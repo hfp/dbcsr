@@ -48,11 +48,11 @@ endif
 .PHONE: all
 all: acc_opencl_smm_test
 
-acc_opencl_smm_test: acc_opencl_smm_test.o dbcsr_opencl_smm.a ../opencl/dbcsr_opencl.a $(LIBXSMMROOT)/lib/libxsmm.a
+acc_opencl_smm_test: acc_opencl_smm_test.o dbcsr_opencl_smm.a ../opencl/dbcsr_opencl.a
 ifneq (Darwin,$(shell uname))
-	$(CC) $(LDFLAGS) -o $@ $^ -lOpenCL
+	$(CC) $(LDFLAGS) -o $@ $^ -lOpenCL          -L$(LIBXSMMROOT)/lib -lxsmm -lxsmmnoblas -ldl -lm
 else
-	$(CC) $(LDFLAGS) -o $@ $^ -framework OpenCL
+	$(CC) $(LDFLAGS) -o $@ $^ -framework OpenCL -L$(LIBXSMMROOT)/lib -lxsmm -lxsmmnoblas -ldl -lm
 endif
 
 dbcsr_opencl_smm.a: $(OBJFILES)

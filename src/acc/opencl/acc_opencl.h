@@ -142,16 +142,17 @@ extern cl_context acc_opencl_context;
 
 /** Get active device (can be thread-specific). */
 int acc_opencl_device(cl_device_id* device);
-
 /**
- * Reads source file or buffer[0] (if source is NULL), and builds an array of strings
- * with line-wise content (buffer). Returns the number of processed lines, and when
- * non-zero, buffer[0] shall be released by the caller (free).
+ * Reads source file or lines[0] (if source is NULL), and builds an array of strings
+ * with line-wise content (lines). Returns the number of processed lines, and when
+ * non-zero, lines[0] shall be released by the caller (free).
  */
-int acc_opencl_source(FILE* source, char* buffer[], int max_nlines, int cleanup);
-
+int acc_opencl_source(FILE* source, char* lines[], int max_nlines, int cleanup);
 /** Get preferred multiple of the size of the workgroup (kernel-specific). */
 int acc_opencl_wgsize(cl_kernel kernel, size_t* preferred_multiple);
+/** Build kernel function with given name from source using given build_options. */
+int acc_opencl_kernel(const char* source[], const char* build_options, const char* name,
+  cl_kernel* kernel);
 
 #if defined(__cplusplus)
 }

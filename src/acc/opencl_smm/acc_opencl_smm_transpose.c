@@ -41,6 +41,7 @@ int acc_opencl_dbatchtrans(const int* dev_trs_stack, int offset, int stack_size,
     }
     config = (config_t*)libxsmm_xregister(&key, sizeof(key), sizeof(c), &c);
   }
+  assert(NULL != config);
   ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 0, sizeof(cl_mem), ACC_OPENCL_MEM(dev_trs_stack)),
     "failed to set batch-list argument of transpose kernel", result);
   ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 1, sizeof(int), &offset),

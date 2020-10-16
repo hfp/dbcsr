@@ -4,17 +4,12 @@ OBJFILES := $(SRCFILES:.c=.o)
 
 INTEL ?= 0
 IBM ?= 0
-DEV ?= 0
 
 CFLAGS := \
   -std=c89 -Wall -Wextra -pedantic \
   -Wno-variadic-macros \
   -D__OPENCL \
   $(NULL)
-
-ifneq (0,$(DEV))
-  CFLAGS += -Wno-unused-parameter
-endif
 
 ifneq (0,$(INTEL))
 ifeq (1,$(INTEL))

@@ -28,12 +28,12 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
   if (0 != stack_size) {
     switch (datatype) {
       case dbcsr_type_real_8: {
-        result = acc_opencl_dbatchtrans((const libsmm_acc_stackdesc_t*)dev_trs_stack,
-          offset, stack_size, (double*)dev_data, m, n, max_kernel_dim, stream);
+        result = acc_opencl_dbatchtrans(dev_trs_stack, offset, stack_size,
+          (double*)dev_data, m, n, max_kernel_dim, stream);
       } break;
       case dbcsr_type_real_4: {
-        result = acc_opencl_sbatchtrans((const libsmm_acc_stackdesc_t*)dev_trs_stack,
-          offset, stack_size, (float*)dev_data, m, n, max_kernel_dim, stream);
+        result = acc_opencl_sbatchtrans(dev_trs_stack, offset, stack_size,
+          (float*)dev_data, m, n, max_kernel_dim, stream);
       } break;
       default: {
         result = EXIT_FAILURE;
@@ -50,20 +50,20 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
 {
   int result = EXIT_SUCCESS;
   assert((NULL != dev_param_stack && NULL != dev_a_data && NULL != dev_b_data && NULL != dev_c_data) || 0 == stack_size);
-  assert((nparams * sizeof(int)) == sizeof(libsmm_acc_stackdesc_t));
+  assert((nparams * sizeof(int)) == sizeof(libsmm_acc_smmstack_t));
   if (0 != stack_size && def_mnk/*homogeneous*/) {
     switch (datatype) {
       case dbcsr_type_real_8: {
         result = acc_opencl_dbatchmm(
-          (const libsmm_acc_stackdesc_t*)host_param_stack,
-          (const libsmm_acc_stackdesc_t*)dev_param_stack, stack_size,
+          (const libsmm_acc_smmstack_t*)host_param_stack,
+          (const libsmm_acc_smmstack_t*)dev_param_stack, stack_size,
           (const double*)dev_a_data, (const double*)dev_b_data, (double*)dev_c_data,
           m_max, n_max, k_max, max_kernel_dim, stream);
       } break;
       case dbcsr_type_real_4: {
         result = acc_opencl_sbatchmm(
-          (const libsmm_acc_stackdesc_t*)host_param_stack,
-          (const libsmm_acc_stackdesc_t*)dev_param_stack, stack_size,
+          (const libsmm_acc_smmstack_t*)host_param_stack,
+          (const libsmm_acc_smmstack_t*)dev_param_stack, stack_size,
           (const float*)dev_a_data, (const float*)dev_b_data, (float*)dev_c_data,
           m_max, n_max, k_max, max_kernel_dim, stream);
       } break;

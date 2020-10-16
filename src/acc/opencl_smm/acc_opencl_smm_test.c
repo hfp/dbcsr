@@ -16,7 +16,7 @@ int main(int argc, char* argv[])
   int stack_size = 100, offset = 0;
   void *stream = NULL;
 
-  libsmm_acc_stackdesc_t *dev_trs_stack = NULL;
+  int* dev_trs_stack = NULL;
   double *dev_data = NULL;
   int m = 23, n = 23;
 

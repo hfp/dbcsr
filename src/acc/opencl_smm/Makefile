@@ -1,11 +1,21 @@
-CFLAGS = -std=c89 -Wall -Wextra -pedantic -Wno-variadic-macros -D__OPENCL -D__LIBXSMM
-INCFILES = $(wildcard *.h*)
-SRCFILES = $(wildcard *.c*)
-OBJFILES = $(SRCFILES:.c=.o)
+INCFILES := $(wildcard *.h*)
+SRCFILES := $(wildcard *.c*)
+OBJFILES := $(SRCFILES:.c=.o)
 
 LIBXSMMROOT ?= $(wildcard ../../../../libxsmm)
 INTEL ?= 0
 IBM ?= 0
+DEV ?= 0
+
+CFLAGS := \
+  -std=c89 -Wall -Wextra -pedantic \
+  -Wno-variadic-macros -Wno-long-long \
+  -D__OPENCL -D__LIBXSMM -I$(LIBXSMMROOT)/include \
+  $(NULL)
+
+ifneq (0,$(DEV))
+  CFLAGS += -Wno-unused-parameter
+endif
 
 ifneq (0,$(INTEL))
 ifeq (1,$(INTEL))
@@ -50,7 +60,7 @@ all: acc_opencl_smm_test
 
 acc_opencl_smm_test: acc_opencl_smm_test.o dbcsr_opencl_smm.a ../opencl/dbcsr_opencl.a
 ifneq (Darwin,$(shell uname))
-	$(CC) $(LDFLAGS) -o $@ $^ -lOpenCL          -L$(LIBXSMMROOT)/lib -lxsmm -lxsmmnoblas -ldl -lm
+	$(CC) $(LDFLAGS) -o $@ $^ -lOpenCL -L$(LIBXSMMROOT)/lib -lxsmm -lxsmmnoblas -ldl -lm
 else
 	$(CC) $(LDFLAGS) -o $@ $^ -framework OpenCL -L$(LIBXSMMROOT)/lib -lxsmm -lxsmmnoblas -ldl -lm
 endif

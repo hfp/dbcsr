@@ -12,7 +12,9 @@
 #include "../acc_libsmm.h"
 #include "../opencl/acc_opencl.h"
 
-#if !defined(__LIBXSMM)
+#if defined(__LIBXSMM)
+# include <libxsmm.h>
+#else
 # error OpenCL backend currently depends on LIBXSMM!
 #endif
 

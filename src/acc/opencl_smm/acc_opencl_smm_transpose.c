@@ -18,20 +18,23 @@ int acc_opencl_dbatchtrans(const libsmm_acc_stackdesc_t* dev_trs_stack, int offs
   double* dev_data, int m, int n, int max_kernel_dim, void* stream)
 {
   int result = EXIT_FAILURE; /* TODO */
-  const char *const envs = getenv("ACC_OPENCL_TRANS_S");
-  const int s = (NULL == envs ? 0/*TODO*/ : atoi(envs));
   struct { int m, n; } key;
-  key.m = m;
-  key.n = n;
-  cl_kernel kernel = (cl_kernel)libxsmm_xdispatch(&key, sizeof(key));
+  cl_kernel kernel;
+  key.m = m; key.n = n; /* initialize key */
+  kernel = *(cl_kernel*)libxsmm_xdispatch(&key, sizeof(key));
   if (NULL == kernel) {
+    const char *const envs = getenv("ACC_OPENCL_TRANS_S");
+    const int s = (NULL == envs ? 0/*TODO*/ : atoi(envs));
     /* TODO: create kernel here; use ACC_OPENCL_MAX(m*n, s) */
-    libxsmm_xregister(&key, sizeof(key), sizeof(kernel), kernel);
+    libxsmm_xregister(&key, sizeof(key), sizeof(kernel), &kernel);
   }
-  clSetKernelArg(kernel, 0, sizeof(cl_mem), ACC_OPENCL_MEM(dev_trs_stack));
+  ACC_OPENCL_CHECK(clSetKernelArg(kernel, 0, sizeof(cl_mem), ACC_OPENCL_MEM(dev_trs_stack)),
+    "failed to set batch-list argument of transpose kernel", result);
   assert(0 == offset % sizeof(libsmm_acc_stackdesc_t));
-  clSetKernelArg(kernel, 1, sizeof(int), &offset);
-  clSetKernelArg(kernel, 2, sizeof(cl_mem), ACC_OPENCL_MEM(dev_data));
+  ACC_OPENCL_CHECK(clSetKernelArg(kernel, 1, sizeof(int), &offset),
+    "failed to set offset argument of transpose kernel", result);
+  ACC_OPENCL_CHECK(clSetKernelArg(kernel, 2, sizeof(cl_mem), ACC_OPENCL_MEM(dev_data)),
+    "failed to set matix-data argument of transpose kernel", result);
   return result;
 }
 

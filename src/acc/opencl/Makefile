@@ -2,6 +2,7 @@ INCFILES := $(wildcard *.h*)
 SRCFILES := $(wildcard *.c*)
 OBJFILES := $(SRCFILES:.c=.o)
 
+UNAME := $(shell uname)
 INTEL ?= 0
 IBM ?= 0
 
@@ -10,6 +11,10 @@ CFLAGS := \
   -Wno-variadic-macros \
   -D__OPENCL \
   $(NULL)
+
+ifeq (Darwin,$(UNAME))
+  OMP ?= 0
+endif
 
 ifneq (0,$(INTEL))
 ifeq (1,$(INTEL))
@@ -54,14 +59,14 @@ all: dbcsr_test_acc acc_opencl_test
 
 # /usr/lib/x86_64-linux-gnu/libOpenCL.so.1
 dbcsr_test_acc: dbcsr_test_acc.o dbcsr_opencl.a
-ifneq (Darwin,$(shell uname))
+ifneq (Darwin,$(UNAME))
 	$(CC) $(LDFLAGS) -o $@ $^ -lOpenCL
 else
 	$(CC) $(LDFLAGS) -o $@ $^ -framework OpenCL
 endif
 
 acc_opencl_test: acc_opencl_test.o dbcsr_opencl.a
-ifneq (Darwin,$(shell uname))
+ifneq (Darwin,$(UNAME))
 	$(CC) $(LDFLAGS) -o $@ $^ -lOpenCL
 else
 	$(CC) $(LDFLAGS) -o $@ $^ -framework OpenCL

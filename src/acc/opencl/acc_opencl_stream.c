@@ -43,7 +43,6 @@ int acc_stream_create(void** stream_p, const char* name, int priority)
   if (NULL != acc_opencl_context) {
     cl_command_queue queue = NULL;
     cl_device_id device_id = NULL;
-    size_t n = 0;
 #if defined(CL_QUEUE_PRIORITY_KHR)
     assert(ACC_OPENCL_STREAM_PRIORITY_INVALID == priority ||
       (CL_QUEUE_PRIORITY_HIGH_KHR <= priority && CL_QUEUE_PRIORITY_LOW_KHR >= priority));
@@ -52,9 +51,7 @@ int acc_stream_create(void** stream_p, const char* name, int priority)
 #else
     ACC_OPENCL_UNUSED(priority);
 #endif
-    ACC_OPENCL_CHECK(clGetContextInfo(acc_opencl_context, CL_CONTEXT_DEVICES,
-      sizeof(cl_device_id), &device_id, &n), "failed to retrieve id of active device", result);
-    assert(EXIT_SUCCESS != result || sizeof(cl_device_id) == n/*single-device context*/);
+    /*if (EXIT_SUCCESS == result)*/ result = acc_opencl_device(&device_id);
     if (EXIT_SUCCESS == result) {
 #if defined(CL_QUEUE_PRIORITY_KHR)
       if (ACC_OPENCL_STREAM_PRIORITY_INVALID != priority) {
@@ -126,8 +123,7 @@ int acc_stream_priority_range(int* least, int* greatest)
     cl_device_id active_id = NULL;
     size_t n = 0;
     assert(0 < acc_opencl_ndevices);
-    ACC_OPENCL_CHECK(clGetContextInfo(acc_opencl_context, CL_CONTEXT_DEVICES,
-      sizeof(cl_device_id), &active_id, &n), "failed to retrieve id of active device", result);
+    if (EXIT_SUCCESS == result) result = acc_opencl_device(&active_id);
     ACC_OPENCL_CHECK(clGetDeviceInfo(active_id, CL_DEVICE_PLATFORM,
       sizeof(cl_platform_id), &platform, NULL), "failed to retrieve device platform", result);
     ACC_OPENCL_CHECK(clGetPlatformInfo(platform, CL_PLATFORM_EXTENSIONS,

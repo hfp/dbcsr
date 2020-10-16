@@ -196,6 +196,25 @@ int acc_get_ndevices(int* ndevices)
 }
 
 
+int acc_opencl_device(cl_device_id* device)
+{
+  int result = EXIT_SUCCESS;
+  assert(NULL != device);
+  if (NULL != acc_opencl_context) {
+#if !defined(NDEBUG)
+    size_t n = 0;
+#endif
+    ACC_OPENCL_CHECK(clGetContextInfo(acc_opencl_context, CL_CONTEXT_DEVICES,
+      sizeof(cl_device_id), &device, &n), "failed to retrieve id of active device", result);
+    assert(EXIT_SUCCESS != result || sizeof(cl_device_id) == n/*single-device context*/);
+  }
+  else {
+    *device = NULL;
+  }
+  return result;
+}
+
+
 int acc_set_active_device(int device_id)
 {
   cl_int result = (((0 <= device_id && device_id < acc_opencl_ndevices) ||
@@ -204,11 +223,7 @@ int acc_set_active_device(int device_id)
   if (0 < acc_opencl_ndevices) {
     cl_device_id active_id = NULL;
     size_t n = 0;
-    if (NULL != acc_opencl_context) {
-      ACC_OPENCL_CHECK(clGetContextInfo(acc_opencl_context, CL_CONTEXT_DEVICES,
-        sizeof(cl_device_id), &active_id, &n), "failed to retrieve id of active device", result);
-      assert(EXIT_SUCCESS != result || sizeof(cl_device_id) == n/*single-device context*/);
-    }
+    if (EXIT_SUCCESS == result) result = acc_opencl_device(&active_id);
     if (acc_opencl_devices[device_id] != active_id) {
       if (NULL != acc_opencl_context) {
         ACC_OPENCL_CHECK(clReleaseContext(acc_opencl_context),
@@ -295,6 +310,19 @@ int acc_opencl_source(FILE* source, char* lines[], int max_nlines, int cleanup)
     free(lines[nlines]);
   }
   return nlines;
+}
+
+
+int acc_opencl_wgsize(cl_kernel kernel, size_t* preferred_multiple)
+{
+  cl_device_id active_id = NULL;
+  int result = acc_opencl_device(&active_id);
+  assert(NULL != preferred_multiple);
+  ACC_OPENCL_CHECK(clGetKernelWorkGroupInfo(kernel, active_id,
+    CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE,
+    sizeof(size_t), preferred_multiple, NULL),
+    "failed to query preferred multiple of size of workgroup", result);
+  return result;
 }
 
 #if defined(__cplusplus)

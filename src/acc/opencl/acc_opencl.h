@@ -80,6 +80,9 @@
 #define ACC_OPENCL_EXPAND(SYMBOL) SYMBOL
 #define ACC_OPENCL_STRINGIFY2(SYMBOL) #SYMBOL
 #define ACC_OPENCL_STRINGIFY(SYMBOL) ACC_OPENCL_STRINGIFY2(SYMBOL)
+
+#define ACC_OPENCL_UPDIV(N, MULT) (((N) + ((MULT) - 1)) / (MULT))
+#define ACC_OPENCL_UP(N, MULT) (ACC_OPENCL_UPDIV(N, MULT) * (MULT))
 #define ACC_OPENCL_UP2(N, NPOT) ((((uint64_t)N) + ((NPOT) - 1)) & ~((NPOT) - 1))
 #define ACC_OPENCL_UNUSED(VAR) (void)(VAR)
 #define ACC_OPENCL_MAX(A, B) (((A) > (B)) ? (A) : (B))
@@ -151,12 +154,17 @@ extern cl_context acc_opencl_context;
 # pragma omp threadprivate(acc_opencl_context)
 #endif
 
+/** Get active device (can be thread-specific). */
+int acc_opencl_device(cl_device_id* device);
+
 /**
  * Reads source file or buffer[0] (if source is NULL), and builds an array of strings
  * with line-wise content (buffer). Returns the number of processed lines, and when
  * non-zero, buffer[0] shall be released by the caller (free).
  */
 int acc_opencl_source(FILE* source, char* buffer[], int max_nlines, int cleanup);
+
+int acc_opencl_wgsize(cl_kernel kernel, size_t* preferred_multiple);
 
 #if defined(__cplusplus)
 }

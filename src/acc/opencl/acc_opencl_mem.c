@@ -296,10 +296,7 @@ int acc_dev_mem_info(size_t* mem_free, size_t* mem_total)
   if (NULL != acc_opencl_context) {
     cl_device_id active_id = NULL;
     cl_ulong cl_size_total = 0;
-    size_t n = 0;
-    ACC_OPENCL_CHECK(clGetContextInfo(acc_opencl_context, CL_CONTEXT_DEVICES,
-      sizeof(cl_device_id), &active_id, &n), "failed to retrieve id of active device", result);
-    assert(EXIT_SUCCESS != result || sizeof(cl_device_id) == n/*single-device context*/);
+    if (EXIT_SUCCESS == result) result = acc_opencl_device(&active_id);
     ACC_OPENCL_CHECK(clGetDeviceInfo(active_id, CL_DEVICE_GLOBAL_MEM_SIZE,
       sizeof(cl_ulong), &cl_size_total, NULL), "failed to retrieve amount of device memory", result);
     assert(0 < acc_opencl_ndevices);

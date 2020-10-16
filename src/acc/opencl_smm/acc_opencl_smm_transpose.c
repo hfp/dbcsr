@@ -43,14 +43,14 @@ int acc_opencl_dbatchtrans(const int* dev_trs_stack, int offset, int stack_size,
   }
   assert(NULL != config);
   ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 0, sizeof(cl_mem), ACC_OPENCL_MEM(dev_trs_stack)),
-    "failed to set batch-list argument of transpose kernel", result);
+    "set batch-list argument of transpose kernel", result);
   ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 1, sizeof(int), &offset),
-    "failed to set offset argument of transpose kernel", result);
+    "set offset argument of transpose kernel", result);
   ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 2, sizeof(cl_mem), ACC_OPENCL_MEM(dev_data)),
-    "failed to set matix-data argument of transpose kernel", result);
+    "set matix-data argument of transpose kernel", result);
   ACC_OPENCL_CHECK(clEnqueueNDRangeKernel(*ACC_OPENCL_STREAM(stream), config->kernel, 1/*work_dim*/,
     NULL, &global_work_size, &config->nthreads, 0, NULL, NULL),
-    "failed to launch transpose kernel", result);
+    "launch transpose kernel", result);
   return result;
 }
 

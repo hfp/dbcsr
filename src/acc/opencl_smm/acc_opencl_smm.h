@@ -36,9 +36,9 @@
 extern "C" {
 #endif
 
-int acc_opencl_dbatchtrans(const libsmm_acc_stackdesc_t* dev_trs_stack, int offset, int nblks,
+int acc_opencl_dbatchtrans(const libsmm_acc_stackdesc_t* dev_trs_stack, int offset, int stack_size,
   double* dev_data, int m, int n, int max_kernel_dim, void* stream);
-int acc_opencl_sbatchtrans(const libsmm_acc_stackdesc_t* dev_trs_stack, int offset, int nblks,
+int acc_opencl_sbatchtrans(const libsmm_acc_stackdesc_t* dev_trs_stack, int offset, int stack_size,
   float* dev_data, int m, int n, int max_kernel_dim, void* stream);
 
 int acc_opencl_dbatchmm(const libsmm_acc_stackdesc_t* host_param_stack,

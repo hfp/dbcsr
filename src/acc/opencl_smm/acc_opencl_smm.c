@@ -20,19 +20,19 @@ acc_bool_t libsmm_acc_is_thread_safe(void)
 }
 
 
-int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int nblks,
+int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
   void* dev_data, libsmm_acc_data_t datatype, int m, int n, int max_kernel_dim, void* stream)
 {
   int result = EXIT_SUCCESS;
-  assert((NULL != dev_trs_stack && NULL != dev_data) || 0 == nblks);
-  if (0 != nblks) {
+  assert((NULL != dev_trs_stack && NULL != dev_data) || 0 == stack_size);
+  if (0 != stack_size) {
     switch (datatype) {
       case dbcsr_type_real_8: {
-        result = acc_opencl_dbatchtrans(dev_trs_stack, offset, nblks,
+        result = acc_opencl_dbatchtrans(dev_trs_stack, offset, stack_size,
           (double*)dev_data, m, n, max_kernel_dim, stream);
       } break;
       case dbcsr_type_real_4: {
-        result = acc_opencl_sbatchtrans(dev_trs_stack, offset, nblks,
+        result = acc_opencl_sbatchtrans(dev_trs_stack, offset, stack_size,
           (float*)dev_data, m, n, max_kernel_dim, stream);
       } break;
       default: {

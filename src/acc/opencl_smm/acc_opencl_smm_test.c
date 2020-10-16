@@ -13,14 +13,14 @@ int main(int argc, char* argv[])
 {
   int result = EXIT_SUCCESS;
   const int max_kernel_dim = 80;
-  int offset = 0, nblks = 100;
+  int stack_size = 100, offset = 0;
   void *stream = NULL;
 
   libsmm_acc_stackdesc_t *dev_trs_stack = NULL;
   double *dev_data = NULL;
   int m = 23, n = 23;
 
-  result = acc_opencl_dbatchtrans(dev_trs_stack, offset, nblks,
+  result = acc_opencl_dbatchtrans(dev_trs_stack, offset, stack_size,
     dev_data, m, n, max_kernel_dim, stream);
 
   return result;

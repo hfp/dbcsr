@@ -121,7 +121,6 @@ int acc_stream_priority_range(int* least, int* greatest)
     char buffer[ACC_OPENCL_BUFFER_MAXSIZE];
     cl_platform_id platform = NULL;
     cl_device_id active_id = NULL;
-    size_t n = 0;
     assert(0 < acc_opencl_ndevices);
     if (EXIT_SUCCESS == result) result = acc_opencl_device(&active_id);
     ACC_OPENCL_CHECK(clGetDeviceInfo(active_id, CL_DEVICE_PLATFORM,

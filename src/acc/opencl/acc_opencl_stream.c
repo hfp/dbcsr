@@ -89,7 +89,7 @@ int acc_stream_create(void** stream_p, const char* name, int priority)
     }
     else {
       assert(CL_SUCCESS != result);
-      ACC_OPENCL_ERROR("failed to create command queue", result);
+      ACC_OPENCL_ERROR("create command queue", result);
       *stream_p = NULL;
     }
   }
@@ -102,7 +102,7 @@ int acc_stream_destroy(void* stream)
   int result = EXIT_SUCCESS;
   if (NULL != stream) {
     ACC_OPENCL_CHECK(clReleaseCommandQueue(*ACC_OPENCL_STREAM(stream)),
-      "failed to release command queue", result);
+      "release command queue", result);
 #if defined(ACC_OPENCL_STREAM_NOALLOC)
     assert(sizeof(void*) >= sizeof(cl_command_queue));
 #else
@@ -124,9 +124,9 @@ int acc_stream_priority_range(int* least, int* greatest)
     assert(0 < acc_opencl_ndevices);
     if (EXIT_SUCCESS == result) result = acc_opencl_device(&active_id);
     ACC_OPENCL_CHECK(clGetDeviceInfo(active_id, CL_DEVICE_PLATFORM,
-      sizeof(cl_platform_id), &platform, NULL), "failed to retrieve device platform", result);
+      sizeof(cl_platform_id), &platform, NULL), "retrieve platform associated with active device", result);
     ACC_OPENCL_CHECK(clGetPlatformInfo(platform, CL_PLATFORM_EXTENSIONS,
-      ACC_OPENCL_BUFFER_MAXSIZE, buffer, NULL), "failed to retrieve platform extensions", result);
+      ACC_OPENCL_BUFFER_MAXSIZE, buffer, NULL), "retrieve platform extensions", result);
     if (EXIT_SUCCESS == result) {
       if (NULL != strstr(buffer, "cl_khr_priority_hints")) {
         if (NULL != least) *least = CL_QUEUE_PRIORITY_LOW_KHR;
@@ -156,7 +156,7 @@ int acc_stream_sync(void* stream)
   int result = EXIT_SUCCESS;
   assert(NULL != stream);
   ACC_OPENCL_CHECK(clFinish(*ACC_OPENCL_STREAM(stream)),
-    "failed to synchronize stream", result);
+    "synchronize stream", result);
   ACC_OPENCL_RETURN(result);
 }
 
@@ -166,7 +166,7 @@ int acc_stream_wait_event(void* stream, void* event)
   int result = EXIT_SUCCESS;
   assert(NULL != stream && NULL != event);
   ACC_OPENCL_CHECK(ACC_OPENCL_WAIT_EVENT(*ACC_OPENCL_STREAM(stream), ACC_OPENCL_EVENT(event)),
-    "failed to wait for an event", result);
+    "wait for an event", result);
   ACC_OPENCL_RETURN(result);
 }
 

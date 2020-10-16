@@ -96,19 +96,19 @@ int acc_host_mem_allocate(void** host_mem, size_t nbytes, void* stream)
       }
       else {
         assert(CL_SUCCESS != result);
-        ACC_OPENCL_ERROR("failed to map buffer info", result);
+        ACC_OPENCL_ERROR("map buffer info", result);
         *host_mem = NULL;
       }
     }
     else {
       assert(CL_SUCCESS != result);
-      ACC_OPENCL_ERROR("failed to map host buffer", result);
+      ACC_OPENCL_ERROR("map host buffer", result);
       *host_mem = NULL;
     }
   }
   else {
     assert(CL_SUCCESS != result);
-    ACC_OPENCL_ERROR("failed to create host buffer", result);
+    ACC_OPENCL_ERROR("create host buffer", result);
     *host_mem = NULL;
   }
   ACC_OPENCL_RETURN(result);
@@ -125,12 +125,12 @@ int acc_host_mem_deallocate(void* host_mem, void* stream)
     const cl_command_queue queue = *ACC_OPENCL_STREAM(stream);
 #if defined(ACC_OPENCL_MEM_MAPMULTI)
     ACC_OPENCL_CHECK(clEnqueueUnmapMemObject(queue, meminfo->buffer, meminfo,
-      0, NULL, NULL), "failed to unmap memory info", result);
+      0, NULL, NULL), "unmap memory info", result);
 #endif
     ACC_OPENCL_CHECK(clEnqueueUnmapMemObject(queue, info.buffer, info.mapped,
-      0, NULL, NULL), "failed to unmap host memory", result);
+      0, NULL, NULL), "unmap host memory", result);
     ACC_OPENCL_CHECK(clReleaseMemObject(info.buffer),
-      "failed to release host memory buffer", result);
+      "release host memory buffer", result);
   }
   ACC_OPENCL_RETURN(result);
 }
@@ -160,7 +160,7 @@ int acc_dev_mem_allocate(void** dev_mem, size_t nbytes)
   }
   else {
     assert(CL_SUCCESS != result);
-    ACC_OPENCL_ERROR("failed to create device buffer", result);
+    ACC_OPENCL_ERROR("create device buffer", result);
     *dev_mem = NULL;
   }
   ACC_OPENCL_RETURN(result);
@@ -172,7 +172,7 @@ int acc_dev_mem_deallocate(void* dev_mem)
   int result = EXIT_SUCCESS;
   if (NULL != dev_mem) {
     ACC_OPENCL_CHECK(clReleaseMemObject(*ACC_OPENCL_MEM(dev_mem)),
-      "failed to release device memory buffer", result);
+      "release device memory buffer", result);
 #if defined(ACC_OPENCL_MEM_NOALLOC)
     assert(sizeof(void*) >= sizeof(cl_mem));
 #else
@@ -203,7 +203,7 @@ int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t nbytes, void* str
   if (NULL != host_mem && NULL != dev_mem && 0 != nbytes) {
     ACC_OPENCL_CHECK(clEnqueueWriteBuffer(*ACC_OPENCL_STREAM(stream), *ACC_OPENCL_MEM(dev_mem),
       CL_FALSE/*non-blocking*/, 0/*offset*/, nbytes, host_mem, 0, NULL, NULL),
-      "failed to enqueue h2d copy", result);
+      "enqueue h2d copy", result);
   }
   ACC_OPENCL_RETURN(result);
 }
@@ -216,7 +216,7 @@ int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t nbytes, void* str
   if (NULL != host_mem && NULL != dev_mem && 0 != nbytes) {
     ACC_OPENCL_CHECK(clEnqueueReadBuffer(*ACC_OPENCL_STREAM(stream), *ACC_OPENCL_MEM(dev_mem),
       CL_FALSE/*non-blocking*/, 0/*offset*/, nbytes, host_mem, 0, NULL, NULL),
-      "failed to enqueue d2h copy", result);
+      "enqueue d2h copy", result);
   }
   ACC_OPENCL_RETURN(result);
 }
@@ -230,7 +230,7 @@ int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t nbytes, void
     ACC_OPENCL_CHECK(clEnqueueCopyBuffer(*ACC_OPENCL_STREAM(stream),
       *ACC_OPENCL_MEM(devmem_src), *ACC_OPENCL_MEM(devmem_dst),
       0/*src_offset*/, 0/*dst_offset*/, nbytes, 0, NULL, NULL),
-      "failed to enqueue d2d copy", result);
+      "enqueue d2d copy", result);
   }
   ACC_OPENCL_RETURN(result);
 }
@@ -244,7 +244,7 @@ int acc_memset_zero(void* dev_mem, size_t offset, size_t nbytes, void* stream)
     const cl_uchar pattern = 0; /* fill with zeros */
     ACC_OPENCL_CHECK(clEnqueueFillBuffer(*ACC_OPENCL_STREAM(stream), *ACC_OPENCL_MEM(dev_mem),
       &pattern, sizeof(pattern), offset, nbytes, 0, NULL, NULL),
-      "failed to enqueue zero-filling buffer", result);
+      "enqueue zeroing kernel", result);
   }
   ACC_OPENCL_RETURN(result);
 }
@@ -298,7 +298,7 @@ int acc_dev_mem_info(size_t* mem_free, size_t* mem_total)
     cl_ulong cl_size_total = 0;
     if (EXIT_SUCCESS == result) result = acc_opencl_device(&active_id);
     ACC_OPENCL_CHECK(clGetDeviceInfo(active_id, CL_DEVICE_GLOBAL_MEM_SIZE,
-      sizeof(cl_ulong), &cl_size_total, NULL), "failed to retrieve amount of device memory", result);
+      sizeof(cl_ulong), &cl_size_total, NULL), "retrieve amount of device memory", result);
     assert(0 < acc_opencl_ndevices);
     size_total /= acc_opencl_ndevices;
     size_free  /= acc_opencl_ndevices;

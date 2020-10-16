@@ -76,10 +76,10 @@ int acc_init(void)
     cl_uint nplatforms = 0, ndevices = 0, i;
     cl_device_type type = CL_DEVICE_TYPE_ALL;
     ACC_OPENCL_CHECK(clGetPlatformIDs(0, NULL, &nplatforms),
-      "failed to query number of platforms", result);
+      "query number of platforms", result);
     ACC_OPENCL_CHECK(clGetPlatformIDs(
       nplatforms <= ACC_OPENCL_DEVICES_MAXCOUNT ? nplatforms : ACC_OPENCL_DEVICES_MAXCOUNT,
-      platforms, 0), "failed to retrieve platforms", result);
+      platforms, 0), "retrieve platform ids", result);
     if (NULL != device && '\0' != *device) {
       if (NULL != acc_opencl_stristr(device, "gpu")) type = CL_DEVICE_TYPE_GPU;
       else if (NULL != acc_opencl_stristr(device, "cpu")) type = CL_DEVICE_TYPE_CPU;
@@ -91,21 +91,21 @@ int acc_init(void)
       if (NULL != vendor && '\0' != *vendor) {
         size_t size = 0;
         ACC_OPENCL_CHECK(clGetPlatformInfo(platforms[i], CL_PLATFORM_VENDOR,
-          0, NULL, &size), "failed to query platform vendor", result);
+          0, NULL, &size), "query platform vendor", result);
         buffer[0] = '\0'; size = (size <= ACC_OPENCL_BUFFER_MAXSIZE
           ? size : ACC_OPENCL_BUFFER_MAXSIZE);
         ACC_OPENCL_CHECK(clGetPlatformInfo(platforms[i], CL_PLATFORM_VENDOR,
-          size, buffer, NULL), "failed to retrieve platform vendor", result);
+          size, buffer, NULL), "retrieve platform vendor", result);
         if (NULL == acc_opencl_stristr(buffer, vendor)) continue;
       }
       assert(acc_opencl_ndevices <= ACC_OPENCL_DEVICES_MAXCOUNT);
       ACC_OPENCL_CHECK(clGetDeviceIDs(platforms[i], type, 0, NULL, &ndevices),
-        "failed to query number of devices", result);
+        "query number of devices", result);
       n = (acc_opencl_ndevices + ndevices) < ACC_OPENCL_DEVICES_MAXCOUNT
         ? (int)ndevices : (ACC_OPENCL_DEVICES_MAXCOUNT - acc_opencl_ndevices);
       ACC_OPENCL_CHECK(clGetDeviceIDs(platforms[i], type,
         n, acc_opencl_devices + acc_opencl_ndevices, NULL),
-        "failed to retrieve devices", result);
+        "retrieve device ids", result);
       acc_opencl_ndevices += n;
     }
     assert(NULL == acc_opencl_context);
@@ -115,7 +115,7 @@ int acc_init(void)
         for (n = 0; n < acc_opencl_ndevices; ++n) {
           ACC_OPENCL_CHECK(clGetDeviceInfo(acc_opencl_devices[n],
             CL_DEVICE_TYPE, sizeof(cl_device_type), &type, NULL),
-            "failed to retrieve device type", result);
+            "retrieve device type", result);
           if (CL_DEVICE_TYPE_DEFAULT & type) break;
         }
       }
@@ -132,7 +132,7 @@ int acc_init(void)
             }
             else {
               assert(CL_SUCCESS != result);
-              ACC_OPENCL_ERROR("failed to retain context", result);
+              ACC_OPENCL_ERROR("retain context", result);
               acc_opencl_context = NULL;
             }
           }
@@ -165,12 +165,12 @@ int acc_finalize(void)
 #   pragma omp parallel
     if (context != acc_opencl_context) {
       ACC_OPENCL_CHECK(clReleaseContext(acc_opencl_context),
-        "failed to release context", result);
+        "release context", result);
       acc_opencl_context = NULL;
     }
 #endif
     ACC_OPENCL_CHECK(clReleaseContext(context),
-      "failed to release context", result);
+      "release context", result);
     acc_opencl_context = NULL;
   }
   ACC_OPENCL_RETURN(result);
@@ -205,7 +205,7 @@ int acc_opencl_device(cl_device_id* device)
     size_t n = 0;
 #endif
     ACC_OPENCL_CHECK(clGetContextInfo(acc_opencl_context, CL_CONTEXT_DEVICES,
-      sizeof(cl_device_id), &device, &n), "failed to retrieve id of active device", result);
+      sizeof(cl_device_id), &device, &n), "retrieve id of active device", result);
     assert(EXIT_SUCCESS != result || sizeof(cl_device_id) == n/*single-device context*/);
   }
   else {
@@ -227,7 +227,7 @@ int acc_set_active_device(int device_id)
     if (acc_opencl_devices[device_id] != active_id) {
       if (NULL != acc_opencl_context) {
         ACC_OPENCL_CHECK(clReleaseContext(acc_opencl_context),
-          "failed to release context", result);
+          "release context", result);
       }
       if (EXIT_SUCCESS == result) {
         cl_context_properties properties[] = {
@@ -248,7 +248,7 @@ int acc_set_active_device(int device_id)
             acc_opencl_notify, NULL/* user_data*/,
             &result);
         }
-        ACC_OPENCL_CHECK(result, "failed to create context", result);
+        ACC_OPENCL_CHECK(result, "create context", result);
       }
     }
   }
@@ -321,7 +321,7 @@ int acc_opencl_wgsize(cl_kernel kernel, size_t* preferred_multiple)
   ACC_OPENCL_CHECK(clGetKernelWorkGroupInfo(kernel, active_id,
     CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE,
     sizeof(size_t), preferred_multiple, NULL),
-    "failed to query preferred multiple of size of workgroup", result);
+    "query preferred multiple of workgroup size", result);
   return result;
 }
 

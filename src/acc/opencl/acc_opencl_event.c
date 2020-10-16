@@ -48,14 +48,14 @@ int acc_event_create(void** event_p)
     }
     else {
       assert(CL_SUCCESS != result);
-      ACC_OPENCL_ERROR("failed to set initial event state", result);
+      ACC_OPENCL_ERROR("set initial event state", result);
       clReleaseEvent(event);
       *event_p = NULL;
     }
   }
   else {
     assert(CL_SUCCESS != result);
-    ACC_OPENCL_ERROR("failed to create user-defined event", result);
+    ACC_OPENCL_ERROR("create user-defined event", result);
     *event_p = NULL;
   }
   ACC_OPENCL_RETURN(result);
@@ -67,7 +67,7 @@ int acc_event_destroy(void* event)
   int result = EXIT_SUCCESS;
   if (NULL != event) {
     ACC_OPENCL_CHECK(clReleaseEvent(*ACC_OPENCL_EVENT(event)),
-      "failed to release user-defined event", result);
+      "release user-defined event", result);
 #if defined(ACC_OPENCL_EVENT_NOALLOC)
     assert(sizeof(void*) >= sizeof(cl_event));
 #else
@@ -83,7 +83,7 @@ int acc_event_record(void* event, void* stream)
   int result = EXIT_SUCCESS;
   assert(NULL != event && NULL != stream);
   ACC_OPENCL_CHECK(ACC_OPENCL_ENQUEUE_EVENT(*ACC_OPENCL_STREAM(stream), ACC_OPENCL_EVENT(event)),
-    "failed to record event", result);
+    "record event", result);
   ACC_OPENCL_RETURN(result);
 }
 
@@ -95,7 +95,7 @@ int acc_event_query(void* event, acc_bool_t* has_occurred)
   assert(CL_COMPLETE != status);
   if (NULL != event) {
     ACC_OPENCL_CHECK(clGetEventInfo(*ACC_OPENCL_EVENT(event), CL_EVENT_COMMAND_EXECUTION_STATUS,
-      sizeof(cl_int), &status, NULL), "failed to retrieve event status", result);
+      sizeof(cl_int), &status, NULL), "retrieve event status", result);
   }
   assert(NULL != has_occurred);
   if (EXIT_SUCCESS == result) {
@@ -110,7 +110,7 @@ int acc_event_synchronize(void* event)
   int result = EXIT_SUCCESS;
   assert(NULL != event);
   ACC_OPENCL_CHECK(clWaitForEvents(1, ACC_OPENCL_EVENT(event)),
-    "failed to synchronize event", result);
+    "synchronize event", result);
   ACC_OPENCL_RETURN(result);
 }
 

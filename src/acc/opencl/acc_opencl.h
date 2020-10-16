@@ -77,22 +77,8 @@
 # define ACC_OPENCL_EVENT(A) ((cl_event*)(A))
 #endif
 
-#define ACC_OPENCL_EXPAND(SYMBOL) SYMBOL
-#define ACC_OPENCL_STRINGIFY2(SYMBOL) #SYMBOL
-#define ACC_OPENCL_STRINGIFY(SYMBOL) ACC_OPENCL_STRINGIFY2(SYMBOL)
-
-#define ACC_OPENCL_UPDIV(N, MULT) (((N) + ((MULT) - 1)) / (MULT))
-#define ACC_OPENCL_UP(N, MULT) (ACC_OPENCL_UPDIV(N, MULT) * (MULT))
 #define ACC_OPENCL_UP2(N, NPOT) ((((uint64_t)N) + ((NPOT) - 1)) & ~((NPOT) - 1))
 #define ACC_OPENCL_UNUSED(VAR) (void)(VAR)
-#define ACC_OPENCL_MAX(A, B) (((A) > (B)) ? (A) : (B))
-#define ACC_OPENCL_MIN(A, B) (((A) < (B)) ? (A) : (B))
-
-#if defined(__STDC_VERSION__) && (199901L <= __STDC_VERSION__ || defined(__GNUC__))
-# define ACC_OPENCL_SNPRINTF(S, N, ...) snprintf(S, N, __VA_ARGS__)
-#else
-# define ACC_OPENCL_SNPRINTF(S, N, ...) sprintf((S) + /*unused*/(N) * 0, __VA_ARGS__)
-#endif
 
 #if defined(_DEBUG)
 # define ACC_OPENCL_DEBUG_PRINTF(A, ...) printf(A, __VA_ARGS__)
@@ -164,6 +150,7 @@ int acc_opencl_device(cl_device_id* device);
  */
 int acc_opencl_source(FILE* source, char* buffer[], int max_nlines, int cleanup);
 
+/** Get preferred multiple of the size of the workgroup (kernel-specific). */
 int acc_opencl_wgsize(cl_kernel kernel, size_t* preferred_multiple);
 
 #if defined(__cplusplus)

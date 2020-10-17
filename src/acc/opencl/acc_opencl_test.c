@@ -15,8 +15,8 @@
 
 int main(int argc, char* argv[])
 {
-  char* buffer[ACC_OPENCL_TEST_MAXNLINES];
-  FILE *const file = fopen("../opencl_smm/kernels/acc_opencl_smm_transpose.cl", "r");
+  char* lines[ACC_OPENCL_TEST_MAXNLINES];
+  FILE *const file = acc_opencl_source_open("transpose.cl", "../opencl_smm/kernels");
   int result = EXIT_SUCCESS, nlines = 0;
   char source[] =
     "/* banner */\n"
@@ -26,37 +26,36 @@ int main(int argc, char* argv[])
     "#define S (M*N)\n"
     "#define T float";
   { 
-    buffer[0] = source;
-    nlines = acc_opencl_source(NULL, buffer,
+    lines[0] = source;
+    nlines = acc_opencl_source(NULL, lines,
       ACC_OPENCL_TEST_MAXNLINES, 1/*cleanup*/);
     if (0 < nlines) {
       if (1 < argc ? 2 == atoi(argv[1]) : 1) {
         int i = 0;
         do {
-          ACC_OPENCL_DEBUG_PRINTF("%s\n", buffer[i]);
+          ACC_OPENCL_DEBUG_PRINTF("%s\n", lines[i]);
         } while (++i < nlines);
       }
     }
   }
   if (NULL != file) {
-    nlines = acc_opencl_source(file, buffer,
+    nlines = acc_opencl_source(file, lines,
       ACC_OPENCL_TEST_MAXNLINES, 1/*cleanup*/);
     fclose(file);
     if (0 < nlines) {
       const char* build_options = NULL;
-      const char* kernel_name = NULL;
       cl_kernel kernel;
       if (1 < argc ? 1 == atoi(argv[1]) : 1) {
         int i = 0;
         do {
-          ACC_OPENCL_DEBUG_PRINTF("%s\n", buffer[i]);
+          ACC_OPENCL_DEBUG_PRINTF("%s\n", lines[i]);
         } while (++i < nlines);
       }
 #if 0
-      result = acc_opencl_kernel((const char**)buffer,
-        build_options, kernel_name, &kernel);
+      result = acc_opencl_kernel((const char**)lines,
+        build_options, &kernel);
 #endif
-      free(buffer[0]);
+      free(lines[0]);
     }
   }
   return result;

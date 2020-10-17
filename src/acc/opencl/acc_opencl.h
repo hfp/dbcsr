@@ -55,6 +55,9 @@
 #if !defined(ACC_OPENCL_MAXLINELEN)
 # define ACC_OPENCL_MAXLINELEN 128
 #endif
+#if !defined(ACC_OPENCL_SRCEXT)
+# define ACC_OPENCL_SRCEXT "cl"
+#endif
 
 /* can depend on OpenCL implementation */
 #if !defined(ACC_OPENCL_MEM_NOALLOC) && 1
@@ -79,6 +82,12 @@
 
 #define ACC_OPENCL_UP2(N, NPOT) ((((uint64_t)N) + ((NPOT) - 1)) & ~((NPOT) - 1))
 #define ACC_OPENCL_UNUSED(VAR) (void)(VAR)
+
+#if defined(__STDC_VERSION__) && (199901L <= __STDC_VERSION__ || defined(__GNUC__))
+# define ACC_OPENCL_SNPRINTF(S, N, ...) snprintf(S, N, __VA_ARGS__)
+#else
+# define ACC_OPENCL_SNPRINTF(S, N, ...) sprintf((S) + /*unused*/(N) * 0, __VA_ARGS__)
+#endif
 
 #if defined(_DEBUG)
 # define ACC_OPENCL_DEBUG_PRINTF(A, ...) printf(A, __VA_ARGS__)
@@ -142,6 +151,10 @@ extern cl_context acc_opencl_context;
 
 /** Get active device (can be thread-specific). */
 int acc_opencl_device(cl_device_id* device);
+/** Get directory path to load source files from. */
+const char* acc_opencl_source_path(const char* fileext);
+/** Opens filename (read-only) in source path (if not NULL) or dirpath otherwise. */
+FILE* acc_opencl_source_open(const char* filename, const char* dirpath);
 /**
  * Reads source file or lines[0] (if source is NULL), and builds an array of strings
  * with line-wise content (lines). Returns the number of processed lines, and when
@@ -151,8 +164,7 @@ int acc_opencl_source(FILE* source, char* lines[], int max_nlines, int cleanup);
 /** Get preferred multiple of the size of the workgroup (kernel-specific). */
 int acc_opencl_wgsize(cl_kernel kernel, size_t* preferred_multiple);
 /** Build kernel function with given name from source using given build_options. */
-int acc_opencl_kernel(const char* source[], const char* build_options,
-  const char* name, cl_kernel* kernel);
+int acc_opencl_kernel(const char* source[], const char* build_options, cl_kernel* kernel);
 
 #if defined(__cplusplus)
 }

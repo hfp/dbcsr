@@ -14,6 +14,13 @@
 #if defined(_OPENMP)
 # include <omp.h>
 #endif
+#if defined(_WIN32)
+# include <windows.h>
+# define ACC_OPENCL_PATHSEP "\\"
+#else
+# include <glob.h>
+# define ACC_OPENCL_PATHSEP "/"
+#endif
 
 
 #if defined(__cplusplus)
@@ -256,6 +263,82 @@ int acc_set_active_device(int device_id)
 }
 
 
+int acc_opencl_source_exists(const char* /*path*/, const char* /*fileext*/);
+int acc_opencl_source_exists(const char* path, const char* fileext)
+{
+  int result;
+  const char *const ext = (NULL != fileext ? fileext : "*." ACC_OPENCL_SRCEXT);
+  if (NULL != path && '\0' != *path) {
+    char filepath[ACC_OPENCL_BUFFER_MAXSIZE];
+#if defined(_WIN32)
+    const int nchar = ACC_OPENCL_SNPRINTF(filepath, ACC_OPENCL_BUFFER_MAXSIZE, "%s" ACC_OPENCL_PATHSEP "%s", path, ext);
+    if (0 <= nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) {
+      WIN32_FIND_DATA data;
+      HANDLE handle = FindFirstFile(filepath, &data);
+      if (INVALID_HANDLE_VALUE != handle) {
+        result = EXIT_SUCCESS;
+        FindClose(handle);
+      }
+      else {
+        result = EXIT_FAILURE;
+      }
+    }
+#else
+    glob_t globbuf;
+    const int nchar = ACC_OPENCL_SNPRINTF(filepath, ACC_OPENCL_BUFFER_MAXSIZE, "%s" ACC_OPENCL_PATHSEP "%s", path, ext);
+    if (0 <= nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) {
+      result = glob(filepath, 0/*flags*/, NULL, &globbuf);
+      globfree(&globbuf);
+    }
+#endif
+    else {
+      result = EXIT_FAILURE;
+    }
+  }
+  else {
+    result = EXIT_FAILURE;
+  }
+  return result;
+}
+
+
+const char* acc_opencl_source_path(const char* fileext)
+{
+  const char *const ext = NULL != fileext ? fileext : ACC_OPENCL_SRCEXT;
+  char pattern[ACC_OPENCL_BUFFER_MAXSIZE];
+  const int nchar = ACC_OPENCL_SNPRINTF(pattern, ACC_OPENCL_BUFFER_MAXSIZE, "*.%s", ext);
+  const char* result = NULL;
+  if (0 <= nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) {
+    if (EXIT_SUCCESS == acc_opencl_source_exists(getenv("ACC_OPENCL_SOURCE_PATH"), pattern)) {
+      result = getenv("ACC_OPENCL_SOURCE_PATH");
+    }
+    else if (EXIT_SUCCESS == acc_opencl_source_exists(getenv("CP2K_DATA_DIR"), pattern)) {
+      result = getenv("CP2K_DATA_DIR");
+    }
+  }
+  return result;
+}
+
+
+FILE* acc_opencl_source_open(const char* filename, const char* dirpath)
+{
+  const char *const dotext = strrchr(filename, '.');
+  const char *const defaultpath = acc_opencl_source_path(NULL != dotext ? (dotext + 1) : NULL);
+  char filepath[ACC_OPENCL_BUFFER_MAXSIZE];
+  FILE* result = NULL;
+  assert(NULL != filename);
+  if (NULL != defaultpath) {
+    const int nchar = ACC_OPENCL_SNPRINTF(filepath, ACC_OPENCL_BUFFER_MAXSIZE, "%s" ACC_OPENCL_PATHSEP "%s", defaultpath, filename);
+    result = ((0 <= nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) ? fopen(filepath, "r") : NULL);
+  }
+  if (NULL == result && NULL != dirpath) {
+    const int nchar = ACC_OPENCL_SNPRINTF(filepath, ACC_OPENCL_BUFFER_MAXSIZE, "%s" ACC_OPENCL_PATHSEP "%s", dirpath, filename);
+    result = ((0 <= nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) ? fopen(filepath, "r") : NULL);
+  }
+  return result;
+}
+
+
 int acc_opencl_source(FILE* source, char* lines[], int max_nlines, int cleanup)
 {
   int nlines = 0;
@@ -322,6 +405,13 @@ int acc_opencl_wgsize(cl_kernel kernel, size_t* preferred_multiple)
     CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE,
     sizeof(size_t), preferred_multiple, NULL),
     "query preferred multiple of workgroup size", result);
+  return result;
+}
+
+
+int acc_opencl_kernel(const char* source[], const char* build_options, cl_kernel* kernel)
+{
+  int result = EXIT_FAILURE; /* TODO */
   return result;
 }
 

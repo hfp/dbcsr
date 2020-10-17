@@ -18,21 +18,6 @@
 # error OpenCL backend currently depends on LIBXSMM!
 #endif
 
-#define ACC_OPENCL_CONCAT2(A, B) A##B
-#define ACC_OPENCL_CONCAT3(A, B, C) A##B##C
-#define ACC_OPENCL_CONCAT4(A, B, C, D) A##B##C##D
-#define ACC_OPENCL_CONCAT5(A, B, C, D, E) A##B##C##D##E
-#define ACC_OPENCL_CONCAT6(A, B, C, D, E, F) A##B##C##D##E##F
-#define ACC_OPENCL_CONCAT7(A, B, C, D, E, F, G) A##B##C##D##E##F##G
-#define ACC_OPENCL_CONCAT8(A, B, C, D, E, F, G, H) A##B##C##D##E##F##G##H
-
-#define ACC_OPENCL_TYPE_CHAR(T) ACC_OPENCL_CONCAT2(ACC_OPENCL_TYPE_CHAR_, T)
-#define ACC_OPENCL_TYPE_CHAR_double d
-#define ACC_OPENCL_TYPE_CHAR_float s
-
-#define ACC_OPENCL_FUNCTION2(FN, T, A, B) ACC_OPENCL_CONCAT6(ACC_OPENCL_TYPE_CHAR(T), FN, _, A, _, B)
-#define ACC_OPENCL_FUNCTION3(FN, T, A, B, C) ACC_OPENCL_CONCAT7(ACC_OPENCL_TYPE_CHAR(T), FN, _, A, _, B, _, C)
-
 
 #if defined(__cplusplus)
 extern "C" {

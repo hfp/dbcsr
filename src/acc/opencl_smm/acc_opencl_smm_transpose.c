@@ -34,22 +34,31 @@ int acc_opencl_dbatchtrans(const int* dev_trs_stack, int offset, int stack_size,
   key.m = m; key.n = n; /* initialize key */
   config = (config_t*)libxsmm_xdispatch(&key, sizeof(key));
   if (NULL == config) {
-    FILE *const file = acc_opencl_source_open("transpose.cl", "../../exts/dbcsr/src/acc/opencl_smm/kernel");
+    config_t c;
+    FILE *const file = acc_opencl_source_open("transpose.cl",
+      "../../exts/dbcsr/src/acc/opencl_smm/kernel");
     const char *const envnt = getenv("ACC_OPENCL_TRANS_NT");
     const size_t nt = (NULL == envnt ? local_work_size : ((size_t)atoi(envnt)));
-    config_t c;
-    assert(NULL != acc_opencl_batchtrans_source);
-    if (NULL != file) {
-      char* lines[50];
-      const int nlines = acc_opencl_source(file, lines, sizeof(lines) / sizeof(*lines), 1/*cleanup*/);
-      fclose(file);
-      result = (0 < nlines ? acc_opencl_kernel((const char**)lines, "build_options", &c.kernel) : EXIT_FAILURE);
-    }
-    if (EXIT_FAILURE == result
-      && sizeof(*acc_opencl_batchtrans_source) <= (sizeof(acc_opencl_batchtrans_source))
-      && NULL != *acc_opencl_batchtrans_source)
-    {
-      result = acc_opencl_kernel(acc_opencl_batchtrans_source, "build_options", &c.kernel);
+    char build_options[ACC_OPENCL_BUFFER_MAXSIZE];
+    const int nchar = ACC_OPENCL_SNPRINTF(build_options, ACC_OPENCL_BUFFER_MAXSIZE,
+      "-DT=double -DF=dtrans_%i_%i -DM=%i -DN=%i", m, n, m, n);
+    if (0 <= nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) {
+      if (NULL != file) {
+        char* lines[50];
+        const int nlines = acc_opencl_source(file, lines, sizeof(lines) / sizeof(*lines), 1/*cleanup*/);
+        fclose(file);
+        result = (0 < nlines ? acc_opencl_kernel((const char**)lines, build_options, &c.kernel) : EXIT_FAILURE);
+      }
+      assert(NULL != acc_opencl_batchtrans_source);
+      if (EXIT_FAILURE == result
+        && sizeof(*acc_opencl_batchtrans_source) <= (sizeof(acc_opencl_batchtrans_source))
+        && NULL != *acc_opencl_batchtrans_source)
+      {
+        result = acc_opencl_kernel(acc_opencl_batchtrans_source, build_options, &c.kernel);
+      }
+      else {
+        result = EXIT_FAILURE;
+      }
     }
     else {
       result = EXIT_FAILURE;

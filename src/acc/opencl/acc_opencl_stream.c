@@ -44,17 +44,17 @@ int acc_stream_create(void** stream_p, const char* name, int priority)
     cl_command_queue queue = NULL;
     cl_device_id device_id = NULL;
 #if defined(CL_QUEUE_PRIORITY_KHR)
-    assert(ACC_OPENCL_STREAM_PRIORITY_INVALID == priority ||
+    assert(ACC_OPENCL_STREAM_PRIORITY_INVALID >= priority ||
       (CL_QUEUE_PRIORITY_HIGH_KHR <= priority && CL_QUEUE_PRIORITY_LOW_KHR >= priority));
 #elif !defined(NDEBUG)
-    assert(ACC_OPENCL_STREAM_PRIORITY_INVALID == priority);
+    assert(ACC_OPENCL_STREAM_PRIORITY_INVALID >= priority);
 #else
     ACC_OPENCL_UNUSED(priority);
 #endif
     /*if (EXIT_SUCCESS == result)*/ result = acc_opencl_device(&device_id);
     if (EXIT_SUCCESS == result) {
 #if defined(CL_QUEUE_PRIORITY_KHR)
-      if (ACC_OPENCL_STREAM_PRIORITY_INVALID != priority) {
+      if (ACC_OPENCL_STREAM_PRIORITY_INVALID < priority) {
         ACC_OPENCL_COMMAND_QUEUE_PROPERTIES properties[] = {
           CL_QUEUE_PRIORITY_KHR, 0/*placeholder filled-in below*/,
           0

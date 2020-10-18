@@ -19,12 +19,16 @@ int main(int argc, char* argv[])
 
   void *host_mem, *dev_mem, *host_data, *dev_data;
   int result = EXIT_SUCCESS;
+  int priomin, priomax;
   void *stream = NULL;
 
   libxsmm_timer_tickint start;
   double duration;
 
   acc_init();
+  acc_stream_priority_range(&priomin, &priomax);
+  acc_stream_create(&stream, "stream", (priomin + priomax) / 2);
+
   acc_host_mem_allocate(&host_mem, stack_size * sizeof(int), stream);
   acc_dev_mem_allocate(&dev_mem, stack_size * sizeof(int));
 
@@ -44,6 +48,12 @@ int main(int argc, char* argv[])
   duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
 
   printf("duration: %f ms\n", 1000.0 * duration);
+
+  acc_host_mem_deallocate(host_data, stream);
+  acc_host_mem_deallocate(host_mem, stream);
+  acc_dev_mem_deallocate(dev_data);
+  acc_dev_mem_deallocate(dev_mem);
+  acc_stream_destroy(stream);
 
   return result;
 }

@@ -41,20 +41,24 @@ int acc_opencl_dbatchtrans(const int* dev_trs_stack, int offset, int stack_size,
     const size_t nt = (NULL == envnt ? local_work_size : ((size_t)atoi(envnt)));
     char build_options[ACC_OPENCL_BUFFER_MAXSIZE];
     const int nchar = ACC_OPENCL_SNPRINTF(build_options, ACC_OPENCL_BUFFER_MAXSIZE,
-      "-DT=double -DF=dtrans_%i_%i -DM=%i -DN=%i", m, n, m, n);
+      "-DT=double " ACC_OPENCL_SMM_KERNELNAME_DEF "dtrans_%i_%i -DM=%i -DN=%i", m, n, m, n);
     if (0 <= nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) {
+      const char *const kernelname_def = strstr(ACC_OPENCL_SMM_KERNELNAME_DEF, build_options);
+      const char *const kernelname = (NULL != kernelname_def
+        ? (kernelname_def + sizeof(ACC_OPENCL_SMM_KERNELNAME_DEF)) : NULL);
       if (NULL != file) {
         char* lines[50];
         const int nlines = acc_opencl_source(file, lines, sizeof(lines) / sizeof(*lines), 1/*cleanup*/);
         fclose(file);
-        result = (0 < nlines ? acc_opencl_kernel((const char**)lines, build_options, &c.kernel) : EXIT_FAILURE);
+        result = acc_opencl_kernel((const char**)lines, nlines, build_options, kernelname, &c.kernel);
       }
       assert(NULL != acc_opencl_batchtrans_source);
       if (EXIT_FAILURE == result
-        && sizeof(*acc_opencl_batchtrans_source) <= (sizeof(acc_opencl_batchtrans_source))
+        && sizeof(*acc_opencl_batchtrans_source) <= sizeof(acc_opencl_batchtrans_source)
         && NULL != *acc_opencl_batchtrans_source)
       {
-        result = acc_opencl_kernel(acc_opencl_batchtrans_source, build_options, &c.kernel);
+        const int nlines = sizeof(acc_opencl_batchtrans_source) / sizeof(*acc_opencl_batchtrans_source);
+        result = acc_opencl_kernel(acc_opencl_batchtrans_source, nlines, build_options, kernelname, &c.kernel);
       }
       else {
         result = EXIT_FAILURE;

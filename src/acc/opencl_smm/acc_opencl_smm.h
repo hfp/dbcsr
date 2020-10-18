@@ -18,6 +18,10 @@
 # error OpenCL backend currently depends on LIBXSMM!
 #endif
 
+#if !defined(ACC_OPENCL_SMM_KERNELNAME_DEF)
+# define ACC_OPENCL_SMM_KERNELNAME_DEF "-DF="
+#endif
+
 
 #if defined(__cplusplus)
 extern "C" {

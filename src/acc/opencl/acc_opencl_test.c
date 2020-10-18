@@ -43,18 +43,12 @@ int main(int argc, char* argv[])
       ACC_OPENCL_TEST_MAXNLINES, 1/*cleanup*/);
     fclose(file);
     if (0 < nlines) {
-      const char* build_options = NULL;
-      cl_kernel kernel;
       if (1 < argc ? 1 == atoi(argv[1]) : 1) {
         int i = 0;
         do {
           ACC_OPENCL_DEBUG_PRINTF("%s\n", lines[i]);
         } while (++i < nlines);
       }
-#if 0
-      result = acc_opencl_kernel((const char**)lines,
-        build_options, &kernel);
-#endif
       free(lines[0]);
     }
   }

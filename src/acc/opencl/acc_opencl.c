@@ -229,7 +229,6 @@ int acc_set_active_device(int device_id)
     0 > acc_opencl_ndevices) ? EXIT_SUCCESS : EXIT_FAILURE);
   if (0 < acc_opencl_ndevices) {
     cl_device_id active_id = NULL;
-    size_t n = 0;
     if (EXIT_SUCCESS == result) result = acc_opencl_device(&active_id);
     if (acc_opencl_devices[device_id] != active_id) {
       if (NULL != acc_opencl_context) {
@@ -247,7 +246,7 @@ int acc_set_active_device(int device_id)
           acc_opencl_notify, NULL/* user_data*/,
           &result);
         if (CL_INVALID_VALUE == result) { /* retry */
-          n = sizeof(properties) / sizeof(*properties);
+          const size_t n = sizeof(properties) / sizeof(*properties);
           assert(3 <= n);
           properties[n-3] = 0;
           acc_opencl_context = clCreateContext(0 != properties[0] ? properties : NULL,
@@ -411,12 +410,35 @@ int acc_opencl_wgsize(cl_kernel kernel, size_t* preferred_multiple)
 }
 
 
-int acc_opencl_kernel(const char* source[], const char* build_options, cl_kernel* kernel)
+int acc_opencl_kernel(const char* source[], int nlines, const char* build_options,
+  const char* kernel_name, cl_kernel* kernel)
 {
-  int result = EXIT_FAILURE; /* TODO */
+  cl_int result;
   assert(NULL != kernel);
-  if (EXIT_SUCCESS != result) {
-    kernel = NULL;
+  if (NULL != acc_opencl_context && 0 < nlines) {
+    const cl_program program = clCreateProgramWithSource(
+      acc_opencl_context, nlines, source, NULL, &result);
+    if (NULL != program) {
+      cl_device_id active_id = NULL;
+      assert(CL_SUCCESS == result);
+      result = acc_opencl_device(&active_id);
+      ACC_OPENCL_CHECK(clBuildProgram(program, 1/*num_devices*/, &active_id,
+        build_options, NULL/*callback*/, NULL/*user_data*/),
+        "build program", result);
+      if (EXIT_SUCCESS == result) {
+        *kernel = clCreateKernel(program, kernel_name, &result);
+        ACC_OPENCL_ERROR("create kernel", result);
+      }
+    }
+    else {
+      assert(CL_SUCCESS != result);
+      ACC_OPENCL_ERROR("create program", result);
+      *kernel = NULL;
+    }
+  }
+  else {
+    result = EXIT_FAILURE;
+    *kernel = NULL;
   }
   return result;
 }

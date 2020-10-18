@@ -164,7 +164,8 @@ int acc_opencl_source(FILE* source, char* lines[], int max_nlines, int cleanup);
 /** Get preferred multiple of the size of the workgroup (kernel-specific). */
 int acc_opencl_wgsize(cl_kernel kernel, size_t* preferred_multiple);
 /** Build kernel function with given name from source using given build_options. */
-int acc_opencl_kernel(const char* source[], const char* build_options, cl_kernel* kernel);
+int acc_opencl_kernel(const char* source[], int nlines, const char* build_options,
+  const char* kernel_name, cl_kernel* kernel);
 
 #if defined(__cplusplus)
 }

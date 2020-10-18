@@ -11,10 +11,6 @@
 #include <string.h>
 #include <assert.h>
 
-#if !defined(ACC_OPENCL_STREAM_PRIORITY_INVALID)
-# define ACC_OPENCL_STREAM_PRIORITY_INVALID -1
-#endif
-
 #if defined(CL_VERSION_2_0)
 # define ACC_OPENCL_COMMAND_QUEUE_PROPERTIES cl_queue_properties
 # define ACC_OPENCL_CREATE_COMMAND_QUEUE(CTX, DEV, PROPS, RESULT) \
@@ -43,23 +39,19 @@ int acc_stream_create(void** stream_p, const char* name, int priority)
   if (NULL != acc_opencl_context) {
     cl_command_queue queue = NULL;
     cl_device_id device_id = NULL;
-#if defined(CL_QUEUE_PRIORITY_KHR)
-    assert(ACC_OPENCL_STREAM_PRIORITY_INVALID >= priority ||
-      (CL_QUEUE_PRIORITY_HIGH_KHR <= priority && CL_QUEUE_PRIORITY_LOW_KHR >= priority));
-#elif !defined(NDEBUG)
-    assert(ACC_OPENCL_STREAM_PRIORITY_INVALID >= priority);
-#else
+#if !defined(CL_QUEUE_PRIORITY_KHR)
     ACC_OPENCL_UNUSED(priority);
 #endif
     /*if (EXIT_SUCCESS == result)*/ result = acc_opencl_device(&device_id);
     if (EXIT_SUCCESS == result) {
 #if defined(CL_QUEUE_PRIORITY_KHR)
-      if (ACC_OPENCL_STREAM_PRIORITY_INVALID < priority) {
+      if (0 <= priority) {
         ACC_OPENCL_COMMAND_QUEUE_PROPERTIES properties[] = {
           CL_QUEUE_PRIORITY_KHR, 0/*placeholder filled-in below*/,
           0
         };
-        properties[1] = priority;
+        properties[1] = (CL_QUEUE_PRIORITY_HIGH_KHR <= priority && CL_QUEUE_PRIORITY_LOW_KHR >= priority)
+          ? priority : ((CL_QUEUE_PRIORITY_HIGH_KHR + CL_QUEUE_PRIORITY_LOW_KHR) / 2);
         queue = ACC_OPENCL_CREATE_COMMAND_QUEUE(acc_opencl_context, device_id, properties, &result);
       }
       else
@@ -135,16 +127,16 @@ int acc_stream_priority_range(int* least, int* greatest)
       else
 #endif
       {
-        if (NULL != least) *least = ACC_OPENCL_STREAM_PRIORITY_INVALID;
-        if (NULL != greatest) *greatest = ACC_OPENCL_STREAM_PRIORITY_INVALID;
+        if (NULL != least) *least = -1;
+        if (NULL != greatest) *greatest = -1;
       }
 #if defined(CL_QUEUE_PRIORITY_KHR)
     }
 #endif
   }
   else {
-    if (NULL != least) *least = ACC_OPENCL_STREAM_PRIORITY_INVALID;
-    if (NULL != greatest) *greatest = ACC_OPENCL_STREAM_PRIORITY_INVALID;
+    if (NULL != least) *least = -1;
+    if (NULL != greatest) *greatest = -1;
   }
   assert(least != greatest); /* no alias */
   ACC_OPENCL_RETURN(result);

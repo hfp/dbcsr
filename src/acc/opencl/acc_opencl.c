@@ -322,18 +322,20 @@ const char* acc_opencl_source_path(const char* fileext)
 
 FILE* acc_opencl_source_open(const char* filename, const char* dirpath)
 {
-  const char *const dotext = strrchr(filename, '.');
-  const char *const defaultpath = acc_opencl_source_path(NULL != dotext ? (dotext + 1) : NULL);
   char filepath[ACC_OPENCL_BUFFER_MAXSIZE];
   FILE* result = NULL;
   assert(NULL != filename);
-  if (NULL != defaultpath) {
-    const int nchar = ACC_OPENCL_SNPRINTF(filepath, ACC_OPENCL_BUFFER_MAXSIZE, "%s" ACC_OPENCL_PATHSEP "%s", defaultpath, filename);
-    result = ((0 <= nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) ? fopen(filepath, "r") : NULL);
-  }
-  if (NULL == result && NULL != dirpath) {
+  if (NULL != dirpath) {
     const int nchar = ACC_OPENCL_SNPRINTF(filepath, ACC_OPENCL_BUFFER_MAXSIZE, "%s" ACC_OPENCL_PATHSEP "%s", dirpath, filename);
     result = ((0 <= nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) ? fopen(filepath, "r") : NULL);
+  }
+  if (NULL == result) {
+    const char *const dotext = strrchr(filename, '.');
+    const char *const path = acc_opencl_source_path(NULL != dotext ? (dotext + 1) : NULL);
+    if (NULL != path) {
+      const int nchar = ACC_OPENCL_SNPRINTF(filepath, ACC_OPENCL_BUFFER_MAXSIZE, "%s" ACC_OPENCL_PATHSEP "%s", path, filename);
+      result = ((0 <= nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) ? fopen(filepath, "r") : NULL);
+    }
   }
   return result;
 }
@@ -412,6 +414,10 @@ int acc_opencl_wgsize(cl_kernel kernel, size_t* preferred_multiple)
 int acc_opencl_kernel(const char* source[], const char* build_options, cl_kernel* kernel)
 {
   int result = EXIT_FAILURE; /* TODO */
+  assert(NULL != kernel);
+  if (EXIT_SUCCESS != result) {
+    kernel = NULL;
+  }
   return result;
 }
 

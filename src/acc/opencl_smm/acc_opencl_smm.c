@@ -26,6 +26,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
   int result = EXIT_SUCCESS;
   assert((NULL != dev_trs_stack && NULL != dev_data) || 0 == stack_size);
   if (0 != stack_size) {
+    libxsmm_init();
     switch (datatype) {
       case dbcsr_type_real_8: {
         result = acc_opencl_dbatchtrans(dev_trs_stack, offset, stack_size,
@@ -52,6 +53,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
   assert((NULL != dev_param_stack && NULL != dev_a_data && NULL != dev_b_data && NULL != dev_c_data) || 0 == stack_size);
   assert((nparams * sizeof(int)) == sizeof(libsmm_acc_smmstack_t));
   if (0 != stack_size && def_mnk/*homogeneous*/) {
+    libxsmm_init();
     switch (datatype) {
       case dbcsr_type_real_8: {
         result = acc_opencl_dbatchmm(

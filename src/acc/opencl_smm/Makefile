@@ -61,9 +61,9 @@ endif
 endif
 
 .PHONE: all
-all: acc_opencl_smm_test
+all: acc_opencl_trans_bench
 
-acc_opencl_smm_test: acc_opencl_smm_test.o dbcsr_opencl_smm.a ../opencl/dbcsr_opencl.a
+acc_opencl_trans_bench: acc_opencl_trans_bench.o dbcsr_opencl_smm.a ../opencl/dbcsr_opencl.a
 ifneq (Darwin,$(UNAME))
 	$(CC) $(LDFLAGS) -o $@ $^ -lOpenCL -L$(LIBXSMMROOT)/lib -lxsmm -lxsmmnoblas -ldl -lm
 else
@@ -82,4 +82,4 @@ clean:
 
 .PHONE: realclean
 realclean: clean
-	@rm -f dbcsr_opencl_smm.a acc_opencl_smm_test
+	@rm -f dbcsr_opencl_smm.a acc_opencl_trans_bench

@@ -54,7 +54,7 @@ int acc_opencl_dbatchtrans(const int* dev_trs_stack, int offset, int stack_size,
       &level_major, &level_minor) && LIBXSMM_VERSION2(2, 0) <= LIBXSMM_VERSION2(level_major, level_minor))
       ? "-cl-std=CL2.0" : ""; /* OpenCL support level */
     const int nchar = (NULL != build_options ? ACC_OPENCL_SNPRINTF(build_options, ACC_OPENCL_BUFFER_MAXSIZE,
-      "%s -DT=double -DF=%s -DM=%i -DN=%i", level2, buffer, m, n) : 0);
+      "%s -DT=double -DFN=%s -DSM=%i -DSN=%i", level2, buffer, m, n) : 0);
     if (0 < nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) {
       if (NULL != file) {
         char* lines[50];

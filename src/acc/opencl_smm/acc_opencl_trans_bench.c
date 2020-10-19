@@ -48,7 +48,7 @@ int main(int argc, char* argv[])
   const int m = (2 < argc ? atoi(argv[2]) : 23);
   const int n = (3 < argc ? atoi(argv[3]) : m);
   const int max_kernel_dim = 80, offset = 0;
-  const size_t size = ROUNDUP2(sizeof(ELEM_TYPE) * m * n, CACHELINE_NBYTES);
+  const size_t mn = ROUNDUP2(sizeof(ELEM_TYPE) * m * n, CACHELINE_NBYTES) / sizeof(ELEM_TYPE);
 #if defined(SHUFFLE)
   const size_t shuffle = libxsmm_shuffle((unsigned int)stack_size);
 #endif
@@ -66,21 +66,21 @@ int main(int argc, char* argv[])
   acc_stream_priority_range(&priomin, &priomax);
   acc_stream_create(&stream, "stream", (priomin + priomax) / 2);
 
-  acc_host_mem_allocate((void**)&host_data, size * stack_size, stream);
-  acc_dev_mem_allocate((void**)&dev_data, size * stack_size);
+  acc_host_mem_allocate((void**)&host_data, sizeof(ELEM_TYPE) * mn * stack_size, stream);
+  acc_dev_mem_allocate((void**)&dev_data, sizeof(ELEM_TYPE) * mn * stack_size);
   acc_stream_sync(stream);
   for (i = 0; i < stack_size; ++i) { /* initialize stack of matrices */
-    init(i/*seed*/, host_data + size * i, m, n, m/*ld*/, scale);
+    init(i/*seed*/, host_data + mn * i, m, n, m/*ld*/, scale);
   }
-  acc_memcpy_h2d(host_data, dev_data, size * stack_size, stream);
+  acc_memcpy_h2d(host_data, dev_data, sizeof(ELEM_TYPE) * mn * stack_size, stream);
 
   acc_host_mem_allocate((void**)&host_mem, sizeof(int) * stack_size, stream);
   acc_dev_mem_allocate((void**)&dev_mem, sizeof(int) * stack_size);
   for (i = 0; i < stack_size; ++i) { /* initialize indexes */
 #if defined(SHUFFLE)
-    const size_t j = size * (i * shuffle) % stack_size;
+    const size_t j = mn * (i * shuffle) % stack_size;
 #else
-    const size_t j = size * i;
+    const size_t j = mn * i;
 #endif
     host_mem[i] = j;
   }

@@ -57,15 +57,13 @@ int acc_opencl_dbatchtrans(const int* dev_trs_stack, int offset, int stack_size,
         result = acc_opencl_kernel((const char**)lines, nlines, build_options, buffer, &c.kernel);
       }
       assert(NULL != acc_opencl_batchtrans_source);
-      if (EXIT_FAILURE == result
-        && sizeof(*acc_opencl_batchtrans_source) <= sizeof(acc_opencl_batchtrans_source)
-        && NULL != *acc_opencl_batchtrans_source)
-      {
-        const int nlines = sizeof(acc_opencl_batchtrans_source) / sizeof(*acc_opencl_batchtrans_source);
-        result = acc_opencl_kernel(acc_opencl_batchtrans_source, nlines, build_options, buffer, &c.kernel);
-      }
-      else {
-        result = EXIT_FAILURE;
+      if (EXIT_FAILURE == result) {
+        if (sizeof(*acc_opencl_batchtrans_source) <= sizeof(acc_opencl_batchtrans_source)
+          && NULL != *acc_opencl_batchtrans_source)
+        {
+          const int nlines = sizeof(acc_opencl_batchtrans_source) / sizeof(*acc_opencl_batchtrans_source);
+          result = acc_opencl_kernel(acc_opencl_batchtrans_source, nlines, build_options, buffer, &c.kernel);
+        }
       }
     }
     else {

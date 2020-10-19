@@ -47,8 +47,14 @@ int acc_opencl_dbatchtrans(const int* dev_trs_stack, int offset, int stack_size,
     char buffer[ACC_OPENCL_BUFFER_MAXSIZE];
     const int fsize = ACC_OPENCL_SNPRINTF(buffer, ACC_OPENCL_BUFFER_MAXSIZE, "dtrans_%i_%i", m, n);
     char *const build_options = ((0 < fsize && ACC_OPENCL_BUFFER_MAXSIZE > fsize) ? (buffer + strlen(buffer) + 1) : NULL);
+    cl_device_id device;
+    int level_major, level_minor;
+    const char *const level2 = (EXIT_SUCCESS == acc_opencl_device_level(
+      (EXIT_SUCCESS == acc_opencl_device(stream, &device) ? device : NULL),
+      &level_major, &level_minor) && LIBXSMM_VERSION2(2, 0) <= LIBXSMM_VERSION2(level_major, level_minor))
+      ? "-cl-std=CL2.0" : ""; /* OpenCL support level */
     const int nchar = (NULL != build_options ? ACC_OPENCL_SNPRINTF(build_options, ACC_OPENCL_BUFFER_MAXSIZE,
-      "-cl-std=CL2.0 -DT=double -DF=%s -DM=%i -DN=%i", buffer, m, n) : 0); /* check OpenCL support level */
+      "%s -DT=double -DF=%s -DM=%i -DN=%i", level2, buffer, m, n) : 0);
     if (0 < nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) {
       if (NULL != file) {
         char* lines[50];
@@ -70,12 +76,17 @@ int acc_opencl_dbatchtrans(const int* dev_trs_stack, int offset, int stack_size,
       result = EXIT_FAILURE;
     }
     if (EXIT_SUCCESS == result) {
-      size_t preferred_multiple;
-      result = acc_opencl_wgsize(c.kernel, &preferred_multiple);
-      if (EXIT_SUCCESS == result) {
-        c.nthreads = LIBXSMM_MIN(LIBXSMM_UP(LIBXSMM_MAX(nt, size),
-          preferred_multiple), global_work_size);
-        config = (config_t*)libxsmm_xregister(&key, sizeof(key), sizeof(c), &c);
+      if ('\0' != *level2) { /* support-level at least OpenCL 2.0 */
+        size_t preferred_multiple;
+        result = acc_opencl_wgsize(c.kernel, &preferred_multiple);
+        if (EXIT_SUCCESS == result) {
+          c.nthreads = LIBXSMM_MIN(LIBXSMM_UP(LIBXSMM_MAX(nt, size),
+            preferred_multiple), global_work_size);
+          config = (config_t*)libxsmm_xregister(&key, sizeof(key), sizeof(c), &c);
+        }
+      }
+      else {
+        c.nthreads = 0;
       }
     }
   }
@@ -88,7 +99,7 @@ int acc_opencl_dbatchtrans(const int* dev_trs_stack, int offset, int stack_size,
     ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 2, sizeof(cl_mem), ACC_OPENCL_MEM(dev_data)),
       "set matix-data argument of transpose kernel", result);
     ACC_OPENCL_CHECK(clEnqueueNDRangeKernel(*ACC_OPENCL_STREAM(stream), config->kernel, 1/*work_dim*/,
-      NULL, &global_work_size, &config->nthreads, 0, NULL, NULL),
+      NULL, &global_work_size, 0 != config->nthreads ? &config->nthreads : NULL, 0, NULL, NULL),
       "launch transpose kernel", result);
   }
   ACC_OPENCL_RETURN(result);

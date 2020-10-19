@@ -77,11 +77,11 @@ int acc_opencl_dbatchtrans(const int* dev_trs_stack, int offset, int stack_size,
     }
     if (EXIT_SUCCESS == result) {
       if ('\0' != *level2) { /* support-level at least OpenCL 2.0 */
-        size_t preferred_multiple;
-        result = acc_opencl_wgsize(c.kernel, &preferred_multiple);
+        size_t preferred_multiple, max_wgsize;
+        result = acc_opencl_wgsize(c.kernel, &preferred_multiple, &max_wgsize);
         if (EXIT_SUCCESS == result) {
           c.nthreads = LIBXSMM_MIN(LIBXSMM_UP(LIBXSMM_MAX(nt, size),
-            preferred_multiple), global_work_size);
+            preferred_multiple), LIBXSMM_MIN(max_wgsize, global_work_size));
           config = (config_t*)libxsmm_xregister(&key, sizeof(key), sizeof(c), &c);
         }
       }

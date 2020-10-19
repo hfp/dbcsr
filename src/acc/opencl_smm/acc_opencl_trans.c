@@ -48,7 +48,7 @@ int acc_opencl_dbatchtrans(const int* dev_trs_stack, int offset, int stack_size,
     const int fsize = ACC_OPENCL_SNPRINTF(buffer, ACC_OPENCL_BUFFER_MAXSIZE, "dtrans_%i_%i", m, n);
     char *const build_options = ((0 < fsize && ACC_OPENCL_BUFFER_MAXSIZE > fsize) ? (buffer + strlen(buffer) + 1) : NULL);
     const int nchar = (NULL != build_options ? ACC_OPENCL_SNPRINTF(build_options, ACC_OPENCL_BUFFER_MAXSIZE,
-      "-DT=double -DF=dtrans_%i_%i -DM=%i -DN=%i", m, n, m, n) : 0);
+      "-DT=double -DF=%s -DM=%i -DN=%i", buffer, m, n) : 0);
     if (0 < nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) {
       if (NULL != file) {
         char* lines[50];

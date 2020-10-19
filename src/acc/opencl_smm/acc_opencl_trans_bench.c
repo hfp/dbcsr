@@ -45,9 +45,9 @@ static void init(int seed, ELEM_TYPE* dst, int nrows, int ncols, int ld, double 
 
 int main(int argc, char* argv[])
 {
-  const int stack_size = (1 < argc ? atoi(argv[1]) : 30000);
-  const int m = (2 < argc ? atoi(argv[2]) : 23);
-  const int n = (3 < argc ? atoi(argv[3]) : m);
+  const int stack_size = (1 < argc ? LIBXSMM_MAX(atoi(argv[1]), 1) : 30000);
+  const int m = (2 < argc ? LIBXSMM_MAX(atoi(argv[2]), 1) : 23);
+  const int n = (3 < argc ? LIBXSMM_MAX(atoi(argv[3]), 1) : m);
   const int max_kernel_dim = 80, offset = 0;
   const size_t mn = ROUNDUP2(sizeof(ELEM_TYPE) * m * n, CACHELINE_NBYTES) / sizeof(ELEM_TYPE);
 #if defined(SHUFFLE)

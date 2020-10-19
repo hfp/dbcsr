@@ -209,7 +209,7 @@ int acc_opencl_device(void* stream, cl_device_id* device)
   assert(NULL != device);
   if (NULL != stream) {
     ACC_OPENCL_CHECK(clGetCommandQueueInfo(*ACC_OPENCL_STREAM(stream), CL_QUEUE_DEVICE,
-      sizeof(cl_device_id), device, NULL), "", result);
+      sizeof(cl_device_id), device, NULL), "retrieve device from queue", result);
   }
   else if (NULL != acc_opencl_context) {
 #if !defined(NDEBUG)
@@ -452,15 +452,22 @@ int acc_opencl_source(FILE* source, char* lines[], int max_nlines, int cleanup)
 }
 
 
-int acc_opencl_wgsize(cl_kernel kernel, size_t* preferred_multiple)
+int acc_opencl_wgsize(cl_kernel kernel, size_t* preferred_multiple, size_t* max_value)
 {
   cl_device_id active_id = NULL;
   int result = acc_opencl_device(NULL/*stream*/, &active_id);
-  assert(NULL != preferred_multiple);
-  ACC_OPENCL_CHECK(clGetKernelWorkGroupInfo(kernel, active_id,
-    CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE,
-    sizeof(size_t), preferred_multiple, NULL),
-    "query preferred multiple of workgroup size", result);
+  assert(NULL != preferred_multiple || NULL != max_value);
+  if (NULL != preferred_multiple) {
+    ACC_OPENCL_CHECK(clGetKernelWorkGroupInfo(kernel, active_id,
+      CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE,
+      sizeof(size_t), preferred_multiple, NULL),
+      "query preferred multiple of workgroup size", result);
+  }
+  if (NULL != max_value) {
+    ACC_OPENCL_CHECK(clGetKernelWorkGroupInfo(kernel, active_id,
+      CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), max_value, NULL),
+      "query maximum workgroup size of kernel", result);
+  }
   ACC_OPENCL_RETURN(result);
 }
 

@@ -42,7 +42,7 @@ int acc_stream_create(void** stream_p, const char* name, int priority)
 #if !defined(CL_QUEUE_PRIORITY_KHR)
     ACC_OPENCL_UNUSED(priority);
 #endif
-    /*if (EXIT_SUCCESS == result)*/ result = acc_opencl_device(&device_id);
+    /*if (EXIT_SUCCESS == result)*/ result = acc_opencl_device(NULL/*stream*/, &device_id);
     if (EXIT_SUCCESS == result) {
 #if defined(CL_QUEUE_PRIORITY_KHR)
       if (0 <= priority) {
@@ -114,7 +114,7 @@ int acc_stream_priority_range(int* least, int* greatest)
     cl_platform_id platform = NULL;
     cl_device_id active_id = NULL;
     assert(0 < acc_opencl_ndevices);
-    if (EXIT_SUCCESS == result) result = acc_opencl_device(&active_id);
+    if (EXIT_SUCCESS == result) result = acc_opencl_device(NULL/*stream*/, &active_id);
     ACC_OPENCL_CHECK(clGetDeviceInfo(active_id, CL_DEVICE_PLATFORM,
       sizeof(cl_platform_id), &platform, NULL),
       "retrieve platform associated with active device", result);

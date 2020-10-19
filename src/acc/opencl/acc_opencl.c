@@ -203,11 +203,15 @@ int acc_get_ndevices(int* ndevices)
 }
 
 
-int acc_opencl_device(cl_device_id* device)
+int acc_opencl_device(void* stream, cl_device_id* device)
 {
   int result = EXIT_SUCCESS;
   assert(NULL != device);
-  if (NULL != acc_opencl_context) {
+  if (NULL != stream) {
+    ACC_OPENCL_CHECK(clGetCommandQueueInfo(*ACC_OPENCL_STREAM(stream), CL_QUEUE_DEVICE,
+      sizeof(cl_device_id), device, NULL), "", result);
+  }
+  else if (NULL != acc_opencl_context) {
 #if !defined(NDEBUG)
     size_t n = 0;
     ACC_OPENCL_CHECK(clGetContextInfo(acc_opencl_context, CL_CONTEXT_DEVICES,
@@ -220,6 +224,29 @@ int acc_opencl_device(cl_device_id* device)
   }
   else {
     *device = NULL;
+  }
+  ACC_OPENCL_RETURN(result);
+}
+
+
+int acc_opencl_device_level(cl_device_id device, int* level_major, int* level_minor)
+{
+  char buffer[ACC_OPENCL_BUFFER_MAXSIZE];
+  int result = EXIT_SUCCESS;
+  assert(NULL != device && (NULL != level_major || NULL != level_minor));
+  ACC_OPENCL_CHECK(clGetDeviceInfo(device, CL_DEVICE_VERSION,
+    ACC_OPENCL_BUFFER_MAXSIZE, buffer, NULL),
+    "retrieve device level", result);
+  if (EXIT_SUCCESS == result) {
+    unsigned int level[2];
+    /* input: "OpenCL <level_major>.<level_minor> ..." */
+    if (2 == sscanf(buffer, "%*s %u.%u", level, level+1)) {
+      if (NULL != level_major) *level_major = (int)level[0];
+      if (NULL != level_minor) *level_minor = (int)level[1];
+    }
+    else {
+      result = EXIT_SUCCESS;
+    }
   }
   ACC_OPENCL_RETURN(result);
 }
@@ -253,7 +280,7 @@ int acc_set_active_device(int device_id)
     0 > acc_opencl_ndevices) ? EXIT_SUCCESS : EXIT_FAILURE);
   if (0 < acc_opencl_ndevices) {
     cl_device_id active_id = NULL;
-    if (EXIT_SUCCESS == result) result = acc_opencl_device(&active_id);
+    if (EXIT_SUCCESS == result) result = acc_opencl_device(NULL/*stream*/, &active_id);
     if (acc_opencl_devices[device_id] != active_id) {
       if (NULL != acc_opencl_context) {
         ACC_OPENCL_CHECK(clReleaseContext(acc_opencl_context),
@@ -428,7 +455,7 @@ int acc_opencl_source(FILE* source, char* lines[], int max_nlines, int cleanup)
 int acc_opencl_wgsize(cl_kernel kernel, size_t* preferred_multiple)
 {
   cl_device_id active_id = NULL;
-  int result = acc_opencl_device(&active_id);
+  int result = acc_opencl_device(NULL/*stream*/, &active_id);
   assert(NULL != preferred_multiple);
   ACC_OPENCL_CHECK(clGetKernelWorkGroupInfo(kernel, active_id,
     CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE,
@@ -450,7 +477,7 @@ int acc_opencl_kernel(const char *const source[], int nlines, const char* build_
     if (NULL != program) {
       cl_device_id active_id = NULL;
       assert(CL_SUCCESS == result);
-      result = acc_opencl_device(&active_id);
+      result = acc_opencl_device(NULL/*stream*/, &active_id);
       if (EXIT_SUCCESS == result) {
         result = clBuildProgram(program,
         1/*num_devices*/, &active_id, build_options,
@@ -462,7 +489,7 @@ int acc_opencl_kernel(const char *const source[], int nlines, const char* build_
         }
         else {
           clGetProgramBuildInfo(program, active_id, CL_PROGRAM_BUILD_LOG,
-            ACC_OPENCL_BUFFER_MAXSIZE, &buffer, NULL); /* ignore retval */
+            ACC_OPENCL_BUFFER_MAXSIZE, buffer, NULL); /* ignore retval */
           *kernel = NULL;
         }
       }

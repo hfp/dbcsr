@@ -296,7 +296,7 @@ int acc_dev_mem_info(size_t* mem_free, size_t* mem_total)
   if (NULL != acc_opencl_context) {
     cl_device_id active_id = NULL;
     cl_ulong cl_size_total = 0;
-    if (EXIT_SUCCESS == result) result = acc_opencl_device(&active_id);
+    if (EXIT_SUCCESS == result) result = acc_opencl_device(NULL/*stream*/, &active_id);
     ACC_OPENCL_CHECK(clGetDeviceInfo(active_id, CL_DEVICE_GLOBAL_MEM_SIZE,
       sizeof(cl_ulong), &cl_size_total, NULL), "retrieve amount of device memory", result);
     assert(0 < acc_opencl_ndevices);

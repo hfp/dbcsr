@@ -172,15 +172,20 @@ extern cl_context acc_opencl_context;
 # pragma omp threadprivate(acc_opencl_context)
 #endif
 
-/** Get active device (can be thread-specific). */
-int acc_opencl_device(cl_device_id* device);
+/** Get active device (can be thread/queue-specific). */
+int acc_opencl_device(void* stream, cl_device_id* device);
+/** Return the OpenCL support level for the given device. */
+int acc_opencl_device_level(cl_device_id device,
+  int* level_major, int* level_minor);
 /** Check if given device supports the extensions. */
-int acc_opencl_device_ext(cl_device_id device, const char *const extnames[], int num_exts);
+int acc_opencl_device_ext(cl_device_id device,
+  const char *const extnames[], int num_exts);
 
 /** Get directory path to load source files from. */
 const char* acc_opencl_source_path(const char* fileext);
 /** Opens filename (read-only) in source path (if not NULL) or dirpath otherwise. */
-FILE* acc_opencl_source_open(const char* filename, const char *const dirpaths[], int ndirpaths);
+FILE* acc_opencl_source_open(const char* filename,
+  const char *const dirpaths[], int ndirpaths);
 /**
  * Reads source file or lines[0] (if source is NULL), and builds an array of strings
  * with line-wise content (lines). Returns the number of processed lines, and when

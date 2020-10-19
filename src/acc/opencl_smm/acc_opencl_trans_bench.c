@@ -48,7 +48,7 @@ static void init(int seed, ELEM_TYPE* dst, int nrows, int ncols, int ld, double 
 
 int main(int argc, char* argv[])
 {
-  const int nrepeat = ((1 < argc ? atoi(argv[1]) : 1000) & 1/*odd*/), offset = 0;
+  const int nrepeat = ((1 < argc ? atoi(argv[1]) : 1000) | 1/*odd*/), offset = 0;
   const int stack_size = (2 < argc ? LIBXSMM_MAX(atoi(argv[2]), 1) : 30000);
   const int m = (3 < argc ? LIBXSMM_MAX(atoi(argv[3]), 1) : 23);
   const int n = (4 < argc ? LIBXSMM_MAX(atoi(argv[4]), 1) : m);

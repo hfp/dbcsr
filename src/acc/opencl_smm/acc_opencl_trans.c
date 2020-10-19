@@ -73,7 +73,8 @@ int acc_opencl_dbatchtrans(const int* dev_trs_stack, int offset, int stack_size,
       size_t preferred_multiple;
       result = acc_opencl_wgsize(c.kernel, &preferred_multiple);
       if (EXIT_SUCCESS == result) {
-        c.nthreads = LIBXSMM_UP(LIBXSMM_MAX(nt, size), preferred_multiple);
+        c.nthreads = LIBXSMM_MIN(LIBXSMM_UP(LIBXSMM_MAX(nt, size),
+          preferred_multiple), global_work_size);
         config = (config_t*)libxsmm_xregister(&key, sizeof(key), sizeof(c), &c);
       }
     }

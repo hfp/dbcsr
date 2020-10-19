@@ -112,7 +112,7 @@ int main(int argc, char* argv[])
       ELEM_TYPE matrix[MAX_KERNEL_DIM*MAX_KERNEL_DIM];
       init(i/*seed*/, matrix, m, n, m/*ld*/, scale);
       libxsmm_itrans(matrix, sizeof(ELEM_TYPE), m, n, m/*ld*/);
-      for (i = j; j < (int)mn; ++j) {
+      for (j = 0; j < (int)mn; ++j) {
         if (matrix[j] != host_data[i*mn+j]) ++nerrors;
       }
     }

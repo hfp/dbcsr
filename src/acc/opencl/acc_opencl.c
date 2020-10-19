@@ -427,16 +427,18 @@ int acc_opencl_kernel(const char *const source[], int nlines, const char* build_
       cl_device_id active_id = NULL;
       assert(CL_SUCCESS == result);
       result = acc_opencl_device(&active_id);
-      ACC_OPENCL_CHECK(clBuildProgram(program, 1/*num_devices*/, &active_id,
-        build_options, NULL/*callback*/, NULL/*user_data*/),
-        "build program", result);
       if (EXIT_SUCCESS == result) {
-        *kernel = clCreateKernel(program, kernel_name, &result);
-        ACC_OPENCL_ERROR("create kernel", result);
-      }
-      else {
-        clGetProgramBuildInfo(program, active_id, CL_PROGRAM_BUILD_LOG,
-          ACC_OPENCL_BUFFER_MAXSIZE, &buffer, NULL); /* ignore retval */
+        result = clBuildProgram(program,
+        1/*num_devices*/, &active_id, build_options,
+        NULL/*callback*/, NULL/*user_data*/);
+        if (CL_SUCCESS == result) {
+          *kernel = clCreateKernel(program, kernel_name, &result);
+          ACC_OPENCL_ERROR("create kernel", result);
+        }
+        else {
+          clGetProgramBuildInfo(program, active_id, CL_PROGRAM_BUILD_LOG,
+            ACC_OPENCL_BUFFER_MAXSIZE, &buffer, NULL); /* ignore retval */
+        }
       }
     }
     else {

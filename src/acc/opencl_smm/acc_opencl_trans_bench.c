@@ -6,14 +6,40 @@
  * For further information please visit https://dbcsr.cp2k.org                                    *
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
-#include "acc_opencl_smm.h"
+#include "../acc_libsmm.h"
+#include <stdlib.h>
+#if defined(__LIBXSMM)
+# include <libxsmm.h>
+# if !defined(SHUFFLE) && 0
+#   define SHUFFLE
+# endif
+#endif
 
+#if !defined(CACHELINE_NBYTES)
+# define CACHELINE_NBYTES 64
+#endif
 #if !defined(ELEM_TYPE)
 # define ELEM_TYPE double
 #endif
-#if !defined(SHUFFLE) && 0
-# define SHUFFLE
-#endif
+
+#define ROUNDUP2(N, NPOT) ((((unsigned long long)N) + ((NPOT) - 1)) & ~((NPOT) - 1))
+
+
+static void init(int seed, ELEM_TYPE* dst, int nrows, int ncols, int ld, double scale) {
+  const double seed1 = scale * seed + scale;
+  int i;
+  for (i = 0; i < ncols; ++i) {
+    int j = 0;
+    for (; j < nrows; ++j) {
+      const int k = i * ld + j;
+      dst[k] = (ELEM_TYPE)(seed1 / (1.0 + k));
+    }
+    for (; j < ld; ++j) {
+      const int k = i * ld + j;
+      dst[k] = (ELEM_TYPE)(seed);
+    }
+  }
+}
 
 
 int main(int argc, char* argv[])
@@ -22,13 +48,12 @@ int main(int argc, char* argv[])
   const int m = (2 < argc ? atoi(argv[2]) : 23);
   const int n = (3 < argc ? atoi(argv[3]) : m);
   const int max_kernel_dim = 80, offset = 0;
-  const size_t size = ACC_OPENCL_UP2(sizeof(ELEM_TYPE) * m * n, ACC_OPENCL_CACHELINE_NBYTES);
+  const size_t size = ROUNDUP2(sizeof(ELEM_TYPE) * m * n, CACHELINE_NBYTES);
 #if defined(SHUFFLE)
   const size_t shuffle = libxsmm_shuffle((unsigned int)stack_size);
 #endif
-
-  int *host_mem, *dev_mem;
-  ELEM_TYPE *host_data, *dev_data;
+  int *host_mem = NULL, *dev_mem = NULL;
+  ELEM_TYPE *host_data = NULL, *dev_data = NULL;
   int result = EXIT_SUCCESS;
   int priomin, priomax, i;
   void *stream = NULL;
@@ -43,14 +68,15 @@ int main(int argc, char* argv[])
 
   acc_host_mem_allocate((void**)&host_data, size * stack_size, stream);
   acc_dev_mem_allocate((void**)&dev_data, size * stack_size);
+  acc_stream_sync(stream);
   for (i = 0; i < stack_size; ++i) { /* initialize stack of matrices */
-    LIBXSMM_MATINIT(ELEM_TYPE, i/*seed*/, host_data + size * i, m, n, m/*ld*/, scale);
+    init(i/*seed*/, host_data + size * i, m, n, m/*ld*/, scale);
   }
   acc_memcpy_h2d(host_data, dev_data, size * stack_size, stream);
 
   acc_host_mem_allocate((void**)&host_mem, sizeof(int) * stack_size, stream);
   acc_dev_mem_allocate((void**)&dev_mem, sizeof(int) * stack_size);
-  for (i = 0; i < stack_size; ++i) { /* initialize stack of matrices */
+  for (i = 0; i < stack_size; ++i) { /* initialize indexes */
 #if defined(SHUFFLE)
     const size_t j = size * (i * shuffle) % stack_size;
 #else
@@ -59,12 +85,14 @@ int main(int argc, char* argv[])
     host_mem[i] = j;
   }
   acc_memcpy_h2d(host_mem, dev_mem, sizeof(int) * stack_size, stream);
-
+#if defined(__LIBXSMM)
   start = libxsmm_timer_tick();
+#endif
   result = libsmm_acc_transpose((const int*)dev_mem, offset, stack_size,
     dev_data, dbcsr_type_real_8, m, n, max_kernel_dim, stream);
+#if defined(__LIBXSMM)
   duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
-
+#endif
   printf("duration: %f ms\n", 1000.0 * duration);
 
   acc_host_mem_deallocate(host_data, stream);

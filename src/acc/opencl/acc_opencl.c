@@ -210,15 +210,39 @@ int acc_opencl_device(cl_device_id* device)
   if (NULL != acc_opencl_context) {
 #if !defined(NDEBUG)
     size_t n = 0;
-#endif
     ACC_OPENCL_CHECK(clGetContextInfo(acc_opencl_context, CL_CONTEXT_DEVICES,
       sizeof(cl_device_id), device, &n), "retrieve id of active device", result);
+#else
+    ACC_OPENCL_CHECK(clGetContextInfo(acc_opencl_context, CL_CONTEXT_DEVICES,
+      sizeof(cl_device_id), device, NULL), "retrieve id of active device", result);
+#endif
     assert(EXIT_SUCCESS != result || sizeof(cl_device_id) == n/*single-device context*/);
   }
   else {
     *device = NULL;
   }
-  return result;
+  ACC_OPENCL_RETURN(result);
+}
+
+
+int acc_opencl_device_ext(cl_device_id device, const char *const extnames[], int num_exts)
+{
+  int result = ((NULL != extnames && 0 < num_exts) ? EXIT_SUCCESS : EXIT_FAILURE);
+  char buffer[ACC_OPENCL_BUFFER_MAXSIZE];
+  assert(NULL != device);
+  ACC_OPENCL_CHECK(clGetDeviceInfo(device, CL_DEVICE_EXTENSIONS,
+    ACC_OPENCL_BUFFER_MAXSIZE, buffer, NULL),
+    "retrieve device extensions", result);
+  if (EXIT_SUCCESS == result) {
+    do {
+      --num_exts;
+      if (NULL == extnames[num_exts] || NULL == strstr(buffer, extnames[num_exts])) {
+        result = EXIT_FAILURE;
+        break;
+      }
+    } while (0 < num_exts);
+  }
+  ACC_OPENCL_RETURN(result);
 }
 
 
@@ -410,13 +434,14 @@ int acc_opencl_wgsize(cl_kernel kernel, size_t* preferred_multiple)
     CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE,
     sizeof(size_t), preferred_multiple, NULL),
     "query preferred multiple of workgroup size", result);
-  return result;
+  ACC_OPENCL_RETURN(result);
 }
 
 
 int acc_opencl_kernel(const char *const source[], int nlines, const char* build_options,
   const char* kernel_name, cl_kernel* kernel)
 {
+  char buffer[ACC_OPENCL_BUFFER_MAXSIZE] = "\0";
   cl_int result;
   assert(NULL != kernel);
   if (NULL != acc_opencl_context && 0 < nlines) {
@@ -426,12 +451,23 @@ int acc_opencl_kernel(const char *const source[], int nlines, const char* build_
       cl_device_id active_id = NULL;
       assert(CL_SUCCESS == result);
       result = acc_opencl_device(&active_id);
-      ACC_OPENCL_CHECK(clBuildProgram(program, 1/*num_devices*/, &active_id,
-        build_options, NULL/*callback*/, NULL/*user_data*/),
-        "build program", result);
       if (EXIT_SUCCESS == result) {
-        *kernel = clCreateKernel(program, kernel_name, &result);
-        ACC_OPENCL_ERROR("create kernel", result);
+        result = clBuildProgram(program,
+        1/*num_devices*/, &active_id, build_options,
+        NULL/*callback*/, NULL/*user_data*/);
+        if (CL_SUCCESS == result) {
+          *kernel = clCreateKernel(program, kernel_name, &result);
+          if (CL_SUCCESS == result) assert(NULL != *kernel);
+          else ACC_OPENCL_ERROR("create kernel", result);
+        }
+        else {
+          clGetProgramBuildInfo(program, active_id, CL_PROGRAM_BUILD_LOG,
+            ACC_OPENCL_BUFFER_MAXSIZE, &buffer, NULL); /* ignore retval */
+          *kernel = NULL;
+        }
+      }
+      else {
+        *kernel = NULL;
       }
     }
     else {
@@ -444,7 +480,7 @@ int acc_opencl_kernel(const char *const source[], int nlines, const char* build_
     result = EXIT_FAILURE;
     *kernel = NULL;
   }
-  return result;
+  ACC_OPENCL_RETURN_CAUSE(result, buffer);
 }
 
 #if defined(__cplusplus)

@@ -133,14 +133,17 @@
     (RESULT) = EXIT_FAILURE; \
   } while (0)
 # define ACC_OPENCL_RETURN_CAUSE(RESULT, CAUSE) do { \
-    const int acc_opencl_return_cause_ = (RESULT); \
-    if (EXIT_SUCCESS != acc_opencl_return_cause_) { \
+    const int acc_opencl_return_cause_result_ = (RESULT); \
+    if (EXIT_SUCCESS != acc_opencl_return_cause_result_) { \
+      const char *const acc_opencl_return_cause_ = \
+        (NULL != (CAUSE) && '\0' != *(const char*)(CAUSE)) \
+        ? (CAUSE) : (ACC_OPENCL_FUNCNAME); \
       fprintf(stderr, "ERROR ACC/OpenCL: failed%s%s\n", \
-        NULL == (CAUSE) ? "" : " for ", \
-        NULL == (CAUSE) ? "" : ((const char*)(CAUSE))); \
+        NULL == acc_opencl_return_cause_ ? "" : " for ", \
+        NULL == acc_opencl_return_cause_ ? "" : ((const char*)(CAUSE))); \
       assert(!"SUCCESS"); \
     } \
-    return acc_opencl_return_cause_; \
+    return acc_opencl_return_cause_result_; \
   } while (0)
 #endif
 #define ACC_OPENCL_RETURN(RESULT) ACC_OPENCL_RETURN_CAUSE(RESULT, ACC_OPENCL_FUNCNAME)
@@ -171,6 +174,9 @@ extern cl_context acc_opencl_context;
 
 /** Get active device (can be thread-specific). */
 int acc_opencl_device(cl_device_id* device);
+/** Check if given device supports the extensions. */
+int acc_opencl_device_ext(cl_device_id device, const char *const extnames[], int num_exts);
+
 /** Get directory path to load source files from. */
 const char* acc_opencl_source_path(const char* fileext);
 /** Opens filename (read-only) in source path (if not NULL) or dirpath otherwise. */

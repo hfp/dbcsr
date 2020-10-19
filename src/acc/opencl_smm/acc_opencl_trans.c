@@ -35,8 +35,13 @@ int acc_opencl_dbatchtrans(const int* dev_trs_stack, int offset, int stack_size,
   config = (config_t*)libxsmm_xdispatch(&key, sizeof(key));
   if (NULL == config) {
     config_t c;
-    FILE *const file = acc_opencl_source_open("transpose.cl",
-      "../../exts/dbcsr/src/acc/opencl_smm/kernel");
+    const char *const paths[] = {
+      "../../exts/dbcsr/src/acc/opencl_smm/kernel"
+#if !defined(NDEBUG)
+      , "../opencl_smm/kernels"
+#endif
+    };
+    FILE *const file = acc_opencl_source_open("transpose.cl", paths, sizeof(paths) / sizeof(*paths));
     const char *const envnt = getenv("ACC_OPENCL_TRANS_NT");
     const size_t nt = (NULL == envnt ? local_work_size : ((size_t)atoi(envnt)));
     char build_options[ACC_OPENCL_BUFFER_MAXSIZE];

@@ -13,13 +13,9 @@ __kernel void F(__global int* trs_stack, int trs_offset, __global T* mat)
 
   /* Get the offset in the transpose-stack that this block ID should handle */
   const int offset = trs_stack[trs_offset+get_group_id(0)];
-
-  /* Loop over M*N matrix elements */
-  for (int i = get_local_id(0); i < (M * N); i += get_local_size(0)) {
-    /* Load matrix elements into a temporary buffer */
-    buf[i] = mat[offset+i];
-  }
-  barrier(CLK_LOCAL_MEM_FENCE);
+  /* Load matrix elements into a temporary buffer */
+  event_t e = async_work_group_copy(buf, mat + offset, M * N, NULL);
+  wait_group_events(1, &e);
 
   /* Loop over elements of the matrix to be overwritten */
   for (int i = get_local_id(0); i < (M * N); i += get_local_size(0)) {

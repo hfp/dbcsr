@@ -271,7 +271,7 @@ int acc_opencl_source_exists(const char* path, const char* fileext)
     char filepath[ACC_OPENCL_BUFFER_MAXSIZE];
 #if defined(_WIN32)
     const int nchar = ACC_OPENCL_SNPRINTF(filepath, ACC_OPENCL_BUFFER_MAXSIZE, "%s" ACC_OPENCL_PATHSEP "%s", path, ext);
-    if (0 <= nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) {
+    if (0 < nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) {
       WIN32_FIND_DATA data;
       HANDLE handle = FindFirstFile(filepath, &data);
       if (INVALID_HANDLE_VALUE != handle) {
@@ -285,7 +285,7 @@ int acc_opencl_source_exists(const char* path, const char* fileext)
 #else
     glob_t globbuf;
     const int nchar = ACC_OPENCL_SNPRINTF(filepath, ACC_OPENCL_BUFFER_MAXSIZE, "%s" ACC_OPENCL_PATHSEP "%s", path, ext);
-    if (0 <= nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) {
+    if (0 < nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) {
       result = glob(filepath, 0/*flags*/, NULL, &globbuf);
       globfree(&globbuf);
     }
@@ -307,7 +307,7 @@ const char* acc_opencl_source_path(const char* fileext)
   char pattern[ACC_OPENCL_BUFFER_MAXSIZE];
   const int nchar = ACC_OPENCL_SNPRINTF(pattern, ACC_OPENCL_BUFFER_MAXSIZE, "*.%s", ext);
   const char* result = NULL;
-  if (0 <= nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) {
+  if (0 < nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) {
     if (EXIT_SUCCESS == acc_opencl_source_exists(getenv("ACC_OPENCL_SOURCE_PATH"), pattern)) {
       result = getenv("ACC_OPENCL_SOURCE_PATH");
     }
@@ -328,7 +328,7 @@ FILE* acc_opencl_source_open(const char* filename, const char *const dirpaths[],
   for (i = 0; i < ndirpaths; ++i) {
     if (NULL != dirpaths[i]) {
       const int nchar = ACC_OPENCL_SNPRINTF(filepath, ACC_OPENCL_BUFFER_MAXSIZE, "%s" ACC_OPENCL_PATHSEP "%s", dirpaths[i], filename);
-      result = ((0 <= nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) ? fopen(filepath, "r") : NULL);
+      result = ((0 < nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) ? fopen(filepath, "r") : NULL);
       if (NULL != result) break;
     }
   }
@@ -337,7 +337,7 @@ FILE* acc_opencl_source_open(const char* filename, const char *const dirpaths[],
     const char *const path = acc_opencl_source_path(NULL != dotext ? (dotext + 1) : NULL);
     if (NULL != path) {
       const int nchar = ACC_OPENCL_SNPRINTF(filepath, ACC_OPENCL_BUFFER_MAXSIZE, "%s" ACC_OPENCL_PATHSEP "%s", path, filename);
-      result = ((0 <= nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) ? fopen(filepath, "r") : NULL);
+      result = ((0 < nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) ? fopen(filepath, "r") : NULL);
     }
   }
   return result;

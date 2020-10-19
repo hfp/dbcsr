@@ -88,7 +88,7 @@ int acc_opencl_dbatchtrans(const int* dev_trs_stack, int offset, int stack_size,
       NULL, &global_work_size, &config->nthreads, 0, NULL, NULL),
       "launch transpose kernel", result);
   }
-  return result;
+  ACC_OPENCL_RETURN(result);
 }
 
 
@@ -96,7 +96,7 @@ int acc_opencl_sbatchtrans(const int* dev_trs_stack, int offset, int stack_size,
   float* dev_data, int m, int n, int max_kernel_dim, void* stream)
 {
   int result = EXIT_FAILURE; /* TODO */
-  return result;
+  ACC_OPENCL_RETURN(result);
 }
 
 #if defined(__cplusplus)

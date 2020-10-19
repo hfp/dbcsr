@@ -41,7 +41,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
       }
     }
   }
-  return result;
+  ACC_OPENCL_RETURN(result);
 }
 
 
@@ -78,7 +78,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
     /* stream status: do not flag an error */
     result = EXIT_FAILURE; /* reject work */
   }
-  return result;
+  ACC_OPENCL_RETURN(result);
 }
 
 #if defined(__cplusplus)

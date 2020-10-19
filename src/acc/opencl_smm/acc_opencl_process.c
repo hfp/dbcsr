@@ -21,7 +21,7 @@ int acc_opencl_dbatchmm(const libsmm_acc_smmstack_t* host_param_stack,
   int m_max, int n_max, int k_max, int max_kernel_dim, void* stream)
 {
   int result = EXIT_FAILURE; /* TODO */
-  return result;
+  ACC_OPENCL_RETURN(result);
 }
 
 
@@ -31,7 +31,7 @@ int acc_opencl_sbatchmm(const libsmm_acc_smmstack_t* host_param_stack,
   int m_max, int n_max, int k_max, int max_kernel_dim, void* stream)
 {
   int result = EXIT_FAILURE; /* TODO */
-  return result;
+  ACC_OPENCL_RETURN(result);
 }
 
 #if defined(__cplusplus)

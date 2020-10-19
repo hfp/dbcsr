@@ -83,6 +83,26 @@
 #define ACC_OPENCL_UP2(N, NPOT) ((((uint64_t)N) + ((NPOT) - 1)) & ~((NPOT) - 1))
 #define ACC_OPENCL_UNUSED(VAR) (void)(VAR)
 
+#if defined(__cplusplus)
+# if defined(__GNUC__) || defined(_CRAYC)
+#   define ACC_OPENCL_FUNCNAME __PRETTY_FUNCTION__
+# elif defined(_MSC_VER)
+#   define ACC_OPENCL_FUNCNAME __FUNCDNAME__
+# else
+#   define ACC_OPENCL_FUNCNAME __FUNCNAME__
+# endif
+#else
+# if defined(__STDC_VERSION__) && (199901L <= __STDC_VERSION__) /*C99*/
+#   define ACC_OPENCL_FUNCNAME __func__
+# elif defined(_MSC_VER)
+#   define ACC_OPENCL_FUNCNAME __FUNCDNAME__/*__FUNCTION__*/
+# elif defined(__GNUC__) && !defined(__STRICT_ANSI__)
+#   define ACC_OPENCL_FUNCNAME __PRETTY_FUNCTION__
+# else
+#   define ACC_OPENCL_FUNCNAME NULL
+# endif
+#endif
+
 #if defined(__STDC_VERSION__) && (199901L <= __STDC_VERSION__ || defined(__GNUC__))
 # define ACC_OPENCL_SNPRINTF(S, N, ...) snprintf(S, N, __VA_ARGS__)
 #else
@@ -118,12 +138,12 @@
       fprintf(stderr, "ERROR ACC/OpenCL: failed%s%s\n", \
         NULL == (CAUSE) ? "" : " for ", \
         NULL == (CAUSE) ? "" : ((const char*)(CAUSE))); \
-      assert(!"NO ERROR"); \
+      assert(!"SUCCESS"); \
     } \
     return acc_opencl_return_cause_; \
   } while (0)
 #endif
-#define ACC_OPENCL_RETURN(RESULT) ACC_OPENCL_RETURN_CAUSE(RESULT, NULL)
+#define ACC_OPENCL_RETURN(RESULT) ACC_OPENCL_RETURN_CAUSE(RESULT, ACC_OPENCL_FUNCNAME)
 
 #define ACC_OPENCL_CHECK(EXPR, MSG, RESULT) do { \
   if (EXIT_SUCCESS == (RESULT)) { \

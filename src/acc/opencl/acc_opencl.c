@@ -225,6 +225,27 @@ int acc_opencl_device(cl_device_id* device)
 }
 
 
+int acc_opencl_device_ext(cl_device_id device, const char *const extnames[], int num_exts)
+{
+  int result = ((NULL != extnames && 0 < num_exts) ? EXIT_SUCCESS : EXIT_FAILURE);
+  char buffer[ACC_OPENCL_BUFFER_MAXSIZE];
+  assert(NULL != device);
+  ACC_OPENCL_CHECK(clGetDeviceInfo(device, CL_DEVICE_EXTENSIONS,
+    ACC_OPENCL_BUFFER_MAXSIZE, buffer, NULL),
+    "retrieve device extensions", result);
+  if (EXIT_SUCCESS == result) {
+    do {
+      --num_exts;
+      if (NULL == extnames[num_exts] || NULL == strstr(buffer, extnames[num_exts])) {
+        result = EXIT_FAILURE;
+        break;
+      }
+    } while (0 < num_exts);
+  }
+  ACC_OPENCL_RETURN(result);
+}
+
+
 int acc_set_active_device(int device_id)
 {
   cl_int result = (((0 <= device_id && device_id < acc_opencl_ndevices) ||

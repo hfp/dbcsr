@@ -174,6 +174,9 @@ extern cl_context acc_opencl_context;
 
 /** Get active device (can be thread-specific). */
 int acc_opencl_device(cl_device_id* device);
+/** Check if given device supports the extensions. */
+int acc_opencl_device_ext(cl_device_id device, const char *const extnames[], int num_exts);
+
 /** Get directory path to load source files from. */
 const char* acc_opencl_source_path(const char* fileext);
 /** Opens filename (read-only) in source path (if not NULL) or dirpath otherwise. */

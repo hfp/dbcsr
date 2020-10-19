@@ -433,12 +433,17 @@ int acc_opencl_kernel(const char *const source[], int nlines, const char* build_
         NULL/*callback*/, NULL/*user_data*/);
         if (CL_SUCCESS == result) {
           *kernel = clCreateKernel(program, kernel_name, &result);
-          ACC_OPENCL_ERROR("create kernel", result);
+          if (CL_SUCCESS == result) assert(NULL != *kernel);
+          else ACC_OPENCL_ERROR("create kernel", result);
         }
         else {
           clGetProgramBuildInfo(program, active_id, CL_PROGRAM_BUILD_LOG,
             ACC_OPENCL_BUFFER_MAXSIZE, &buffer, NULL); /* ignore retval */
+          *kernel = NULL;
         }
+      }
+      else {
+        *kernel = NULL;
       }
     }
     else {

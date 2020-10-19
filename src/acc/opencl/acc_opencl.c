@@ -218,7 +218,7 @@ int acc_opencl_device(cl_device_id* device)
   else {
     *device = NULL;
   }
-  return result;
+  ACC_OPENCL_RETURN(result);
 }
 
 
@@ -410,13 +410,14 @@ int acc_opencl_wgsize(cl_kernel kernel, size_t* preferred_multiple)
     CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE,
     sizeof(size_t), preferred_multiple, NULL),
     "query preferred multiple of workgroup size", result);
-  return result;
+  ACC_OPENCL_RETURN(result);
 }
 
 
 int acc_opencl_kernel(const char *const source[], int nlines, const char* build_options,
   const char* kernel_name, cl_kernel* kernel)
 {
+  char buffer[ACC_OPENCL_BUFFER_MAXSIZE] = "\0";
   cl_int result;
   assert(NULL != kernel);
   if (NULL != acc_opencl_context && 0 < nlines) {
@@ -433,6 +434,10 @@ int acc_opencl_kernel(const char *const source[], int nlines, const char* build_
         *kernel = clCreateKernel(program, kernel_name, &result);
         ACC_OPENCL_ERROR("create kernel", result);
       }
+      else {
+        clGetProgramBuildInfo(program, active_id, CL_PROGRAM_BUILD_LOG,
+          ACC_OPENCL_BUFFER_MAXSIZE, &buffer, NULL); /* ignore retval */
+      }
     }
     else {
       assert(CL_SUCCESS != result);
@@ -444,7 +449,7 @@ int acc_opencl_kernel(const char *const source[], int nlines, const char* build_
     result = EXIT_FAILURE;
     *kernel = NULL;
   }
-  return result;
+  ACC_OPENCL_RETURN_CAUSE(result, buffer);
 }
 
 #if defined(__cplusplus)

@@ -133,14 +133,17 @@
     (RESULT) = EXIT_FAILURE; \
   } while (0)
 # define ACC_OPENCL_RETURN_CAUSE(RESULT, CAUSE) do { \
-    const int acc_opencl_return_cause_ = (RESULT); \
-    if (EXIT_SUCCESS != acc_opencl_return_cause_) { \
+    const int acc_opencl_return_cause_result_ = (RESULT); \
+    if (EXIT_SUCCESS != acc_opencl_return_cause_result_) { \
+      const char *const acc_opencl_return_cause_ = \
+        (NULL != (CAUSE) && '\0' != *(const char*)(CAUSE)) \
+        ? (CAUSE) : (ACC_OPENCL_FUNCNAME); \
       fprintf(stderr, "ERROR ACC/OpenCL: failed%s%s\n", \
-        NULL == (CAUSE) ? "" : " for ", \
-        NULL == (CAUSE) ? "" : ((const char*)(CAUSE))); \
+        NULL == acc_opencl_return_cause_ ? "" : " for ", \
+        NULL == acc_opencl_return_cause_ ? "" : ((const char*)(CAUSE))); \
       assert(!"SUCCESS"); \
     } \
-    return acc_opencl_return_cause_; \
+    return acc_opencl_return_cause_result_; \
   } while (0)
 #endif
 #define ACC_OPENCL_RETURN(RESULT) ACC_OPENCL_RETURN_CAUSE(RESULT, ACC_OPENCL_FUNCNAME)

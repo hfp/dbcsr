@@ -86,6 +86,10 @@ int main(int argc, char* argv[])
     host_mem[i] = j;
   }
   CHECK(acc_memcpy_h2d(host_mem, dev_mem, sizeof(int) * stack_size, stream));
+
+  /* warmup execution and prebuild JIT kernels */
+  CHECK(libsmm_acc_transpose((const int*)dev_mem, offset, stack_size,
+    dev_data, dbcsr_type_real_8, m, n, max_kernel_dim, stream));
 #if defined(__LIBXSMM)
   start = libxsmm_timer_tick();
 #endif

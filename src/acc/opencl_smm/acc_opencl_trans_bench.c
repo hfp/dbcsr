@@ -93,6 +93,7 @@ int main(int argc, char* argv[])
   /* warmup execution and prebuild JIT kernels */
   CHECK(libsmm_acc_transpose(dev_mem, offset, stack_size,
     dev_data, dbcsr_type_real_8, m, n, MAX_KERNEL_DIM, stream));
+  CHECK(acc_stream_sync(stream));
 #if defined(__LIBXSMM)
   start = libxsmm_timer_tick();
 #endif
@@ -101,6 +102,7 @@ int main(int argc, char* argv[])
       dev_data, dbcsr_type_real_8, m, n, MAX_KERNEL_DIM, stream));
   }
 #if defined(__LIBXSMM)
+  CHECK(acc_stream_sync(stream));
   duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
 #endif
   if (0 < nrepeat) printf("duration: %f ms\n", 1000.0 * duration / nrepeat);
@@ -108,6 +110,7 @@ int main(int argc, char* argv[])
   { /* transfer result from device back to host for validation */
     unsigned int nerrors = 0;
     CHECK(acc_memcpy_d2h(dev_data, host_data, sizeof(ELEM_TYPE) * mn * stack_size, stream));
+    CHECK(acc_stream_sync(stream));
     for (i = 0; i < stack_size; ++i) { /* initialize stack of matrices */
       ELEM_TYPE matrix[MAX_KERNEL_DIM*MAX_KERNEL_DIM];
       init(i/*seed*/, matrix, m, n, m/*ld*/, scale);
@@ -117,6 +120,7 @@ int main(int argc, char* argv[])
       }
     }
     printf("errors: %u\n", nerrors);
+    if (0 != nerrors) result = EXIT_FAILURE;
   }
 #endif
   CHECK(acc_host_mem_deallocate(host_data, stream));

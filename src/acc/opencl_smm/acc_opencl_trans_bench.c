@@ -23,6 +23,7 @@
 #endif
 
 #define ROUNDUP2(N, NPOT) ((((unsigned long long)N) + ((NPOT) - 1)) & ~((NPOT) - 1))
+#define CHECK(EXPR) if (EXIT_SUCCESS != result || EXIT_SUCCESS != (result = (EXPR))) assert(0)
 
 
 static void init(int seed, ELEM_TYPE* dst, int nrows, int ncols, int ld, double scale) {
@@ -62,20 +63,20 @@ int main(int argc, char* argv[])
   const double scale = 1.0 / stack_size;
   double duration;
 
-  acc_init();
-  acc_stream_priority_range(&priomin, &priomax);
-  acc_stream_create(&stream, "stream", (priomin + priomax) / 2);
+  CHECK(acc_init());
+  CHECK(acc_stream_priority_range(&priomin, &priomax));
+  CHECK(acc_stream_create(&stream, "stream", (priomin + priomax) / 2));
 
-  acc_host_mem_allocate((void**)&host_data, sizeof(ELEM_TYPE) * mn * stack_size, stream);
-  acc_dev_mem_allocate((void**)&dev_data, sizeof(ELEM_TYPE) * mn * stack_size);
-  acc_stream_sync(stream);
+  CHECK(acc_host_mem_allocate((void**)&host_data, sizeof(ELEM_TYPE) * mn * stack_size, stream));
+  CHECK(acc_dev_mem_allocate((void**)&dev_data, sizeof(ELEM_TYPE) * mn * stack_size));
+  CHECK(acc_stream_sync(stream));
   for (i = 0; i < stack_size; ++i) { /* initialize stack of matrices */
     init(i/*seed*/, host_data + mn * i, m, n, m/*ld*/, scale);
   }
-  acc_memcpy_h2d(host_data, dev_data, sizeof(ELEM_TYPE) * mn * stack_size, stream);
+  CHECK(acc_memcpy_h2d(host_data, dev_data, sizeof(ELEM_TYPE) * mn * stack_size, stream));
 
-  acc_host_mem_allocate((void**)&host_mem, sizeof(int) * stack_size, stream);
-  acc_dev_mem_allocate((void**)&dev_mem, sizeof(int) * stack_size);
+  CHECK(acc_host_mem_allocate((void**)&host_mem, sizeof(int) * stack_size, stream));
+  CHECK(acc_dev_mem_allocate((void**)&dev_mem, sizeof(int) * stack_size));
   for (i = 0; i < stack_size; ++i) { /* initialize indexes */
 #if defined(SHUFFLE)
     const size_t j = mn * (i * shuffle) % stack_size;
@@ -84,22 +85,22 @@ int main(int argc, char* argv[])
 #endif
     host_mem[i] = j;
   }
-  acc_memcpy_h2d(host_mem, dev_mem, sizeof(int) * stack_size, stream);
+  CHECK(acc_memcpy_h2d(host_mem, dev_mem, sizeof(int) * stack_size, stream));
 #if defined(__LIBXSMM)
   start = libxsmm_timer_tick();
 #endif
-  result = libsmm_acc_transpose((const int*)dev_mem, offset, stack_size,
-    dev_data, dbcsr_type_real_8, m, n, max_kernel_dim, stream);
+  CHECK(libsmm_acc_transpose((const int*)dev_mem, offset, stack_size,
+    dev_data, dbcsr_type_real_8, m, n, max_kernel_dim, stream));
 #if defined(__LIBXSMM)
   duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
 #endif
   printf("duration: %f ms\n", 1000.0 * duration);
 
-  acc_host_mem_deallocate(host_data, stream);
-  acc_host_mem_deallocate(host_mem, stream);
-  acc_dev_mem_deallocate(dev_data);
-  acc_dev_mem_deallocate(dev_mem);
-  acc_stream_destroy(stream);
+  CHECK(acc_host_mem_deallocate(host_data, stream));
+  CHECK(acc_host_mem_deallocate(host_mem, stream));
+  CHECK(acc_dev_mem_deallocate(dev_data));
+  CHECK(acc_dev_mem_deallocate(dev_mem));
+  CHECK(acc_stream_destroy(stream));
 
   return result;
 }

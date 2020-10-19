@@ -87,6 +87,7 @@ int acc_opencl_dbatchtrans(const int* dev_trs_stack, int offset, int stack_size,
       }
       else {
         c.nthreads = 0;
+        config = (config_t*)libxsmm_xregister(&key, sizeof(key), sizeof(c), &c);
       }
     }
   }

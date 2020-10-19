@@ -319,14 +319,18 @@ const char* acc_opencl_source_path(const char* fileext)
 }
 
 
-FILE* acc_opencl_source_open(const char* filename, const char* dirpath)
+FILE* acc_opencl_source_open(const char* filename, const char *const dirpaths[], int ndirpaths)
 {
   char filepath[ACC_OPENCL_BUFFER_MAXSIZE];
   FILE* result = NULL;
-  assert(NULL != filename);
-  if (NULL != dirpath) {
-    const int nchar = ACC_OPENCL_SNPRINTF(filepath, ACC_OPENCL_BUFFER_MAXSIZE, "%s" ACC_OPENCL_PATHSEP "%s", dirpath, filename);
-    result = ((0 <= nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) ? fopen(filepath, "r") : NULL);
+  int i;
+  assert(NULL != filename && (0 >= ndirpaths || NULL != dirpaths));
+  for (i = 0; i < ndirpaths; ++i) {
+    if (NULL != dirpaths[i]) {
+      const int nchar = ACC_OPENCL_SNPRINTF(filepath, ACC_OPENCL_BUFFER_MAXSIZE, "%s" ACC_OPENCL_PATHSEP "%s", dirpaths[i], filename);
+      result = ((0 <= nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) ? fopen(filepath, "r") : NULL);
+      if (NULL != result) break;
+    }
   }
   if (NULL == result) {
     const char *const dotext = strrchr(filename, '.');
@@ -410,14 +414,14 @@ int acc_opencl_wgsize(cl_kernel kernel, size_t* preferred_multiple)
 }
 
 
-int acc_opencl_kernel(const char* source[], int nlines, const char* build_options,
+int acc_opencl_kernel(const char *const source[], int nlines, const char* build_options,
   const char* kernel_name, cl_kernel* kernel)
 {
   cl_int result;
   assert(NULL != kernel);
   if (NULL != acc_opencl_context && 0 < nlines) {
     const cl_program program = clCreateProgramWithSource(
-      acc_opencl_context, nlines, source, NULL, &result);
+      acc_opencl_context, nlines, (const char**)source, NULL, &result);
     if (NULL != program) {
       cl_device_id active_id = NULL;
       assert(CL_SUCCESS == result);

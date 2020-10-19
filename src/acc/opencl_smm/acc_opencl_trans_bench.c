@@ -18,6 +18,9 @@
 #if !defined(CACHELINE_NBYTES)
 # define CACHELINE_NBYTES 64
 #endif
+#if !defined(MAX_KERNEL_DIM)
+# define MAX_KERNEL_DIM 80
+#endif
 #if !defined(ELEM_TYPE)
 # define ELEM_TYPE double
 #endif
@@ -45,18 +48,18 @@ static void init(int seed, ELEM_TYPE* dst, int nrows, int ncols, int ld, double 
 
 int main(int argc, char* argv[])
 {
-  const int stack_size = (1 < argc ? LIBXSMM_MAX(atoi(argv[1]), 1) : 30000);
-  const int m = (2 < argc ? LIBXSMM_MAX(atoi(argv[2]), 1) : 23);
-  const int n = (3 < argc ? LIBXSMM_MAX(atoi(argv[3]), 1) : m);
-  const int max_kernel_dim = 80, offset = 0;
+  const int nrepeat = (1 < argc ? atoi(argv[1]) : 1000), offset = 0;
+  const int stack_size = (2 < argc ? LIBXSMM_MAX(atoi(argv[2]), 1) : 30000);
+  const int m = (3 < argc ? LIBXSMM_MAX(atoi(argv[3]), 1) : 23);
+  const int n = (4 < argc ? LIBXSMM_MAX(atoi(argv[4]), 1) : m);
   const size_t mn = ROUNDUP2(sizeof(ELEM_TYPE) * m * n, CACHELINE_NBYTES) / sizeof(ELEM_TYPE);
 #if defined(SHUFFLE)
   const size_t shuffle = libxsmm_shuffle((unsigned int)stack_size);
 #endif
   int *host_mem = NULL, *dev_mem = NULL;
   ELEM_TYPE *host_data = NULL, *dev_data = NULL;
+  int priomin, priomax, r, i, j;
   int result = EXIT_SUCCESS;
-  int priomin, priomax, i;
   void *stream = NULL;
 
   libxsmm_timer_tickint start;
@@ -79,27 +82,43 @@ int main(int argc, char* argv[])
   CHECK(acc_dev_mem_allocate((void**)&dev_mem, sizeof(int) * stack_size));
   for (i = 0; i < stack_size; ++i) { /* initialize indexes */
 #if defined(SHUFFLE)
-    const size_t j = mn * (i * shuffle) % stack_size;
+    j = (int)(mn * (i * shuffle) % stack_size);
 #else
-    const size_t j = mn * i;
+    j = (int)(mn * i);
 #endif
     host_mem[i] = j;
   }
   CHECK(acc_memcpy_h2d(host_mem, dev_mem, sizeof(int) * stack_size, stream));
 
   /* warmup execution and prebuild JIT kernels */
-  CHECK(libsmm_acc_transpose((const int*)dev_mem, offset, stack_size,
-    dev_data, dbcsr_type_real_8, m, n, max_kernel_dim, stream));
+  CHECK(libsmm_acc_transpose(dev_mem, offset, stack_size,
+    dev_data, dbcsr_type_real_8, m, n, MAX_KERNEL_DIM, stream));
 #if defined(__LIBXSMM)
   start = libxsmm_timer_tick();
 #endif
-  CHECK(libsmm_acc_transpose((const int*)dev_mem, offset, stack_size,
-    dev_data, dbcsr_type_real_8, m, n, max_kernel_dim, stream));
+  for (r = 0; r < nrepeat; ++r) {
+    CHECK(libsmm_acc_transpose(dev_mem, offset, stack_size,
+      dev_data, dbcsr_type_real_8, m, n, MAX_KERNEL_DIM, stream));
+  }
 #if defined(__LIBXSMM)
   duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
 #endif
-  printf("duration: %f ms\n", 1000.0 * duration);
-
+  if (0 < nrepeat) printf("duration: %f ms\n", 1000.0 * duration / nrepeat);
+#if defined(__LIBXSMM)
+  { /* transfer result from device back to host for validation */
+    unsigned int nerrors = 0;
+    CHECK(acc_memcpy_d2h(dev_data, host_data, sizeof(ELEM_TYPE) * mn * stack_size, stream));
+    for (i = 0; i < stack_size; ++i) { /* initialize stack of matrices */
+      ELEM_TYPE matrix[MAX_KERNEL_DIM*MAX_KERNEL_DIM];
+      init(i/*seed*/, matrix, m, n, m/*ld*/, scale);
+      libxsmm_itrans(matrix, sizeof(ELEM_TYPE), m, n, m/*ld*/);
+      for (i = j; j < (int)mn; ++j) {
+        if (matrix[j] != host_data[i*mn+j]) ++nerrors;
+      }
+    }
+    printf("errors: %u\n", nerrors);
+  }
+#endif
   CHECK(acc_host_mem_deallocate(host_data, stream));
   CHECK(acc_host_mem_deallocate(host_mem, stream));
   CHECK(acc_dev_mem_deallocate(dev_data));

@@ -210,9 +210,12 @@ int acc_opencl_device(cl_device_id* device)
   if (NULL != acc_opencl_context) {
 #if !defined(NDEBUG)
     size_t n = 0;
-#endif
     ACC_OPENCL_CHECK(clGetContextInfo(acc_opencl_context, CL_CONTEXT_DEVICES,
       sizeof(cl_device_id), device, &n), "retrieve id of active device", result);
+#else
+    ACC_OPENCL_CHECK(clGetContextInfo(acc_opencl_context, CL_CONTEXT_DEVICES,
+      sizeof(cl_device_id), device, NULL), "retrieve id of active device", result);
+#endif
     assert(EXIT_SUCCESS != result || sizeof(cl_device_id) == n/*single-device context*/);
   }
   else {

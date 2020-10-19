@@ -44,18 +44,17 @@ int acc_opencl_dbatchtrans(const int* dev_trs_stack, int offset, int stack_size,
     FILE *const file = acc_opencl_source_open("transpose.cl", paths, sizeof(paths) / sizeof(*paths));
     const char *const envnt = getenv("ACC_OPENCL_TRANS_NT");
     const size_t nt = (NULL == envnt ? local_work_size : ((size_t)atoi(envnt)));
-    char build_options[ACC_OPENCL_BUFFER_MAXSIZE];
-    const int nchar = ACC_OPENCL_SNPRINTF(build_options, ACC_OPENCL_BUFFER_MAXSIZE,
-      "-DT=double " ACC_OPENCL_SMM_KERNELNAME_DEF "dtrans_%i_%i -DM=%i -DN=%i", m, n, m, n);
-    if (0 <= nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) {
-      const char *const kernelname_def = strstr(ACC_OPENCL_SMM_KERNELNAME_DEF, build_options);
-      const char *const kernelname = (NULL != kernelname_def
-        ? (kernelname_def + sizeof(ACC_OPENCL_SMM_KERNELNAME_DEF)) : NULL);
+    char buffer[ACC_OPENCL_BUFFER_MAXSIZE];
+    const int fsize = ACC_OPENCL_SNPRINTF(buffer, ACC_OPENCL_BUFFER_MAXSIZE, "dtrans_%i_%i", m, n);
+    char *const build_options = ((0 < fsize && ACC_OPENCL_BUFFER_MAXSIZE > fsize) ? (buffer + strlen(buffer) + 1) : NULL);
+    const int nchar = (NULL != build_options ? ACC_OPENCL_SNPRINTF(build_options, ACC_OPENCL_BUFFER_MAXSIZE,
+      "-DT=double -DF=dtrans_%i_%i -DM=%i -DN=%i", m, n, m, n) : 0);
+    if (0 < nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) {
       if (NULL != file) {
         char* lines[50];
         const int nlines = acc_opencl_source(file, lines, sizeof(lines) / sizeof(*lines), 1/*cleanup*/);
         fclose(file);
-        result = acc_opencl_kernel((const char**)lines, nlines, build_options, kernelname, &c.kernel);
+        result = acc_opencl_kernel((const char**)lines, nlines, build_options, buffer, &c.kernel);
       }
       assert(NULL != acc_opencl_batchtrans_source);
       if (EXIT_FAILURE == result
@@ -63,7 +62,7 @@ int acc_opencl_dbatchtrans(const int* dev_trs_stack, int offset, int stack_size,
         && NULL != *acc_opencl_batchtrans_source)
       {
         const int nlines = sizeof(acc_opencl_batchtrans_source) / sizeof(*acc_opencl_batchtrans_source);
-        result = acc_opencl_kernel(acc_opencl_batchtrans_source, nlines, build_options, kernelname, &c.kernel);
+        result = acc_opencl_kernel(acc_opencl_batchtrans_source, nlines, build_options, buffer, &c.kernel);
       }
       else {
         result = EXIT_FAILURE;

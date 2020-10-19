@@ -41,9 +41,6 @@ int acc_opencl_dbatchtrans(const int* dev_trs_stack, int offset, int stack_size,
       , "../opencl_smm/kernels"
 #endif
     };
-    FILE *const file = acc_opencl_source_open("transpose.cl", paths, sizeof(paths) / sizeof(*paths));
-    const char *const envnt = getenv("ACC_OPENCL_TRANS_NT");
-    const size_t nt = (NULL == envnt ? local_work_size : ((size_t)atoi(envnt)));
     char buffer[ACC_OPENCL_BUFFER_MAXSIZE];
     const int fsize = ACC_OPENCL_SNPRINTF(buffer, ACC_OPENCL_BUFFER_MAXSIZE, "dtrans_%i_%i", m, n);
     char *const build_options = ((0 < fsize && ACC_OPENCL_BUFFER_MAXSIZE > fsize) ? (buffer + strlen(buffer) + 1) : NULL);
@@ -56,6 +53,7 @@ int acc_opencl_dbatchtrans(const int* dev_trs_stack, int offset, int stack_size,
     const int nchar = (NULL != build_options ? ACC_OPENCL_SNPRINTF(build_options, ACC_OPENCL_BUFFER_MAXSIZE,
       "%s -DT=double -DFN=%s -DSM=%i -DSN=%i", level2, buffer, m, n) : 0);
     if (0 < nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) {
+      FILE *const file = acc_opencl_source_open("transpose.cl", paths, sizeof(paths) / sizeof(*paths));
       if (NULL != file) {
         char* lines[50];
         const int nlines = acc_opencl_source(file, lines, sizeof(lines) / sizeof(*lines), 1/*cleanup*/);
@@ -80,6 +78,8 @@ int acc_opencl_dbatchtrans(const int* dev_trs_stack, int offset, int stack_size,
         size_t preferred_multiple, max_wgsize;
         result = acc_opencl_wgsize(c.kernel, &preferred_multiple, &max_wgsize);
         if (EXIT_SUCCESS == result) {
+          const char *const envnt = getenv("ACC_OPENCL_TRANS_NT");
+          const size_t nt = (NULL == envnt ? local_work_size : ((size_t)atoi(envnt)));
           c.nthreads = LIBXSMM_MIN(LIBXSMM_UP(LIBXSMM_MAX(nt, size),
             preferred_multiple), LIBXSMM_MIN(max_wgsize, global_work_size));
           config = (config_t*)libxsmm_xregister(&key, sizeof(key), sizeof(c), &c);

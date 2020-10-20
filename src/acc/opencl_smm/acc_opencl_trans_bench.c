@@ -112,7 +112,9 @@ int main(int argc, char* argv[])
   duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
 #endif
   assert(0 < neven);
-  printf("duration: %f ms\n", 1000.0 * duration / neven);
+  printf("bandwidth: %.1f GB/s\n", (sizeof(ELEM_TYPE) * m * n + sizeof(int))
+    * stack_size / (duration * (1ULL << 30) / neven));
+  printf("duration: %.1f ms\n", 1000.0 * duration / neven);
 #if defined(__LIBXSMM)
   { /* transfer result from device back to host for validation */
     unsigned int nerrors = 0;

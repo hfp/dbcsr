@@ -7,15 +7,18 @@
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
 
-__kernel void FN(__global int* trs_stack, int trs_offset, __global T* mat)
+__kernel void FN(__global int* trs_stack, int trs_offset, __global T* matrix)
 {
   __local T buf[SM*SN];
 
-  /* Get the offset in the transpose-stack that this block ID should handle */
+  /* offset in the transpose-stack that this block ID should handle */
   const int offset = trs_stack[trs_offset+get_group_id(0)];
+  /* matrix according to the index (transpose-stack) */
+  T *const mat = matrix + offset;
+
   /* Load matrix elements into a temporary buffer */
   for (int i = get_local_id(0); i < (SM * SN); i += SM){
-    buf[i] = mat[offset+i];
+    buf[i] = mat[i];
   }
   barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -26,6 +29,6 @@ __kernel void FN(__global int* trs_stack, int trs_offset, __global T* mat)
     /* Compute the corresponding old 1D index of matrix element */
     const int idx = r_out * SM + c_out;
     /* Overwrite the matrix element */
-    mat[offset+i] = buf[idx];
+    mat[i] = buf[idx];
   }
 }

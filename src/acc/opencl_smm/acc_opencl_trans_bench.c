@@ -15,8 +15,8 @@
 # endif
 #endif
 
-#if !defined(CACHELINE_NBYTES)
-# define CACHELINE_NBYTES 64
+#if !defined(ALIGNMENT)
+# define ALIGNMENT 64
 #endif
 #if !defined(MAX_KERNEL_DIM)
 # define MAX_KERNEL_DIM 80
@@ -54,7 +54,11 @@ int main(int argc, char* argv[])
   const int stack_size = (2 < argc ? LIBXSMM_MAX(atoi(argv[2]), 1) : 30000);
   const int m = (3 < argc ? LIBXSMM_MAX(atoi(argv[3]), 1) : 23);
   const int n = (4 < argc ? LIBXSMM_MAX(atoi(argv[4]), 1) : m);
-  const size_t mn = ROUNDUP2(sizeof(ELEM_TYPE) * m * n, CACHELINE_NBYTES) / sizeof(ELEM_TYPE);
+#if defined(ALIGNMENT) && (0 < ALIGNMENT)
+  const size_t mn = ROUNDUP2(sizeof(ELEM_TYPE) * m * n, ALIGNMENT) / sizeof(ELEM_TYPE);
+#else
+  const size_t mn = m * n;
+#endif
 #if defined(SHUFFLE)
   const size_t shuffle = libxsmm_shuffle((unsigned int)stack_size);
 #endif

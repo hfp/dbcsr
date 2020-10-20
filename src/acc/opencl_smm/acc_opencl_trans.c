@@ -43,6 +43,7 @@ int acc_opencl_dbatchtrans(const int* dev_trs_stack, int offset, int stack_size,
     char buffer[ACC_OPENCL_BUFFER_MAXSIZE];
     const int fsize = ACC_OPENCL_SNPRINTF(buffer, ACC_OPENCL_BUFFER_MAXSIZE, "dtrans_%i_%i", m, n);
     char *const build_options = ((0 < fsize && ACC_OPENCL_BUFFER_MAXSIZE > fsize) ? (buffer + strlen(buffer) + 1) : NULL);
+#if 0
     cl_device_id device;
     int level_major, level_minor;
     const char *const level2 = (EXIT_SUCCESS == acc_opencl_device_level(
@@ -51,6 +52,10 @@ int acc_opencl_dbatchtrans(const int* dev_trs_stack, int offset, int stack_size,
       ? "-cl-std=CL2.0" : ""; /* OpenCL support level */
     const int nchar = (NULL != build_options ? ACC_OPENCL_SNPRINTF(build_options, ACC_OPENCL_BUFFER_MAXSIZE,
       "%s -DT=double -DFN=%s -DSM=%i -DSN=%i", level2, buffer, m, n) : 0);
+#else
+    const int nchar = (NULL != build_options ? ACC_OPENCL_SNPRINTF(build_options, ACC_OPENCL_BUFFER_MAXSIZE,
+      "-DT=double -DFN=%s -DSM=%i -DSN=%i", buffer, m, n) : 0);
+#endif
     if (0 < nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) {
       FILE *const file = acc_opencl_source_open("transpose.cl", paths, sizeof(paths) / sizeof(*paths));
       if (NULL != file) {
@@ -73,6 +78,7 @@ int acc_opencl_dbatchtrans(const int* dev_trs_stack, int offset, int stack_size,
       result = EXIT_FAILURE;
     }
     if (EXIT_SUCCESS == result) {
+#if 0
       if ('\0' != *level2) { /* support-level at least OpenCL 2.0 */
         size_t preferred_multiple, max_wgsize;
         result = acc_opencl_wgsize(c.kernel, &preferred_multiple, &max_wgsize);
@@ -84,7 +90,9 @@ int acc_opencl_dbatchtrans(const int* dev_trs_stack, int offset, int stack_size,
           config = (config_t*)libxsmm_xregister(&key, sizeof(key), sizeof(c), &c);
         }
       }
-      else {
+      else
+#endif
+      {
         c.wgsize = 0;
         config = (config_t*)libxsmm_xregister(&key, sizeof(key), sizeof(c), &c);
       }

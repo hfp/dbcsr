@@ -88,7 +88,7 @@ int main(int argc, char* argv[])
   CHECK(acc_dev_mem_allocate((void**)&dev_mem, sizeof(int) * stack_size), &result);
   for (i = 0; i < stack_size; ++i) { /* initialize indexes */
 #if defined(SHUFFLE)
-    j = (int)(mn * (i * shuffle) % stack_size);
+    j = (int)(mn * ((shuffle * i) % stack_size));
 #else
     j = (int)(mn * i);
 #endif

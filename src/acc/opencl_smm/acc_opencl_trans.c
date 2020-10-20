@@ -23,7 +23,6 @@ int acc_opencl_dbatchtrans(const int* dev_trs_stack, int offset, int stack_size,
   double* dev_data, int m, int n, int max_kernel_dim, void* stream)
 {
   int result = EXIT_SUCCESS;
-  const size_t global_work_size = stack_size * n;
   struct { int m, n; } key;
   cl_kernel *kernel;
   key.m = m; key.n = n; /* initialize key */
@@ -67,6 +66,7 @@ int acc_opencl_dbatchtrans(const int* dev_trs_stack, int offset, int stack_size,
     }
   }
   if (EXIT_SUCCESS == result) {
+    const size_t wgsize = n, work_size = wgsize * stack_size;
     assert(NULL != kernel && NULL != *kernel);
     ACC_OPENCL_CHECK(clSetKernelArg(*kernel, 0, sizeof(cl_mem), ACC_OPENCL_MEM(dev_trs_stack)),
       "set batch-list argument of transpose kernel", result);
@@ -74,8 +74,8 @@ int acc_opencl_dbatchtrans(const int* dev_trs_stack, int offset, int stack_size,
       "set offset argument of transpose kernel", result);
     ACC_OPENCL_CHECK(clSetKernelArg(*kernel, 2, sizeof(cl_mem), ACC_OPENCL_MEM(dev_data)),
       "set matix-data argument of transpose kernel", result);
-    ACC_OPENCL_CHECK(clEnqueueNDRangeKernel(*ACC_OPENCL_STREAM(stream), *kernel, 1/*work_dim*/,
-      NULL, &global_work_size, NULL, 0, NULL, NULL),
+    ACC_OPENCL_CHECK(clEnqueueNDRangeKernel(*ACC_OPENCL_STREAM(stream),
+      *kernel, 1/*work_dim*/, NULL, &work_size, &wgsize, 0, NULL, NULL),
       "launch transpose kernel", result);
   }
   ACC_OPENCL_RETURN(result);

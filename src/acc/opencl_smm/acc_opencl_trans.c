@@ -78,7 +78,7 @@ int acc_opencl_dbatchtrans(const int* dev_trs_stack, int offset, int stack_size,
         result = acc_opencl_wgsize(c.kernel, &preferred_multiple, &max_wgsize);
         if (EXIT_SUCCESS == result) {
           const char *const env_wgsize = getenv("ACC_OPENCL_TRANS_WGSIZE");
-          const int int_wgsize = (NULL == env_wgsize ? atoi(env_wgsize) : n);
+          const int int_wgsize = (NULL == env_wgsize ? n : atoi(env_wgsize));
           const size_t wgsize = (size_t)(0 <= int_wgsize ? int_wgsize : n);
           c.wgsize = LIBXSMM_MIN(LIBXSMM_UP(wgsize, preferred_multiple), max_wgsize);
           config = (config_t*)libxsmm_xregister(&key, sizeof(key), sizeof(c), &c);

@@ -21,7 +21,7 @@ __kernel void FN(__global int* trs_stack, int trs_offset, __global T* mat)
   for (int i = get_local_id(0); i < (SM * SN); i += get_local_size(0)) {
     /* Compute old row and column index of matrix element */
     const int c_out = i / SN, r_out = i - c_out * SN /* i % SN */;
-     /* Compute the corresponding old 1D index of matrix element */
+    /* Compute the corresponding old 1D index of matrix element */
     const int idx = r_out * SM + c_out;
     /* Overwrite the matrix element */
     mat[offset+i] = buf[idx];

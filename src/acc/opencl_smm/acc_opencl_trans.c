@@ -23,12 +23,11 @@ int acc_opencl_dbatchtrans(const int* dev_trs_stack, int offset, int stack_size,
   double* dev_data, int m, int n, int max_kernel_dim, void* stream)
 {
   int result = EXIT_SUCCESS;
-  const size_t size = m * n, global_work_size = stack_size * size;
-  size_t local_work_size = 128;
+  const size_t global_work_size = stack_size * n;
   struct { int m, n; } key;
   typedef struct config_t {
     cl_kernel kernel;
-    size_t nthreads;
+    size_t wgsize;
   } config_t;
   config_t* config;
   key.m = m; key.n = n; /* initialize key */
@@ -78,15 +77,15 @@ int acc_opencl_dbatchtrans(const int* dev_trs_stack, int offset, int stack_size,
         size_t preferred_multiple, max_wgsize;
         result = acc_opencl_wgsize(c.kernel, &preferred_multiple, &max_wgsize);
         if (EXIT_SUCCESS == result) {
-          const char *const envnt = getenv("ACC_OPENCL_TRANS_NT");
-          const size_t nt = (NULL == envnt ? local_work_size : ((size_t)atoi(envnt)));
-          c.nthreads = LIBXSMM_MIN(LIBXSMM_UP(LIBXSMM_MAX(nt, size),
+          const char *const env_wgsize = getenv("ACC_OPENCL_TRANS_WGSIZE");
+          const size_t wgsize = (NULL == env_wgsize ? n : ((size_t)atoi(env_wgsize)));
+          c.wgsize = LIBXSMM_MIN(LIBXSMM_UP(LIBXSMM_MAX(wgsize, (size_t)n),
             preferred_multiple), LIBXSMM_MIN(max_wgsize, global_work_size));
           config = (config_t*)libxsmm_xregister(&key, sizeof(key), sizeof(c), &c);
         }
       }
       else {
-        c.nthreads = 0;
+        c.wgsize = 0;
         config = (config_t*)libxsmm_xregister(&key, sizeof(key), sizeof(c), &c);
       }
     }
@@ -100,7 +99,7 @@ int acc_opencl_dbatchtrans(const int* dev_trs_stack, int offset, int stack_size,
     ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 2, sizeof(cl_mem), ACC_OPENCL_MEM(dev_data)),
       "set matix-data argument of transpose kernel", result);
     ACC_OPENCL_CHECK(clEnqueueNDRangeKernel(*ACC_OPENCL_STREAM(stream), config->kernel, 1/*work_dim*/,
-      NULL, &global_work_size, 0 != config->nthreads ? &config->nthreads : NULL, 0, NULL, NULL),
+      NULL, &global_work_size, 0 != config->wgsize ? &config->wgsize : NULL, 0, NULL, NULL),
       "launch transpose kernel", result);
   }
   ACC_OPENCL_RETURN(result);

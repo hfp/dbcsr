@@ -15,7 +15,7 @@ void FN(__global int* trs_stack, int trs_offset, __global T* matrix)
   /* offset in the transpose-stack that this block ID should handle */
   const int offset = trs_stack[trs_offset+get_group_id(0)];
   /* matrix according to the index (transpose-stack) */
-  T *const mat = matrix + offset;
+  __global T *const mat = matrix + offset;
 
   /* Load matrix elements into a temporary buffer */
   for (int i = get_local_id(0); i < (SM * SN); i += SM){

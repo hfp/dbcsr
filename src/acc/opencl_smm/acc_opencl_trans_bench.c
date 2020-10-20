@@ -48,7 +48,8 @@ static void init(int seed, ELEM_TYPE* dst, int nrows, int ncols, int ld, double 
 
 int main(int argc, char* argv[])
 {
-  const int nrepeat = ((1 < argc ? atoi(argv[1]) : 1000) | 1/*odd*/), offset = 0;
+  const int nrepeat = (1 < argc ? atoi(argv[1]) : 1000), offset = 0;
+  const int neven = (2 <= nrepeat ? ((nrepeat & 1/*odd*/) ? (nrepeat - 1) : nrepeat) : 2);
   const int stack_size = (2 < argc ? LIBXSMM_MAX(atoi(argv[2]), 1) : 30000);
   const int m = (3 < argc ? LIBXSMM_MAX(atoi(argv[3]), 1) : 23);
   const int n = (4 < argc ? LIBXSMM_MAX(atoi(argv[4]), 1) : m);
@@ -97,7 +98,7 @@ int main(int argc, char* argv[])
 #if defined(__LIBXSMM)
   start = libxsmm_timer_tick();
 #endif
-  for (r = 0; r < nrepeat; ++r) {
+  for (r = 0; r < neven; ++r) {
     CHECK(libsmm_acc_transpose(dev_mem, offset, stack_size,
       dev_data, dbcsr_type_real_8, m, n, MAX_KERNEL_DIM, stream));
   }
@@ -105,7 +106,8 @@ int main(int argc, char* argv[])
   CHECK(acc_stream_sync(stream));
   duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
 #endif
-  if (0 < nrepeat) printf("duration: %f ms\n", 1000.0 * duration / nrepeat);
+  assert(0 < neven);
+  printf("duration: %f ms\n", 1000.0 * duration / neven);
 #if defined(__LIBXSMM)
   { /* transfer result from device back to host for validation */
     unsigned int nerrors = 0;

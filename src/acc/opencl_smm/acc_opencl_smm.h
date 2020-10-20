@@ -23,11 +23,6 @@
 extern "C" {
 #endif
 
-int acc_opencl_dbatchtrans(const int* dev_trs_stack, int offset, int stack_size,
-  double* dev_data, int m, int n, int max_kernel_dim, void* stream);
-int acc_opencl_sbatchtrans(const int* dev_trs_stack, int offset, int stack_size,
-  float* dev_data, int m, int n, int max_kernel_dim, void* stream);
-
 int acc_opencl_dbatchmm(const libsmm_acc_smmstack_t* host_param_stack,
   const libsmm_acc_smmstack_t* dev_param_stack, int stack_size,
   const double* dev_a_data, const double* dev_b_data, double* dev_c_data,

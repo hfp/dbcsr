@@ -128,7 +128,9 @@ int main(int argc, char* argv[])
         init(i/*seed*/, matrix, m, n, m/*ld*/, scale);
         libxsmm_itrans(matrix, sizeof(ELEM_TYPE), m, n, m/*ld*/);
         for (j = 0; j < (int)mn; ++j) {
-          if (matrix[j] != host_data[i*mn+j]) ++nerrors;
+          if (matrix[j] != host_data[i*mn+j]) {
+            ++nerrors; break;
+          }
         }
       }
       printf("errors: %u\n", nerrors);

@@ -59,7 +59,7 @@ acc_opencl_meminfo_t* acc_opencl_meminfo(void* /*memory*/);
 acc_opencl_meminfo_t* acc_opencl_meminfo(void* memory)
 {
   assert(NULL != memory && sizeof(acc_opencl_meminfo_t) <= (uintptr_t)memory);
-  return (acc_opencl_meminfo_t*)((char*)memory - sizeof(acc_opencl_meminfo_t));
+  return (acc_opencl_meminfo_t*)((uintptr_t)memory - sizeof(acc_opencl_meminfo_t));
 }
 
 

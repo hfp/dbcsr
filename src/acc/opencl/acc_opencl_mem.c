@@ -123,14 +123,16 @@ int acc_host_mem_deallocate(void* host_mem, void* stream)
     acc_opencl_meminfo_t *const meminfo = acc_opencl_meminfo(host_mem);
     const acc_opencl_meminfo_t info = *meminfo; /* copy meminfo prior to unmap */
     const cl_command_queue queue = *ACC_OPENCL_STREAM(stream);
+    if (NULL != meminfo->buffer) {
 #if defined(ACC_OPENCL_MEM_MAPMULTI)
-    ACC_OPENCL_CHECK(clEnqueueUnmapMemObject(queue, meminfo->buffer, meminfo,
-      0, NULL, NULL), "unmap memory info", result);
+      ACC_OPENCL_CHECK(clEnqueueUnmapMemObject(queue, meminfo->buffer, meminfo,
+        0, NULL, NULL), "unmap memory info", result);
 #endif
-    ACC_OPENCL_CHECK(clEnqueueUnmapMemObject(queue, info.buffer, info.mapped,
-      0, NULL, NULL), "unmap host memory", result);
-    ACC_OPENCL_CHECK(clReleaseMemObject(info.buffer),
-      "release host memory buffer", result);
+      ACC_OPENCL_CHECK(clEnqueueUnmapMemObject(queue, info.buffer, info.mapped,
+        0, NULL, NULL), "unmap host memory", result);
+      ACC_OPENCL_CHECK(clReleaseMemObject(info.buffer),
+        "release host memory buffer", result);
+    }
   }
   ACC_OPENCL_RETURN(result);
 }

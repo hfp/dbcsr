@@ -48,16 +48,19 @@ else
   CFLAGS += -O2 -DNDEBUG
 endif
 ifneq (0,$(OMP))
-ifneq (0,$(INTEL))
-  LDFLAGS += -qopenmp
-  CFLAGS += -qopenmp
-else ifneq (0,$(IBM))
-  LDFLAGS += -qsmp=omp
-  CFLAGS += -qsmp=omp
-else
-  LDFLAGS += -fopenmp
-  CFLAGS += -fopenmp
-endif
+  ifneq (0,$(INTEL))
+    LDFLAGS += -qopenmp
+    CFLAGS += -qopenmp
+  else ifneq (0,$(IBM))
+    LDFLAGS += -qsmp=omp
+    CFLAGS += -qsmp=omp
+  else
+    LDFLAGS += -fopenmp
+    CFLAGS += -fopenmp
+  endif
+else # LIBXSMM
+  LDFLAGS += -pthread
+  CFLAGS += -pthread
 endif
 
 .PHONE: all

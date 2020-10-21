@@ -8,9 +8,10 @@
  *------------------------------------------------------------------------------------------------*/
 
 __kernel __attribute__((reqd_work_group_size(SN, 1, 1)))
-void FN(__global int* trs_stack, int trs_offset, __global T* matrix, __local T* buf)
+void FN(__global int* trs_stack, int trs_offset, __global T* matrix)
 {
-  /* newer OpenCL required: __local T buf[SM*SN];*/
+  __local T buf[SM*SN];
+
   /* offset in the transpose-stack that this block ID should handle */
   const int offset = trs_stack[trs_offset+get_group_id(0)];
   /* matrix according to the index (transpose-stack) */

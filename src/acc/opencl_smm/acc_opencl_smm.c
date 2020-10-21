@@ -33,7 +33,6 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
   if (0 < stack_size) {
     struct { int m, n; } key;
     cl_kernel *kernel;
-    int typesize = 0;
     key.m = m; key.n = n; /* initialize key */
     kernel = (cl_kernel*)libxsmm_xdispatch(&key, sizeof(key));
 
@@ -54,13 +53,11 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
             buffer[0] = 'd';
             nchar = ACC_OPENCL_SNPRINTF(build_options, ACC_OPENCL_BUFFER_MAXSIZE,
               "-DT=double -DFN=%s -DSM=%i -DSN=%i", buffer, m, n);
-            typesize = 8;
           } break;
           case dbcsr_type_real_4: {
             buffer[0] = 's';
             nchar = ACC_OPENCL_SNPRINTF(build_options, ACC_OPENCL_BUFFER_MAXSIZE,
               "-DT=float -DFN=%s -DSM=%i -DSN=%i", buffer, m, n);
-            typesize = 4;
           } break;
           default: {
             nchar = 0;
@@ -103,8 +100,6 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
         "set offset argument of transpose kernel", result);
       ACC_OPENCL_CHECK(clSetKernelArg(*kernel, 2, sizeof(cl_mem), ACC_OPENCL_MEM(dev_data)),
         "set matix-data argument of transpose kernel", result);
-      ACC_OPENCL_CHECK(clSetKernelArg(*kernel, 3, m * n * typesize, NULL),
-        "set local buffer size of transpose kernel", result);
       ACC_OPENCL_CHECK(clEnqueueNDRangeKernel(*ACC_OPENCL_STREAM(stream),
         *kernel, 1/*work_dim*/, NULL, &work_size, &wgsize, 0, NULL, NULL),
         "launch transpose kernel", result);

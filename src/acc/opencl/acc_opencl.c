@@ -123,18 +123,24 @@ int acc_init(void)
     }
     assert(NULL == acc_opencl_context);
     if (0 < acc_opencl_ndevices) {
-      int n = 0;
+      int device_id = 0;
       if (1 < acc_opencl_ndevices) { /* preselect default device */
-        for (n = 0; n < acc_opencl_ndevices; ++n) {
-          ACC_OPENCL_CHECK(clGetDeviceInfo(acc_opencl_devices[n],
-            CL_DEVICE_TYPE, sizeof(cl_device_type), &type, NULL),
-            "retrieve device type", result);
-          if (CL_DEVICE_TYPE_DEFAULT & type) break;
+        const char *const env_device_id = getenv("ACC_OPENCL_DEVICE_ID");
+        if (NULL == env_device_id || '\0' == *env_device_id) {
+          for (i = 0; i < (cl_uint)acc_opencl_ndevices; ++i) {
+            ACC_OPENCL_CHECK(clGetDeviceInfo(acc_opencl_devices[i],
+              CL_DEVICE_TYPE, sizeof(cl_device_type), &type, NULL),
+              "retrieve device type", result);
+            if (CL_DEVICE_TYPE_DEFAULT & type) {
+              device_id = (int)i;
+              break;
+            }
+          }
         }
+        else device_id = atoi(env_device_id);
       }
       if (EXIT_SUCCESS == result) {
-        if (!(CL_DEVICE_TYPE_DEFAULT & type)) n = 0;
-        result = acc_set_active_device(n);
+        result = acc_set_active_device(device_id);
 #if defined(_OPENMP) && defined(ACC_OPENCL_THREADLOCAL_CONTEXT)
         if (EXIT_SUCCESS == result) {
           const cl_context context = acc_opencl_context;

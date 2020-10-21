@@ -8,7 +8,7 @@ IBM ?= 0
 
 CFLAGS := \
   -std=c89 -Wall -Wextra -pedantic \
-  -Wno-variadic-macros \
+  -Wno-variadic-macros -Wno-long-long \
   -D__OPENCL \
   $(NULL)
 

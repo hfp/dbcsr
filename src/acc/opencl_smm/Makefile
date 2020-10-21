@@ -9,7 +9,7 @@ IBM ?= 0
 DEV ?= 0
 
 CFLAGS := \
-  -std=c89 -Wall -Wextra -pedantic \
+  -Wall -Wextra -pedantic \
   -Wno-variadic-macros -Wno-long-long \
   -D__OPENCL -D__LIBXSMM -I$(LIBXSMMROOT)/include \
   $(NULL)
@@ -19,7 +19,10 @@ ifeq (Darwin,$(UNAME))
 endif
 
 ifneq (0,$(DEV))
+  CFLAGS := -std=c89 $(CFLAGS)
   CFLAGS += -Wno-unused-parameter
+else
+  CFLAGS := -std=c99 $(CFLAGS)
 endif
 
 ifneq (0,$(INTEL))

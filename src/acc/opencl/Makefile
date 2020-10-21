@@ -5,6 +5,7 @@ OBJFILES := $(SRCFILES:.c=.o)
 UNAME := $(shell uname)
 INTEL ?= 0
 IBM ?= 0
+DEV ?= 0
 
 CFLAGS := \
   -std=c89 -Wall -Wextra -pedantic \
@@ -14,6 +15,13 @@ CFLAGS := \
 
 ifeq (Darwin,$(UNAME))
   OMP ?= 0
+endif
+
+ifneq (0,$(DEV))
+  CFLAGS := -std=c89 $(CFLAGS)
+  CFLAGS += -Wno-unused-parameter
+else
+  CFLAGS := -std=c99 $(CFLAGS)
 endif
 
 ifneq (0,$(INTEL))

@@ -70,7 +70,7 @@ int acc_host_mem_allocate(void** host_mem, size_t nbytes, void* stream)
   const size_t size = nbytes + alignment + sizeof(acc_opencl_meminfo_t) - 1;
   const cl_mem buffer = clCreateBuffer(acc_opencl_context, CL_MEM_ALLOC_HOST_PTR, size,
     NULL/*host_ptr*/, &result);
-  assert(NULL != host_mem);
+  assert(NULL != host_mem && NULL != stream);
   if (NULL != buffer) {
     const cl_command_queue queue = *ACC_OPENCL_STREAM(stream);
     const uintptr_t address = (uintptr_t)clEnqueueMapBuffer(queue, buffer,
@@ -118,6 +118,7 @@ int acc_host_mem_allocate(void** host_mem, size_t nbytes, void* stream)
 int acc_host_mem_deallocate(void* host_mem, void* stream)
 {
   int result = EXIT_SUCCESS;
+  assert(NULL != stream);
   if (NULL != host_mem) {
     acc_opencl_meminfo_t *const meminfo = acc_opencl_meminfo(host_mem);
     const acc_opencl_meminfo_t info = *meminfo; /* copy meminfo prior to unmap */
@@ -200,7 +201,7 @@ int acc_dev_mem_set_ptr(void** dev_mem, void* other, size_t lb)
 int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t nbytes, void* stream)
 {
   int result = EXIT_SUCCESS;
-  assert((NULL != host_mem || 0 == nbytes) && (NULL != dev_mem || 0 == nbytes));
+  assert((NULL != host_mem || 0 == nbytes) && (NULL != dev_mem || 0 == nbytes) && NULL != stream);
   if (NULL != host_mem && NULL != dev_mem && 0 != nbytes) {
     ACC_OPENCL_CHECK(clEnqueueWriteBuffer(*ACC_OPENCL_STREAM(stream), *ACC_OPENCL_MEM(dev_mem),
       CL_FALSE/*non-blocking*/, 0/*offset*/, nbytes, host_mem, 0, NULL, NULL),
@@ -213,7 +214,7 @@ int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t nbytes, void* str
 int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t nbytes, void* stream)
 {
   int result = EXIT_SUCCESS;
-  assert((NULL != dev_mem || 0 == nbytes) && (NULL != host_mem || 0 == nbytes));
+  assert((NULL != dev_mem || 0 == nbytes) && (NULL != host_mem || 0 == nbytes) && NULL != stream);
   if (NULL != host_mem && NULL != dev_mem && 0 != nbytes) {
     ACC_OPENCL_CHECK(clEnqueueReadBuffer(*ACC_OPENCL_STREAM(stream), *ACC_OPENCL_MEM(dev_mem),
       CL_FALSE/*non-blocking*/, 0/*offset*/, nbytes, host_mem, 0, NULL, NULL),
@@ -226,7 +227,7 @@ int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t nbytes, void* str
 int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t nbytes, void* stream)
 {
   int result = EXIT_SUCCESS;
-  assert((NULL != devmem_src || 0 == nbytes) && (NULL != devmem_dst || 0 == nbytes));
+  assert((NULL != devmem_src || 0 == nbytes) && (NULL != devmem_dst || 0 == nbytes) && NULL != stream);
   if (NULL != devmem_src && NULL != devmem_dst && 0 != nbytes) {
     ACC_OPENCL_CHECK(clEnqueueCopyBuffer(*ACC_OPENCL_STREAM(stream),
       *ACC_OPENCL_MEM(devmem_src), *ACC_OPENCL_MEM(devmem_dst),
@@ -240,7 +241,7 @@ int acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t nbytes, void
 int acc_memset_zero(void* dev_mem, size_t offset, size_t nbytes, void* stream)
 {
   int result = EXIT_SUCCESS;
-  assert(NULL != dev_mem || 0 == nbytes);
+  assert((NULL != dev_mem || 0 == nbytes) && NULL != stream);
   if (0 != nbytes) {
     const cl_uchar pattern = 0; /* fill with zeros */
     ACC_OPENCL_CHECK(clEnqueueFillBuffer(*ACC_OPENCL_STREAM(stream), *ACC_OPENCL_MEM(dev_mem),

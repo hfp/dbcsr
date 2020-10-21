@@ -81,7 +81,7 @@ int acc_event_destroy(void* event)
 int acc_event_record(void* event, void* stream)
 {
   int result = EXIT_SUCCESS;
-  assert(NULL != event);
+  assert(NULL != event && NULL != stream);
   ACC_OPENCL_CHECK(ACC_OPENCL_ENQUEUE_EVENT(*ACC_OPENCL_STREAM(stream), ACC_OPENCL_EVENT(event)),
     "record event", result);
   ACC_OPENCL_RETURN(result);

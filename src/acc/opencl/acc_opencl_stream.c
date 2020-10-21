@@ -11,6 +11,10 @@
 #include <string.h>
 #include <assert.h>
 
+#if !defined(ACC_OPENCL_STREAM_OOO_EXEC) && 0
+# define ACC_OPENCL_STREAM_OOO_EXEC
+#endif
+
 #if defined(CL_VERSION_2_0)
 # define ACC_OPENCL_COMMAND_QUEUE_PROPERTIES cl_queue_properties
 # define ACC_OPENCL_CREATE_COMMAND_QUEUE(CTX, DEV, PROPS, RESULT) \
@@ -48,7 +52,10 @@ int acc_stream_create(void** stream_p, const char* name, int priority)
       if (0 <= priority) {
         ACC_OPENCL_COMMAND_QUEUE_PROPERTIES properties[] = {
           CL_QUEUE_PRIORITY_KHR, 0/*placeholder filled-in below*/,
-          0
+# if defined(ACC_OPENCL_STREAM_OOO_EXEC)
+          CL_QUEUE_PROPERTIES, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE,
+# endif
+          0 /* terminator */
         };
         properties[1] = (CL_QUEUE_PRIORITY_HIGH_KHR <= priority && CL_QUEUE_PRIORITY_LOW_KHR >= priority)
           ? priority : ((CL_QUEUE_PRIORITY_HIGH_KHR + CL_QUEUE_PRIORITY_LOW_KHR) / 2);
@@ -57,8 +64,13 @@ int acc_stream_create(void** stream_p, const char* name, int priority)
       else
 #endif
       {
-        /*ACC_OPENCL_COMMAND_QUEUE_PROPERTIES properties[] = { 0 };*/
-        queue = ACC_OPENCL_CREATE_COMMAND_QUEUE(acc_opencl_context, device_id, NULL/*properties*/, &result);
+        ACC_OPENCL_COMMAND_QUEUE_PROPERTIES properties[] = {
+# if defined(ACC_OPENCL_STREAM_OOO_EXEC)
+          CL_QUEUE_PROPERTIES, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE,
+# endif
+          0 /* terminator */
+        };
+        queue = ACC_OPENCL_CREATE_COMMAND_QUEUE(acc_opencl_context, device_id, properties, &result);
       }
     }
     assert(NULL != stream_p);

@@ -94,7 +94,6 @@ int acc_init(void)
     }
     acc_opencl_ndevices = 0;
     for (i = 0; i < nplatforms; ++i) {
-      int n;
       if (NULL != vendor && '\0' != *vendor) {
         size_t size = 0;
         ACC_OPENCL_CHECK(clGetPlatformInfo(platforms[i], CL_PLATFORM_VENDOR,
@@ -106,14 +105,21 @@ int acc_init(void)
         if (NULL == acc_opencl_stristr(buffer, vendor)) continue;
       }
       assert(acc_opencl_ndevices <= ACC_OPENCL_DEVICES_MAXCOUNT);
-      ACC_OPENCL_CHECK(clGetDeviceIDs(platforms[i], type, 0, NULL, &ndevices),
-        "query number of devices", result);
-      n = (acc_opencl_ndevices + ndevices) < ACC_OPENCL_DEVICES_MAXCOUNT
-        ? (int)ndevices : (ACC_OPENCL_DEVICES_MAXCOUNT - acc_opencl_ndevices);
-      ACC_OPENCL_CHECK(clGetDeviceIDs(platforms[i], type,
-        n, acc_opencl_devices + acc_opencl_ndevices, NULL),
-        "retrieve device ids", result);
-      acc_opencl_ndevices += n;
+      if (EXIT_SUCCESS == result
+        && CL_SUCCESS == clGetDeviceIDs(platforms[i], type, 0, NULL, &ndevices))
+      {
+        const int n = (acc_opencl_ndevices + ndevices) < ACC_OPENCL_DEVICES_MAXCOUNT
+          ? (int)ndevices : (ACC_OPENCL_DEVICES_MAXCOUNT - acc_opencl_ndevices);
+        if (CL_SUCCESS == clGetDeviceIDs(platforms[i], type,
+          n, acc_opencl_devices + acc_opencl_ndevices, NULL))
+        {
+          acc_opencl_ndevices += n;
+        }
+        else {
+          assert(CL_SUCCESS != result);
+          ACC_OPENCL_ERROR("retrieve device ids", result);
+        }
+      }
     }
     assert(NULL == acc_opencl_context);
     if (0 < acc_opencl_ndevices) {

@@ -112,32 +112,37 @@ int main(int argc, char* argv[])
   duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
 #endif
   assert(0 < neven);
-  printf("bandwidth: %.1f GB/s\n", (sizeof(ELEM_TYPE) * m * n + sizeof(int))
-    * stack_size / (duration * (1ULL << 30) / neven));
-  printf("duration: %.1f ms\n", 1000.0 * duration / neven);
-#if defined(__LIBXSMM)
-  { /* transfer result from device back to host for validation */
+  if (EXIT_SUCCESS == result) {
     unsigned int nerrors = 0;
+    printf("bandwidth: %.1f GB/s\n", (sizeof(ELEM_TYPE) * m * n + sizeof(int))
+      * stack_size / (duration * (1ULL << 30) / neven));
+    printf("duration: %.1f ms\n", 1000.0 * duration / neven);
+#if defined(__LIBXSMM)
+    /* transfer result from device back to host for validation */
     CHECK(acc_memcpy_d2h(dev_data, host_data,
       sizeof(ELEM_TYPE) * mn * stack_size, stream), &result);
     CHECK(acc_stream_sync(stream), &result);
-    for (i = 0; i < stack_size; ++i) { /* initialize stack of matrices */
-      ELEM_TYPE matrix[MAX_KERNEL_DIM*MAX_KERNEL_DIM];
-      init(i/*seed*/, matrix, m, n, m/*ld*/, scale);
-      libxsmm_itrans(matrix, sizeof(ELEM_TYPE), m, n, m/*ld*/);
-      for (j = 0; j < (int)mn; ++j) {
-        if (matrix[j] != host_data[i*mn+j]) ++nerrors;
+    if (EXIT_SUCCESS == result) {
+      for (i = 0; i < stack_size; ++i) { /* initialize stack of matrices */
+        ELEM_TYPE matrix[MAX_KERNEL_DIM*MAX_KERNEL_DIM];
+        init(i/*seed*/, matrix, m, n, m/*ld*/, scale);
+        libxsmm_itrans(matrix, sizeof(ELEM_TYPE), m, n, m/*ld*/);
+        for (j = 0; j < (int)mn; ++j) {
+          if (matrix[j] != host_data[i*mn+j]) ++nerrors;
+        }
       }
+      printf("errors: %u\n", nerrors);
+      if (0 != nerrors) result = EXIT_FAILURE;
     }
-    printf("errors: %u\n", nerrors);
-    if (0 != nerrors) result = EXIT_FAILURE;
-  }
 #endif
+  }
   CHECK(acc_host_mem_deallocate(host_data, stream), NULL);
   CHECK(acc_host_mem_deallocate(host_mem, stream), NULL);
   CHECK(acc_dev_mem_deallocate(dev_data), NULL);
   CHECK(acc_dev_mem_deallocate(dev_mem), NULL);
   CHECK(acc_stream_destroy(stream), NULL);
-
+  if (EXIT_SUCCESS != result) {
+    fprintf(stderr, "FAILED\n");
+  }
   return result;
 }

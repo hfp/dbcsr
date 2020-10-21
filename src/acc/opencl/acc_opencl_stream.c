@@ -160,7 +160,6 @@ int acc_stream_priority_range(int* least, int* greatest)
 int acc_stream_sync(void* stream)
 { /* Blocks the host-thread. */
   int result = EXIT_SUCCESS;
-  assert(NULL != stream);
   ACC_OPENCL_CHECK(clFinish(*ACC_OPENCL_STREAM(stream)),
     "synchronize stream", result);
   ACC_OPENCL_RETURN(result);
@@ -170,7 +169,7 @@ int acc_stream_sync(void* stream)
 int acc_stream_wait_event(void* stream, void* event)
 { /* Wait for an event (device-side). */
   int result = EXIT_SUCCESS;
-  assert(NULL != stream && NULL != event);
+  assert(NULL != event);
   ACC_OPENCL_CHECK(ACC_OPENCL_WAIT_EVENT(*ACC_OPENCL_STREAM(stream), ACC_OPENCL_EVENT(event)),
     "wait for an event", result);
   ACC_OPENCL_RETURN(result);

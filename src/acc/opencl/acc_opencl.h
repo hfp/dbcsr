@@ -180,6 +180,9 @@ int acc_opencl_device_level(cl_device_id device,
 /** Check if given device supports the extensions. */
 int acc_opencl_device_ext(cl_device_id device,
   const char *const extnames[], int num_exts);
+/** Return memory information. */
+int acc_opencl_devmeminfo(cl_device_id device,
+  size_t* mem_free, size_t* mem_total);
 
 /** Get directory path to load source files from. */
 const char* acc_opencl_source_path(const char* fileext);

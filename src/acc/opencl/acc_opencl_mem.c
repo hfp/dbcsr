@@ -252,7 +252,7 @@ int acc_memset_zero(void* dev_mem, size_t offset, size_t nbytes, void* stream)
 }
 
 
-int acc_dev_mem_info(size_t* mem_free, size_t* mem_total)
+int acc_opencl_devmeminfo(cl_device_id device, size_t* mem_free, size_t* mem_total)
 {
   int result = EXIT_SUCCESS;
   size_t size_free = 0, size_total = 0;
@@ -295,11 +295,9 @@ int acc_dev_mem_info(size_t* mem_free, size_t* mem_total)
     size_free  = size_page * (size_t)pages_free;
   }
 #endif
-  if (NULL != acc_opencl_context) {
-    cl_device_id active_id = NULL;
+  if (NULL != device) {
     cl_ulong cl_size_total = 0;
-    if (EXIT_SUCCESS == result) result = acc_opencl_device(NULL/*stream*/, &active_id);
-    ACC_OPENCL_CHECK(clGetDeviceInfo(active_id, CL_DEVICE_GLOBAL_MEM_SIZE,
+    ACC_OPENCL_CHECK(clGetDeviceInfo(device, CL_DEVICE_GLOBAL_MEM_SIZE,
       sizeof(cl_ulong), &cl_size_total, NULL), "retrieve amount of device memory", result);
     assert(0 < acc_opencl_ndevices);
     size_total /= acc_opencl_ndevices;
@@ -313,6 +311,20 @@ int acc_dev_mem_info(size_t* mem_free, size_t* mem_total)
   assert(NULL != mem_free || NULL != mem_total);
   if (NULL != mem_total) *mem_total = size_total;
   if (NULL != mem_free)  *mem_free  = size_free;
+  ACC_OPENCL_RETURN(result);
+}
+
+
+int acc_dev_mem_info(size_t* mem_free, size_t* mem_total)
+{
+  int result = EXIT_SUCCESS;
+  cl_device_id active_id = NULL;
+  if (NULL != acc_opencl_context) {
+    result = acc_opencl_device(NULL/*stream*/, &active_id);
+  }
+  if (EXIT_SUCCESS == result) {
+    result = acc_opencl_devmeminfo(active_id, mem_free, mem_total);
+  }
   ACC_OPENCL_RETURN(result);
 }
 

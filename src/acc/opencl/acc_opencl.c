@@ -521,7 +521,7 @@ int acc_opencl_wgsize(cl_kernel kernel, int* preferred_multiple, int* max_value)
   int result = acc_opencl_device(NULL/*stream*/, &active_id);
   assert(NULL != preferred_multiple || NULL != max_value);
   if (NULL != preferred_multiple) {
-    size_t value;
+    size_t value = 0;
     ACC_OPENCL_CHECK(clGetKernelWorkGroupInfo(kernel, active_id,
       CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE,
       sizeof(size_t), &value, NULL),
@@ -530,7 +530,7 @@ int acc_opencl_wgsize(cl_kernel kernel, int* preferred_multiple, int* max_value)
     *preferred_multiple = (int)value;
   }
   if (NULL != max_value) {
-    size_t value;
+    size_t value = 0;
     ACC_OPENCL_CHECK(clGetKernelWorkGroupInfo(kernel, active_id,
       CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), &value, NULL),
       "query maximum workgroup size of kernel", result);

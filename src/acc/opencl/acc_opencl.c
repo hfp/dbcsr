@@ -67,6 +67,66 @@ const char* acc_opencl_stristr(const char* a, const char* b)
 }
 
 
+int acc_opencl_order_devices(const void* /*dev_a*/, const void* /*dev_b*/);
+int acc_opencl_order_devices(const void* dev_a, const void* dev_b)
+{
+  const cl_device_id *const a = (const cl_device_id*)dev_a;
+  const cl_device_id *const b = (const cl_device_id*)dev_b;
+  cl_device_type type_a, type_b;
+  assert(NULL != dev_a && NULL != dev_b);
+
+  ACC_OPENCL_EXPECT(EXIT_SUCCESS, clGetDeviceInfo(*a,
+    CL_DEVICE_TYPE, sizeof(cl_device_type), &type_a, NULL));
+  ACC_OPENCL_EXPECT(EXIT_SUCCESS, clGetDeviceInfo(*b,
+    CL_DEVICE_TYPE, sizeof(cl_device_type), &type_b, NULL));
+
+  if (CL_DEVICE_TYPE_DEFAULT & type_a) {
+    return -1;
+  }
+  else if (CL_DEVICE_TYPE_DEFAULT & type_b) {
+    return 1;
+  }
+  else {
+    if (CL_DEVICE_TYPE_GPU & type_a) {
+      if (!(CL_DEVICE_TYPE_GPU & type_b)) {
+        return -1;
+      }
+      else {
+        size_t size_a, size_b;
+        ACC_OPENCL_EXPECT(EXIT_SUCCESS, acc_opencl_devmeminfo(*a, NULL, &size_a));
+        ACC_OPENCL_EXPECT(EXIT_SUCCESS, acc_opencl_devmeminfo(*b, NULL, &size_b));
+        return (size_a < size_b ? -1 : (size_a != size_b ? 1 : 0));
+      }
+    }
+    else if (CL_DEVICE_TYPE_GPU & type_b) {
+      return 1;
+    }
+    else {
+      if (CL_DEVICE_TYPE_ACCELERATOR & type_a) {
+        if (!(CL_DEVICE_TYPE_ACCELERATOR & type_b)) {
+          return -1;
+        }
+        else {
+          size_t size_a, size_b;
+          ACC_OPENCL_EXPECT(EXIT_SUCCESS, acc_opencl_devmeminfo(*a, NULL, &size_a));
+          ACC_OPENCL_EXPECT(EXIT_SUCCESS, acc_opencl_devmeminfo(*b, NULL, &size_b));
+          return (size_a < size_b ? -1 : (size_a != size_b ? 1 : 0));
+        }
+      }
+      else if (CL_DEVICE_TYPE_ACCELERATOR & type_b) {
+        return 1;
+      }
+      else {
+        size_t size_a, size_b;
+        ACC_OPENCL_EXPECT(EXIT_SUCCESS, acc_opencl_devmeminfo(*a, NULL, &size_a));
+        ACC_OPENCL_EXPECT(EXIT_SUCCESS, acc_opencl_devmeminfo(*b, NULL, &size_b));
+        return (size_a < size_b ? -1 : (size_a != size_b ? 1 : 0));
+      }
+    }
+  }
+}
+
+
 int acc_init(void)
 {
   const char *const disable = getenv("ACC_OPENCL_DISABLE");
@@ -126,6 +186,9 @@ int acc_init(void)
       int device_id = 0;
       if (1 < acc_opencl_ndevices) { /* preselect default device */
         const char *const env_device_id = getenv("ACC_OPENCL_DEVICE_ID");
+        /* reorder devices according to acc_opencl_order_devices */
+        qsort(acc_opencl_devices, acc_opencl_ndevices, sizeof(cl_device_id),
+          acc_opencl_order_devices);
         if (NULL == env_device_id || '\0' == *env_device_id) {
           for (i = 0; i < (cl_uint)acc_opencl_ndevices; ++i) {
             ACC_OPENCL_CHECK(clGetDeviceInfo(acc_opencl_devices[i],

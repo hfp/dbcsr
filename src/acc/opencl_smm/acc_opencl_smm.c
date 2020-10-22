@@ -71,7 +71,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
       }
       if (0 < nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) {
         FILE *const file = acc_opencl_source_open("transpose.cl", paths, sizeof(paths) / sizeof(*paths));
-        size_t preferred_multiple, max_wgsize;
+        size_t max_wgsize;
         config_t new_config;
         if (NULL != file) {
           char* lines[50];
@@ -89,7 +89,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
           }
         }
         if (EXIT_SUCCESS == result) {
-          result = acc_opencl_wgsize(new_config.kernel, &preferred_multiple, &max_wgsize);
+          result = acc_opencl_wgsize(new_config.kernel, NULL/*preferred_multiple*/, &max_wgsize);
           if (EXIT_SUCCESS == result && max_wgsize < (size_t)n) result = EXIT_FAILURE;
         }
         if (EXIT_SUCCESS == result) {
@@ -99,8 +99,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
           }
           else {
             const int int_wgsize = atoi(env_wgsize);
-            new_config.wgsize = LIBXSMM_MIN(LIBXSMM_UP((size_t)LIBXSMM_MAX(int_wgsize, n),
-              preferred_multiple), max_wgsize);
+            new_config.wgsize = LIBXSMM_MIN((size_t)LIBXSMM_MAX(int_wgsize, n), max_wgsize);
           }
           config = (config_t*)libxsmm_xregister(&key, sizeof(key), sizeof(new_config), &new_config);
         }

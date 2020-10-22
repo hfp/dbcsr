@@ -18,6 +18,9 @@
 #if !defined(ALIGNMENT)
 # define ALIGNMENT 64
 #endif
+#if !defined(PRIORITY)
+# define PRIORITY
+#endif
 #if !defined(MAX_KERNEL_DIM)
 # define MAX_KERNEL_DIM 80
 #endif
@@ -59,9 +62,12 @@ int main(int argc, char* argv[])
   double duration;
 
   CHECK(acc_init(), &result);
+#if defined(PRIORITY)
   CHECK(acc_stream_priority_range(&priomin, &priomax), &result);
   CHECK(acc_stream_create(&stream, "stream", (priomin + priomax) / 2), &result);
-
+#else
+  CHECK(acc_stream_create(&stream, "stream", -1/*invalid*/, &result);
+#endif
   CHECK(acc_host_mem_allocate((void**)&host_data, sizeof(ELEM_TYPE) * mn * stack_size, stream), &result);
   CHECK(acc_dev_mem_allocate((void**)&dev_data, sizeof(ELEM_TYPE) * mn * stack_size), &result);
   CHECK(acc_stream_sync(stream), &result);

@@ -67,60 +67,47 @@ const char* acc_opencl_stristr(const char* a, const char* b)
 }
 
 
+/* comparator used with qsort; stabilized by tail condition (a < b ? -1 : 1) */
 int acc_opencl_order_devices(const void* /*dev_a*/, const void* /*dev_b*/);
 int acc_opencl_order_devices(const void* dev_a, const void* dev_b)
 {
   const cl_device_id *const a = (const cl_device_id*)dev_a;
   const cl_device_id *const b = (const cl_device_id*)dev_b;
   cl_device_type type_a, type_b;
-  assert(NULL != dev_a && NULL != dev_b);
-
+  assert(NULL != a && NULL != b && a != b);
   ACC_OPENCL_EXPECT(EXIT_SUCCESS, clGetDeviceInfo(*a,
     CL_DEVICE_TYPE, sizeof(cl_device_type), &type_a, NULL));
   ACC_OPENCL_EXPECT(EXIT_SUCCESS, clGetDeviceInfo(*b,
     CL_DEVICE_TYPE, sizeof(cl_device_type), &type_b, NULL));
-
-  if (CL_DEVICE_TYPE_DEFAULT & type_a) {
-    return -1;
-  }
-  else if (CL_DEVICE_TYPE_DEFAULT & type_b) {
-    return 1;
-  }
+  if (CL_DEVICE_TYPE_DEFAULT & type_a) return -1;
+  else if (CL_DEVICE_TYPE_DEFAULT & type_b) return 1;
   else {
     if (CL_DEVICE_TYPE_GPU & type_a) {
-      if (!(CL_DEVICE_TYPE_GPU & type_b)) {
-        return -1;
-      }
-      else {
+      if (CL_DEVICE_TYPE_GPU & type_b) {
         size_t size_a, size_b;
         ACC_OPENCL_EXPECT(EXIT_SUCCESS, acc_opencl_devmeminfo(*a, NULL, &size_a));
         ACC_OPENCL_EXPECT(EXIT_SUCCESS, acc_opencl_devmeminfo(*b, NULL, &size_b));
-        return (size_a < size_b ? -1 : (size_a != size_b ? 1 : 0));
+        return (size_a < size_b ? 1 : (size_a != size_b ? -1 : (a < b ? -1 : 1)));
       }
+      else return -1;
     }
-    else if (CL_DEVICE_TYPE_GPU & type_b) {
-      return 1;
-    }
+    else if (CL_DEVICE_TYPE_GPU & type_b) return 1;
     else {
       if (CL_DEVICE_TYPE_ACCELERATOR & type_a) {
-        if (!(CL_DEVICE_TYPE_ACCELERATOR & type_b)) {
-          return -1;
-        }
-        else {
+        if (CL_DEVICE_TYPE_ACCELERATOR & type_b) {
           size_t size_a, size_b;
           ACC_OPENCL_EXPECT(EXIT_SUCCESS, acc_opencl_devmeminfo(*a, NULL, &size_a));
           ACC_OPENCL_EXPECT(EXIT_SUCCESS, acc_opencl_devmeminfo(*b, NULL, &size_b));
-          return (size_a < size_b ? -1 : (size_a != size_b ? 1 : 0));
+          return (size_a < size_b ? 1 : (size_a != size_b ? -1 : (a < b ? -1 : 1)));
         }
+        else return -1;
       }
-      else if (CL_DEVICE_TYPE_ACCELERATOR & type_b) {
-        return 1;
-      }
+      else if (CL_DEVICE_TYPE_ACCELERATOR & type_b) return 1;
       else {
         size_t size_a, size_b;
         ACC_OPENCL_EXPECT(EXIT_SUCCESS, acc_opencl_devmeminfo(*a, NULL, &size_a));
         ACC_OPENCL_EXPECT(EXIT_SUCCESS, acc_opencl_devmeminfo(*b, NULL, &size_b));
-        return (size_a < size_b ? -1 : (size_a != size_b ? 1 : 0));
+        return (size_a < size_b ? 1 : (size_a != size_b ? -1 : (a < b ? -1 : 1)));
       }
     }
   }

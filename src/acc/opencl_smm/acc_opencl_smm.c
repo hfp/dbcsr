@@ -47,12 +47,16 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
 #endif
       };
       char buffer[ACC_OPENCL_BUFFER_MAXSIZE];
+#if 0
       cl_device_id device;
       int level_major, level_minor;
       const char *const level2 = (EXIT_SUCCESS == acc_opencl_device_level(
         (EXIT_SUCCESS == acc_opencl_device(stream, &device) ? device : NULL),
         &level_major, &level_minor) && LIBXSMM_VERSION2(2, 0) <= LIBXSMM_VERSION2(level_major, level_minor))
         ? "-cl-std=CL2.0" : ""; /* OpenCL support level */
+#else
+      const char *const level2 = "";
+#endif
       int nchar = ACC_OPENCL_SNPRINTF(buffer, ACC_OPENCL_BUFFER_MAXSIZE, "xtrans_%i_%i", m, n);
       const char *const fname = ((0 < nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) ? buffer : NULL);
       char *const build_options = (NULL != fname ? (buffer + strlen(fname) + 1) : NULL);

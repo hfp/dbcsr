@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <limits.h>
 #include <ctype.h>
 #if defined(_OPENMP)
 # include <omp.h>
@@ -514,21 +515,27 @@ int acc_opencl_source(FILE* source, char* lines[], int max_nlines, int cleanup)
 }
 
 
-int acc_opencl_wgsize(cl_kernel kernel, size_t* preferred_multiple, size_t* max_value)
+int acc_opencl_wgsize(cl_kernel kernel, int* preferred_multiple, int* max_value)
 {
   cl_device_id active_id = NULL;
   int result = acc_opencl_device(NULL/*stream*/, &active_id);
   assert(NULL != preferred_multiple || NULL != max_value);
   if (NULL != preferred_multiple) {
+    size_t value;
     ACC_OPENCL_CHECK(clGetKernelWorkGroupInfo(kernel, active_id,
       CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE,
-      sizeof(size_t), preferred_multiple, NULL),
+      sizeof(size_t), &value, NULL),
       "query preferred multiple of workgroup size", result);
+    assert(value <= INT_MAX);
+    *preferred_multiple = (int)value;
   }
   if (NULL != max_value) {
+    size_t value;
     ACC_OPENCL_CHECK(clGetKernelWorkGroupInfo(kernel, active_id,
-      CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), max_value, NULL),
+      CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), &value, NULL),
       "query maximum workgroup size of kernel", result);
+    assert(value <= INT_MAX);
+    *max_value = (int)value;
   }
   ACC_OPENCL_RETURN(result);
 }

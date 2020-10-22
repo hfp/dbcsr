@@ -30,13 +30,16 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
 {
   int result = EXIT_SUCCESS;
   assert((NULL != dev_trs_stack && NULL != dev_data && 0 <= stack_size) || 0 == stack_size);
-  if (0 < stack_size) {
+  if (0 < stack_size && 1 < (m * n)) {
+    typedef struct config_t {
+      cl_kernel kernel;
+      size_t wgsize;
+    } config_t;
     struct { int m, n; } key;
-    cl_kernel *kernel;
+    config_t *config;
     key.m = m; key.n = n; /* initialize key */
-    kernel = (cl_kernel*)libxsmm_xdispatch(&key, sizeof(key));
-
-    if (NULL == kernel) {
+    config = (config_t*)libxsmm_xdispatch(&key, sizeof(key));
+    if (NULL == config) {
       const char *const paths[] = {
         "../../exts/dbcsr/src/acc/opencl_smm/kernel"
 #if !defined(NDEBUG)
@@ -44,29 +47,37 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
 #endif
       };
       char buffer[ACC_OPENCL_BUFFER_MAXSIZE];
+      cl_device_id device;
+      int level_major, level_minor;
+      const char *const level2 = (EXIT_SUCCESS == acc_opencl_device_level(
+        (EXIT_SUCCESS == acc_opencl_device(stream, &device) ? device : NULL),
+        &level_major, &level_minor) && LIBXSMM_VERSION2(2, 0) <= LIBXSMM_VERSION2(level_major, level_minor))
+        ? "-cl-std=CL2.0" : ""; /* OpenCL support level */
       int nchar = ACC_OPENCL_SNPRINTF(buffer, ACC_OPENCL_BUFFER_MAXSIZE, "xtrans_%i_%i", m, n);
-      char *const build_options = ((0 < nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) ? (buffer + strlen(buffer) + 1) : NULL);
+      const char *const fname = ((0 < nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) ? buffer : NULL);
+      char *const build_options = (NULL != fname ? (buffer + strlen(fname) + 1) : NULL);
       switch (datatype) {
         case dbcsr_type_real_8: if (NULL != build_options) {
           buffer[0] = 'd';
           nchar = ACC_OPENCL_SNPRINTF(build_options, ACC_OPENCL_BUFFER_MAXSIZE,
-            "-DT=double -DFN=%s -DSM=%i -DSN=%i", buffer, m, n);
+            "%s -DT=double -DFN=%s -DSM=%i -DSN=%i", level2, fname, m, n);
         } break;
         case dbcsr_type_real_4: if (NULL != build_options) {
           buffer[0] = 's';
           nchar = ACC_OPENCL_SNPRINTF(build_options, ACC_OPENCL_BUFFER_MAXSIZE,
-            "-DT=float -DFN=%s -DSM=%i -DSN=%i", buffer, m, n);
+            "%s -DT=float -DFN=%s -DSM=%i -DSN=%i", level2, fname, m, n);
         } break;
         default: nchar = 0;
       }
       if (0 < nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) {
         FILE *const file = acc_opencl_source_open("transpose.cl", paths, sizeof(paths) / sizeof(*paths));
-        cl_kernel new_kernel;
+        size_t preferred_multiple, max_wgsize;
+        config_t new_config;
         if (NULL != file) {
           char* lines[50];
           const int nlines = acc_opencl_source(file, lines, sizeof(lines) / sizeof(*lines), 1/*cleanup*/);
           fclose(file);
-          result = acc_opencl_kernel((const char**)lines, nlines, build_options, buffer, &new_kernel);
+          result = acc_opencl_kernel((const char**)lines, nlines, build_options, fname, &new_config.kernel);
         }
         assert(NULL != acc_opencl_batchtrans_source);
         if (EXIT_FAILURE == result) {
@@ -74,29 +85,41 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
             && NULL != *acc_opencl_batchtrans_source)
           {
             const int nlines = sizeof(acc_opencl_batchtrans_source) / sizeof(*acc_opencl_batchtrans_source);
-            result = acc_opencl_kernel(acc_opencl_batchtrans_source, nlines, build_options, buffer, &new_kernel);
+            result = acc_opencl_kernel(acc_opencl_batchtrans_source, nlines, build_options, fname, &new_config.kernel);
           }
         }
         if (EXIT_SUCCESS == result) {
-          kernel = (cl_kernel*)libxsmm_xregister(&key, sizeof(key), sizeof(cl_kernel), &new_kernel);
+          result = acc_opencl_wgsize(new_config.kernel, &preferred_multiple, &max_wgsize);
+          if (EXIT_SUCCESS == result && max_wgsize < (size_t)(m * n)) result = EXIT_FAILURE;
+        }
+        if (EXIT_SUCCESS == result) {
+          const char *const env_wgsize = getenv("ACC_OPENCL_TRANS_WGSIZE");
+          if (NULL == env_wgsize) {
+            new_config.wgsize = n;
+          }
+          else {
+            const int int_wgsize = atoi(env_wgsize);
+            const size_t wgsize = (size_t)(n < int_wgsize ? int_wgsize : n);
+            new_config.wgsize = LIBXSMM_MIN(LIBXSMM_UP(wgsize, preferred_multiple), max_wgsize);
+          }
+          config = (config_t*)libxsmm_xregister(&key, sizeof(key), sizeof(new_config), &new_config);
         }
       }
       else {
         result = EXIT_FAILURE;
       }
     }
-
+    assert((NULL != config && NULL != config->kernel) || EXIT_SUCCESS != result);
     if (EXIT_SUCCESS == result) {
-      const size_t wgsize = n, work_size = wgsize * stack_size;
-      assert(NULL != kernel && NULL != *kernel);
-      ACC_OPENCL_CHECK(clSetKernelArg(*kernel, 0, sizeof(cl_mem), ACC_OPENCL_MEM(dev_trs_stack)),
+      const size_t work_size = config->wgsize * stack_size;
+      ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 0, sizeof(cl_mem), ACC_OPENCL_MEM(dev_trs_stack)),
         "set batch-list argument of transpose kernel", result);
-      ACC_OPENCL_CHECK(clSetKernelArg(*kernel, 1, sizeof(int), &offset),
+      ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 1, sizeof(int), &offset),
         "set offset argument of transpose kernel", result);
-      ACC_OPENCL_CHECK(clSetKernelArg(*kernel, 2, sizeof(cl_mem), ACC_OPENCL_MEM(dev_data)),
+      ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 2, sizeof(cl_mem), ACC_OPENCL_MEM(dev_data)),
         "set matix-data argument of transpose kernel", result);
       ACC_OPENCL_CHECK(clEnqueueNDRangeKernel(*ACC_OPENCL_STREAM(stream),
-        *kernel, 1/*work_dim*/, NULL, &work_size, &wgsize, 0, NULL, NULL),
+        config->kernel, 1/*work_dim*/, NULL, &work_size, &config->wgsize, 0, NULL, NULL),
         "launch transpose kernel", result);
     }
   }

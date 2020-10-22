@@ -18,7 +18,7 @@
 #if !defined(ALIGNMENT)
 # define ALIGNMENT 64
 #endif
-#if !defined(PRIORITY)
+#if !defined(PRIORITY) && 0
 # define PRIORITY
 #endif
 #if !defined(MAX_KERNEL_DIM)
@@ -51,10 +51,12 @@ int main(int argc, char* argv[])
 #if defined(SHUFFLE)
   const size_t shuffle = libxsmm_shuffle((unsigned int)stack_size);
 #endif
+#if defined(PRIORITY)
+  int priomin, priomax;
+#endif
   int *host_mem = NULL, *dev_mem = NULL;
   ELEM_TYPE *host_data = NULL, *dev_data = NULL;
-  int priomin, priomax, r, i, j;
-  int result = EXIT_SUCCESS;
+  int result = EXIT_SUCCESS, r, i, j;
   void *stream = NULL;
 
   libxsmm_timer_tickint start;
@@ -66,7 +68,7 @@ int main(int argc, char* argv[])
   CHECK(acc_stream_priority_range(&priomin, &priomax), &result);
   CHECK(acc_stream_create(&stream, "stream", (priomin + priomax) / 2), &result);
 #else
-  CHECK(acc_stream_create(&stream, "stream", -1/*invalid*/, &result);
+  CHECK(acc_stream_create(&stream, "stream", -1/*invalid*/), &result);
 #endif
   CHECK(acc_host_mem_allocate((void**)&host_data, sizeof(ELEM_TYPE) * mn * stack_size, stream), &result);
   CHECK(acc_dev_mem_allocate((void**)&dev_data, sizeof(ELEM_TYPE) * mn * stack_size), &result);

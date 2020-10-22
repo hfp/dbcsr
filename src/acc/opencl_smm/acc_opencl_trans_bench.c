@@ -30,22 +30,8 @@
   EXIT_SUCCESS != (NULL != ((const void*)(RPTR)) ? (*((int*)(RPTR)) = (EXPR)) : (EXPR))) assert(0)
 
 
-static void init(int seed, ELEM_TYPE* dst, int nrows, int ncols, int ld, double scale) {
-  const double seed1 = scale * seed + scale;
-  int i;
-  for (i = 0; i < ncols; ++i) {
-    int j = 0;
-    for (; j < nrows; ++j) {
-      const int k = i * ld + j;
-      dst[k] = (ELEM_TYPE)(seed1 / (1.0 + k));
-    }
-    for (; j < ld; ++j) {
-      const int k = i * ld + j;
-      dst[k] = (ELEM_TYPE)(seed);
-    }
-  }
-}
-
+static void init(int seed, ELEM_TYPE* dst, int nrows, int ncols, int ld, double scale);
+static void print(FILE* ostream, const char* label, const ELEM_TYPE* mat, int nrows, int ncols, int ld);
 
 int main(int argc, char* argv[])
 {
@@ -129,7 +115,12 @@ int main(int argc, char* argv[])
         libxsmm_itrans(matrix, sizeof(ELEM_TYPE), m, n, m/*ld*/);
         for (j = 0; j < (int)mn; ++j) {
           if (matrix[j] != host_data[i*mn+j]) {
-            ++nerrors; break;
+            ++nerrors;
+# if defined(_DEBUG)
+            print(stderr, "gold = ", matrix, m, n, m);
+            print(stderr, "this = ", host_data, m, n, m);
+# endif
+            break;
           }
         }
       }
@@ -147,4 +138,35 @@ int main(int argc, char* argv[])
     fprintf(stderr, "FAILED\n");
   }
   return result;
+}
+
+
+static void init(int seed, ELEM_TYPE* dst, int nrows, int ncols, int ld, double scale) {
+  const double seed1 = scale * seed + scale;
+  int i, j;
+  for (i = 0; i < ncols; ++i) {
+    for (j = 0; j < nrows; ++j) {
+      const int k = i * ld + j;
+      dst[k] = (ELEM_TYPE)(seed1 / (1.0 + k));
+    }
+    for (; j < ld; ++j) {
+      const int k = i * ld + j;
+      dst[k] = (ELEM_TYPE)(seed);
+    }
+  }
+}
+
+
+static void print(FILE* ostream, const char* label, const ELEM_TYPE* mat, int nrows, int ncols, int ld)
+{
+  int i, j;
+  const char *const s = (NULL != label ? label : "");
+  const int n = (int)strlen(s);
+  for (i = 0; i < ncols; ++i) {
+    if (0 < i) fprintf(ostream, "%*s", n, " "); else fprintf(ostream, "%s", s);
+    for (j = 0; j < nrows; ++j) {
+      fprintf(ostream, "%.2f ", mat[i*ld+j]);
+    }
+    fprintf(ostream, "\n");
+  }
 }

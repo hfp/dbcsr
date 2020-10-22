@@ -18,7 +18,7 @@
 #if !defined(ALIGNMENT)
 # define ALIGNMENT 64
 #endif
-#if !defined(PRIORITY) && 0
+#if !defined(PRIORITY)
 # define PRIORITY
 #endif
 #if !defined(MAX_KERNEL_DIM)

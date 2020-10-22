@@ -95,12 +95,16 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
         if (EXIT_SUCCESS == result) {
           const char *const env_wgsize = getenv("ACC_OPENCL_TRANS_WGSIZE");
           if (NULL == env_wgsize) {
-            new_config.wgsize = n;
+            new_config.wgsize = LIBXSMM_MIN(LIBXSMM_UP((size_t)n, preferred_multiple), max_wgsize);
           }
           else {
             const int int_wgsize = atoi(env_wgsize);
-            const size_t wgsize = (size_t)(n < int_wgsize ? int_wgsize : n);
-            new_config.wgsize = LIBXSMM_MIN(LIBXSMM_UP(wgsize, preferred_multiple), max_wgsize);
+            if (n < int_wgsize) {
+              new_config.wgsize = LIBXSMM_MIN(LIBXSMM_UP((size_t)int_wgsize, preferred_multiple), max_wgsize);
+            }
+            else {
+              new_config.wgsize = (size_t)n;
+            }
           }
           config = (config_t*)libxsmm_xregister(&key, sizeof(key), sizeof(new_config), &new_config);
         }

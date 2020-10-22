@@ -71,15 +71,11 @@ int main(int argc, char* argv[])
   CHECK(acc_stream_create(&stream, "stream", -1/*invalid*/), &result);
 #endif
   CHECK(acc_host_mem_allocate((void**)&host_data, sizeof(ELEM_TYPE) * mn * stack_size, stream), &result);
-  CHECK(acc_dev_mem_allocate((void**)&dev_data, sizeof(ELEM_TYPE) * mn * stack_size), &result);
+  CHECK(acc_host_mem_allocate((void**)&host_mem, sizeof(int) * stack_size, stream), &result);
   CHECK(acc_stream_sync(stream), &result);
   for (i = 0; i < stack_size; ++i) { /* initialize stack of matrices */
     init(i/*seed*/, host_data + mn * i, m, n, m/*ld*/, scale);
   }
-  CHECK(acc_memcpy_h2d(host_data, dev_data, sizeof(ELEM_TYPE) * mn * stack_size, stream), &result);
-
-  CHECK(acc_host_mem_allocate((void**)&host_mem, sizeof(int) * stack_size, stream), &result);
-  CHECK(acc_dev_mem_allocate((void**)&dev_mem, sizeof(int) * stack_size), &result);
   for (i = 0; i < stack_size; ++i) { /* initialize indexes */
 #if defined(SHUFFLE)
     j = (int)(mn * ((shuffle * i) % stack_size));
@@ -88,6 +84,9 @@ int main(int argc, char* argv[])
 #endif
     host_mem[i] = j;
   }
+  CHECK(acc_dev_mem_allocate((void**)&dev_data, sizeof(ELEM_TYPE) * mn * stack_size), &result);
+  CHECK(acc_memcpy_h2d(host_data, dev_data, sizeof(ELEM_TYPE) * mn * stack_size, stream), &result);
+  CHECK(acc_dev_mem_allocate((void**)&dev_mem, sizeof(int) * stack_size), &result);
   CHECK(acc_memcpy_h2d(host_mem, dev_mem, sizeof(int) * stack_size, stream), &result);
 
   /* warmup execution and prebuild JIT kernels */

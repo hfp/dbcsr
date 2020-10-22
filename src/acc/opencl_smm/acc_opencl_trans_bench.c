@@ -33,8 +33,11 @@
   EXIT_SUCCESS != (NULL != ((const void*)(RPTR)) ? (*((int*)(RPTR)) = (EXPR)) : (EXPR))) assert(0)
 
 
-static void init(int seed, ELEM_TYPE* dst, int nrows, int ncols, int ld, double scale);
+#if defined(_DEBUG)
 static void print(FILE* ostream, const char* label, const ELEM_TYPE* mat, int nrows, int ncols, int ld);
+#endif
+
+static void init(int seed, ELEM_TYPE* dst, int nrows, int ncols, int ld, double scale);
 
 int main(int argc, char* argv[])
 {
@@ -164,6 +167,7 @@ static void init(int seed, ELEM_TYPE* dst, int nrows, int ncols, int ld, double 
 }
 
 
+#if defined(_DEBUG)
 static void print(FILE* ostream, const char* label, const ELEM_TYPE* mat, int nrows, int ncols, int ld)
 {
   int i, j;
@@ -177,3 +181,4 @@ static void print(FILE* ostream, const char* label, const ELEM_TYPE* mat, int nr
     fprintf(ostream, "\n");
   }
 }
+#endif

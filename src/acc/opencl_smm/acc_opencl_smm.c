@@ -90,7 +90,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
         }
         if (EXIT_SUCCESS == result) {
           result = acc_opencl_wgsize(new_config.kernel, &preferred_multiple, &max_wgsize);
-          if (EXIT_SUCCESS == result && max_wgsize < (size_t)(m * n)) result = EXIT_FAILURE;
+          if (EXIT_SUCCESS == result && max_wgsize < (size_t)n) result = EXIT_FAILURE;
         }
         if (EXIT_SUCCESS == result) {
           const char *const env_wgsize = getenv("ACC_OPENCL_TRANS_WGSIZE");

@@ -8,6 +8,9 @@
  *------------------------------------------------------------------------------------------------*/
 #include "../acc_libsmm.h"
 #include <stdlib.h>
+#include <assert.h>
+#include <stdio.h>
+
 #if defined(__LIBXSMM)
 # include <libxsmm.h>
 # if !defined(SHUFFLE) && 0
@@ -43,9 +46,9 @@ int main(int argc, char* argv[])
 {
   const int nrepeat = (1 < argc ? atoi(argv[1]) : 1000), offset = 0;
   const int neven = (2 <= nrepeat ? ((nrepeat & 1/*odd*/) ? (nrepeat - 1) : nrepeat) : 2);
-  const int stack_size = (2 < argc ? LIBXSMM_MAX(atoi(argv[2]), 1) : 30000);
-  const int m = (3 < argc ? LIBXSMM_MAX(atoi(argv[3]), 1) : 23);
-  const int n = (4 < argc ? LIBXSMM_MAX(atoi(argv[4]), 1) : m);
+  const int stack_size = (2 < argc ? atoi(argv[2]) : 30000);
+  const int m = (3 < argc ? atoi(argv[3]) : 23);
+  const int n = (4 < argc ? atoi(argv[4]) : m);
 #if defined(ALIGNMENT) && (0 < ALIGNMENT)
   const size_t mn = ROUNDUP2(sizeof(ELEM_TYPE) * m * n, ALIGNMENT) / sizeof(ELEM_TYPE);
 #else
@@ -59,12 +62,13 @@ int main(int argc, char* argv[])
 #endif
   int *host_mem = NULL, *dev_mem = NULL;
   ELEM_TYPE *host_data = NULL, *dev_data = NULL;
+  const double scale = 1.0 / stack_size;
   int result = EXIT_SUCCESS, r, i, j;
   void *stream = NULL;
-
+#if defined(__LIBXSMM)
   libxsmm_timer_tickint start;
-  const double scale = 1.0 / stack_size;
   double duration;
+#endif
 
   CHECK(acc_init(), &result);
 #if defined(PRIORITY)
@@ -88,10 +92,20 @@ int main(int argc, char* argv[])
     host_mem[i] = j;
   }
   CHECK(acc_dev_mem_allocate((void**)&dev_data, sizeof(ELEM_TYPE) * mn * stack_size), &result);
-  CHECK(acc_memcpy_h2d(host_data, dev_data, sizeof(ELEM_TYPE) * mn * stack_size, stream), &result);
   CHECK(acc_dev_mem_allocate((void**)&dev_mem, sizeof(int) * stack_size), &result);
+#if defined(__LIBXSMM)
+  CHECK(acc_stream_sync(stream), &result);
+  start = libxsmm_timer_tick();
+#endif
+  CHECK(acc_memcpy_h2d(host_data, dev_data, sizeof(ELEM_TYPE) * mn * stack_size, stream), &result);
   CHECK(acc_memcpy_h2d(host_mem, dev_mem, sizeof(int) * stack_size, stream), &result);
-
+#if defined(__LIBXSMM)
+  CHECK(acc_stream_sync(stream), &result);
+  duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
+  printf("copy-in: %.1f ms %.1f GB/s\n", 1000.0 * duration,
+    (sizeof(ELEM_TYPE) * m * n + sizeof(int))
+      * stack_size / (duration * (1ULL << 30)));
+#endif
   /* warmup execution and prebuild JIT kernels */
   CHECK(libsmm_acc_transpose(dev_mem, offset, stack_size, dev_data,
     dbcsr_type_real_8, m, n, MAX_KERNEL_DIM, stream), &result);
@@ -109,24 +123,25 @@ int main(int argc, char* argv[])
 #endif
   assert(0 < neven);
   if (EXIT_SUCCESS == result) {
-    unsigned int nerrors = 0;
-    printf("device bw: %.1f GB/s\n", (sizeof(ELEM_TYPE) * m * n + sizeof(int))
-      * stack_size / (duration * (1ULL << 30) / neven));
-    printf("device: %.1f ms\n", 1000.0 * duration / neven);
 #if defined(__LIBXSMM)
+    printf("device: %.1f ms %.1f GB/s\n", 1000.0 * duration / neven,
+      (sizeof(ELEM_TYPE) * m * n + sizeof(int))
+        * stack_size / (duration * (1ULL << 30) / neven));
     start = libxsmm_timer_tick();
     for (r = 0; r < neven; ++r) {
-      for (i = 0; i < stack_size; ++i) {
-        libxsmm_itrans(host_data + i * mn, sizeof(ELEM_TYPE), m, n, m/*ld*/);
-      }
+      libxsmm_itrans_batch_omp(host_data, sizeof(ELEM_TYPE), m, n, m/*ld*/,
+        0/*index_base*/, sizeof(int)/*index_stride*/, host_mem, stack_size);
     }
     duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
-    printf("cpu/1: %.1f ms\n", 1000.0 * duration / neven);
+    printf("host: %.1f ms %.1f GB/s\n", 1000.0 * duration / neven,
+      (sizeof(ELEM_TYPE) * m * n + sizeof(int))
+        * stack_size / (duration * (1ULL << 30) / neven));
     /* transfer result from device back to host for validation */
     CHECK(acc_memcpy_d2h(dev_data, host_data,
       sizeof(ELEM_TYPE) * mn * stack_size, stream), &result);
     CHECK(acc_stream_sync(stream), &result);
     if (EXIT_SUCCESS == result) {
+      unsigned int nerrors = 0;
       for (i = 0; i < stack_size; ++i) {
         ELEM_TYPE matrix[MAX_KERNEL_DIM*MAX_KERNEL_DIM];
         init(i/*seed*/, matrix, m, n, m/*ld*/, scale);

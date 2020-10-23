@@ -54,6 +54,8 @@ else ifneq (0,$(IBM))
   LDFLAGS := -qsmp=omp $(LDFLAGS)
 else ifneq (Darwin,$(UNAME))
   LDFLAGS := -fopenmp $(LDFLAGS)
+else
+  LDFLAGS += -lomp
 endif
 
 ifneq (Darwin,$(UNAME))

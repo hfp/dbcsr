@@ -7,16 +7,13 @@ UNAME := $(shell uname)
 INTEL ?= 0
 IBM ?= 0
 DEV ?= 0
+OMP ?= 0
 
 CFLAGS := \
   -Wall -Wextra -pedantic \
   -Wno-variadic-macros -Wno-long-long \
-  -D__OPENCL -D__LIBXSMM -I$(LIBXSMMROOT)/include \
+  -D__OPENCL  \
   $(NULL)
-
-ifeq (Darwin,$(UNAME))
-  OMP ?= 0
-endif
 
 ifneq (0,$(DEV))
   CFLAGS := -std=c89 $(CFLAGS)
@@ -50,20 +47,24 @@ ifneq (0,$(DBG))
 else
   CFLAGS += -O2 -DNDEBUG
 endif
-ifneq (0,$(OMP))
-  ifneq (0,$(INTEL))
-    LDFLAGS += -qopenmp
-    CFLAGS += -qopenmp
-  else ifneq (0,$(IBM))
-    LDFLAGS += -qsmp=omp
-    CFLAGS += -qsmp=omp
-  else
-    LDFLAGS += -fopenmp
-    CFLAGS += -fopenmp
-  endif
-else # LIBXSMM
-  LDFLAGS += -pthread
-  CFLAGS += -pthread
+
+ifneq (0,$(INTEL))
+  LDFLAGS := -qopenmp $(LDFLAGS)
+else ifneq (0,$(IBM))
+  LDFLAGS := -qsmp=omp $(LDFLAGS)
+else ifneq (Darwin,$(UNAME))
+  LDFLAGS := -fopenmp $(LDFLAGS)
+endif
+
+ifneq (Darwin,$(UNAME))
+  LDFLAGS += -lOpenCL
+else
+  LDFLAGS += -framework OpenCL
+endif
+
+ifneq (,$(LIBXSMMROOT))
+  LDFLAGS := -pthread $(LDFLAGS) -L$(LIBXSMMROOT)/lib -lxsmmext -lxsmm -lxsmmnoblas -ldl -lm
+  CFLAGS += -pthread -D__LIBXSMM -I$(LIBXSMMROOT)/include
 endif
 
 .PHONE: all
@@ -71,9 +72,9 @@ all: acc_opencl_trans_bench
 
 acc_opencl_trans_bench: acc_opencl_trans_bench.o dbcsr_opencl_smm.a ../opencl/dbcsr_opencl.a
 ifneq (Darwin,$(UNAME))
-	$(CC) $(LDFLAGS) -o $@ $^ -lOpenCL -L$(LIBXSMMROOT)/lib -lxsmm -lxsmmnoblas -ldl -lm
+	$(CC) -o $@ $^ $(LDFLAGS)
 else
-	$(CC) $(LDFLAGS) -o $@ $^ -framework OpenCL -L$(LIBXSMMROOT)/lib -lxsmm -lxsmmnoblas -ldl -lm
+	$(CC) -o $@ $^ $(LDFLAGS)
 endif
 
 dbcsr_opencl_smm.a: $(OBJFILES)

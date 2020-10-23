@@ -110,16 +110,24 @@ int main(int argc, char* argv[])
   assert(0 < neven);
   if (EXIT_SUCCESS == result) {
     unsigned int nerrors = 0;
-    printf("bandwidth: %.1f GB/s\n", (sizeof(ELEM_TYPE) * m * n + sizeof(int))
+    printf("device bw: %.1f GB/s\n", (sizeof(ELEM_TYPE) * m * n + sizeof(int))
       * stack_size / (duration * (1ULL << 30) / neven));
-    printf("duration: %.1f ms\n", 1000.0 * duration / neven);
+    printf("device: %.1f ms\n", 1000.0 * duration / neven);
 #if defined(__LIBXSMM)
+    start = libxsmm_timer_tick();
+    for (r = 0; r < neven; ++r) {
+      for (i = 0; i < stack_size; ++i) {
+        libxsmm_itrans(host_data + i * mn, sizeof(ELEM_TYPE), m, n, m/*ld*/);
+      }
+    }
+    duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
+    printf("cpu/1: %.1f ms\n", 1000.0 * duration / neven);
     /* transfer result from device back to host for validation */
     CHECK(acc_memcpy_d2h(dev_data, host_data,
       sizeof(ELEM_TYPE) * mn * stack_size, stream), &result);
     CHECK(acc_stream_sync(stream), &result);
     if (EXIT_SUCCESS == result) {
-      for (i = 0; i < stack_size; ++i) { /* initialize stack of matrices */
+      for (i = 0; i < stack_size; ++i) {
         ELEM_TYPE matrix[MAX_KERNEL_DIM*MAX_KERNEL_DIM];
         init(i/*seed*/, matrix, m, n, m/*ld*/, scale);
         libxsmm_itrans(matrix, sizeof(ELEM_TYPE), m, n, m/*ld*/);

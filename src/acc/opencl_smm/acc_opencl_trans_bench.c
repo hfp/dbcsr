@@ -62,7 +62,6 @@ int main(int argc, char* argv[])
 #endif
   int *host_mem = NULL, *dev_mem = NULL;
   ELEM_TYPE *host_data = NULL, *dev_data = NULL;
-  const double scale = 1.0 / stack_size;
   int result = EXIT_SUCCESS, r, i, j;
   void *stream = NULL;
 #if defined(__LIBXSMM)
@@ -81,7 +80,7 @@ int main(int argc, char* argv[])
   CHECK(acc_host_mem_allocate((void**)&host_mem, sizeof(int) * stack_size, stream), &result);
   CHECK(acc_stream_sync(stream), &result);
   for (i = 0; i < stack_size; ++i) { /* initialize stack of matrices */
-    init(i/*seed*/, host_data + mn * i, m, n, m/*ld*/, scale);
+    init(i/*seed*/, host_data + mn * i, m, n, m/*ld*/, 1.0/*scale*/);
   }
   for (i = 0; i < stack_size; ++i) { /* initialize indexes */
 #if defined(SHUFFLE)
@@ -144,7 +143,7 @@ int main(int argc, char* argv[])
       unsigned int nerrors = 0;
       for (i = 0; i < stack_size; ++i) {
         ELEM_TYPE matrix[MAX_KERNEL_DIM*MAX_KERNEL_DIM];
-        init(i/*seed*/, matrix, m, n, m/*ld*/, scale);
+        init(i/*seed*/, matrix, m, n, m/*ld*/, 1.0/*scale*/);
         libxsmm_itrans(matrix, sizeof(ELEM_TYPE), m, n, m/*ld*/);
         for (j = 0; j < (int)mn; ++j) {
           if (matrix[j] != host_data[i*mn+j]) {
@@ -152,6 +151,7 @@ int main(int argc, char* argv[])
 # if defined(_DEBUG)
             print(stderr, "gold = ", matrix, m, n, m);
             print(stderr, "this = ", host_data, m, n, m);
+            fprintf(stderr, "\n");
 # endif
             break;
           }
@@ -180,7 +180,7 @@ static void init(int seed, ELEM_TYPE* dst, int nrows, int ncols, int ld, double 
   for (i = 0; i < ncols; ++i) {
     for (j = 0; j < nrows; ++j) {
       const int k = i * ld + j;
-      dst[k] = (ELEM_TYPE)(seed1 / (1.0 + k));
+      dst[k] = (ELEM_TYPE)(seed1 * (1.0 + k));
     }
     for (; j < ld; ++j) {
       const int k = i * ld + j;

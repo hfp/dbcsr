@@ -110,7 +110,7 @@ int main(int argc, char* argv[])
   /* warmup execution and prebuild JIT kernels */
   CHECK(libsmm_acc_transpose(dev_mem, offset, stack_size, dev_data,
     dbcsr_type_real_8, mm, nn, MAX_KERNEL_DIM, stream), &result);
-  swap(mm, nn);
+  swap(&mm, &nn);
   CHECK(acc_stream_sync(stream), &result);
 #if defined(__LIBXSMM)
   start = libxsmm_timer_tick();
@@ -118,7 +118,7 @@ int main(int argc, char* argv[])
   for (r = 0; r < neven; ++r) {
     CHECK(libsmm_acc_transpose(dev_mem, offset, stack_size, dev_data,
       dbcsr_type_real_8, m, n, MAX_KERNEL_DIM, stream), &result);
-    swap(mm, nn);
+    swap(&mm, &nn);
   }
 #if defined(__LIBXSMM)
   CHECK(acc_stream_sync(stream), &result);
@@ -135,7 +135,7 @@ int main(int argc, char* argv[])
     for (r = 0; r < neven; ++r) {
       libxsmm_itrans_batch_omp(host_data, sizeof(ELEM_TYPE), mm, nn, mm/*ld*/,
         0/*index_base*/, sizeof(int)/*index_stride*/, host_mem, stack_size);
-      swap(mm, nn);
+      swap(&mm, &nn);
     }
     duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
     printf("host: %.1f ms %.1f GB/s\n", 1000.0 * duration / neven,

@@ -133,7 +133,7 @@ int main(int argc, char* argv[])
     mm = m; nn = n;
     start = libxsmm_timer_tick();
     for (r = 0; r < neven; ++r) {
-      libxsmm_itrans_batch_omp(host_data, sizeof(ELEM_TYPE), mm, nn, mm/*ld*/,
+      libxsmm_itrans_batch_omp(host_data, sizeof(ELEM_TYPE), nn, mm, nn/*ld*/,
         0/*index_base*/, sizeof(int)/*index_stride*/, host_mem, stack_size);
       swap(&mm, &nn);
     }
@@ -150,13 +150,13 @@ int main(int argc, char* argv[])
       for (i = 0; i < stack_size; ++i) {
         ELEM_TYPE matrix[MAX_KERNEL_DIM*MAX_KERNEL_DIM];
         init(i/*seed*/, matrix, m, n, m/*ld*/, 1.0/*scale*/);
-        libxsmm_itrans(matrix, sizeof(ELEM_TYPE), m, n, m/*ld*/);
+        libxsmm_itrans(matrix, sizeof(ELEM_TYPE), n, m, n/*ld*/);
         for (j = 0; j < (int)mn; ++j) {
           if (matrix[j] != host_data[i*mn+j]) {
             ++nerrors;
 # if defined(_DEBUG)
-            print(stderr, "gold = ", matrix, m, n, m);
-            print(stderr, "this = ", host_data, m, n, m);
+            print(stderr, "gold = ", matrix, n, m, n);
+            print(stderr, "this = ", host_data, n, m, n);
             fprintf(stderr, "\n");
 # endif
             break;
@@ -202,9 +202,9 @@ static void print(FILE* ostream, const char* label, const ELEM_TYPE* mat, int nr
   int i, j;
   const char *const s = (NULL != label ? label : "");
   const int n = (int)strlen(s);
-  for (i = 0; i < ncols; ++i) {
+  for (i = 0; i < nrows; ++i) {
     if (0 < i) fprintf(ostream, "%*s", n, " "); else fprintf(ostream, "%s", s);
-    for (j = 0; j < nrows; ++j) {
+    for (j = 0; j < ncols; ++j) {
       fprintf(ostream, "%.2f ", mat[i*ld+j]);
     }
     fprintf(ostream, "\n");

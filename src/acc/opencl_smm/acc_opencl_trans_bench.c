@@ -41,6 +41,8 @@ static void print(FILE* ostream, const char* label, const ELEM_TYPE* mat, int nr
 #endif
 
 static void init(int seed, ELEM_TYPE* dst, int nrows, int ncols, int ld, double scale);
+static void swap(int* m, int* n) { int tmp = *m; *m = *n; *n = tmp; }
+
 
 int main(int argc, char* argv[])
 {
@@ -62,7 +64,7 @@ int main(int argc, char* argv[])
 #endif
   int *host_mem = NULL, *dev_mem = NULL;
   ELEM_TYPE *host_data = NULL, *dev_data = NULL;
-  int result = EXIT_SUCCESS, r, i, j;
+  int result = EXIT_SUCCESS, r, i, j, mm = m, nn = n;
   void *stream = NULL;
 #if defined(__LIBXSMM)
   libxsmm_timer_tickint start;
@@ -107,7 +109,8 @@ int main(int argc, char* argv[])
 #endif
   /* warmup execution and prebuild JIT kernels */
   CHECK(libsmm_acc_transpose(dev_mem, offset, stack_size, dev_data,
-    dbcsr_type_real_8, m, n, MAX_KERNEL_DIM, stream), &result);
+    dbcsr_type_real_8, mm, nn, MAX_KERNEL_DIM, stream), &result);
+  swap(mm, nn);
   CHECK(acc_stream_sync(stream), &result);
 #if defined(__LIBXSMM)
   start = libxsmm_timer_tick();
@@ -115,6 +118,7 @@ int main(int argc, char* argv[])
   for (r = 0; r < neven; ++r) {
     CHECK(libsmm_acc_transpose(dev_mem, offset, stack_size, dev_data,
       dbcsr_type_real_8, m, n, MAX_KERNEL_DIM, stream), &result);
+    swap(mm, nn);
   }
 #if defined(__LIBXSMM)
   CHECK(acc_stream_sync(stream), &result);
@@ -126,10 +130,12 @@ int main(int argc, char* argv[])
     printf("device: %.1f ms %.1f GB/s\n", 1000.0 * duration / neven,
       (sizeof(ELEM_TYPE) * m * n + sizeof(int))
         * stack_size / (duration * (1ULL << 30) / neven));
+    mm = m; nn = n;
     start = libxsmm_timer_tick();
     for (r = 0; r < neven; ++r) {
-      libxsmm_itrans_batch_omp(host_data, sizeof(ELEM_TYPE), m, n, m/*ld*/,
+      libxsmm_itrans_batch_omp(host_data, sizeof(ELEM_TYPE), mm, nn, mm/*ld*/,
         0/*index_base*/, sizeof(int)/*index_stride*/, host_mem, stack_size);
+      swap(mm, nn);
     }
     duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
     printf("host: %.1f ms %.1f GB/s\n", 1000.0 * duration / neven,

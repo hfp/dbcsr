@@ -276,7 +276,7 @@ int acc_opencl_device(void* stream, cl_device_id* device)
   }
   else if (NULL != acc_opencl_context) {
 #if !defined(NDEBUG)
-    size_t n = 0;
+    size_t n = sizeof(cl_device_id);
     ACC_OPENCL_CHECK(clGetContextInfo(acc_opencl_context, CL_CONTEXT_DEVICES,
       sizeof(cl_device_id), device, &n), "retrieve id of active device", result);
 #else

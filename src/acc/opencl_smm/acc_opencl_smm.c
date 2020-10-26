@@ -42,9 +42,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
     if (NULL == config) {
       const char *const paths[] = {
         "../../exts/dbcsr/src/acc/opencl_smm/kernel"
-#if !defined(NDEBUG)
         , "../opencl_smm/kernels"
-#endif
       };
       char buffer[ACC_OPENCL_BUFFER_MAXSIZE];
 #if 0

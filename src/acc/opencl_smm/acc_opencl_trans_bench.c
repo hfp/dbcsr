@@ -76,6 +76,7 @@ int main(int argc, char* argv[])
   double duration;
 #endif
 
+  printf("%s%s%i %i %i %i\n", 0 < argc ? argv[0] : "", 0 < argc ? " " : "", nrepeat, stack_size, m, n);
   CHECK(acc_init(), &result);
 #if defined(PRIORITY)
   CHECK(acc_stream_priority_range(&priomin, &priomax), &result);

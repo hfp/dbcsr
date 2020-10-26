@@ -60,16 +60,17 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
       int nchar = ACC_OPENCL_SNPRINTF(buffer, ACC_OPENCL_BUFFER_MAXSIZE, "xtrans_%i_%i", m, n);
       const char *const fname = ((0 < nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) ? buffer : NULL);
       char *const build_options = (NULL != fname ? (buffer + strlen(fname) + 1) : NULL);
+      const int ld = LIBXSMM_MAX(m, n);
       switch (datatype) {
         case dbcsr_type_real_8: if (NULL != build_options) {
           buffer[0] = 'd';
           nchar = ACC_OPENCL_SNPRINTF(build_options, ACC_OPENCL_BUFFER_MAXSIZE,
-            "%s -DT=double -DFN=%s -DSM=%i -DSN=%i", level2, fname, m, n);
+            "%s -DT=double -DFN=%s -DSM=%i -DSN=%i -DLD=%i", level2, fname, m, n, ld);
         } break;
         case dbcsr_type_real_4: if (NULL != build_options) {
           buffer[0] = 's';
           nchar = ACC_OPENCL_SNPRINTF(build_options, ACC_OPENCL_BUFFER_MAXSIZE,
-            "%s -DT=float -DFN=%s -DSM=%i -DSN=%i", level2, fname, m, n);
+            "%s -DT=float -DFN=%s -DSM=%i -DSN=%i -DLD=%i", level2, fname, m, n, ld);
         } break;
         default: nchar = 0;
       }

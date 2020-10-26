@@ -18,12 +18,12 @@ __kernel void FN(__global int* trs_stack, int trs_offset, __global T* matrix)
   __global T *const mat = matrix + offset;
 
   /* gather matrix elements into a local buffer */
-  for (int i = get_local_id(0); i < (SM * SN); i += SM) {
+  for (int i = get_local_id(0); i < (SM * SN); i += LD) {
     buf[i] = mat[i];
   }
   barrier(CLK_LOCAL_MEM_FENCE);
 
-  for (int i = get_local_id(0); i < (SM * SN); i += SM) {
+  for (int i = get_local_id(0); i < (SM * SN); i += LD) {
     /* compute old row and column index of matrix element */
     const int c_out = i / SN, r_out = i - c_out * SN /* i % SN */;
     /* compute the corresponding old 1D index of matrix element */

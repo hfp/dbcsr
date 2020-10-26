@@ -41,10 +41,10 @@
 
 
 #if defined(_DEBUG)
-static void print(FILE* ostream, const char* label, const ELEM_TYPE* mat, int nrows, int ncols, int ld);
+static void print(FILE* ostream, const char* label, const ELEM_TYPE* mat, int m, int n, int ld);
 #endif
 
-static void init(int seed, ELEM_TYPE* dst, int nrows, int ncols, int ld, double scale);
+static void init(int seed, ELEM_TYPE* dst, int m, int n, int ld, double scale);
 static void swap(int* m, int* n) { int tmp = *m; *m = *n; *n = tmp; }
 
 
@@ -188,13 +188,13 @@ int main(int argc, char* argv[])
 }
 
 
-static void init(int seed, ELEM_TYPE* dst, int nrows, int ncols, int ld, double scale) {
+static void init(int seed, ELEM_TYPE* dst, int m, int n, int ld, double scale) {
   const double seed1 = scale * seed + scale;
   int i, j;
-  for (i = 0; i < ncols; ++i) {
-    for (j = 0; j < nrows; ++j) {
+  for (i = 0; i < n; ++i) {
+    for (j = 0; j < m; ++j) {
       const int k = i * ld + j;
-      dst[k] = (ELEM_TYPE)(seed1 * (1.0 + i * nrows + j));
+      dst[k] = (ELEM_TYPE)(seed1 * (1.0 + i * m + j));
     }
     for (; j < ld; ++j) {
       const int k = i * ld + j;
@@ -205,14 +205,14 @@ static void init(int seed, ELEM_TYPE* dst, int nrows, int ncols, int ld, double 
 
 
 #if defined(_DEBUG)
-static void print(FILE* ostream, const char* label, const ELEM_TYPE* mat, int nrows, int ncols, int ld)
+static void print(FILE* ostream, const char* label, const ELEM_TYPE* mat, int m, int n, int ld)
 {
   int i, j;
   const char *const s = (NULL != label ? label : "");
   const int n = (int)strlen(s);
-  for (i = 0; i < ncols; ++i) {
+  for (i = 0; i < n; ++i) {
     if (0 < i) fprintf(ostream, "%*s", n, " "); else fprintf(ostream, "%s", s);
-    for (j = 0; j < nrows; ++j) {
+    for (j = 0; j < m; ++j) {
       fprintf(ostream, "%.2f ", mat[i*ld+j]);
     }
     fprintf(ostream, "\n");

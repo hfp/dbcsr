@@ -17,18 +17,16 @@ __kernel void FN(__global int* trs_stack, int trs_offset, __global T* matrix)
   /* matrix according to the index (transpose-stack) */
   __global T *const mat = matrix + offset;
 
-  /* gather matrix elements into a local buffer */
-  for (int i = get_local_id(0); i < (SM * SN); i += LD) {
+  /* copy matrix elements into a local buffer */
+  for (int i = get_local_id(0); i < (SM*SN); i += SM) {
     buf[i] = mat[i];
   }
   barrier(CLK_LOCAL_MEM_FENCE);
 
-  for (int i = get_local_id(0); i < (SM * SN); i += LD) {
+  for (int i = get_local_id(0); i < (SM*SN); i += SM) {
     /* compute old row and column index of matrix element */
-    const int c_out = i / SN, r_out = i - c_out * SN /* i % SN */;
-    /* compute the corresponding old 1D index of matrix element */
-    const int idx = r_out * SM + c_out;
-    /* overwrite the matrix element */
-    mat[i] = buf[idx];
+    const int c = i / SN, r = i % SN;
+    /* overwrite the matrix element (gather) */
+    mat[i] = buf[r*SM+c];
   }
 }

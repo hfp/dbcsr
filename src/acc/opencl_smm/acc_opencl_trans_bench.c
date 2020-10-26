@@ -209,9 +209,9 @@ static void print(FILE* ostream, const char* label, const ELEM_TYPE* mat, int m,
 {
   int i, j;
   const char *const s = (NULL != label ? label : "");
-  const int n = (int)strlen(s);
+  const int len = (int)strlen(s);
   for (i = 0; i < n; ++i) {
-    if (0 < i) fprintf(ostream, "%*s", n, " "); else fprintf(ostream, "%s", s);
+    if (0 < i) fprintf(ostream, "%*s", len, " "); else fprintf(ostream, "%s", s);
     for (j = 0; j < m; ++j) {
       fprintf(ostream, "%.2f ", mat[i*ld+j]);
     }

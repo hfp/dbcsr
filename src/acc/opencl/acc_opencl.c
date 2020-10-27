@@ -127,7 +127,7 @@ int acc_init(void)
     cl_platform_id platforms[ACC_OPENCL_DEVICES_MAXCOUNT];
     char buffer[ACC_OPENCL_BUFFER_MAXSIZE];
     const char *const vendor = getenv("ACC_OPENCL_VENDOR");
-    const char *const device = getenv("ACC_OPENCL_DEVICE");
+    const char *const device = getenv("ACC_OPENCL_DEVTYPE");
     cl_uint nplatforms = 0, ndevices = 0, i;
     cl_device_type type = CL_DEVICE_TYPE_ALL;
     ACC_OPENCL_CHECK(clGetPlatformIDs(0, NULL, &nplatforms),
@@ -173,7 +173,7 @@ int acc_init(void)
     if (0 < acc_opencl_ndevices) {
       int device_id = 0;
       if (1 < acc_opencl_ndevices) { /* preselect default device */
-        const char *const env_device_id = getenv("ACC_OPENCL_DEVICE_ID");
+        const char *const env_device_id = getenv("ACC_OPENCL_DEVICE");
         /* reorder devices according to acc_opencl_order_devices */
         qsort(acc_opencl_devices, acc_opencl_ndevices, sizeof(cl_device_id),
           acc_opencl_order_devices);

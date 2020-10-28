@@ -37,6 +37,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
     } config_t;
     struct { int m, n; } key;
     config_t *config;
+    /*LIBXSMM_MEMZERO127(&key);*/
     key.m = m; key.n = n; /* initialize key */
     config = (config_t*)libxsmm_xdispatch(&key, sizeof(key));
     if (NULL == config) {

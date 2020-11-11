@@ -7,7 +7,6 @@
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
 
-/* work group size must be at least M*N */
 __kernel void FN(__global int* trs_stack, int trs_offset, __global T* matrix)
 {
   __local T buf[SM*SN];

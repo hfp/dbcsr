@@ -15,20 +15,19 @@ __kernel void FN(__global int* trs_stack, int trs_offset, __global T* matrix)
   const int offset = trs_stack[trs_offset+get_group_id(0)];
   /* matrix according to the index (transpose-stack) */
   __global T *const mat = matrix + offset;
+  const int n = get_local_id(0);
 
   /* copy matrix elements into a local buffer (loop or intrinsic)
    * event_t e = async_work_group_copy(buf, mat, SM * SN, 0/*NULL*/);
    * wait_group_events(1, &e);
    */
-  for (int i = get_local_id(0); i < (SM*SN); i += SM) {
-    buf[i] = mat[i];
+  for (int m = 0; m < SM; ++m) {
+    buf[n*SM+m] = mat[n*SM+m];
   }
   barrier(CLK_LOCAL_MEM_FENCE);
 
-  for (int i = get_local_id(0); i < (SM*SN); i += SM) {
-    /* compute row and column index of transposed element */
-    const int c = i / SN, r = i % SN;
-    /* overwrite the matrix element (gather) */
-    mat[i] = buf[r*SM+c];
+  /* overwrite matrix elements (gather) */
+  for (int m = 0; m < SM; ++m) {
+    mat[n*SM+m] = buf[m*SM+n];
   }
 }

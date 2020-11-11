@@ -18,7 +18,7 @@ __kernel void FN(__global int* trs_stack, int trs_offset, __global T* matrix)
   const int n = get_local_id(0);
 
   /* copy matrix elements into a local buffer (loop or intrinsic)
-   * event_t e = async_work_group_copy(buf, mat, SM * SN, 0/*NULL*/);
+   * event_t e = async_work_group_copy(buf + n * SM, mat + n * SM, SM, 0/*NULL*/);
    * wait_group_events(1, &e);
    */
   for (int m = 0; m < SM; ++m) {

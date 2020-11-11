@@ -17,7 +17,7 @@ __kernel void FN(__global int* trs_stack, int trs_offset, __global T* matrix)
   __global T *const mat = matrix + offset;
   const int m = get_local_id(0);
 
-  /* copy matrix elements into a local buffer */
+  /* copy matrix elements into local buffer */
   for (int n = 0; n < SN; ++n) buf[m*SN+n] = mat[m*SN+n];
   barrier(CLK_LOCAL_MEM_FENCE);
 

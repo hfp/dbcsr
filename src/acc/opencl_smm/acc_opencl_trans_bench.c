@@ -31,7 +31,7 @@
 # define PRIORITY
 #endif
 #if !defined(WARMUP)
-# define WARMUP
+# define WARMUP 2
 #endif
 
 #define MAX(a, b) ((b) < (a) ? (a) : (b))
@@ -63,6 +63,11 @@ int main(int argc, char* argv[])
 #endif
 #if defined(SHUFFLE)
   const size_t shuffle = libxsmm_shuffle((unsigned int)stack_size);
+#endif
+#if defined(WARMUP) && (0 < WARMUP) && !defined(_DEBUG)
+  const int warmup = MAX(WARMUP, 2) / 2 * 2;
+#else
+  const int warmup = 0;
 #endif
 #if defined(PRIORITY)
   int priomin, priomax;
@@ -114,13 +119,13 @@ int main(int argc, char* argv[])
     (sizeof(ELEM_TYPE) * m * n + sizeof(int))
       * stack_size / (duration * (1ULL << 30)));
 #endif
-#if defined(WARMUP)
   /* warmup execution and prebuild JIT kernels */
-  CHECK(libsmm_acc_transpose(dev_mem, offset, stack_size, dev_data,
-    dbcsr_type_real_8, m, n, MAX_KERNEL_DIM, stream), &result);
-  CHECK(libsmm_acc_transpose(dev_mem, offset, stack_size, dev_data,
-    dbcsr_type_real_8, n, m, MAX_KERNEL_DIM, stream), &result);
-#endif
+  for (r = 0; r < warmup; ++r) {
+    CHECK(libsmm_acc_transpose(dev_mem, offset, stack_size, dev_data,
+      dbcsr_type_real_8, m, n, MAX_KERNEL_DIM, stream), &result);
+    CHECK(libsmm_acc_transpose(dev_mem, offset, stack_size, dev_data,
+      dbcsr_type_real_8, n, m, MAX_KERNEL_DIM, stream), &result);
+  }
 #if defined(__LIBXSMM)
   CHECK(acc_stream_sync(stream), &result);
   start = libxsmm_timer_tick();

@@ -54,8 +54,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
       int nchar = ACC_OPENCL_SNPRINTF(buffer, ACC_OPENCL_BUFFER_MAXSIZE, "xtrans_%i_%i", m, n);
       const char *const fname = ((0 < nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) ? buffer : NULL);
       char *const build_options = (NULL != fname ? (buffer + strlen(fname) + 1) : NULL);
-      const char *const build_common = "-DT=%s -DFN=%s -DSM=%i -DSN=%i";
-      const char* typename = NULL;
+      const char* typename = "";
       switch (datatype) {
         case dbcsr_type_real_8: if (NULL != build_options) {
           typename = "double"; /* char8 */
@@ -67,8 +66,9 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
         } break;
         default: ;
       }
-      nchar = ACC_OPENCL_SNPRINTF(build_options, ACC_OPENCL_BUFFER_MAXSIZE, build_common, typename, fname, m, n);
-      if (NULL != typename && 0 < nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) {
+      nchar = ACC_OPENCL_SNPRINTF(build_options, ACC_OPENCL_BUFFER_MAXSIZE,
+        "-DT=%s -DFN=%s -DSM=%i -DSN=%i", typename, fname, m, n);
+      if ('\0' != *typename && 0 < nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) {
         FILE *const file = acc_opencl_source_open(
 #if defined(ACC_OPENCL_SMM_PERMIT_INPLACE_TRANSPOSE)
           m == n ? "transpose_inplace.cl" :

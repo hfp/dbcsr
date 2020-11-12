@@ -13,13 +13,18 @@ __kernel void FN(__global int* trs_stack, int trs_offset, __global T* matrix)
   const int offset = trs_stack[trs_offset+get_group_id(0)];
   /* matrix according to the index (transpose-stack) */
   __global T *const mat = matrix + offset;
-  const int m = get_local_id(0);
 
-  for (int n = 0; n < m; ++n) {
-    const int i = SM * n + m;
-    const int j = SN * m + n;
-    const T tmp = mat[i];
-    mat[i] = mat[j];
-    mat[j] = tmp;
+  const int nblocks = SM / get_local_size(0);
+  const int base = nblocks * get_local_id(0);
+
+  for (int i = 0; i < nblocks; ++i) {
+    const int m = base + i;
+    for (int n = 0; n < m; ++n) {
+      const int i = SM * n + m;
+      const int j = SN * m + n;
+      const T tmp = mat[i];
+      mat[i] = mat[j];
+      mat[j] = tmp;
+    }
   }
 }

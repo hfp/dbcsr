@@ -103,11 +103,15 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
         if (EXIT_SUCCESS == result) {
           const char *const env_wgsize = getenv("ACC_OPENCL_TRANS_WGSIZE");
           if (NULL == env_wgsize) {
+#if defined(ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY) && (0 < ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY)
+            new_config.wgsize = (size_t)(ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY < m ? m : 1);
+#else
             new_config.wgsize = (size_t)m;
+#endif
           }
           else {
             const int int_wgsize = atoi(env_wgsize);
-            new_config.wgsize = (size_t)LIBXSMM_CLMP(int_wgsize, m, max_wgsize);
+            new_config.wgsize = (size_t)(0 < int_wgsize ? LIBXSMM_MIN(int_wgsize, max_wgsize) : 0);
           }
           config = (config_t*)libxsmm_xregister(&key, sizeof(key), sizeof(new_config), &new_config);
         }
@@ -118,11 +122,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
     }
     assert((NULL != config && NULL != config->kernel) || EXIT_SUCCESS != result);
     if (EXIT_SUCCESS == result) {
-#if defined(ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY) && (0 < ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY)
-      const size_t work_size = (size_t)stack_size * (ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY < m ? config->wgsize : 1);
-#else
       const size_t work_size = config->wgsize * stack_size;
-#endif
       ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 0, sizeof(cl_mem), ACC_OPENCL_MEM(dev_trs_stack)),
         "set batch-list argument of transpose kernel", result);
       ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 1, sizeof(int), &offset),
@@ -130,7 +130,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
       ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 2, sizeof(cl_mem), ACC_OPENCL_MEM(dev_data)),
         "set matix-data argument of transpose kernel", result);
       ACC_OPENCL_CHECK(clEnqueueNDRangeKernel(*ACC_OPENCL_STREAM(stream),
-        config->kernel, 1/*work_dim*/, NULL, &work_size, &config->wgsize, 0, NULL, NULL),
+        config->kernel, 1/*work_dim*/, NULL, &work_size, 0 < config->wgsize ? &config->wgsize : NULL, 0, NULL, NULL),
         "launch transpose kernel", result);
     }
   }

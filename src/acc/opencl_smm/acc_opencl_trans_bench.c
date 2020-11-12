@@ -50,7 +50,7 @@ static void swap(int* m, int* n) { int tmp = *m; *m = *n; *n = tmp; }
 
 int main(int argc, char* argv[])
 {
-  const int nrepeat = (1 < argc ? atoi(argv[1]) : 1000), offset = 0;
+  const int nrepeat = (1 < argc ? atoi(argv[1]) : 5), offset = 0;
   const int nodd = (0 < nrepeat ? ((nrepeat & 1/*odd*/) ? nrepeat : (nrepeat - 1)) : 1);
   const int stack_size = (2 < argc ? atoi(argv[2]) : 30000);
   const int m = (3 < argc ? atoi(argv[3]) : 23);

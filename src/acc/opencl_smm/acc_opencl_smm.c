@@ -70,10 +70,15 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
         "-DT=%s -DFN=%s -DSM=%i -DSN=%i", typename, fname, m, n);
       if ('\0' != *typename && 0 < nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) {
         FILE *const file = acc_opencl_source_open(
-#if defined(ACC_OPENCL_SMM_PERMIT_INPLACE_TRANSPOSE)
+#if defined(ACC_OPENCL_SMM_PERMIT_TRANSPOSE_INPLACE)
           m == n ? "transpose_inplace.cl" :
 #endif
-          "transpose.cl", paths, sizeof(paths) / sizeof(*paths));
+#if defined(ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY) && (0 < ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY)
+          (ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY < m ? "transpose.cl" : "transpose_tiny.cl"),
+#else
+          "transpose.cl",
+#endif
+          paths, sizeof(paths) / sizeof(*paths));
         int max_wgsize;
         config_t new_config;
         if (NULL != file) {
@@ -113,7 +118,11 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
     }
     assert((NULL != config && NULL != config->kernel) || EXIT_SUCCESS != result);
     if (EXIT_SUCCESS == result) {
+#if defined(ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY) && (0 < ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY)
+      const size_t work_size = (size_t)stack_size * (ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY < m ? config->wgsize : 1);
+#else
       const size_t work_size = config->wgsize * stack_size;
+#endif
       ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 0, sizeof(cl_mem), ACC_OPENCL_MEM(dev_trs_stack)),
         "set batch-list argument of transpose kernel", result);
       ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 1, sizeof(int), &offset),

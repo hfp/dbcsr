@@ -6,24 +6,23 @@
  * For further information please visit https://dbcsr.cp2k.org                                    *
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
-#ifndef ACC_OPENCL_SMM_H
-#define ACC_OPENCL_SMM_H
 
-#include "../acc_libsmm.h"
-#include "../opencl/acc_opencl.h"
+__kernel void FN(__global int* trs_stack, int trs_offset, __global T* matrix)
+{
+  /* offset in the transpose-stack that this block ID should handle */
+  const int offset = trs_stack[trs_offset+get_group_id(0)];
+  /* matrix according to the index (transpose-stack) */
+  __global T *const mat = matrix + offset;
+  /* local memory buffer */
+  __private T buf[SM*SN];
 
-#if defined(__LIBXSMM)
-# include <libxsmm.h>
-#else
-# error OpenCL backend currently depends on LIBXSMM!
-#endif
+  /* copy matrix elements into local buffer */
+  for (int m = 0; m < SM; ++m) {
+    for (int n = 0; n < SN; ++n) buf[SN*m+n] = mat[SN*m+n];
+  }
 
-#if !defined(ACC_OPENCL_SMM_PERMIT_TRANSPOSE_INPLACE) && 0
-# define ACC_OPENCL_SMM_PERMIT_TRANSPOSE_INPLACE
-#endif
-
-#if !defined(ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY) && 0
-# define ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY 20
-#endif
-
-#endif /*ACC_OPENCL_SMM_H*/
+  /* overwrite matrix elements (gather) */
+  for (int m = 0; m < SM; ++m) {
+    for (int n = 0; n < SN; ++n) mat[SN*m+n] = buf[SM*n+m];
+  }
+}

@@ -16,19 +16,18 @@ __kernel void FN(__global int* trs_stack, int trs_offset, __global T* matrix)
   /* local memory buffer */
   __local T buf[SM*SN];
 
-  const int nblocks = SM / get_local_size(0);
-  const int base = nblocks * get_local_id(0);
+  const int size = get_local_size(0), index = get_local_id(0);
+  const int nblocks = max((SM + size - 1) / size, index < SM);
+  const int base = nblocks * index;
 
   /* copy matrix elements into local buffer */
-  for (int i = 0; i < nblocks; ++i) {
-    const int m = base + i;
+  for (int m = base; m < base + nblocks; ++m) {
     for (int n = 0; n < SN; ++n) buf[SN*m+n] = mat[SN*m+n];
   }
   barrier(CLK_LOCAL_MEM_FENCE);
 
   /* overwrite matrix elements (gather) */
-  for (int i = 0; i < nblocks; ++i) {
-    const int m = base + i;
+  for (int m = base; m < base + nblocks; ++m) {
     for (int n = 0; n < SN; ++n) mat[SN*m+n] = buf[SM*n+m];
   }
 }

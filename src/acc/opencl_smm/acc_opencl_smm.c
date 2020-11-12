@@ -54,27 +54,26 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
       int nchar = ACC_OPENCL_SNPRINTF(buffer, ACC_OPENCL_BUFFER_MAXSIZE, "xtrans_%i_%i", m, n);
       const char *const fname = ((0 < nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) ? buffer : NULL);
       char *const build_options = (NULL != fname ? (buffer + strlen(fname) + 1) : NULL);
+      const char *const build_common = "-DT=%s -DFN=%s -DSM=%i -DSN=%i";
+      const char* typename = NULL;
       switch (datatype) {
         case dbcsr_type_real_8: if (NULL != build_options) {
+          typename = "double"; /* char8 */
           buffer[0] = 'd';
-          nchar = ACC_OPENCL_SNPRINTF(build_options, ACC_OPENCL_BUFFER_MAXSIZE,
-#if defined(ACC_OPENCL_SMM_PERMIT_INPLACE_TRANSPOSE)
-            "-DINPLACE "
-#endif
-            "-DT=double -DFN=%s -DSM=%i -DSN=%i", fname, m, n);
         } break;
         case dbcsr_type_real_4: if (NULL != build_options) {
+          typename = "float";
           buffer[0] = 's';
-          nchar = ACC_OPENCL_SNPRINTF(build_options, ACC_OPENCL_BUFFER_MAXSIZE,
-#if defined(ACC_OPENCL_SMM_PERMIT_INPLACE_TRANSPOSE)
-            "-DINPLACE "
-#endif
-            "-DT=float -DFN=%s -DSM=%i -DSN=%i", fname, m, n);
         } break;
-        default: nchar = 0;
+        default: ;
       }
-      if (0 < nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) {
-        FILE *const file = acc_opencl_source_open("transpose.cl", paths, sizeof(paths) / sizeof(*paths));
+      nchar = ACC_OPENCL_SNPRINTF(build_options, ACC_OPENCL_BUFFER_MAXSIZE, build_common, typename, fname, m, n);
+      if (NULL != typename && 0 < nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) {
+        FILE *const file = acc_opencl_source_open(
+#if defined(ACC_OPENCL_SMM_PERMIT_INPLACE_TRANSPOSE)
+          m == n ? "transpose_inplace.cl" :
+#endif
+          "transpose.cl", paths, sizeof(paths) / sizeof(*paths));
         int max_wgsize;
         config_t new_config;
         if (NULL != file) {

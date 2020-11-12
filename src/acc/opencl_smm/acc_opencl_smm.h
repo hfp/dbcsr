@@ -22,22 +22,4 @@
 # define ACC_OPENCL_SMM_PERMIT_INPLACE_TRANSPOSE
 #endif
 
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
-
-int acc_opencl_dbatchmm(const libsmm_acc_smmstack_t* host_param_stack,
-  const libsmm_acc_smmstack_t* dev_param_stack, int stack_size,
-  const double* dev_a_data, const double* dev_b_data, double* dev_c_data,
-  int m_max, int n_max, int k_max, int max_kernel_dim, void* stream);
-int acc_opencl_sbatchmm(const libsmm_acc_smmstack_t* host_param_stack,
-  const libsmm_acc_smmstack_t* dev_param_stack, int stack_size,
-  const float* dev_a_data, const float* dev_b_data, float* dev_c_data,
-  int m_max, int n_max, int k_max, int max_kernel_dim, void* stream);
-
-#if defined(__cplusplus)
-}
-#endif
-
 #endif /*ACC_OPENCL_SMM_H*/

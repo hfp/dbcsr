@@ -7,8 +7,7 @@
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
 
-__kernel __attribute__((reqd_work_group_size(1, 1, 1)))
-void FN(__global int* trs_stack, int trs_offset, __global T* matrix)
+__kernel void FN(__global int* trs_stack, int trs_offset, __global T* matrix)
 {
   /* offset in the transpose-stack that this block ID should handle */
   const int offset = trs_stack[trs_offset+get_group_id(0)];

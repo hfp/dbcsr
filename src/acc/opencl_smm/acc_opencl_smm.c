@@ -58,11 +58,17 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
         case dbcsr_type_real_8: if (NULL != build_options) {
           buffer[0] = 'd';
           nchar = ACC_OPENCL_SNPRINTF(build_options, ACC_OPENCL_BUFFER_MAXSIZE,
+#if defined(ACC_OPENCL_SMM_PERMIT_INPLACE_TRANSPOSE)
+            "-DINPLACE "
+#endif
             "-DT=double -DFN=%s -DSM=%i -DSN=%i", fname, m, n);
         } break;
         case dbcsr_type_real_4: if (NULL != build_options) {
           buffer[0] = 's';
           nchar = ACC_OPENCL_SNPRINTF(build_options, ACC_OPENCL_BUFFER_MAXSIZE,
+#if defined(ACC_OPENCL_SMM_PERMIT_INPLACE_TRANSPOSE)
+            "-DINPLACE "
+#endif
             "-DT=float -DFN=%s -DSM=%i -DSN=%i", fname, m, n);
         } break;
         default: nchar = 0;

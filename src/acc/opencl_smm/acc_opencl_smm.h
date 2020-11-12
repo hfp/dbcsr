@@ -18,6 +18,10 @@
 # error OpenCL backend currently depends on LIBXSMM!
 #endif
 
+#if !defined(ACC_OPENCL_SMM_PERMIT_INPLACE_TRANSPOSE) && 0
+# define ACC_OPENCL_SMM_PERMIT_INPLACE_TRANSPOSE
+#endif
+
 
 #if defined(__cplusplus)
 extern "C" {

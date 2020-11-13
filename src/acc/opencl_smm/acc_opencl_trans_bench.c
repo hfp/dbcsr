@@ -62,7 +62,6 @@ int main(int argc, char* argv[])
 #else
   const size_t mn = m * n;
 #endif
-  const int ld = mn / n;
 #if defined(SHUFFLE)
   const size_t shuffle = libxsmm_shuffle((unsigned int)stack_size);
 #endif
@@ -83,7 +82,7 @@ int main(int argc, char* argv[])
   double duration;
 #endif
 
-  assert(m <= ld);
+  assert(m <= (mn / n) && 0 == (m % n));
   printf("%s%s%i %i %i %i\n", 0 < argc ? argv[0] : "", 0 < argc ? " " : "", nrepeat, stack_size, m, n);
   CHECK(acc_init(), &result);
 #if defined(PRIORITY)
@@ -96,7 +95,7 @@ int main(int argc, char* argv[])
   CHECK(acc_host_mem_allocate((void**)&host_mem, sizeof(int) * stack_size, stream), &result);
   CHECK(acc_stream_sync(stream), &result); /* ensure host-data is allocated */
   for (i = 0; i < stack_size; ++i) { /* initialize stack of matrices */
-    init(i/*seed*/, host_data + mn * i, m, n, mn / n/*ld*/, 1.0/*scale*/);
+    init(i/*seed*/, host_data + mn * i, m, n, m/*ld*/, 1.0/*scale*/);
   }
   for (i = 0; i < stack_size; ++i) { /* initialize indexes */
 #if defined(SHUFFLE)
@@ -148,7 +147,7 @@ int main(int argc, char* argv[])
     mm = m; nn = n;
     start = libxsmm_timer_tick();
     for (r = 0; r < nodd; ++r) {
-      libxsmm_itrans_batch_omp(host_data, sizeof(ELEM_TYPE), mm, nn, ld,
+      libxsmm_itrans_batch_omp(host_data, sizeof(ELEM_TYPE), mm, nn, m,
         0/*index_base*/, sizeof(int)/*index_stride*/, host_mem, stack_size);
       swap(&mm, &nn);
     }
@@ -165,14 +164,14 @@ int main(int argc, char* argv[])
       for (i = 0; i < stack_size; ++i) {
         ELEM_TYPE gold[MAX_KERNEL_DIM*MAX_KERNEL_DIM];
         const ELEM_TYPE *const test = host_data + mn * i;
-        init(i/*seed*/, gold, m, n, ld, 1.0/*scale*/);
-        libxsmm_itrans(gold, sizeof(ELEM_TYPE), m, n, ld);
-        for (j = 0; j < (ld * n); ++j) {
+        init(i/*seed*/, gold, m, n, m, 1.0/*scale*/);
+        libxsmm_itrans(gold, sizeof(ELEM_TYPE), m, n, m);
+        for (j = 0; j < (m * n); ++j) {
           if (gold[j] != test[j]) {
             ++nerrors;
 # if defined(_DEBUG)
-            print(stderr, "gold = ", gold, n, m, ld);
-            print(stderr, "this = ", test, n, m, ld);
+            print(stderr, "gold = ", gold, n, m, m);
+            print(stderr, "this = ", test, n, m, m);
             fprintf(stderr, "\n");
 # endif
             break;

@@ -165,7 +165,7 @@ int main(int argc, char* argv[])
         ELEM_TYPE gold[MAX_KERNEL_DIM*MAX_KERNEL_DIM];
         const ELEM_TYPE *const test = host_data + mn * i;
         init(i/*seed*/, gold, m, n, m, 1.0/*scale*/);
-        libxsmm_itrans(gold, sizeof(ELEM_TYPE), m, n, m);
+        libxsmm_itrans(gold, sizeof(ELEM_TYPE), m, n, MAX(m, n));
         for (j = 0; j < (m * n); ++j) {
           if (gold[j] != test[j]) {
             ++nerrors;

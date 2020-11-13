@@ -147,7 +147,7 @@ int main(int argc, char* argv[])
     mm = m; nn = n;
     start = libxsmm_timer_tick();
     for (r = 0; r < nodd; ++r) {
-      libxsmm_itrans_batch_omp(host_data, sizeof(ELEM_TYPE), mm, nn, m,
+      libxsmm_itrans_batch_omp(host_data, sizeof(ELEM_TYPE), mm, nn, MAX(m, n),
         0/*index_base*/, sizeof(int)/*index_stride*/, host_mem, stack_size);
       swap(&mm, &nn);
     }
@@ -173,7 +173,7 @@ int main(int argc, char* argv[])
             print(stderr, "gold = ", gold, n, m, m);
             print(stderr, "this = ", test, n, m, m);
             init(i/*seed*/, gold, m, n, m, 1.0/*scale*/);
-            print(stderr, "orig = ", gold, n, m, m);
+            print(stderr, "orig = ", gold, m, n, m);
             fprintf(stderr, "\n");
 # endif
             break;

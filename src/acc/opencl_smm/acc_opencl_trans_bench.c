@@ -82,7 +82,7 @@ int main(int argc, char* argv[])
   double duration;
 #endif
 
-  assert(m <= (int)(mn / n) && 0 == (m % n));
+  assert(m <= (int)(mn / n) && 0 == (mn % n));
   printf("%s%s%i %i %i %i\n", 0 < argc ? argv[0] : "", 0 < argc ? " " : "", nrepeat, stack_size, m, n);
   CHECK(acc_init(), &result);
 #if defined(PRIORITY)

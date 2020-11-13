@@ -43,10 +43,10 @@
 
 
 #if defined(_DEBUG) && defined(USE_LIBXSMM)
-static void print(FILE* ostream, const char* label, const ELEM_TYPE* mat, int m, int n, int ld);
+static void print(FILE* ostream, const char* label, const ELEM_TYPE* mat, int m, int n);
 #endif
 
-static void init(int seed, ELEM_TYPE* dst, int m, int n, int ld, double scale);
+static void init(int seed, ELEM_TYPE* dst, int m, int n);
 static void swap(int* m, int* n) { int tmp = *m; *m = *n; *n = tmp; }
 
 
@@ -95,7 +95,7 @@ int main(int argc, char* argv[])
   CHECK(acc_host_mem_allocate((void**)&host_mem, sizeof(int) * stack_size, stream), &result);
   CHECK(acc_stream_sync(stream), &result); /* ensure host-data is allocated */
   for (i = 0; i < stack_size; ++i) { /* initialize stack of matrices */
-    init(i/*seed*/, host_data + mn * i, m, n, m/*ld*/, 1.0/*scale*/);
+    init(i/*seed*/, host_data + mn * i, m, n);
   }
   for (i = 0; i < stack_size; ++i) { /* initialize indexes */
 #if defined(SHUFFLE)
@@ -164,16 +164,16 @@ int main(int argc, char* argv[])
       for (i = 0; i < stack_size; ++i) {
         ELEM_TYPE gold[MAX_KERNEL_DIM*MAX_KERNEL_DIM];
         const ELEM_TYPE *const test = host_data + mn * i;
-        init(i/*seed*/, gold, m, n, m, 1.0/*scale*/);
+        init(i/*seed*/, gold, m, n);
         libxsmm_itrans(gold, sizeof(ELEM_TYPE), m, n, MAX(m, n));
         for (j = 0; j < (m * n); ++j) {
           if (gold[j] != test[j]) {
             ++nerrors;
 # if defined(_DEBUG)
-            print(stderr, "gold = ", gold, n, m, m);
-            print(stderr, "this = ", test, n, m, m);
-            init(i/*seed*/, gold, m, n, m, 1.0/*scale*/);
-            print(stderr, "orig = ", gold, m, n, m);
+            print(stderr, "gold = ", gold, n, m);
+            print(stderr, "this = ", test, n, m);
+            init(i/*seed*/, gold, m, n);
+            print(stderr, "orig = ", gold, m, n);
             fprintf(stderr, "\n");
 # endif
             break;
@@ -197,24 +197,19 @@ int main(int argc, char* argv[])
 }
 
 
-static void init(int seed, ELEM_TYPE* dst, int m, int n, int ld, double scale) {
-  const double seed1 = scale * seed + scale;
+static void init(int seed, ELEM_TYPE* dst, int m, int n) {
   int i, j;
   for (i = 0; i < n; ++i) {
     for (j = 0; j < m; ++j) {
-      const int k = i * ld + j;
-      dst[k] = (ELEM_TYPE)(seed1 * (1.0 + i * m + j));
-    }
-    for (; j < ld; ++j) {
-      const int k = i * ld + j;
-      dst[k] = (ELEM_TYPE)(seed);
+      const int k = i * m + j;
+      dst[k] = (ELEM_TYPE)((seed + 1) * (k + 1));
     }
   }
 }
 
 
 #if defined(_DEBUG) && defined(USE_LIBXSMM)
-static void print(FILE* ostream, const char* label, const ELEM_TYPE* mat, int m, int n, int ld)
+static void print(FILE* ostream, const char* label, const ELEM_TYPE* mat, int m, int n)
 {
   int i, j;
   const char *const s = (NULL != label ? label : "");
@@ -222,7 +217,7 @@ static void print(FILE* ostream, const char* label, const ELEM_TYPE* mat, int m,
   for (i = 0; i < n; ++i) {
     if (0 < i) fprintf(ostream, "%*s", len, " "); else fprintf(ostream, "%s", s);
     for (j = 0; j < m; ++j) {
-      fprintf(ostream, "%.2f ", mat[i*ld+j]);
+      fprintf(ostream, "%.2f ", mat[i*m+j]);
     }
     fprintf(ostream, "\n");
   }

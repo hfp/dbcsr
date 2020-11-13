@@ -13,6 +13,7 @@
 
 #if defined(__LIBXSMM)
 # include <libxsmm.h>
+# define USE_LIBXSMM
 # if !defined(SHUFFLE) && 0
 #   define SHUFFLE
 # endif
@@ -76,7 +77,7 @@ int main(int argc, char* argv[])
   ELEM_TYPE *host_data = NULL, *dev_data = NULL;
   int result = EXIT_SUCCESS, r, i, j, mm = m, nn = n;
   void *stream = NULL;
-#if defined(__LIBXSMM)
+#if defined(USE_LIBXSMM)
   libxsmm_timer_tickint start;
   double duration;
 #endif
@@ -106,13 +107,13 @@ int main(int argc, char* argv[])
   }
   CHECK(acc_dev_mem_allocate((void**)&dev_data, sizeof(ELEM_TYPE) * mn * stack_size), &result);
   CHECK(acc_dev_mem_allocate((void**)&dev_mem, sizeof(int) * stack_size), &result);
-#if defined(__LIBXSMM)
+#if defined(USE_LIBXSMM)
   CHECK(acc_stream_sync(stream), &result);
   start = libxsmm_timer_tick();
 #endif
   CHECK(acc_memcpy_h2d(host_data, dev_data, sizeof(ELEM_TYPE) * mn * stack_size, stream), &result);
   CHECK(acc_memcpy_h2d(host_mem, dev_mem, sizeof(int) * stack_size, stream), &result);
-#if defined(__LIBXSMM)
+#if defined(USE_LIBXSMM)
   CHECK(acc_stream_sync(stream), &result);
   duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
   printf("copy-in: %.1f ms %.1f GB/s\n", 1000.0 * duration,
@@ -126,7 +127,7 @@ int main(int argc, char* argv[])
     CHECK(libsmm_acc_transpose(dev_mem, offset, stack_size, dev_data,
       dbcsr_type_real_8, n, m, MAX_KERNEL_DIM, stream), &result);
   }
-#if defined(__LIBXSMM)
+#if defined(USE_LIBXSMM)
   CHECK(acc_stream_sync(stream), &result);
   start = libxsmm_timer_tick();
 #endif
@@ -135,7 +136,7 @@ int main(int argc, char* argv[])
       dbcsr_type_real_8, mm, nn, MAX_KERNEL_DIM, stream), &result);
     swap(&mm, &nn);
   }
-#if defined(__LIBXSMM)
+#if defined(USE_LIBXSMM)
   CHECK(acc_stream_sync(stream), &result);
   duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
   if (EXIT_SUCCESS == result) {

@@ -42,7 +42,7 @@
   EXIT_SUCCESS != (NULL != ((const void*)(RPTR)) ? (*((int*)(RPTR)) = (EXPR)) : (EXPR))) assert(0)
 
 
-#if defined(_DEBUG)
+#if defined(_DEBUG) && defined(USE_LIBXSMM)
 static void print(FILE* ostream, const char* label, const ELEM_TYPE* mat, int m, int n, int ld);
 #endif
 

@@ -8,6 +8,7 @@
  *------------------------------------------------------------------------------------------------*/
 #include "../acc_libsmm.h"
 #include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 #include <stdio.h>
 
@@ -211,7 +212,7 @@ static void init(int seed, ELEM_TYPE* dst, int m, int n, int ld, double scale) {
 }
 
 
-#if defined(_DEBUG)
+#if defined(_DEBUG) && defined(USE_LIBXSMM)
 static void print(FILE* ostream, const char* label, const ELEM_TYPE* mat, int m, int n, int ld)
 {
   int i, j;

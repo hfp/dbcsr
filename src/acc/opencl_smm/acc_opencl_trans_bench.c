@@ -172,6 +172,8 @@ int main(int argc, char* argv[])
 # if defined(_DEBUG)
             print(stderr, "gold = ", gold, n, m, m);
             print(stderr, "this = ", test, n, m, m);
+            init(i/*seed*/, gold, m, n, m, 1.0/*scale*/);
+            print(stderr, "orig = ", gold, n, m, m);
             fprintf(stderr, "\n");
 # endif
             break;

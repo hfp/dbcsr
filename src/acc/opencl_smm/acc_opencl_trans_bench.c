@@ -147,7 +147,7 @@ int main(int argc, char* argv[])
     mm = m; nn = n;
     start = libxsmm_timer_tick();
     for (r = 0; r < nodd; ++r) {
-      libxsmm_itrans_batch_omp(host_data, sizeof(ELEM_TYPE), mm, nn, m,
+      libxsmm_itrans_batch_omp(host_data, sizeof(ELEM_TYPE), mm, nn, mm, nn,
         0/*index_base*/, sizeof(int)/*index_stride*/, host_mem, stack_size);
       swap(&mm, &nn);
     }
@@ -165,7 +165,7 @@ int main(int argc, char* argv[])
         ELEM_TYPE gold[MAX_KERNEL_DIM*MAX_KERNEL_DIM];
         const ELEM_TYPE *const test = host_data + mn * i;
         init(i/*seed*/, gold, m, n);
-        libxsmm_itrans(gold, sizeof(ELEM_TYPE), m, n, m);
+        libxsmm_itrans(gold, sizeof(ELEM_TYPE), m, n, m, n);
         for (j = 0; j < (m * n); ++j) {
           if (gold[j] != test[j]) {
             ++nerrors;

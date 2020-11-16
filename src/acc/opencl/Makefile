@@ -1,7 +1,14 @@
-INCFILES := $(wildcard *.h*)
-SRCFILES := $(wildcard *.c*)
-OBJFILES := $(SRCFILES:.c=.o)
+INCACC := $(wildcard *.h*) ../acc.h
+SRCACC := $(wildcard *.c*)
+OBJACC := $(SRCACC:.c=.o)
 
+INCSMM := $(wildcard smm/*.h*) acc_libsmm.h
+SRCSMM := $(wildcard smm/*.c*)
+OBJSMM := $(SRCSMM:.c=.o)
+
+INCALL := $(INCACC) $(INCSMM)
+
+LIBXSMMROOT ?= $(wildcard ../../../../libxsmm)
 UNAME := $(shell uname)
 INTEL ?= 0
 IBM ?= 0
@@ -12,10 +19,6 @@ CFLAGS := \
   -Wno-variadic-macros -Wno-long-long \
   -D__OPENCL \
   $(NULL)
-
-ifeq (Darwin,$(UNAME))
-  OMP ?= 0
-endif
 
 ifneq (0,$(DEV))
   CFLAGS := -std=c89 $(CFLAGS)
@@ -34,9 +37,6 @@ else ifneq (0,$(IBM))
   CC := xlc
 endif
 
-ifneq (0,$(SYM))
-  CFLAGS += -g
-endif
 ifneq (0,$(DBG))
   ifeq (,$(DBG))
     CFLAGS += -O2
@@ -48,7 +48,16 @@ ifneq (0,$(DBG))
   endif
 else
   CFLAGS += -O2 -DNDEBUG
+  SYM := 0
 endif
+ifneq (0,$(SYM))
+  CFLAGS += -g
+endif
+
+ifeq (Darwin,$(UNAME))
+  OMP ?= 0
+endif
+
 ifneq (0,$(OMP))
 ifneq (0,$(INTEL))
   LDFLAGS += -qopenmp
@@ -62,37 +71,54 @@ else
 endif
 endif
 
-.PHONE: all
-all: dbcsr_test_acc acc_opencl_test
-
-# /usr/lib/x86_64-linux-gnu/libOpenCL.so.1
-dbcsr_test_acc: dbcsr_test_acc.o dbcsr_opencl.a
-ifneq (Darwin,$(UNAME))
-	$(CC) $(LDFLAGS) -o $@ $^ -lOpenCL
-else
-	$(CC) $(LDFLAGS) -o $@ $^ -framework OpenCL
+ifneq (,$(LIBXSMMROOT))
+  LDFLAGS := -pthread $(LDFLAGS) -L$(LIBXSMMROOT)/lib -lxsmmext -lxsmm -lxsmmnoblas -ldl -lm
+  CFLAGS += -pthread -D__LIBXSMM -I$(LIBXSMMROOT)/include
 endif
 
-acc_opencl_test: acc_opencl_test.o dbcsr_opencl.a
-ifneq (Darwin,$(UNAME))
-	$(CC) $(LDFLAGS) -o $@ $^ -lOpenCL
+ifeq (Darwin,$(UNAME))
+  LDFLAGS += -framework OpenCL
 else
-	$(CC) $(LDFLAGS) -o $@ $^ -framework OpenCL
+  LDFLAGS += -lOpenCL
 endif
 
-dbcsr_opencl.a: $(OBJFILES)
+.PHONY: all
+all: ../dbcsr_acc.a ../dbcsr_acc_smm.a bench test
+
+.PHONY: bench
+test: ../acc_bench_trans
+
+.PHONY: test
+test: ../dbcsr_acc_test acc_opencl_test
+
+../dbcsr_acc.a: $(OBJACC)
 	$(AR) -rs $@ $^
 
-%.o: %.c $(INCFILES) Makefile
+../dbcsr_acc_smm.a: $(OBJSMM)
+	$(AR) -rs $@ $^
+
+%.o: %.c $(INCALL) Makefile
 	$(CC) $(CFLAGS) -c $< -o $@
 
-dbcsr_test_acc.o: ../../../tests/dbcsr_test_acc.c Makefile
+acc_opencl_bench_trans.o: ../acc_bench_trans.c Makefile
 	$(CC) $(CFLAGS) -c $< -o $@
 
-.PHONE: clean
+dbcsr_acc_test.o: ../../../tests/dbcsr_acc_test.c Makefile
+	$(CC) $(CFLAGS) -c $< -o $@
+
+../acc_bench_trans: acc_opencl_bench_trans.o ../dbcsr_acc_smm.a ../dbcsr_acc.a
+	$(CC) $^ $(LDFLAGS) -o $@
+
+../dbcsr_acc_test: dbcsr_acc_test.o ../dbcsr_acc.a
+	$(CC) $^ $(LDFLAGS) -o $@
+
+acc_opencl_test: acc_opencl_test.o ../dbcsr_acc.a
+	$(CC) $^ $(LDFLAGS) -o $@
+
+.PHONY: clean
 clean:
-	@rm -f $(OBJFILES) dbcsr_test_acc.o
+	@rm -f $(OBJACC) acc_opencl_bench_trans.o dbcsr_acc_test.o
 
-.PHONE: realclean
+.PHONY: realclean
 realclean: clean
-	@rm -f dbcsr_opencl.a dbcsr_test_acc acc_opencl_test
+	@rm -f ../dbcsr_acc.a ../dbcsr_acc_smm.a ../dbcsr_acc_test ../acc_bench_trans acc_opencl_test

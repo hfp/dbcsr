@@ -80,7 +80,7 @@ set(dbcsr_unittest3_SRCS dbcsr_unittest3.F)
 set(dbcsr_tensor_unittest_SRCS dbcsr_tensor_unittest.F)
 set(dbcsr_tas_unittest_SRCS dbcsr_tas_unittest.F)
 set(dbcsr_test_csr_conversions_SRCS dbcsr_test_csr_conversions.F)
-set(dbcsr_test_acc_SRCS dbcsr_test_acc.c)
+set(dbcsr_test_acc_SRCS dbcsr_acc_test.c)
 set(dbcsr_tensor_test_cpp_SRCS dbcsr_tensor_test.cpp)
 
 foreach (dbcsr_ctests_simple ${DBCSR_CTESTS_SIMPLE})

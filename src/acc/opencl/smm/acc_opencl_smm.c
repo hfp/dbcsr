@@ -48,8 +48,8 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
     if (NULL == config) {
       char build_options[128], fname[16];
       const char *const paths[] = {
-        "../../exts/dbcsr/src/acc/opencl_smm/kernel"
-        , "../opencl_smm/kernels"
+        "../../exts/dbcsr/src/acc/opencl/smm/kernel"
+        , "opencl/smm/kernels"
       };
       int nchar = ACC_OPENCL_SNPRINTF(fname, sizeof(fname), "xtrans_%i_%i", m, n);
       const char* typename = "";
@@ -163,8 +163,8 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
     config = (config_t*)libxsmm_xdispatch(&key, sizeof(key));
     if (NULL == config) {
       const char *const paths[] = {
-        "../../exts/dbcsr/src/acc/opencl_smm/kernel"
-        , "../opencl_smm/kernels"
+        "../../exts/dbcsr/src/acc/opencl/smm/kernel"
+        , "opencl/smm/kernels"
       };
       char buffer[ACC_OPENCL_BUFFER_MAXSIZE];
       cl_device_id device;

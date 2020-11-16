@@ -7,6 +7,7 @@
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
 #include "acc_opencl.h"
+#include <stdlib.h>
 
 #if !defined(ACC_OPENCL_TEST_MAXNLINES)
 # define ACC_OPENCL_TEST_MAXNLINES 50

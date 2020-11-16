@@ -46,29 +46,27 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
     key.m = m; key.n = n; /* initialize key */
     config = (config_t*)libxsmm_xdispatch(&key, sizeof(key));
     if (NULL == config) {
+      char build_options[128], fname[16];
       const char *const paths[] = {
         "../../exts/dbcsr/src/acc/opencl_smm/kernel"
         , "../opencl_smm/kernels"
       };
-      char buffer[ACC_OPENCL_BUFFER_MAXSIZE];
-      int nchar = ACC_OPENCL_SNPRINTF(buffer, ACC_OPENCL_BUFFER_MAXSIZE, "xtrans_%i_%i", m, n);
-      const char *const fname = ((0 < nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) ? buffer : NULL);
-      char *const build_options = (NULL != fname ? (buffer + strlen(fname) + 1) : NULL);
+      int nchar = ACC_OPENCL_SNPRINTF(fname, sizeof(fname), "xtrans_%i_%i", m, n);
       const char* typename = "";
       switch (datatype) {
-        case dbcsr_type_real_8: if (NULL != build_options) {
+        case dbcsr_type_real_8: {
           typename = "double"; /* char8 */
-          buffer[0] = 'd';
+          fname[0] = 'd';
         } break;
-        case dbcsr_type_real_4: if (NULL != build_options) {
+        case dbcsr_type_real_4: {
           typename = "float";
-          buffer[0] = 's';
+          fname[0] = 's';
         } break;
         default: ;
       }
-      nchar = ACC_OPENCL_SNPRINTF(build_options, ACC_OPENCL_BUFFER_MAXSIZE,
-        "-DT=%s -DFN=%s -DSM=%i -DSN=%i", typename, fname, m, n);
-      if ('\0' != *typename && 0 < nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) {
+      nchar = ((0 < nchar && (int)sizeof(fname) > nchar) ? ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options),
+        "-DT=%s -DFN=%s -DSM=%i -DSN=%i", typename, fname, m, n) : 0);
+      if ('\0' != *typename && 0 < nchar && (int)sizeof(build_options) > nchar) {
         FILE *const file = acc_opencl_source_open(
 #if defined(ACC_OPENCL_SMM_PERMIT_TRANSPOSE_INPLACE)
           m == n ? "transpose_inplace.cl" :

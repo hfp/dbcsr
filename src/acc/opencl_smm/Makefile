@@ -70,9 +70,9 @@ ifneq (,$(LIBXSMMROOT))
 endif
 
 .PHONE: all
-all: acc_opencl_trans_bench
+all: acc_opencl_bench_trans
 
-acc_opencl_trans_bench: acc_opencl_trans_bench.o dbcsr_opencl_smm.a ../opencl/dbcsr_opencl.a
+acc_opencl_bench_trans: acc_opencl_bench_trans.o dbcsr_opencl_smm.a ../opencl/dbcsr_opencl.a
 ifneq (Darwin,$(UNAME))
 	$(CC) -o $@ $^ $(LDFLAGS)
 else
@@ -91,4 +91,4 @@ clean:
 
 .PHONE: realclean
 realclean: clean
-	@rm -f dbcsr_opencl_smm.a acc_opencl_trans_bench
+	@rm -f dbcsr_opencl_smm.a acc_opencl_bench_trans

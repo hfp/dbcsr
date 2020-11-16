@@ -74,7 +74,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
 #if defined(ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY) && (0 < ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY)
           (ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY < m ? "transpose.cl" : "transpose_tiny.cl"),
 #else
-          "transpose.cl",
+          (0 == getenv("ACC_OPENCL_TRANS_TINY") ? "transpose.cl" : "transpose_tiny.cl"),
 #endif
           paths, sizeof(paths) / sizeof(*paths));
         int max_wgsize;

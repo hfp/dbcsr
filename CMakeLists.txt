@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.12)
+cmake_minimum_required(VERSION 3.12)
 
 # include our cmake snippets
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
@@ -6,12 +6,12 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 # =================================================================================================
 # REQUIRE OUT-OF-SOURCE BUILDS
 file(TO_CMAKE_PATH "${PROJECT_BINARY_DIR}/CMakeLists.txt" LOC_PATH)
-if(EXISTS "${LOC_PATH}")
+if (EXISTS "${LOC_PATH}")
   message(
     FATAL_ERROR
       "You cannot build in a source directory (or any directory with a CMakeLists.txt file). Please make a build subdirectory."
   )
-endif()
+endif ()
 
 # =================================================================================================
 # PROJECT AND VERSION
@@ -35,25 +35,25 @@ if (GIT_DESC)
 
   execute_process(
     COMMAND git log -1 --format=%ai
-                  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-                  OUTPUT_VARIABLE GIT_COMMIT_DATE
-                  OUTPUT_STRIP_TRAILING_WHITESPACE)
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_COMMIT_DATE
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
 
   # take only the date from the git timestamp:
   string(REGEX REPLACE "^([0-9\\-]+) .*" "\\1" VERSION_DATE
                        "${GIT_COMMIT_DATE}")
 else ()
   file(STRINGS VERSION VERSION_INFO)
-  foreach(line ${VERSION_INFO})
+  foreach (line ${VERSION_INFO})
     if (${line} MATCHES "^([^#].*)=[ \t]*(.*)$")
       set(key ${CMAKE_MATCH_1})
       set(value ${CMAKE_MATCH_2})
       string(REGEX REPLACE "[ \t\n]+$" "" key "${key}")
       string(REGEX REPLACE "[ \t\n]+$" "" value "${value}")
       set(VERSION_${key} "${value}")
-      continue ()
+      continue()
     endif ()
-  endforeach()
+  endforeach ()
 endif ()
 
 project(
@@ -107,17 +107,22 @@ set(WITH_GPU
 set_property(CACHE WITH_GPU PROPERTY STRINGS ${SUPPORTED_HIP_ARCHITECTURES})
 
 option(USE_OPENCL "Build with OpenCL support" OFF)
-set(SUPPORTED_OPENCL_ARCHITECTURES
-    ${SUPPORTED_CUDA_ARCHITECTURES})
-set(WITH_GPU "P100" CACHE STRING "Set the GPU architecture if OpenCL is enabled (default: P100)")
+set(SUPPORTED_OPENCL_ARCHITECTURES ${SUPPORTED_CUDA_ARCHITECTURES})
+set(WITH_GPU
+    "P100"
+    CACHE STRING
+          "Set the GPU architecture if OpenCL is enabled (default: P100)")
 set_property(CACHE WITH_GPU PROPERTY STRINGS ${SUPPORTED_OPENCL_ARCHITECTURES})
 
 # USE_CUDA, USE_HIP, and USE_OPENCL shall be mutually exclusive options
-if ((USE_CUDA AND USE_HIP) OR (USE_CUDA AND USE_OPENCL) OR (USE_OPENCL AND USE_HIP))
+if ((USE_CUDA AND USE_HIP)
+    OR (USE_CUDA AND USE_OPENCL)
+    OR (USE_OPENCL AND USE_HIP))
   message(
     FATAL_ERROR
-      "USE_CUDA, USE_HIP, and USE_OPENCL are mutually exclusive. Please choose one.")
-endif()
+      "USE_CUDA, USE_HIP, and USE_OPENCL are mutually exclusive. Please choose one."
+  )
+endif ()
 
 # =================================================================================================
 # LANGUAGES AND TESTING
@@ -164,7 +169,7 @@ if (USE_MPI)
                                                  # component
   if (NOT CMAKE_CROSSCOMPILING) # when cross compiling, assume the users know
                                 # what they are doing
-     set(MPI_DETERMINE_LIBRARY_VERSION TRUE)
+    set(MPI_DETERMINE_LIBRARY_VERSION TRUE)
   endif ()
   find_package(
     MPI
@@ -183,7 +188,7 @@ Intel MPI compiler wrappers. Check the INSTALL.md for more information.")
       OR "${MPI_Fortran_LIBRARY_VERSION_STRING}" MATCHES "Open MPI v3.1")
     message(
       WARNING
-            "RMA with ${MPI_Fortran_LIBRARY_VERSION_STRING} is not supported due to issues with its implementation."
+        "RMA with ${MPI_Fortran_LIBRARY_VERSION_STRING} is not supported due to issues with its implementation."
         " Please use a newer version of OpenMPI or switch to MPICH if you plan on using MPI-RMA."
     )
   endif ()
@@ -196,26 +201,28 @@ elseif (USE_SMM MATCHES "libxsmm")
   # rely on pkg-config in order to link against libxsmm
   pkg_check_modules(deps REQUIRED IMPORTED_TARGET GLOBAL libxsmmf)
   message("-- Using libxsmm for Small Matrix Multiplication")
-else()
+else ()
   message(FATAL_ERROR "Unknown SMM library specified")
 endif ()
 
 # =================================== GPU backend
-if (USE_CUDA OR USE_HIP OR USE_OPENCL)
+if (USE_CUDA
+    OR USE_HIP
+    OR USE_OPENCL)
   enable_language(CXX)
   set(GPU_ARCH_NUMBER_K20X 35)
-  set(GPU_ARCH_NUMBER_K40  35)
-  set(GPU_ARCH_NUMBER_K80  37)
+  set(GPU_ARCH_NUMBER_K40 35)
+  set(GPU_ARCH_NUMBER_K80 37)
   set(GPU_ARCH_NUMBER_P100 60)
   set(GPU_ARCH_NUMBER_V100 70)
   set(GPU_ARCH_NUMBER_Mi50 gfx906)
-endif()
+endif ()
 
 if (USE_CUDA)
   enable_language(CUDA)
   if (CMAKE_CUDA_COMPILER_VERSION LESS 5.5)
-      message(FATAL_ERROR "CUDA version >= 5.5 is required.")
-  endif()
+    message(FATAL_ERROR "CUDA version >= 5.5 is required.")
+  endif ()
 
   # Make sure the GPU required is supported
   list(FIND SUPPORTED_CUDA_ARCHITECTURES ${WITH_GPU} GPU_SUPPORTED)
@@ -224,7 +231,7 @@ if (USE_CUDA)
       FATAL_ERROR
         "GPU architecture requested (${WITH_GPU}) is not supported. Please choose from: ${SUPPORTED_CUDA_ARCHITECTURES}"
     )
-  endif()
+  endif ()
 
   # assume that the backend compiler for nvcc understands the -std=c++11
   set(CMAKE_CUDA_STANDARD 11)
@@ -260,52 +267,52 @@ if (USE_HIP)
       FATAL_ERROR
         "GPU architecture requested (${WITH_GPU}) is not supported. Please choose from: ${SUPPORTED_HIP_ARCHITECTURES}"
     )
-  endif()
+  endif ()
 
   # Set path to HIP installation, include HIP cmake utilities
-  if(NOT DEFINED HIP_PATH)
-    if(NOT DEFINED ENV{HIP_PATH})
+  if (NOT DEFINED HIP_PATH)
+    if (NOT DEFINED ENV{HIP_PATH})
       set(HIP_PATH
           "/opt/rocm/hip"
           CACHE PATH "Path to HIP installation")
-    else()
+    else ()
       set(HIP_PATH
           $ENV{HIP_PATH}
           CACHE PATH "Path to HIP installation")
-    endif()
-  endif()
+    endif ()
+  endif ()
   set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${HIP_PATH}/cmake")
 
-  if(NOT DEFINED ROCM_PATH)
-    if(NOT DEFINED ENV{ROCM_PATH})
+  if (NOT DEFINED ROCM_PATH)
+    if (NOT DEFINED ENV{ROCM_PATH})
       set(ROCM_PATH
           "/opt/rocm"
           CACHE PATH "Path to ROCm installation")
-    else()
+    else ()
       set(ROCM_PATH
           $ENV{ROCM_PATH}
           CACHE PATH "Path to ROCm installation")
-    endif()
-  endif()
+    endif ()
+  endif ()
 
   # Find HIP package
   find_package(HIP)
-  if(HIP_FOUND)
+  if (HIP_FOUND)
     message(STATUS "Found HIP: " ${HIP_VERSION})
-  else()
+  else ()
     message(
       FATAL_ERROR
         "Could not find HIP. Ensure that HIP is either installed in /opt/rocm/hip or the variable HIP_PATH is set to point to the right location."
     )
-  endif()
+  endif ()
 
   # Find hiprtc library (adds support for JIT-ing in HIP)
   find_library(ROCM_HIPRTC_LIB amdhip64 HINTS ${HIP_PATH}/lib)
-  if(NOT ROCM_HIPRTC_LIB)
+  if (NOT ROCM_HIPRTC_LIB)
     message(
       FATAL_ERROR "HIPRTC (HIP library for just-in-time compilation) not found")
-  endif()
-  set(ENV{HIP_PATH} /opt/rocm/hip)  # workaround bug in hiprtc.cpp
+  endif ()
+  set(ENV{HIP_PATH} /opt/rocm/hip) # workaround bug in hiprtc.cpp
 
   # Set platform to compile for (NVIDIA-nvcc or ROCm-hcc) as well as
   # corresponding architecture and flags adapted from:
@@ -321,19 +328,19 @@ if (USE_HIP)
     set(HIP_HIPCC_FLAGS
         "${HIP_HIPCC_FLAGS} -std=c++11 -arch=sm_${ACC_ARCH_NUMBER} --cudart static"
     )
-  else()
+  else ()
     set(HIP_HIPCC_FLAGS "${HIP_HIPCC_FLAGS} -fPIC")
-  endif()
+  endif ()
   message(STATUS "GPU target architecture: " ${WITH_GPU})
   message(STATUS "GPU architecture number: " ${ACC_ARCH_NUMBER})
   message(STATUS "HIPCC flags: " ${HIP_HIPCC_FLAGS})
   if (USE_OPENMP)
     set(HIP_OpenMP_FLAGS "-L${ROCM_PATH}/llvm/lib -lomp")
     message(STATUS "HIP OpenMP linking flags: ${HIP_OpenMP_FLAGS}")
-  endif()
+  endif ()
 
   # =================================== BLAS on GPU backend
-  find_library(HIPBLAS hipblas HINTS ${HIP_PATH}/../lib)  # /opt/rocm/lib
+  find_library(HIPBLAS hipblas HINTS ${HIP_PATH}/../lib) # /opt/rocm/lib
   if (NOT HIPBLAS)
     message(
       FATAL_ERROR
@@ -342,7 +349,7 @@ if (USE_HIP)
   else ()
     message(STATUS "Found hipBLAS: ${HIPBLAS}")
   endif ()
-endif()
+endif ()
 
 if (USE_OPENCL)
   # set OpenCL compilation flags
@@ -364,8 +371,8 @@ if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE
       "${default_build_type}"
       CACHE STRING
-    "Choose the type of build, options are: Debug Release Coverage."
-    FORCE)
+            "Choose the type of build, options are: Debug Release Coverage."
+            FORCE)
   # set the possible values of build type for cmake-gui
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release"
                                                "Coverage")

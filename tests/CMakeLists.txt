@@ -33,7 +33,7 @@ file(
 
 if ("${MPI_Fortran_LIBRARY_VERSION_STRING}" MATCHES "Open MPI v2.1"
     OR "${MPI_Fortran_LIBRARY_VERSION_STRING}" MATCHES "Open MPI v3.1")
-    list(FILTER DBCSR_PERF_TESTS EXCLUDE REGEX "_rma")
+  list(FILTER DBCSR_PERF_TESTS EXCLUDE REGEX "_rma")
 endif ()
 
 foreach (dbcsr_perf_test ${DBCSR_PERF_TESTS})
@@ -55,11 +55,9 @@ foreach (dbcsr_perf_test ${DBCSR_PERF_TESTS})
     PROPERTIES ENVIRONMENT OMP_NUM_THREADS=${TEST_OMP_THREADS})
 endforeach ()
 
-# =================================== DBCSR CORRECTNESS TESTS
-# Define simple C-tests here, will be used as the executable name
-set(DBCSR_CTESTS_SIMPLE
-  dbcsr_test_acc
-  )
+# =================================== DBCSR CORRECTNESS TESTS Define simple
+# C-tests here, will be used as the executable name
+set(DBCSR_CTESTS_SIMPLE dbcsr_test_acc)
 
 # Define all the tests here, will be used as the executable name
 set(DBCSR_TESTS
@@ -89,25 +87,30 @@ foreach (dbcsr_ctests_simple ${DBCSR_CTESTS_SIMPLE})
   if (NOT CMAKE_BUILD_TYPE MATCHES Coverage)
     set(dbcsr_ctests_link_lang Fortran)
     if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
-      set_target_properties(${dbcsr_ctests_simple} PROPERTIES LINK_FLAGS "-nofor-main")
+      set_target_properties(${dbcsr_ctests_simple} PROPERTIES LINK_FLAGS
+                                                              "-nofor-main")
     endif ()
   else () # avoid linker error under MacOS (llvm_gcda_emit_arcs)
     set(dbcsr_ctests_link_lang C)
   endif ()
-  set_target_properties(${dbcsr_ctests_simple} PROPERTIES LINKER_LANGUAGE ${dbcsr_ctests_link_lang})
+  set_target_properties(${dbcsr_ctests_simple}
+                        PROPERTIES LINKER_LANGUAGE ${dbcsr_ctests_link_lang})
   if (OpenMP_FOUND)
-    target_link_libraries(${dbcsr_ctests_simple} OpenMP::OpenMP_${dbcsr_ctests_link_lang})
+    target_link_libraries(${dbcsr_ctests_simple}
+                          OpenMP::OpenMP_${dbcsr_ctests_link_lang})
   endif ()
   # register C-tests executable that do not need additional arguments with CMake
   add_test(NAME ${dbcsr_ctests_simple} COMMAND ./${dbcsr_ctests_simple})
   if (OpenMP_FOUND)
-    set_tests_properties(${dbcsr_ctests_simple} PROPERTIES ENVIRONMENT OMP_NUM_THREADS=${TEST_OMP_THREADS})
+    set_tests_properties(
+      ${dbcsr_ctests_simple} PROPERTIES ENVIRONMENT
+                                        OMP_NUM_THREADS=${TEST_OMP_THREADS})
   endif ()
 endforeach ()
 
-# instead of building a full-blown lib, it would be better to simply build an OBJECT lib,
-# but we would need cmake 3.12 to be able to specify target_link_libraries on those to get
-# the proper compile flags
+# instead of building a full-blown lib, it would be better to simply build an
+# OBJECT lib, but we would need cmake 3.12 to be able to specify
+# target_link_libraries on those to get the proper compile flags
 add_library(dbcsr_unittest_common STATIC ${dbcsr_unittest_common_SRCS})
 target_link_libraries(dbcsr_unittest_common PUBLIC ${BLAS_LIBRARIES}
                                                    ${LAPACK_LIBRARIES})
@@ -117,7 +120,7 @@ endif ()
 
 if (APPLE AND BLAS_LIBRARIES MATCHES "Accelerate")
   target_compile_definitions(dbcsr_unittest_common PRIVATE __ACCELERATE)
-endif()
+endif ()
 target_link_libraries(dbcsr_unittest_common PUBLIC dbcsr)
 
 foreach (dbcsr_test ${DBCSR_TESTS})
@@ -137,7 +140,7 @@ foreach (dbcsr_test ${DBCSR_TESTS})
         ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${num_ranks}
         ${MPIEXEC_PREFLAGS} $<TARGET_FILE:${dbcsr_test}> ${MPIEXEC_POSTFLAGS})
   else ()
-      add_test(NAME ${dbcsr_test} COMMAND ${dbcsr_test})
+    add_test(NAME ${dbcsr_test} COMMAND ${dbcsr_test})
   endif ()
   if (OpenMP_FOUND)
     target_link_libraries(${dbcsr_test} OpenMP::OpenMP_Fortran)
@@ -165,24 +168,24 @@ endforeach ()
 
 if (WITH_C_API)
   foreach (dbcsr_test_cpp ${DBCSR_TESTS_CPP})
-   add_executable(${dbcsr_test_cpp} ${${dbcsr_test_cpp}_SRCS})
-   target_link_libraries(${dbcsr_test_cpp} dbcsr_c MPI::MPI_CXX)
-   # register unittest executable with CMake
-   if (USE_MPI)
-     separate_arguments(MPIEXEC_PREFLAGS)
+    add_executable(${dbcsr_test_cpp} ${${dbcsr_test_cpp}_SRCS})
+    target_link_libraries(${dbcsr_test_cpp} dbcsr_c MPI::MPI_CXX)
+    # register unittest executable with CMake
+    if (USE_MPI)
+      separate_arguments(MPIEXEC_PREFLAGS)
       add_test(
         NAME ${dbcsr_test_cpp}
         COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${num_ranks}
                 ${MPIEXEC_PREFLAGS} ./${dbcsr_test_cpp} ${MPIEXEC_POSTFLAGS})
-   else ()
-     add_test(NAME ${dbcsr_test_cpp} COMMAND ./${dbcsr_test_cpp})
-   endif ()
-   if (OpenMP_FOUND)
+    else ()
+      add_test(NAME ${dbcsr_test_cpp} COMMAND ./${dbcsr_test_cpp})
+    endif ()
+    if (OpenMP_FOUND)
       set_tests_properties(
         ${dbcsr_test_cpp} PROPERTIES ENVIRONMENT
                                      OMP_NUM_THREADS=${TEST_OMP_THREADS})
-   endif ()
- endforeach ()
+    endif ()
+  endforeach ()
 endif ()
 
 # =================================== GPU BACKEND TESTS (CUDA / HIP)
@@ -242,7 +245,7 @@ if (USE_CUDA OR USE_HIP)
 
     endforeach ()
 
-  else()  # i.e. USE_HIP
+  else () # i.e. USE_HIP
 
     foreach (libsmm_acc_test ${LIBSMM_ACC_TESTS_BUILD})
       set_source_files_properties(${libsmm_acc_test}.cpp
@@ -282,11 +285,11 @@ if (USE_CUDA OR USE_HIP)
 
     endforeach ()
 
-  endif()
+  endif ()
 
   # Add tests that do not need additional arguments
   foreach (libsmm_acc_test ${LIBSMM_ACC_SIMPLE_TESTS})
-      add_test(NAME ${libsmm_acc_test} COMMAND ${libsmm_acc_test})
+    add_test(NAME ${libsmm_acc_test} COMMAND ${libsmm_acc_test})
   endforeach ()
 
   # Add tests needing additional arguments:

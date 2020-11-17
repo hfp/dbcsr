@@ -1975,7 +1975,7 @@ CONTAINS
    PURE_BLOCKOPS SUBROUTINE block_transpose_inplace_${nametype1}$ (extent, rows, columns)
      !! In-place block transpose.
 
-#if defined(__LIBXSMM_TRANS) && 0
+#if defined(__LIBXSMM_TRANS)
       USE libxsmm, ONLY: libxsmm_itrans, libxsmm_ptr1
 #endif
       INTEGER, INTENT(IN) :: rows, columns
@@ -1987,7 +1987,7 @@ CONTAINS
       CHARACTER(len=*), PARAMETER :: routineN = 'block_transpose_inplace_${nametype1}$', &
                                      routineP = moduleN//':'//routineN
 !    ---------------------------------------------------------------------------
-#if defined(__LIBXSMM_TRANS) && 0
+#if defined(__LIBXSMM_TRANS)
       CALL libxsmm_itrans(libxsmm_ptr1(extent), ${typesize1[n]}$, rows, columns, rows)
 #elif defined(__MKL)
       CALL mkl_${nametype1}$imatcopy('C', 'T', rows, columns, ${one1[n]}$, extent, rows, columns)

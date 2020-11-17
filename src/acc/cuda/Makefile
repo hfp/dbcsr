@@ -14,44 +14,44 @@ INTEL ?= 0
 IBM ?= 0
 DEV ?= 0
 
-CFLAGS := \
+CXXFLAGS := \
   -Wall -Wextra -pedantic \
   -Wno-variadic-macros -Wno-long-long \
-  -D__OPENCL \
+  -D__CUDA \
   $(NULL)
 
 ifneq (0,$(DEV))
-  CFLAGS := -std=c89 $(CFLAGS)
-  CFLAGS += -Wno-unused-parameter
+  CXXFLAGS := -std=c89 $(CXXFLAGS)
+  CXXFLAGS += -Wno-unused-parameter
 else
-  CFLAGS := -std=c99 $(CFLAGS)
+  #CXXFLAGS := -std=c++11 $(CXXFLAGS)
 endif
 
 ifneq (0,$(INTEL))
 ifeq (1,$(INTEL))
-  CC := icc
+  CXX := icpc
 else
-  CC := icx
+  CXX := icpx
 endif
 else ifneq (0,$(IBM))
-  CC := xlc
+  CXX := xlc
 endif
 
 ifneq (0,$(DBG))
   ifeq (,$(DBG))
-    CFLAGS += -O2
+    CXXFLAGS += -O2
   else
     ifneq (1,$(DBG))
-      CFLAGS += -D_DEBUG
+      CXXFLAGS += -D_DEBUG
     endif
-    CFLAGS += -O0
+    CXXFLAGS += -O0
   endif
 else
-  CFLAGS += -O2 -DNDEBUG
+  CXXFLAGS += -O2 -DNDEBUG
   SYM := 0
 endif
 ifneq (0,$(SYM))
-  CFLAGS += -g
+  CXXFLAGS += -g
 endif
 
 ifeq (Darwin,$(UNAME))
@@ -61,19 +61,19 @@ endif
 ifneq (0,$(OMP))
 ifneq (0,$(INTEL))
   LDFLAGS += -qopenmp
-  CFLAGS += -qopenmp
+  CXXFLAGS += -qopenmp
 else ifneq (0,$(IBM))
   LDFLAGS += -qsmp=omp
-  CFLAGS += -qsmp=omp
+  CXXFLAGS += -qsmp=omp
 else
   LDFLAGS += -fopenmp
-  CFLAGS += -fopenmp
+  CXXFLAGS += -fopenmp
 endif
 endif
 
 ifneq (,$(LIBXSMMROOT))
   LDFLAGS := -pthread $(LDFLAGS) -L$(LIBXSMMROOT)/lib -lxsmmext -lxsmm -lxsmmnoblas -ldl -lm
-  CFLAGS += -pthread -D__LIBXSMM -I$(LIBXSMMROOT)/include
+  CXXFLAGS += -pthread -D__LIBXSMM -I$(LIBXSMMROOT)/include
 endif
 
 ifeq (Darwin,$(UNAME))
@@ -98,22 +98,22 @@ test: ../dbcsr_acc_test acc_opencl_test
 	$(AR) -rs $@ $^
 
 %.o: %.c $(INCALL) Makefile
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 acc_opencl_bench_trans.o: ../acc_bench_trans.c Makefile
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 dbcsr_acc_test.o: ../../../tests/dbcsr_acc_test.c Makefile
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 ../acc_bench_trans: acc_opencl_bench_trans.o ../dbcsr_acc_smm.a ../dbcsr_acc.a
-	$(CC) $^ $(LDFLAGS) -o $@
+	$(CXX) $^ $(LDFLAGS) -o $@
 
 ../dbcsr_acc_test: dbcsr_acc_test.o ../dbcsr_acc.a
-	$(CC) $^ $(LDFLAGS) -o $@
+	$(CXX) $^ $(LDFLAGS) -o $@
 
 acc_opencl_test: acc_opencl_test.o ../dbcsr_acc.a
-	$(CC) $^ $(LDFLAGS) -o $@
+	$(CXX) $^ $(LDFLAGS) -o $@
 
 .PHONY: clean
 clean:

@@ -201,12 +201,6 @@ endif ()
 
 if (OpenMP_FOUND)
   target_link_libraries(dbcsr PRIVATE OpenMP::OpenMP_Fortran)
-
-  if (USE_OFFLOAD)
-    add_subdirectory(acc/libsmm_omp)
-    target_sources(dbcsr PRIVATE $<TARGET_OBJECTS:libsmm_omp>)
-    target_compile_definitions(dbcsr PRIVATE __DBCSR_ACC)
-  endif ()
 endif ()
 
 # OpenMP/offload backend is built if no other backend is enabled

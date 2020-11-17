@@ -2,14 +2,22 @@ INCACC := $(wildcard *.h*) ../acc.h
 SRCACC := $(wildcard *.cpp)
 OBJACC := $(SRCACC:.cpp=.o)
 
-INCSMM := $(wildcard ../libsmm_acc/*.h*) acc_libsmm.h
+GPUSMM := $(wildcard ../libsmm_acc/kernels/*.h*)
+INCSMM := $(wildcard ../libsmm_acc/*.h*) ../acc_libsmm.h \
+  ../libsmm_acc/smm_acc_kernels.h \
+  ../libsmm_acc/parameters.h \
+  $(NULL)
 SRCSMM := $(wildcard ../libsmm_acc/*.cpp)
 OBJSMM := $(SRCSMM:.cpp=.o)
 
 INCALL := $(INCACC) $(INCSMM)
 
 LIBXSMMROOT ?= $(wildcard ../../../../libxsmm)
+NVCC ?= $(shell which nvcc 2>/dev/null)
+CUDA_PATH ?= $(if $(NVCC),$(abspath $(dir $($(NVCC)))/..))
+PYTHON := python3
 UNAME := $(shell uname)
+WITH_GPU ?= V100
 INTEL ?= 0
 IBM ?= 0
 DEV ?= 0
@@ -17,7 +25,7 @@ DEV ?= 0
 CXXFLAGS := \
   -Wall -Wextra -pedantic \
   -Wno-variadic-macros -Wno-long-long \
-  -D__CUDA \
+  -D__CUDA -D__ACC -D__DBCSR_ACC \
   $(NULL)
 
 ifneq (0,$(DEV))
@@ -76,11 +84,7 @@ ifneq (,$(LIBXSMMROOT))
   CXXFLAGS += -pthread -D__LIBXSMM -I$(LIBXSMMROOT)/include
 endif
 
-ifeq (Darwin,$(UNAME))
-  LDFLAGS += -framework OpenCL
-else
-  LDFLAGS += -lOpenCL
-endif
+LDFLAGS += -L$(CUDA_PATH)/lib64 -lcudart -lcublas -lnvrtc -lcuda
 
 .PHONY: all
 all: ../dbcsr_acc.a ../dbcsr_acc_smm.a bench test
@@ -90,6 +94,12 @@ test: ../acc_bench_trans
 
 .PHONY: test
 test: ../dbcsr_acc_test acc_opencl_test
+
+../libsmm_acc/parameters.h: Makefile ../libsmm_acc/generate_parameters.py ../libsmm_acc/parameters/parameters_$(WITH_GPU).json
+	@cd ../libsmm_acc && $(PYTHON) ../libsmm_acc/generate_parameters.py --gpu_version=$(WITH_GPU) --base_dir=../libsmm_acc/parameters
+
+../libsmm_acc/smm_acc_kernels.h: $(GPUSMM) Makefile ../libsmm_acc/generate_kernels.py ../libsmm_acc/parameters/parameters_$(WITH_GPU).json
+	@cd ../libsmm_acc && $(PYTHON) ../libsmm_acc/generate_kernels.py ../libsmm_acc/kernels
 
 ../dbcsr_acc.a: $(OBJACC)
 	$(AR) -rs $@ $^

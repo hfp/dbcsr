@@ -132,7 +132,7 @@ if (WITH_C_API AND WITH_EXAMPLES)
   enable_language(CXX)
 endif ()
 
-# we're always using at least C++11
+# always use at least C++11
 set(CMAKE_CXX_STANDARD 11)
 
 # =================================================================================================
@@ -154,7 +154,7 @@ find_package(LAPACK REQUIRED) # needed for some of the integrated test routines,
 # environment for a python interpreter before searching elsewhere in the system.
 # In CMake <3.15, the system is searched before the virtual environment.
 if (NOT Python_EXECUTABLE)
-  # If the python interpreter isn't specified as a command line option, look for
+  # If the python interpreter is not specified as a command line option, look for
   # it:
   find_package(
     Python

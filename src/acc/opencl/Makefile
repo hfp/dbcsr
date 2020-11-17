@@ -1,9 +1,9 @@
 INCACC := $(wildcard *.h*) ../acc.h
-SRCACC := $(wildcard *.c*)
+SRCACC := $(wildcard *.c)
 OBJACC := $(SRCACC:.c=.o)
 
-INCSMM := $(wildcard smm/*.h*) acc_libsmm.h
-SRCSMM := $(wildcard smm/*.c*)
+INCSMM := $(wildcard smm/*.h*) ../acc_libsmm.h
+SRCSMM := $(wildcard smm/*.c)
 OBJSMM := $(SRCSMM:.c=.o)
 
 INCALL := $(INCACC) $(INCSMM)

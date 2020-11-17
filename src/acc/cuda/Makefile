@@ -1,0 +1,124 @@
+INCACC := $(wildcard *.h*) ../acc.h
+SRCACC := $(wildcard *.cpp)
+OBJACC := $(SRCACC:.cpp=.o)
+
+INCSMM := $(wildcard ../libsmm_acc/*.h*) acc_libsmm.h
+SRCSMM := $(wildcard ../libsmm_acc/*.cpp)
+OBJSMM := $(SRCSMM:.cpp=.o)
+
+INCALL := $(INCACC) $(INCSMM)
+
+LIBXSMMROOT ?= $(wildcard ../../../../libxsmm)
+UNAME := $(shell uname)
+INTEL ?= 0
+IBM ?= 0
+DEV ?= 0
+
+CFLAGS := \
+  -Wall -Wextra -pedantic \
+  -Wno-variadic-macros -Wno-long-long \
+  -D__OPENCL \
+  $(NULL)
+
+ifneq (0,$(DEV))
+  CFLAGS := -std=c89 $(CFLAGS)
+  CFLAGS += -Wno-unused-parameter
+else
+  CFLAGS := -std=c99 $(CFLAGS)
+endif
+
+ifneq (0,$(INTEL))
+ifeq (1,$(INTEL))
+  CC := icc
+else
+  CC := icx
+endif
+else ifneq (0,$(IBM))
+  CC := xlc
+endif
+
+ifneq (0,$(DBG))
+  ifeq (,$(DBG))
+    CFLAGS += -O2
+  else
+    ifneq (1,$(DBG))
+      CFLAGS += -D_DEBUG
+    endif
+    CFLAGS += -O0
+  endif
+else
+  CFLAGS += -O2 -DNDEBUG
+  SYM := 0
+endif
+ifneq (0,$(SYM))
+  CFLAGS += -g
+endif
+
+ifeq (Darwin,$(UNAME))
+  OMP ?= 0
+endif
+
+ifneq (0,$(OMP))
+ifneq (0,$(INTEL))
+  LDFLAGS += -qopenmp
+  CFLAGS += -qopenmp
+else ifneq (0,$(IBM))
+  LDFLAGS += -qsmp=omp
+  CFLAGS += -qsmp=omp
+else
+  LDFLAGS += -fopenmp
+  CFLAGS += -fopenmp
+endif
+endif
+
+ifneq (,$(LIBXSMMROOT))
+  LDFLAGS := -pthread $(LDFLAGS) -L$(LIBXSMMROOT)/lib -lxsmmext -lxsmm -lxsmmnoblas -ldl -lm
+  CFLAGS += -pthread -D__LIBXSMM -I$(LIBXSMMROOT)/include
+endif
+
+ifeq (Darwin,$(UNAME))
+  LDFLAGS += -framework OpenCL
+else
+  LDFLAGS += -lOpenCL
+endif
+
+.PHONY: all
+all: ../dbcsr_acc.a ../dbcsr_acc_smm.a bench test
+
+.PHONY: bench
+test: ../acc_bench_trans
+
+.PHONY: test
+test: ../dbcsr_acc_test acc_opencl_test
+
+../dbcsr_acc.a: $(OBJACC)
+	$(AR) -rs $@ $^
+
+../dbcsr_acc_smm.a: $(OBJSMM)
+	$(AR) -rs $@ $^
+
+%.o: %.c $(INCALL) Makefile
+	$(CC) $(CFLAGS) -c $< -o $@
+
+acc_opencl_bench_trans.o: ../acc_bench_trans.c Makefile
+	$(CC) $(CFLAGS) -c $< -o $@
+
+dbcsr_acc_test.o: ../../../tests/dbcsr_acc_test.c Makefile
+	$(CC) $(CFLAGS) -c $< -o $@
+
+../acc_bench_trans: acc_opencl_bench_trans.o ../dbcsr_acc_smm.a ../dbcsr_acc.a
+	$(CC) $^ $(LDFLAGS) -o $@
+
+../dbcsr_acc_test: dbcsr_acc_test.o ../dbcsr_acc.a
+	$(CC) $^ $(LDFLAGS) -o $@
+
+acc_opencl_test: acc_opencl_test.o ../dbcsr_acc.a
+	$(CC) $^ $(LDFLAGS) -o $@
+
+.PHONY: clean
+clean:
+	@rm -f $(OBJACC) acc_opencl_bench_trans.o dbcsr_acc_test.o
+
+.PHONY: realclean
+realclean: clean
+	@rm -f ../dbcsr_acc.a ../dbcsr_acc_smm.a ../dbcsr_acc_test ../acc_bench_trans acc_opencl_test

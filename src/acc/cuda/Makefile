@@ -15,11 +15,15 @@ INCALL := $(INCACC) $(INCSMM)
 LIBXSMMROOT ?= $(wildcard ../../../../libxsmm)
 NVCC ?= $(shell which nvcc 2>/dev/null)
 CUDA_PATH ?= $(if $(NVCC),$(abspath $(dir $($(NVCC)))/..))
-PYTHON := python3
 UNAME := $(shell uname)
 WITH_GPU ?= V100
 INTEL ?= 0
 DEV ?= 0
+
+PYTHON := $(shell which python3 2>/dev/null)
+ifeq (,$(PYTHON))
+  PYTHON := $(shell which python 2>/dev/null)
+endif
 
 ifeq ($(WITH_GPU),K20X)
  ARCH_NUMBER = 35

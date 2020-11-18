@@ -15,10 +15,10 @@ kernel void FN(global const int *restrict trs_stack, int trs_offset, global T *r
   global T *const restrict mat = matrix + offset;
 
   const int size = get_local_size(0), index = get_local_id(0);
-  const int nblocks = max((SM + size - 1) / size, index < SM);
+  const int nblocks = (index < SM ? ((SM + size - 1) / size) : 0);
   const int base = nblocks * index;
 
-  for (int m = base; m < base + nblocks; ++m) {
+  for (int m = base; m < (base + nblocks); ++m) {
     for (int n = 0; n < m; ++n) {
       const int i = SM * n + m;
       const int j = SN * m + n;

@@ -17,17 +17,17 @@ kernel void FN(global const int *restrict trs_stack, int trs_offset, global T *r
   local T buf[SM*SN];
 
   const int size = get_local_size(0), index = get_local_id(0);
-  const int nblocks = max((SM + size - 1) / size, index < SM);
+  const int nblocks = (index < SM ? ((SM + size - 1) / size) : 0);
   const int base = nblocks * index;
 
   /* copy matrix elements into local buffer */
-  for (int m = base; m < base + nblocks; ++m) {
+  for (int m = base; m < (base + nblocks); ++m) {
     for (int n = 0; n < SN; ++n) buf[SN*m+n] = mat[SN*m+n];
   }
   barrier(CLK_LOCAL_MEM_FENCE);
 
   /* overwrite matrix elements (gather) */
-  for (int m = base; m < base + nblocks; ++m) {
+  for (int m = base; m < (base + nblocks); ++m) {
     for (int n = 0; n < SN; ++n) mat[SN*m+n] = buf[SM*n+m];
   }
 }

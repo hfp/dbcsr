@@ -21,10 +21,24 @@ WITH_GPU ?= V100
 INTEL ?= 0
 DEV ?= 0
 
+ifeq ($(WITH_GPU),K20X)
+ ARCH_NUMBER = 35
+else ifeq ($(WITH_GPU),K40)
+ ARCH_NUMBER = 35
+else ifeq ($(WITH_GPU),K80)
+ ARCH_NUMBER = 37
+else ifeq ($(WITH_GPU),P100)
+ ARCH_NUMBER = 60
+else ifeq ($(WITH_GPU),V100)
+ ARCH_NUMBER = 70
+else ifeq (,$(ARCH_NUMBER))
+ $(error Unknown ARCH_NUMBER since WITH_GPU="$(WITH_GPU)" is not recognized)
+endif
+
 CFLAGS := -fPIC \
   -Wall -Wextra -pedantic \
   -D__CUDA -D__ACC -D__DBCSR_ACC \
-  -DARCH_NUMBER=GPU_ARCH_NUMBER_$(WITH_GPU) \
+  -DARCH_NUMBER=$(ARCH_NUMBER) \
   -DNO_DBCSR_TIMESET \
   $(NULL)
 

@@ -52,7 +52,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
       const char* typename = "";
       switch (datatype) {
         case dbcsr_type_real_8: {
-          typename = "double"; /* char8 */
+          typename = "char8"; /* double */
           fname[0] = 'd';
         } break;
         case dbcsr_type_real_4: {

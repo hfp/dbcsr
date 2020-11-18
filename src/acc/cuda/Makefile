@@ -79,6 +79,7 @@ endif
 
 ifeq (Darwin,$(UNAME))
   OMP ?= 0
+  AR := ar
 endif
 
 ifneq (0,$(OMP))

@@ -13,8 +13,8 @@ kernel void FN(global const int *restrict trs_stack, int trs_offset, global T *r
   const int offset = trs_stack[trs_offset+get_group_id(0)];
   /* matrix according to the index (transpose-stack) */
   global T *const restrict mat = matrix + offset;
-  /* local memory buffer */
-  local T buf[SM*SN];
+  /* local or private memory buffer */
+  KIND T buf[SM*SN];
 
   const int size = get_local_size(0), index = get_local_id(0);
   const int nblocks = (index < SM ? ((SM + size - 1) / size) : 0);

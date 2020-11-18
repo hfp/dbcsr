@@ -48,6 +48,13 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
     if (NULL == config) {
       char build_options[512], fname[16];
       const char *const env_options = getenv("ACC_OPENCL_TRANS_BUILD_OPTIONS");
+#if defined(ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY) && (0 < ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY)
+      const char *const kind = (ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY >= m ? "private" : "local");
+#else
+      const char *const env_tiny = getenv("ACC_OPENCL_TRANS_TINY");
+      const int tiny = ((NULL == env_tiny || '0' == *env_tiny) ? 0 : atoi(env_tiny));
+      const char *const kind = ((0 == tiny || (1 < tiny && tiny < m)) ? "local" : "private");
+#endif
       int nchar = ACC_OPENCL_SNPRINTF(fname, sizeof(fname), "xtrans_%i_%i", m, n);
       const char* typename = "";
       switch (datatype) {
@@ -61,15 +68,12 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
         } break;
         default: ;
       }
-      nchar = ((0 < nchar && (int)sizeof(fname) > nchar) ? ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options),
-        "%s -DT=%s -DFN=%s -DSM=%i -DSN=%i", (NULL == env_options || '\0' == *env_options) ? "" : env_options,
-        typename, fname, m, n) : 0);
+      nchar = ((0 < nchar && (int)sizeof(fname) > nchar)
+        ? ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options), "%s -DKIND=%s -DT=%s -DFN=%s -DSM=%i -DSN=%i",
+        (NULL == env_options || '\0' == *env_options) ? "" : env_options, kind, typename, fname, m, n) : 0);
       if ('\0' != *typename && 0 < nchar && (int)sizeof(build_options) > nchar) {
 #if !defined(ACC_OPENCL_SMM_PERMIT_TRANSPOSE_INPLACE)
         const char *const env_inplace = getenv("ACC_OPENCL_TRANS_INPLACE");
-#endif
-#if !defined(ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY) || (0 >= ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY)
-        const char *const env_tiny = getenv("ACC_OPENCL_TRANS_TINY");
 #endif
         const char *const paths[] = {
           "../../exts/dbcsr/src/acc/opencl/smm/kernel",
@@ -81,11 +85,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
 #else
           (m == n && (NULL == env_inplace || '0' != *env_inplace)) ? "transpose_inplace.cl" :
 #endif
-#if defined(ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY) && (0 < ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY)
-          ((ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY < m) ? "transpose.cl" : "transpose_tiny.cl"),
-#else
-          ((NULL == env_tiny || '0' == *env_tiny) ? "transpose.cl" : "transpose_tiny.cl"),
-#endif
+          "transpose.cl",
           paths, sizeof(paths) / sizeof(*paths));
         int max_wgsize;
         config_t new_config;
@@ -115,12 +115,8 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
         }
         if (EXIT_SUCCESS == result) {
           const char *const env_wgsize = getenv("ACC_OPENCL_TRANS_WGSIZE");
-          if (NULL == env_wgsize) {
-#if defined(ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY) && (0 < ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY)
-            new_config.wgsize = (size_t)(ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY < m ? m : 1);
-#else
+          if (NULL == env_wgsize || '\0' == *env_wgsize) {
             new_config.wgsize = (size_t)m;
-#endif
           }
           else {
             const int int_wgsize = atoi(env_wgsize);

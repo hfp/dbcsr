@@ -7,14 +7,14 @@
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
 
-__kernel void FN(__global int* trs_stack, int trs_offset, __global T* matrix)
+kernel void FN(global const int *restrict trs_stack, int trs_offset, global T *restrict matrix)
 {
   /* offset in the transpose-stack that this block ID should handle */
   const int offset = trs_stack[trs_offset+get_group_id(0)];
   /* matrix according to the index (transpose-stack) */
-  __global T *const mat = matrix + offset;
+  global T *const restrict mat = matrix + offset;
   /* local memory buffer */
-  __local T buf[SM*SN];
+  local T buf[SM*SN];
 
   const int size = get_local_size(0), index = get_local_id(0);
   const int nblocks = max((SM + size - 1) / size, index < SM);

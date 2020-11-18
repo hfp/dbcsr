@@ -48,10 +48,6 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
     if (NULL == config) {
       char build_options[512], fname[16];
       const char *const env_options = getenv("ACC_OPENCL_TRANS_BUILD_OPTIONS");
-      const char *const paths[] = {
-        "../../exts/dbcsr/src/acc/opencl/smm/kernel"
-        , "opencl/smm/kernels"
-      };
       int nchar = ACC_OPENCL_SNPRINTF(fname, sizeof(fname), "xtrans_%i_%i", m, n);
       const char* typename = "";
       switch (datatype) {
@@ -69,14 +65,26 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
         "%s -DT=%s -DFN=%s -DSM=%i -DSN=%i", (NULL == env_options || '\0' == env_options) ? "" : env_options,
         typename, fname, m, n) : 0);
       if ('\0' != *typename && 0 < nchar && (int)sizeof(build_options) > nchar) {
+#if !defined(ACC_OPENCL_SMM_PERMIT_TRANSPOSE_INPLACE)
+        const char *const env_inplace = getenv("ACC_OPENCL_TRANS_INPLACE");
+#endif
+#if !defined(ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY) || (0 >= ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY)
+        const char *const env_tiny = getenv("ACC_OPENCL_TRANS_TINY");
+#endif
+        const char *const paths[] = {
+          "../../exts/dbcsr/src/acc/opencl/smm/kernel"
+          , "opencl/smm/kernels"
+        };
         FILE *const file = acc_opencl_source_open(
 #if defined(ACC_OPENCL_SMM_PERMIT_TRANSPOSE_INPLACE)
-          m == n ? "transpose_inplace.cl" :
+          (m == n ? "transpose_inplace.cl") :
+#else
+          (m == n && (NULL == env_inplace || '0' != *env_inplace) ? "transpose_inplace.cl" : "transpose.cl") :
 #endif
 #if defined(ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY) && (0 < ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY)
           (ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY < m ? "transpose.cl" : "transpose_tiny.cl"),
 #else
-          (0 == getenv("ACC_OPENCL_TRANS_TINY") ? "transpose.cl" : "transpose_tiny.cl"),
+          ((NULL == env_tiny || '0' == *env_tiny) ? "transpose.cl" : "transpose_tiny.cl"),
 #endif
           paths, sizeof(paths) / sizeof(*paths));
         int max_wgsize;

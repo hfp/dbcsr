@@ -49,11 +49,11 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
       char build_options[512], fname[16];
       const char *const env_options = getenv("ACC_OPENCL_TRANS_BUILD_OPTIONS");
 #if defined(ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY) && (0 < ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY)
-      const char *const kind = (ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY >= m ? "private" : "local");
+      const int local = (ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY >= m ? 0/*private*/ : 1/*local*/);
 #else
       const char *const env_tiny = getenv("ACC_OPENCL_TRANS_TINY");
       const int tiny = ((NULL == env_tiny || '0' == *env_tiny) ? 0 : atoi(env_tiny));
-      const char *const kind = ((0 == tiny || (1 < tiny && tiny < m)) ? "local" : "private");
+      const int local = ((0 == tiny || (1 < tiny && tiny < m)) ? 1/*local*/ : 0/*private*/);
 #endif
       int nchar = ACC_OPENCL_SNPRINTF(fname, sizeof(fname), "xtrans_%i_%i", m, n);
       const char* typename = "";
@@ -70,7 +70,8 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
       }
       nchar = ((0 < nchar && (int)sizeof(fname) > nchar)
         ? ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options), "%s -DKIND=%s -DT=%s -DFN=%s -DSM=%i -DSN=%i",
-        (NULL == env_options || '\0' == *env_options) ? "" : env_options, kind, typename, fname, m, n) : 0);
+        (NULL == env_options || '\0' == *env_options) ? "" : env_options,
+        local ? "local" : "private", typename, fname, m, n) : 0);
       if ('\0' != *typename && 0 < nchar && (int)sizeof(build_options) > nchar) {
 #if !defined(ACC_OPENCL_SMM_PERMIT_TRANSPOSE_INPLACE)
         const char *const env_inplace = getenv("ACC_OPENCL_TRANS_INPLACE");
@@ -127,7 +128,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
               new_config.wgsize = 0;
             }
           }
-          if (max_wgsize < new_config.wgsize) new_config.wgsize = 1;
+          if (max_wgsize < new_config.wgsize || 0 == local) new_config.wgsize = 1;
           config = (config_t*)libxsmm_xregister(&key, sizeof(key), sizeof(new_config), &new_config);
         }
       }

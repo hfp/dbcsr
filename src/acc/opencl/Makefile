@@ -11,7 +11,6 @@ INCALL := $(INCACC) $(INCSMM)
 LIBXSMMROOT ?= $(wildcard ../../../../libxsmm)
 UNAME := $(shell uname)
 INTEL ?= 0
-IBM ?= 0
 DEV ?= 0
 
 CFLAGS := -fPIC \
@@ -27,14 +26,18 @@ else
   CFLAGS := -std=c99 $(CFLAGS)
 endif
 
-ifneq (0,$(INTEL))
 ifeq (1,$(INTEL))
+  CXX := icpc
   CC := icc
-else
+  AR := xiar
+else ifneq (0,$(INTEL))
+  CXX := icpx
   CC := icx
-endif
-else ifneq (0,$(IBM))
-  CC := xlc
+  AR := xiar
+else
+  CXX := g++
+  CC := gcc
+  AR := gcc-ar
 endif
 
 ifneq (0,$(DBG))
@@ -62,9 +65,6 @@ ifneq (0,$(OMP))
 ifneq (0,$(INTEL))
   LDFLAGS += -qopenmp
   CFLAGS += -qopenmp
-else ifneq (0,$(IBM))
-  LDFLAGS += -qsmp=omp
-  CFLAGS += -qsmp=omp
 else
   LDFLAGS += -fopenmp
   CFLAGS += -fopenmp

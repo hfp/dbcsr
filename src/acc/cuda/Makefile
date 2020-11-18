@@ -19,23 +19,27 @@ PYTHON := python3
 UNAME := $(shell uname)
 WITH_GPU ?= V100
 INTEL ?= 0
-IBM ?= 0
 DEV ?= 0
 
 CFLAGS := -fPIC \
   -Wall -Wextra -pedantic \
   -D__CUDA -D__ACC -D__DBCSR_ACC \
+  -DARCH_NUMBER=GPU_ARCH_NUMBER_$(WITH_GPU) \
   -DNO_DBCSR_TIMESET \
   $(NULL)
 
-ifneq (0,$(INTEL))
 ifeq (1,$(INTEL))
   CXX := icpc
-else
+  CC := icc
+  AR := xiar
+else ifneq (0,$(INTEL))
   CXX := icpx
-endif
-else ifneq (0,$(IBM))
-  CXX := xlc
+  CC := icx
+  AR := xiar
+else
+  CXX := g++
+  CC := gcc
+  AR := gcc-ar
 endif
 
 ifneq (0,$(DBG))
@@ -63,9 +67,6 @@ ifneq (0,$(OMP))
 ifneq (0,$(INTEL))
   LDFLAGS += -qopenmp
   CFLAGS += -qopenmp
-else ifneq (0,$(IBM))
-  LDFLAGS += -qsmp=omp
-  CFLAGS += -qsmp=omp
 else
   LDFLAGS += -fopenmp
   CFLAGS += -fopenmp
@@ -105,7 +106,7 @@ test: ../dbcsr_acc_test
 acc_cublas.o: acc_cublas.cu Makefile
 	$(NVCC) $(addprefix -Xcompiler $(NULL),$(CXXFLAGS)) -c $< -o $@
 
-../dbcsr_acc.a: $(OBJACC) acc_cublas.o
+../dbcsr_acc.a: $(OBJACC) acc_cublas.o ../libsmm_acc/libsmm_acc_init.o
 	$(AR) -rs $@ $^
 
 ../dbcsr_acc_smm.a: $(OBJSMM)

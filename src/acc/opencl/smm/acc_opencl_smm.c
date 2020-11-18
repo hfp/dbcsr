@@ -91,7 +91,13 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
         config_t new_config;
         if (NULL != file) {
           char* lines[50];
-          const int nlines = acc_opencl_source(file, lines, sizeof(lines) / sizeof(*lines), 1/*cleanup*/);
+          const int nlines = acc_opencl_source(file, lines, sizeof(lines) / sizeof(*lines),
+            /* whether to cleanup the loaded source code or not */
+#if defined(NDEBUG)
+            1);
+#else
+            0);
+#endif
           fclose(file);
           result = acc_opencl_kernel((const char**)lines, nlines, build_options, fname, &new_config.kernel);
         }

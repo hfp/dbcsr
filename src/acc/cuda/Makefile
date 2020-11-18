@@ -1,6 +1,6 @@
 INCACC := $(wildcard *.h*) ../acc.h
 SRCACC := $(wildcard *.cpp)
-OBJACC := $(SRCACC:.cpp=.o)
+OBJACC := $(SRCACC:.cpp=.o) acc_cublas.o
 
 GPUSMM := $(wildcard ../libsmm_acc/kernels/*.h*)
 INCSMM := $(wildcard ../libsmm_acc/*.h*) ../acc_libsmm.h \
@@ -22,18 +22,11 @@ INTEL ?= 0
 IBM ?= 0
 DEV ?= 0
 
-CXXFLAGS := \
+CFLAGS := -fPIC \
   -Wall -Wextra -pedantic \
-  -Wno-variadic-macros -Wno-long-long \
   -D__CUDA -D__ACC -D__DBCSR_ACC \
+  -DNO_DBCSR_TIMESET \
   $(NULL)
-
-ifneq (0,$(DEV))
-  CXXFLAGS := -std=c89 $(CXXFLAGS)
-  CXXFLAGS += -Wno-unused-parameter
-else
-  #CXXFLAGS := -std=c++11 $(CXXFLAGS)
-endif
 
 ifneq (0,$(INTEL))
 ifeq (1,$(INTEL))
@@ -47,19 +40,19 @@ endif
 
 ifneq (0,$(DBG))
   ifeq (,$(DBG))
-    CXXFLAGS += -O2
+    CFLAGS += -O2
   else
     ifneq (1,$(DBG))
-      CXXFLAGS += -D_DEBUG
+      CFLAGS += -D_DEBUG
     endif
-    CXXFLAGS += -O0
+    CFLAGS += -O0
   endif
 else
-  CXXFLAGS += -O2 -DNDEBUG
+  CFLAGS += -O2 -DNDEBUG
   SYM := 0
 endif
 ifneq (0,$(SYM))
-  CXXFLAGS += -g
+  CFLAGS += -g
 endif
 
 ifeq (Darwin,$(UNAME))
@@ -69,22 +62,30 @@ endif
 ifneq (0,$(OMP))
 ifneq (0,$(INTEL))
   LDFLAGS += -qopenmp
-  CXXFLAGS += -qopenmp
+  CFLAGS += -qopenmp
 else ifneq (0,$(IBM))
   LDFLAGS += -qsmp=omp
-  CXXFLAGS += -qsmp=omp
+  CFLAGS += -qsmp=omp
 else
   LDFLAGS += -fopenmp
-  CXXFLAGS += -fopenmp
+  CFLAGS += -fopenmp
 endif
 endif
 
 ifneq (,$(LIBXSMMROOT))
   LDFLAGS := -pthread $(LDFLAGS) -L$(LIBXSMMROOT)/lib -lxsmmext -lxsmm -lxsmmnoblas -ldl -lm
-  CXXFLAGS += -pthread -D__LIBXSMM -I$(LIBXSMMROOT)/include
+  CFLAGS += -pthread -D__LIBXSMM -I$(LIBXSMMROOT)/include
+endif
+
+ifneq (0,$(DEV))
+  CXXFLAGS := -std=c++11 $(CFLAGS)
+  CFLAGS := -std=c89 $(CFLAGS)
+else
+  CXXFLAGS := $(CFLAGS)
 endif
 
 LDFLAGS += -L$(CUDA_PATH)/lib64 -lcudart -lcublas -lnvrtc -lcuda
+CFLAGS += -Wno-variadic-macros -Wno-long-long
 
 .PHONY: all
 all: ../dbcsr_acc.a ../dbcsr_acc_smm.a bench test
@@ -93,7 +94,7 @@ all: ../dbcsr_acc.a ../dbcsr_acc_smm.a bench test
 test: ../acc_bench_trans
 
 .PHONY: test
-test: ../dbcsr_acc_test acc_opencl_test
+test: ../dbcsr_acc_test
 
 ../libsmm_acc/parameters.h: Makefile ../libsmm_acc/generate_parameters.py ../libsmm_acc/parameters/parameters_$(WITH_GPU).json
 	@cd ../libsmm_acc && $(PYTHON) ../libsmm_acc/generate_parameters.py --gpu_version=$(WITH_GPU) --base_dir=../libsmm_acc/parameters
@@ -101,34 +102,34 @@ test: ../dbcsr_acc_test acc_opencl_test
 ../libsmm_acc/smm_acc_kernels.h: $(GPUSMM) Makefile ../libsmm_acc/generate_kernels.py ../libsmm_acc/parameters/parameters_$(WITH_GPU).json
 	@cd ../libsmm_acc && $(PYTHON) ../libsmm_acc/generate_kernels.py ../libsmm_acc/kernels
 
-../dbcsr_acc.a: $(OBJACC)
+acc_cublas.o: acc_cublas.cu Makefile
+	$(NVCC) $(addprefix -Xcompiler $(NULL),$(CXXFLAGS)) -c $< -o $@
+
+../dbcsr_acc.a: $(OBJACC) acc_cublas.o
 	$(AR) -rs $@ $^
 
 ../dbcsr_acc_smm.a: $(OBJSMM)
 	$(AR) -rs $@ $^
 
-%.o: %.c $(INCALL) Makefile
+%.o: %.cpp $(INCALL) Makefile
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-acc_opencl_bench_trans.o: ../acc_bench_trans.c Makefile
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+acc_bench_trans.o: ../acc_bench_trans.c Makefile
+	$(CC) $(CFLAGS) -c $< -o $@
 
 dbcsr_acc_test.o: ../../../tests/dbcsr_acc_test.c Makefile
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
-../acc_bench_trans: acc_opencl_bench_trans.o ../dbcsr_acc_smm.a ../dbcsr_acc.a
+../acc_bench_trans: acc_bench_trans.o ../dbcsr_acc_smm.a ../dbcsr_acc.a
 	$(CXX) $^ $(LDFLAGS) -o $@
 
-../dbcsr_acc_test: dbcsr_acc_test.o ../dbcsr_acc.a
-	$(CXX) $^ $(LDFLAGS) -o $@
-
-acc_opencl_test: acc_opencl_test.o ../dbcsr_acc.a
+../dbcsr_acc_test: dbcsr_acc_test.o ../dbcsr_acc_smm.a ../dbcsr_acc.a
 	$(CXX) $^ $(LDFLAGS) -o $@
 
 .PHONY: clean
 clean:
-	@rm -f $(OBJACC) acc_opencl_bench_trans.o dbcsr_acc_test.o
+	@rm -f $(OBJACC) acc_bench_trans.o dbcsr_acc_test.o
 
 .PHONY: realclean
 realclean: clean
-	@rm -f ../dbcsr_acc.a ../dbcsr_acc_smm.a ../dbcsr_acc_test ../acc_bench_trans acc_opencl_test
+	@rm -f ../dbcsr_acc.a ../dbcsr_acc_smm.a ../dbcsr_acc_test ../acc_bench_trans

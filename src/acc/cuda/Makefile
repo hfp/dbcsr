@@ -57,7 +57,11 @@ else ifneq (0,$(INTEL))
 else
   CXX := g++
   CC := gcc
-  AR := gcc-ar
+  ifneq (Darwin,$(UNAME))
+    AR := gcc-ar
+  else
+    AR := ar
+  endif
 endif
 
 ifneq (0,$(DBG))
@@ -77,18 +81,16 @@ ifneq (0,$(SYM))
   CFLAGS += -g
 endif
 
-ifeq (Darwin,$(UNAME))
-  OMP ?= 0
-  AR := ar
-endif
-
 ifneq (0,$(OMP))
 ifneq (0,$(INTEL))
-  LDFLAGS += -qopenmp
   CFLAGS += -qopenmp
-else
-  LDFLAGS += -fopenmp
+  LDFLAGS += -qopenmp
+else ifneq (Darwin,$(UNAME))
   CFLAGS += -fopenmp
+  LDFLAGS += -fopenmp
+else # macOS
+  CFLAGS += -Xpreprocessor -fopenmp
+  LDFLAGS += -lomp
 endif
 endif
 

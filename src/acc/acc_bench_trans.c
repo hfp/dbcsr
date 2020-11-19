@@ -88,7 +88,7 @@ int main(int argc, char* argv[])
   CHECK(acc_stream_priority_range(&priomin, &priomax), &result);
   CHECK(acc_stream_create(&stream, "stream", (priomin + priomax) / 2), &result);
 #else
-  CHECK(acc_stream_create(&stream, "stream", -1/*invalid*/), &result);
+  CHECK(acc_stream_create(&stream, "stream", -1/*default priority*/), &result);
 #endif
   CHECK(acc_host_mem_allocate((void**)&mat_hst, sizeof(ELEM_TYPE) * mn * stack_size, stream), &result);
   CHECK(acc_host_mem_allocate((void**)&stack_hst, sizeof(int) * stack_size, stream), &result);

@@ -73,15 +73,14 @@ int main(int argc, char* argv[])
 #if defined(PRIORITY)
   int priomin, priomax;
 #endif
-  int *host_mem = NULL, *dev_mem = NULL;
-  ELEM_TYPE *host_data = NULL, *dev_data = NULL;
+  int *stack_hst = NULL, *stack_dev = NULL;
+  ELEM_TYPE *mat_hst = NULL, *mat_dev = NULL;
   int result = EXIT_SUCCESS, r, i, j, mm = m, nn = n;
   void *stream = NULL;
 #if defined(USE_LIBXSMM)
   libxsmm_timer_tickint start;
   double duration;
 #endif
-
   assert(m <= (int)(mn / n) && 0 == (mn % n));
   printf("%s%s%i %i %i %i\n", 0 < argc ? argv[0] : "", 0 < argc ? " " : "", nrepeat, stack_size, m, n);
   CHECK(acc_init(), &result);
@@ -91,11 +90,11 @@ int main(int argc, char* argv[])
 #else
   CHECK(acc_stream_create(&stream, "stream", -1/*invalid*/), &result);
 #endif
-  CHECK(acc_host_mem_allocate((void**)&host_data, sizeof(ELEM_TYPE) * mn * stack_size, stream), &result);
-  CHECK(acc_host_mem_allocate((void**)&host_mem, sizeof(int) * stack_size, stream), &result);
+  CHECK(acc_host_mem_allocate((void**)&mat_hst, sizeof(ELEM_TYPE) * mn * stack_size, stream), &result);
+  CHECK(acc_host_mem_allocate((void**)&stack_hst, sizeof(int) * stack_size, stream), &result);
   CHECK(acc_stream_sync(stream), &result); /* ensure host-data is allocated */
   for (i = 0; i < stack_size; ++i) { /* initialize stack of matrices */
-    init(i/*seed*/, host_data + mn * i, m, n);
+    init(i/*seed*/, mat_hst + mn * i, m, n);
   }
   for (i = 0; i < stack_size; ++i) { /* initialize indexes */
 #if defined(SHUFFLE)
@@ -103,16 +102,16 @@ int main(int argc, char* argv[])
 #else
     j = (int)(mn * i);
 #endif
-    host_mem[i] = j;
+    stack_hst[i] = j;
   }
-  CHECK(acc_dev_mem_allocate((void**)&dev_data, sizeof(ELEM_TYPE) * mn * stack_size), &result);
-  CHECK(acc_dev_mem_allocate((void**)&dev_mem, sizeof(int) * stack_size), &result);
+  CHECK(acc_dev_mem_allocate((void**)&mat_dev, sizeof(ELEM_TYPE) * mn * stack_size), &result);
+  CHECK(acc_dev_mem_allocate((void**)&stack_dev, sizeof(int) * stack_size), &result);
 #if defined(USE_LIBXSMM)
   CHECK(acc_stream_sync(stream), &result);
   start = libxsmm_timer_tick();
 #endif
-  CHECK(acc_memcpy_h2d(host_data, dev_data, sizeof(ELEM_TYPE) * mn * stack_size, stream), &result);
-  CHECK(acc_memcpy_h2d(host_mem, dev_mem, sizeof(int) * stack_size, stream), &result);
+  CHECK(acc_memcpy_h2d(mat_hst, mat_dev, sizeof(ELEM_TYPE) * mn * stack_size, stream), &result);
+  CHECK(acc_memcpy_h2d(stack_hst, stack_dev, sizeof(int) * stack_size, stream), &result);
 #if defined(USE_LIBXSMM)
   CHECK(acc_stream_sync(stream), &result);
   duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
@@ -122,9 +121,9 @@ int main(int argc, char* argv[])
 #endif
   /* warmup execution and prebuild JIT kernels */
   for (r = 0; r < warmup; ++r) {
-    CHECK(libsmm_acc_transpose(dev_mem, offset, stack_size, dev_data,
+    CHECK(libsmm_acc_transpose(stack_dev, offset, stack_size, mat_dev,
       dbcsr_type_real_8, m, n, MAX_KERNEL_DIM, stream), &result);
-    CHECK(libsmm_acc_transpose(dev_mem, offset, stack_size, dev_data,
+    CHECK(libsmm_acc_transpose(stack_dev, offset, stack_size, mat_dev,
       dbcsr_type_real_8, n, m, MAX_KERNEL_DIM, stream), &result);
   }
 #if defined(USE_LIBXSMM)
@@ -132,7 +131,7 @@ int main(int argc, char* argv[])
   start = libxsmm_timer_tick();
 #endif
   for (r = 0; r < nodd; ++r) {
-    CHECK(libsmm_acc_transpose(dev_mem, offset, stack_size, dev_data,
+    CHECK(libsmm_acc_transpose(stack_dev, offset, stack_size, mat_dev,
       dbcsr_type_real_8, mm, nn, MAX_KERNEL_DIM, stream), &result);
     swap(&mm, &nn);
   }
@@ -147,8 +146,8 @@ int main(int argc, char* argv[])
     mm = m; nn = n;
     start = libxsmm_timer_tick();
     for (r = 0; r < nodd; ++r) {
-      libxsmm_itrans_batch_omp(host_data, sizeof(ELEM_TYPE), mm, nn, mm, nn,
-        0/*index_base*/, sizeof(int)/*index_stride*/, host_mem, stack_size);
+      libxsmm_itrans_batch_omp(mat_hst, sizeof(ELEM_TYPE), mm, nn, mm, nn,
+        0/*index_base*/, sizeof(int)/*index_stride*/, stack_hst, stack_size);
       swap(&mm, &nn);
     }
     duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
@@ -156,14 +155,14 @@ int main(int argc, char* argv[])
       (sizeof(ELEM_TYPE) * m * n + sizeof(int))
         * stack_size / (duration * (1ULL << 30) / nodd));
     /* transfer result from device back to host for validation */
-    CHECK(acc_memcpy_d2h(dev_data, host_data,
+    CHECK(acc_memcpy_d2h(mat_dev, mat_hst,
       sizeof(ELEM_TYPE) * mn * stack_size, stream), &result);
     CHECK(acc_stream_sync(stream), &result);
     if (EXIT_SUCCESS == result) {
       unsigned int nerrors = 0;
       for (i = 0; i < stack_size; ++i) {
         ELEM_TYPE gold[MAX_KERNEL_DIM*MAX_KERNEL_DIM];
-        const ELEM_TYPE *const test = host_data + mn * i;
+        const ELEM_TYPE *const test = mat_hst + mn * i;
         init(i/*seed*/, gold, m, n);
         libxsmm_itrans(gold, sizeof(ELEM_TYPE), m, n, m, n);
         for (j = 0; j < (m * n); ++j) {
@@ -185,10 +184,10 @@ int main(int argc, char* argv[])
     }
   }
 #endif
-  CHECK(acc_host_mem_deallocate(host_data, stream), NULL);
-  CHECK(acc_host_mem_deallocate(host_mem, stream), NULL);
-  CHECK(acc_dev_mem_deallocate(dev_data), NULL);
-  CHECK(acc_dev_mem_deallocate(dev_mem), NULL);
+  CHECK(acc_host_mem_deallocate(mat_hst, stream), NULL);
+  CHECK(acc_host_mem_deallocate(stack_hst, stream), NULL);
+  CHECK(acc_dev_mem_deallocate(mat_dev), NULL);
+  CHECK(acc_dev_mem_deallocate(stack_dev), NULL);
   CHECK(acc_stream_destroy(stream), NULL);
   if (EXIT_SUCCESS != result) {
     fprintf(stderr, "FAILED\n");

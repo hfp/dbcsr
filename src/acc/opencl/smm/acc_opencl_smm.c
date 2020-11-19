@@ -6,6 +6,7 @@
  * For further information please visit https://dbcsr.cp2k.org                                    *
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
+#if defined(__OPENCL)
 #include "acc_opencl_smm.h"
 #include <assert.h>
 
@@ -175,3 +176,5 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
 #if defined(__cplusplus)
 }
 #endif
+
+#endif /*__OPENCL*/

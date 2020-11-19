@@ -6,6 +6,7 @@
  * For further information please visit https://dbcsr.cp2k.org                                    *
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
+#if defined(__OPENCL)
 #include "acc_opencl.h"
 #include <stdlib.h>
 #include <string.h>
@@ -589,3 +590,5 @@ int acc_opencl_kernel(const char *const source[], int nlines, const char* build_
 #if defined(__cplusplus)
 }
 #endif
+
+#endif /*__OPENCL*/

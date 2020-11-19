@@ -6,6 +6,7 @@
  * For further information please visit https://dbcsr.cp2k.org                                    *
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
+#if defined(__OPENCL)
 #include "acc_opencl.h"
 #include <stdlib.h>
 #include <assert.h>
@@ -331,3 +332,5 @@ int acc_dev_mem_info(size_t* mem_free, size_t* mem_total)
 #if defined(__cplusplus)
 }
 #endif
+
+#endif /*__OPENCL*/

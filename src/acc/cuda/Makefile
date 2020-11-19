@@ -41,9 +41,9 @@ endif
 
 CFLAGS := -fPIC \
   -Wall -Wextra -pedantic \
-  -D__CUDA -D__ACC -D__DBCSR_ACC \
   -DARCH_NUMBER=$(ARCH_NUMBER) \
   -DNO_DBCSR_TIMESET \
+  -D__CUDA \
   $(NULL)
 
 ifeq (1,$(INTEL))

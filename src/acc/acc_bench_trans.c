@@ -184,10 +184,10 @@ int main(int argc, char* argv[])
     }
   }
 #endif
-  CHECK(acc_host_mem_deallocate(mat_hst, stream), NULL);
   CHECK(acc_host_mem_deallocate(stack_hst, stream), NULL);
-  CHECK(acc_dev_mem_deallocate(mat_dev), NULL);
+  CHECK(acc_host_mem_deallocate(mat_hst, stream), NULL);
   CHECK(acc_dev_mem_deallocate(stack_dev), NULL);
+  CHECK(acc_dev_mem_deallocate(mat_dev), NULL);
   CHECK(acc_stream_destroy(stream), NULL);
   if (EXIT_SUCCESS != result) {
     fprintf(stderr, "FAILED\n");

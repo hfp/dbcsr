@@ -83,11 +83,12 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
         };
         FILE *const file = acc_opencl_source_open(
 #if defined(ACC_OPENCL_SMM_PERMIT_TRANSPOSE_INPLACE)
-          (m == n) ? "transpose_inplace.cl" :
+          (m == n && 0 == tiny) ? "transpose_inplace.cl"
 #else
-          (m == n && (NULL == env_inplace || '0' != *env_inplace)) ? "transpose_inplace.cl" :
+          (m == n && 0 == tiny && (NULL == env_inplace || '0' != *env_inplace))
+            ? "transpose_inplace.cl"
 #endif
-          "transpose.cl",
+            : "transpose.cl",
           paths, sizeof(paths) / sizeof(*paths));
         int max_wgsize;
         config_t new_config;

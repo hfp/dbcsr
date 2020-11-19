@@ -55,7 +55,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
       const int tiny = ((NULL == env_tiny || '0' == *env_tiny) ? 0 : atoi(env_tiny));
       const int local = ((0 == tiny || (1 < tiny && tiny < m)) ? 1/*local*/ : 0/*private*/);
 #endif
-      int nchar = ACC_OPENCL_SNPRINTF(fname, sizeof(fname), "xtrans_%i_%i", m, n);
+      int nchar = ACC_OPENCL_SNPRINTF(fname, sizeof(fname), "xtrans%ix%i", m, n);
       const char* typename = "";
       switch (datatype) {
         case dbcsr_type_real_8: {

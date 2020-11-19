@@ -22,10 +22,14 @@ typedef enum libsmm_acc_data_t {
   dbcsr_type_complex_8 = 7
 } libsmm_acc_data_t;
 
-typedef struct libsmm_acc_smmstack_t {
+typedef struct libsmm_acc_smmstack_host_t {
   int m, n, k, max_m, max_n, max_k;
   acc_bool_t defined_mnk;
-} libsmm_acc_smmstack_t;
+} libsmm_acc_smmstack_host_t;
+
+typedef struct libsmm_acc_smmstack_dev_t {
+  int m, n, k;
+} libsmm_acc_smmstack_dev_t;
 
 int libsmm_acc_init(void);
 acc_bool_t libsmm_acc_is_thread_safe(void);

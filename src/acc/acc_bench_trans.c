@@ -116,7 +116,7 @@ int main(int argc, char* argv[])
   CHECK(acc_stream_sync(stream), &result);
   duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
   printf("copy-in: %.1f ms %.1f GB/s\n", 1000.0 * duration,
-    (sizeof(ELEM_TYPE) * m * n + sizeof(int))
+    (sizeof(ELEM_TYPE) * mn + sizeof(int))
       * stack_size / (duration * (1ULL << 30)));
 #endif
   /* warmup execution and prebuild JIT kernels */
@@ -141,7 +141,7 @@ int main(int argc, char* argv[])
   if (EXIT_SUCCESS == result) {
     assert(0 < nodd && (nodd & 1/*odd*/));
     printf("device: %.1f ms %.1f GB/s\n", 1000.0 * duration / nodd,
-      (sizeof(ELEM_TYPE) * m * n + sizeof(int))
+      (sizeof(ELEM_TYPE) * mn + sizeof(int))
         * stack_size / (duration * (1ULL << 30) / nodd));
     mm = m; nn = n;
     start = libxsmm_timer_tick();
@@ -152,7 +152,7 @@ int main(int argc, char* argv[])
     }
     duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
     printf("host: %.1f ms %.1f GB/s\n", 1000.0 * duration / nodd,
-      (sizeof(ELEM_TYPE) * m * n + sizeof(int))
+      (sizeof(ELEM_TYPE) * mn + sizeof(int))
         * stack_size / (duration * (1ULL << 30) / nodd));
     /* transfer result from device back to host for validation */
     CHECK(acc_memcpy_d2h(mat_dev, mat_hst,

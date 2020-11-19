@@ -17,19 +17,27 @@ kernel void FN(global const int *restrict trs_stack, int trs_offset, global T *r
   KIND T buf[SM*SN];
 
   const int index = get_local_id(0);
-  if (index < SM) {
-    const int nblocks = max(SM / get_local_size(0), 1);
-    const int base = nblocks * index;
-
-    /* copy matrix elements into local buffer */
-    for (int m = base; m < (base + nblocks); ++m) {
+  switch (get_local_size(0)) {
+    case SM: {
+      const int m = index;
+      /* copy matrix elements into local buffer */
       for (int n = 0; n < SN; ++n) buf[SN*m+n] = mat[SN*m+n];
-    }
-    barrier(CLK_LOCAL_MEM_FENCE);
-
-    /* overwrite matrix elements (gather) */
-    for (int m = base; m < (base + nblocks); ++m) {
+      barrier(CLK_LOCAL_MEM_FENCE);
+      /* overwrite matrix elements (gather) */
       for (int n = 0; n < SN; ++n) mat[SN*m+n] = buf[SM*n+m];
+    } break;
+    default: if (index < SM) {
+      const int nblocks = max(SM / (int)get_local_size(0), 1);
+      const int base = nblocks * index;
+      /* copy matrix elements into local buffer */
+      for (int m = base; m < (base + nblocks); ++m) {
+        for (int n = 0; n < SN; ++n) buf[SN*m+n] = mat[SN*m+n];
+      }
+      barrier(CLK_LOCAL_MEM_FENCE);
+      /* overwrite matrix elements (gather) */
+      for (int m = base; m < (base + nblocks); ++m) {
+        for (int n = 0; n < SN; ++n) mat[SN*m+n] = buf[SM*n+m];
+      }
     }
   }
 }

@@ -89,7 +89,7 @@ endif
 all: ../dbcsr_acc.a ../dbcsr_acc_smm.a bench test
 
 .PHONY: bench
-test: ../acc_bench_trans
+bench: ../acc_bench_smm ../acc_bench_trans
 
 .PHONY: test
 test: ../dbcsr_acc_test acc_opencl_test
@@ -103,15 +103,18 @@ test: ../dbcsr_acc_test acc_opencl_test
 %.o: %.c $(INCALL) Makefile
 	$(CC) $(CFLAGS) -c $< -o $@
 
+acc_bench_smm.o: ../acc_bench_smm.c Makefile
+	$(CC) $(CFLAGS) -c $< -o $@
+../acc_bench_smm: acc_bench_smm.o ../dbcsr_acc_smm.a ../dbcsr_acc.a
+	$(CC) $^ $(LDFLAGS) -o $@
+
 acc_bench_trans.o: ../acc_bench_trans.c Makefile
 	$(CC) $(CFLAGS) -c $< -o $@
-
-dbcsr_acc_test.o: ../../../tests/dbcsr_acc_test.c Makefile
-	$(CC) $(CFLAGS) -c $< -o $@
-
 ../acc_bench_trans: acc_bench_trans.o ../dbcsr_acc_smm.a ../dbcsr_acc.a
 	$(CC) $^ $(LDFLAGS) -o $@
 
+dbcsr_acc_test.o: ../../../tests/dbcsr_acc_test.c Makefile
+	$(CC) $(CFLAGS) -c $< -o $@
 ../dbcsr_acc_test: dbcsr_acc_test.o ../dbcsr_acc.a
 	$(CC) $^ $(LDFLAGS) -o $@
 
@@ -120,8 +123,11 @@ acc_opencl_test: acc_opencl_test.o ../dbcsr_acc.a
 
 .PHONY: clean
 clean:
-	@rm -f $(OBJACC) acc_bench_trans.o dbcsr_acc_test.o
+	@rm -f $(OBJACC) $(OBJSMM)
+	@rm -f acc_bench_smm.o acc_bench_trans.o dbcsr_acc_test.o
 
 .PHONY: realclean
 realclean: clean
-	@rm -f ../dbcsr_acc.a ../dbcsr_acc_smm.a ../dbcsr_acc_test ../acc_bench_trans acc_opencl_test
+	@rm -f ../dbcsr_acc.a ../dbcsr_acc_smm.a
+	@rm -f ../acc_bench_smm ../acc_bench_trans
+	@rm -f ../dbcsr_acc_test acc_opencl_test

@@ -27,9 +27,9 @@ typedef struct libsmm_acc_smmstack_host_t {
   acc_bool_t defined_mnk;
 } libsmm_acc_smmstack_host_t;
 
-typedef struct libsmm_acc_smmstack_dev_t {
+typedef struct libsmm_acc_smmstack_t {
   int m, n, k;
-} libsmm_acc_smmstack_dev_t;
+} libsmm_acc_smmstack_t;
 
 int libsmm_acc_init(void);
 acc_bool_t libsmm_acc_is_thread_safe(void);

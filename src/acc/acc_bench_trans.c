@@ -58,9 +58,9 @@ int main(int argc, char* argv[])
   const int m = (3 < argc ? atoi(argv[3]) : 23);
   const int n = (4 < argc ? atoi(argv[4]) : m);
 #if defined(ALIGNMENT) && (0 < ALIGNMENT)
-  const size_t mn = ROUNDUP2(sizeof(ELEM_TYPE) * m, ALIGNMENT) * n / sizeof(ELEM_TYPE);
+  const int mn = (int)ROUNDUP2(sizeof(ELEM_TYPE) * m, ALIGNMENT) * n / sizeof(ELEM_TYPE);
 #else
-  const size_t mn = m * n;
+  const int mn = m * n;
 #endif
 #if defined(SHUFFLE)
   const size_t shuffle = libxsmm_shuffle((unsigned int)stack_size);
@@ -81,7 +81,7 @@ int main(int argc, char* argv[])
   libxsmm_timer_tickint start;
   double duration;
 #endif
-  assert(m <= (int)(mn / n) && 0 == (mn % n));
+  assert(m <= (mn / n) && 0 == (mn % n));
   printf("%s%s%i %i %i %i\n", 0 < argc ? argv[0] : "", 0 < argc ? " " : "", nrepeat, stack_size, m, n);
   CHECK(acc_init(), &result);
 #if defined(PRIORITY)
@@ -93,14 +93,14 @@ int main(int argc, char* argv[])
   CHECK(acc_host_mem_allocate((void**)&mat_hst, sizeof(ELEM_TYPE) * mn * stack_size, stream), &result);
   CHECK(acc_host_mem_allocate((void**)&stack_hst, sizeof(int) * stack_size, stream), &result);
   CHECK(acc_stream_sync(stream), &result); /* ensure host-data is allocated */
-  for (i = 0; i < stack_size; ++i) { /* initialize stack of matrices */
-    init(i/*seed*/, mat_hst + mn * i, m, n);
+  for (i = 0; i < stack_size; ++i) { /* initialize matrices */
+    init(i/*seed*/, &mat_hst[i*mn], m, n);
   }
   for (i = 0; i < stack_size; ++i) { /* initialize indexes */
 #if defined(SHUFFLE)
-    j = (int)(mn * ((shuffle * i) % stack_size));
+    j = mn * (int)((shuffle * i) % stack_size);
 #else
-    j = (int)(mn * i);
+    j = mn * i;
 #endif
     stack_hst[i] = j;
   }

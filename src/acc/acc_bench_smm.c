@@ -15,9 +15,6 @@
 #if defined(__LIBXSMM)
 # include <libxsmm.h>
 # define USE_LIBXSMM
-# if !defined(SHUFFLE) && 0
-#   define SHUFFLE
-# endif
 #endif
 
 #if !defined(ELEM_TYPE)
@@ -44,6 +41,9 @@ static void print(FILE* ostream, const char* label, const ELEM_TYPE* mat, int m,
 #endif
 
 static void init(int seed, ELEM_TYPE* dst, int m, int n);
+/* for comparison, adopt artificial stack-setup from other DBCSR/ACC benchmarks */
+static void init_stack(libsmm_acc_smmstack_t* stack, int stack_size,
+  int mn, int mk, int kn, int nc, int na, int nb);
 
 
 int main(int argc, char* argv[])
@@ -53,24 +53,22 @@ int main(int argc, char* argv[])
   const int m = (3 < argc ? atoi(argv[3]) : 23);
   const int n = (4 < argc ? atoi(argv[4]) : m);
   const int k = (5 < argc ? atoi(argv[5]) : m);
+  int nc = 0, na = 0, nb = 0; /* TODO */
 #if defined(ALIGNMENT) && (0 < ALIGNMENT)
-  const size_t ma = ROUNDUP2(sizeof(ELEM_TYPE) * m, ALIGNMENT);
-  const size_t ka = ROUNDUP2(sizeof(ELEM_TYPE) * k, ALIGNMENT);
-  const size_t mn = ma * n / sizeof(ELEM_TYPE);
-  const size_t mk = ma * k / sizeof(ELEM_TYPE);
-  const size_t kn = ka * n / sizeof(ELEM_TYPE);
+  const int ma = (int)ROUNDUP2(sizeof(ELEM_TYPE) * m, ALIGNMENT);
+  const int ka = (int)ROUNDUP2(sizeof(ELEM_TYPE) * k, ALIGNMENT);
+  const int mn = ma * n / (int)sizeof(ELEM_TYPE);
+  const int mk = ma * k / (int)sizeof(ELEM_TYPE);
+  const int kn = ka * n / (int)sizeof(ELEM_TYPE);
 #else
-  const size_t mn = m * n, mk = m * k, kn = k * n;
-#endif
-#if defined(SHUFFLE)
-  const size_t shuffle = libxsmm_shuffle((unsigned int)stack_size);
+  const int mn = m * n, mk = m * k, kn = k * n;
 #endif
 #if defined(WARMUP) && (0 < WARMUP) && !defined(_DEBUG)
   const int warmup = WARMUP;
 #else
   const int warmup = 0;
 #endif
-  libsmm_acc_smmstack_host_t *stack_hst = NULL, *stack_dev = NULL;
+  libsmm_acc_smmstack_t *stack_hst = NULL, *stack_dev = NULL;
   ELEM_TYPE *amat_hst = NULL, *bmat_hst = NULL, *cmat_hst = NULL;
   ELEM_TYPE *amat_dev = NULL, *bmat_dev = NULL, *cmat_dev = NULL;
   int result = EXIT_SUCCESS, r, i, j;
@@ -79,7 +77,7 @@ int main(int argc, char* argv[])
   libxsmm_timer_tickint start;
   double duration;
 #endif
-  assert(m <= (int)(mn / n) && 0 == (mn % n) && k <= (int)(mk / k) && 0 == (mk % k) && n <= (int)(kn / n) && 0 == (kn % n));
+  assert(m <= (mn / n) && 0 == (mn % n) && k <= (mk / k) && 0 == (mk % k) && n <= (kn / n) && 0 == (kn % n));
   printf("%s%s%i %i %i %i %i\n", 0 < argc ? argv[0] : "", 0 < argc ? " " : "", nrepeat, stack_size, m, n, k);
   CHECK(acc_init(), &result);
   CHECK(acc_stream_create(&stream, "stream", -1/*default priority*/), &result);
@@ -88,19 +86,11 @@ int main(int argc, char* argv[])
   CHECK(acc_host_mem_allocate((void**)&cmat_hst, sizeof(ELEM_TYPE) * mn * stack_size, stream), &result);
   CHECK(acc_host_mem_allocate((void**)&stack_hst, sizeof(libsmm_acc_smmstack_t) * stack_size, stream), &result);
   CHECK(acc_stream_sync(stream), &result); /* ensure host-data is allocated */
-  for (i = 0; i < stack_size; ++i) { /* initialize stack of matrices */
-    init(i/*seed*/, amat_hst + mn * i, m, n);
+  for (i = 0; i < stack_size; ++i) { /* initialize matrices */
+    init(i/*seed*/ + 42, &amat_hst[i*mk], m, k);
+    init(i/*seed*/ + 24, &bmat_hst[i*kn], k, n);
   }
-  for (i = 0; i < stack_size; ++i) { /* initialize indexes */
-#if defined(SHUFFLE)
-    j = (int)(mn * ((shuffle * i) % stack_size));
-#else
-    j = (int)(mn * i);
-#endif
-#if 0/*TODO*/
-    stack_hst[i] = j;
-#endif
-  }
+  init_stack(stack_hst, stack_size, mn, mk, kn, nc, na, nb);
   CHECK(acc_dev_mem_allocate((void**)&amat_dev, sizeof(ELEM_TYPE) * mk * stack_size), &result);
   CHECK(acc_dev_mem_allocate((void**)&bmat_dev, sizeof(ELEM_TYPE) * kn * stack_size), &result);
   CHECK(acc_dev_mem_allocate((void**)&cmat_dev, sizeof(ELEM_TYPE) * mn * stack_size), &result);
@@ -109,9 +99,9 @@ int main(int argc, char* argv[])
   CHECK(acc_stream_sync(stream), &result);
   start = libxsmm_timer_tick();
 #endif
-  CHECK(acc_memcpy_h2d(amat_hst, amat_dev, sizeof(ELEM_TYPE) * mn * stack_size, stream), &result);
-  CHECK(acc_memcpy_h2d(bmat_hst, bmat_dev, sizeof(ELEM_TYPE) * mn * stack_size, stream), &result);
-  CHECK(acc_memcpy_h2d(cmat_hst, cmat_dev, sizeof(ELEM_TYPE) * mn * stack_size, stream), &result);
+  CHECK(acc_memcpy_h2d(amat_hst, amat_dev, sizeof(ELEM_TYPE) * mk * stack_size, stream), &result);
+  CHECK(acc_memcpy_h2d(bmat_hst, bmat_dev, sizeof(ELEM_TYPE) * kn * stack_size, stream), &result);
+  CHECK(acc_memset_zero(cmat_dev, 0/*offset*/, sizeof(ELEM_TYPE) * mn * stack_size, stream), &result);
   CHECK(acc_memcpy_h2d(stack_hst, stack_dev, sizeof(libsmm_acc_smmstack_t) * stack_size, stream), &result);
 #if defined(USE_LIBXSMM)
   CHECK(acc_stream_sync(stream), &result);
@@ -163,7 +153,7 @@ int main(int argc, char* argv[])
       unsigned int nerrors = 0;
       for (i = 0; i < stack_size; ++i) {
         ELEM_TYPE gold[MAX_KERNEL_DIM*MAX_KERNEL_DIM];
-        const ELEM_TYPE *const test = amat_hst + mn * i;
+        const ELEM_TYPE *const test = cmat_hst + mn * i;
         init(i/*seed*/, gold, m, n);
         libxsmm_itrans(gold, sizeof(ELEM_TYPE), m, n, m, n);
         for (j = 0; j < (m * n); ++j) {
@@ -208,6 +198,30 @@ static void init(int seed, ELEM_TYPE* dst, int m, int n) {
       const int k = i * m + j;
       dst[k] = (ELEM_TYPE)((seed + 1) * (k + 1));
     }
+  }
+}
+
+
+static void init_stack(libsmm_acc_smmstack_t* stack, int stack_size,
+  int mn, int mk, int kn, int nc, int na, int nb)
+{
+  /* navg matrix products are accumulated into a C-matrix */
+  int navg = stack_size / nc;
+  int nimb = MAX(1, navg - 4); /* imbalance */
+  int i = 0, c = 0, ntop = 0;
+  assert(0 < nc && nc <= stack_size);
+  while (i < stack_size) {
+    const int next = c + 1;
+    ntop += navg + (rand() % (2 * nimb) - nimb);
+    if (stack_size < ntop) ntop = stack_size;
+    for (;i < ntop; ++i) { /* setup one-based indexes */
+      const int a = rand() % na, b = rand() % nb;
+      stack->idx_a = a * mk + 1;
+      stack->idx_b = b * kn + 1;
+      stack->idx_c = c * mn + 1;
+      ++stack;
+    }
+    if (next < nc) c = next;
   }
 }
 

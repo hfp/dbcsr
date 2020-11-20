@@ -126,13 +126,14 @@ int main(int argc, char* argv[])
     CHECK(libsmm_acc_process(stack_hst, stack_dev, stack_size, 3/*nparams*/, DBCSR_TYPE(ELEM_TYPE),
       amat_dev, bmat_dev, cmat_dev, m, n, k, MAX_KERNEL_DIM, 1/*homogeneous*/, stream), &result);
   }
-#if defined(USE_LIBXSMM) && 0
+#if defined(USE_LIBXSMM)
   CHECK(acc_stream_sync(stream), &result);
   duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
   if (EXIT_SUCCESS == result) {
     printf("device: %.1f ms %.1f GB/s\n", 1000.0 * duration / nrepeat,
       (sizeof(ELEM_TYPE) * (mk + kn + mn) + sizeof(int) * 3)
         * stack_size / (duration * (1ULL << 30) / nrepeat));
+#if 0
     start = libxsmm_timer_tick();
     for (r = 0; r < nrepeat; ++r) {
       libxsmm_itrans_batch_omp(amat_hst, sizeof(ELEM_TYPE), m, n, m, n,
@@ -171,6 +172,7 @@ int main(int argc, char* argv[])
       printf("errors: %u\n", nerrors);
       if (0 != nerrors) result = EXIT_FAILURE;
     }
+#endif
   }
 #endif
   CHECK(acc_host_mem_deallocate(stack_hst, stream), NULL);

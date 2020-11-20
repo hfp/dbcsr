@@ -28,7 +28,7 @@ typedef struct libsmm_acc_smmstack_host_t {
 } libsmm_acc_smmstack_host_t;
 
 typedef struct libsmm_acc_smmstack_t {
-  int m, n, k;
+  int idx_a, idx_b, idx_c;
 } libsmm_acc_smmstack_t;
 
 int libsmm_acc_init(void);

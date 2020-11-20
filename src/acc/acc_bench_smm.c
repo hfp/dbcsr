@@ -30,7 +30,8 @@
 # define WARMUP 2
 #endif
 
-#define MAX(a, b) ((b) < (a) ? (a) : (b))
+#define MIN(A, B) ((A) < (B) ? (A) : (B))
+#define MAX(A, B) ((B) < (A) ? (A) : (B))
 #define ROUNDUP2(N, NPOT) ((((unsigned long long)N) + ((NPOT) - 1)) & ~((NPOT) - 1))
 #define CHECK(EXPR, RPTR) if ((NULL != ((const void*)(RPTR)) && EXIT_SUCCESS != *((const int*)(RPTR))) || \
   EXIT_SUCCESS != (NULL != ((const void*)(RPTR)) ? (*((int*)(RPTR)) = (EXPR)) : (EXPR))) assert(0)
@@ -53,7 +54,9 @@ int main(int argc, char* argv[])
   const int m = (3 < argc ? atoi(argv[3]) : 23);
   const int n = (4 < argc ? atoi(argv[4]) : m);
   const int k = (5 < argc ? atoi(argv[5]) : m);
-  int nc = 0, na = 0, nb = 0; /* TODO */
+  const int nc = (6 < argc ? MIN(atoi(argv[6]), stack_size) : MAX(stack_size / 16, 1));
+  const int na = (7 < argc ? atoi(argv[7]) : (10 * nc));
+  const int nb = (8 < argc ? atoi(argv[8]) : (10 * nc));
 #if defined(ALIGNMENT) && (0 < ALIGNMENT)
   const int ma = (int)ROUNDUP2(sizeof(ELEM_TYPE) * m, ALIGNMENT);
   const int ka = (int)ROUNDUP2(sizeof(ELEM_TYPE) * k, ALIGNMENT);

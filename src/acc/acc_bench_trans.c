@@ -75,7 +75,7 @@ int main(int argc, char* argv[])
 #endif
   int *stack_hst = NULL, *stack_dev = NULL;
   ELEM_TYPE *mat_hst = NULL, *mat_dev = NULL;
-  int result = EXIT_SUCCESS, r, i, j, mm = m, nn = n;
+  int result = EXIT_SUCCESS, r, i, mm = m, nn = n;
   void *stream = NULL;
 #if defined(USE_LIBXSMM)
   libxsmm_timer_tickint start;
@@ -98,9 +98,9 @@ int main(int argc, char* argv[])
   }
   for (i = 0; i < stack_size; ++i) { /* initialize indexes */
 #if defined(SHUFFLE)
-    j = mn * (int)((shuffle * i) % stack_size);
+    const int j = mn * (int)((shuffle * i) % stack_size);
 #else
-    j = mn * i;
+    const int j = mn * i;
 #endif
     stack_hst[i] = j;
   }
@@ -120,11 +120,11 @@ int main(int argc, char* argv[])
       * stack_size / (duration * (1ULL << 30)));
 #endif
   /* warmup execution and prebuild JIT kernels */
-  for (r = 0; r < warmup; ++r) {
+  for (r = 0; r < warmup / 2; ++r) {
     CHECK(libsmm_acc_transpose(stack_dev, offset, stack_size, mat_dev,
-      dbcsr_type_real_8, m, n, MAX_KERNEL_DIM, stream), &result);
+      DBCSR_TYPE(ELEM_TYPE), m, n, MAX_KERNEL_DIM, stream), &result);
     CHECK(libsmm_acc_transpose(stack_dev, offset, stack_size, mat_dev,
-      dbcsr_type_real_8, n, m, MAX_KERNEL_DIM, stream), &result);
+      DBCSR_TYPE(ELEM_TYPE), n, m, MAX_KERNEL_DIM, stream), &result);
   }
 #if defined(USE_LIBXSMM)
   CHECK(acc_stream_sync(stream), &result);
@@ -132,7 +132,7 @@ int main(int argc, char* argv[])
 #endif
   for (r = 0; r < nodd; ++r) {
     CHECK(libsmm_acc_transpose(stack_dev, offset, stack_size, mat_dev,
-      dbcsr_type_real_8, mm, nn, MAX_KERNEL_DIM, stream), &result);
+      DBCSR_TYPE(ELEM_TYPE), mm, nn, MAX_KERNEL_DIM, stream), &result);
     swap(&mm, &nn);
   }
 #if defined(USE_LIBXSMM)
@@ -160,6 +160,7 @@ int main(int argc, char* argv[])
     CHECK(acc_stream_sync(stream), &result);
     if (EXIT_SUCCESS == result) {
       unsigned int nerrors = 0;
+      int j;
       for (i = 0; i < stack_size; ++i) {
         ELEM_TYPE gold[MAX_KERNEL_DIM*MAX_KERNEL_DIM];
         const ELEM_TYPE *const test = mat_hst + mn * i;

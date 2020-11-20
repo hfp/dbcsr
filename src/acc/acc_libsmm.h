@@ -11,6 +11,12 @@
 
 #include "acc.h"
 
+#define DBCSR_CONCATENATE(A, B) A##B
+#define DBCSR_TYPE(T) DBCSR_CONCATENATE(DBCSR_TYPE_, T)
+#define DBCSR_TYPE_double dbcsr_type_real_8
+#define DBCSR_TYPE_float dbcsr_type_real_4
+
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -21,15 +27,6 @@ typedef enum libsmm_acc_data_t {
   dbcsr_type_complex_4 = 5,
   dbcsr_type_complex_8 = 7
 } libsmm_acc_data_t;
-
-typedef struct libsmm_acc_smmstack_host_t {
-  int m, n, k, max_m, max_n, max_k;
-  acc_bool_t defined_mnk;
-} libsmm_acc_smmstack_host_t;
-
-typedef struct libsmm_acc_smmstack_t {
-  int idx_a, idx_b, idx_c;
-} libsmm_acc_smmstack_t;
 
 int libsmm_acc_init(void);
 acc_bool_t libsmm_acc_is_thread_safe(void);

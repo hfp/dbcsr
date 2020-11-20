@@ -42,7 +42,7 @@ static void print(FILE* ostream, const char* label, const ELEM_TYPE* mat, int m,
 
 static void init(int seed, ELEM_TYPE* dst, int m, int n);
 /* for comparison, adopt artificial stack-setup from other DBCSR/ACC benchmarks */
-static void init_stack(libsmm_acc_smmstack_t* stack, int stack_size,
+static void init_stack(int* stack, int stack_size,
   int mn, int mk, int kn, int nc, int na, int nb);
 
 
@@ -68,10 +68,10 @@ int main(int argc, char* argv[])
 #else
   const int warmup = 0;
 #endif
-  libsmm_acc_smmstack_t *stack_hst = NULL, *stack_dev = NULL;
+  int *stack_hst = NULL, *stack_dev = NULL;
   ELEM_TYPE *amat_hst = NULL, *bmat_hst = NULL, *cmat_hst = NULL;
   ELEM_TYPE *amat_dev = NULL, *bmat_dev = NULL, *cmat_dev = NULL;
-  int result = EXIT_SUCCESS, r, i, j;
+  int result = EXIT_SUCCESS, r, i;
   void *stream = NULL;
 #if defined(USE_LIBXSMM)
   libxsmm_timer_tickint start;
@@ -84,7 +84,7 @@ int main(int argc, char* argv[])
   CHECK(acc_host_mem_allocate((void**)&amat_hst, sizeof(ELEM_TYPE) * mk * stack_size, stream), &result);
   CHECK(acc_host_mem_allocate((void**)&bmat_hst, sizeof(ELEM_TYPE) * kn * stack_size, stream), &result);
   CHECK(acc_host_mem_allocate((void**)&cmat_hst, sizeof(ELEM_TYPE) * mn * stack_size, stream), &result);
-  CHECK(acc_host_mem_allocate((void**)&stack_hst, sizeof(libsmm_acc_smmstack_t) * stack_size, stream), &result);
+  CHECK(acc_host_mem_allocate((void**)&stack_hst, sizeof(int) * 3 * stack_size, stream), &result);
   CHECK(acc_stream_sync(stream), &result); /* ensure host-data is allocated */
   for (i = 0; i < stack_size; ++i) { /* initialize matrices */
     init(i/*seed*/ + 42, &amat_hst[i*mk], m, k);
@@ -94,56 +94,50 @@ int main(int argc, char* argv[])
   CHECK(acc_dev_mem_allocate((void**)&amat_dev, sizeof(ELEM_TYPE) * mk * stack_size), &result);
   CHECK(acc_dev_mem_allocate((void**)&bmat_dev, sizeof(ELEM_TYPE) * kn * stack_size), &result);
   CHECK(acc_dev_mem_allocate((void**)&cmat_dev, sizeof(ELEM_TYPE) * mn * stack_size), &result);
-  CHECK(acc_dev_mem_allocate((void**)&stack_dev, sizeof(libsmm_acc_smmstack_t) * stack_size), &result);
+  CHECK(acc_dev_mem_allocate((void**)&stack_dev, sizeof(int) * 3 * stack_size), &result);
+  CHECK(acc_memset_zero(cmat_dev, 0/*offset*/, sizeof(ELEM_TYPE) * mn * stack_size, stream), &result);
 #if defined(USE_LIBXSMM)
   CHECK(acc_stream_sync(stream), &result);
   start = libxsmm_timer_tick();
 #endif
   CHECK(acc_memcpy_h2d(amat_hst, amat_dev, sizeof(ELEM_TYPE) * mk * stack_size, stream), &result);
   CHECK(acc_memcpy_h2d(bmat_hst, bmat_dev, sizeof(ELEM_TYPE) * kn * stack_size, stream), &result);
-  CHECK(acc_memset_zero(cmat_dev, 0/*offset*/, sizeof(ELEM_TYPE) * mn * stack_size, stream), &result);
-  CHECK(acc_memcpy_h2d(stack_hst, stack_dev, sizeof(libsmm_acc_smmstack_t) * stack_size, stream), &result);
+  CHECK(acc_memcpy_h2d(stack_hst, stack_dev, sizeof(int) * 3 * stack_size, stream), &result);
 #if defined(USE_LIBXSMM)
   CHECK(acc_stream_sync(stream), &result);
   duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
   printf("copy-in: %.1f ms %.1f GB/s\n", 1000.0 * duration,
-    (sizeof(ELEM_TYPE) * (mk + kn + mn) + sizeof(libsmm_acc_smmstack_t))
+    (sizeof(ELEM_TYPE) * (mk + kn) + sizeof(int) * 3)
       * stack_size / (duration * (1ULL << 30)));
 #endif
   /* warmup execution and prebuild JIT kernels */
   for (r = 0; r < warmup; ++r) {
-#if 0 /*TODO*/
-    CHECK(libsmm_acc_transpose(stack_dev, offset, stack_size, data_dev,
-      dbcsr_type_real_8, m, n, MAX_KERNEL_DIM, stream), &result);
-    CHECK(libsmm_acc_transpose(stack_dev, offset, stack_size, data_dev,
-      dbcsr_type_real_8, n, m, MAX_KERNEL_DIM, stream), &result);
-#endif
+    CHECK(libsmm_acc_process(stack_hst, stack_dev, stack_size, 3/*nparams*/, DBCSR_TYPE(ELEM_TYPE),
+      amat_dev, bmat_dev, cmat_dev, m, n, k, MAX_KERNEL_DIM, 1/*homogeneous*/, stream), &result);
   }
 #if defined(USE_LIBXSMM)
   CHECK(acc_stream_sync(stream), &result);
   start = libxsmm_timer_tick();
 #endif
   for (r = 0; r < nrepeat; ++r) {
-#if 0 /*TODO*/
-    CHECK(libsmm_acc_transpose(stack_dev, offset, stack_size, data_dev,
-      dbcsr_type_real_8, m, n, MAX_KERNEL_DIM, stream), &result);
-#endif
+    CHECK(libsmm_acc_process(stack_hst, stack_dev, stack_size, 3/*nparams*/, DBCSR_TYPE(ELEM_TYPE),
+      amat_dev, bmat_dev, cmat_dev, m, n, k, MAX_KERNEL_DIM, 1/*homogeneous*/, stream), &result);
   }
 #if defined(USE_LIBXSMM) && 0
   CHECK(acc_stream_sync(stream), &result);
   duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
   if (EXIT_SUCCESS == result) {
     printf("device: %.1f ms %.1f GB/s\n", 1000.0 * duration / nrepeat,
-      (sizeof(ELEM_TYPE) * (mk + kn + mn) + sizeof(libsmm_acc_smmstack_t))
+      (sizeof(ELEM_TYPE) * (mk + kn + mn) + sizeof(int) * 3)
         * stack_size / (duration * (1ULL << 30) / nrepeat));
     start = libxsmm_timer_tick();
     for (r = 0; r < nrepeat; ++r) {
       libxsmm_itrans_batch_omp(amat_hst, sizeof(ELEM_TYPE), m, n, m, n,
-        0/*index_base*/, sizeof(libsmm_acc_smmstack_t)/*index_stride*/, stack_hst, stack_size);
+        0/*index_base*/, /*index_stride*/sizeof(int) * 3, stack_hst, stack_size);
     }
     duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
     printf("host: %.1f ms %.1f GB/s\n", 1000.0 * duration / nrepeat,
-      (sizeof(ELEM_TYPE) * (mk + kn + mn) + sizeof(libsmm_acc_smmstack_t))
+      (sizeof(ELEM_TYPE) * (mk + kn + mn) + sizeof(int) * 3)
         * stack_size / (duration * (1ULL << 30) / nrepeat));
     /* transfer result from device back to host for validation */
     CHECK(acc_memcpy_d2h(data_dev, amat_hst,
@@ -151,6 +145,7 @@ int main(int argc, char* argv[])
     CHECK(acc_stream_sync(stream), &result);
     if (EXIT_SUCCESS == result) {
       unsigned int nerrors = 0;
+      int j;
       for (i = 0; i < stack_size; ++i) {
         ELEM_TYPE gold[MAX_KERNEL_DIM*MAX_KERNEL_DIM];
         const ELEM_TYPE *const test = cmat_hst + mn * i;
@@ -202,7 +197,7 @@ static void init(int seed, ELEM_TYPE* dst, int m, int n) {
 }
 
 
-static void init_stack(libsmm_acc_smmstack_t* stack, int stack_size,
+static void init_stack(int* stack, int stack_size,
   int mn, int mk, int kn, int nc, int na, int nb)
 {
   /* navg matrix products are accumulated into a C-matrix */
@@ -216,10 +211,9 @@ static void init_stack(libsmm_acc_smmstack_t* stack, int stack_size,
     if (stack_size < ntop) ntop = stack_size;
     for (;i < ntop; ++i) { /* setup one-based indexes */
       const int a = rand() % na, b = rand() % nb;
-      stack->idx_a = a * mk + 1;
-      stack->idx_b = b * kn + 1;
-      stack->idx_c = c * mn + 1;
-      ++stack;
+      *stack++ = a * mk + 1; /* A-index */
+      *stack++ = b * kn + 1; /* B-index */
+      *stack++ = c * mn + 1; /* C-index */
     }
     if (next < nc) c = next;
   }

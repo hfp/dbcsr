@@ -163,7 +163,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
   int result = EXIT_SUCCESS;
 #if 0
   assert((NULL != dev_param_stack && NULL != dev_a_data && NULL != dev_b_data && NULL != dev_c_data) || 0 == stack_size);
-  assert((nparams * sizeof(int)) == sizeof(libsmm_acc_smmstack_host_t));
+  assert(7 == nparams);
   if (0 != stack_size && def_mnk/*homogeneous*/) {
   }
   else if (0 != stack_size) { /* inhomogeneous */

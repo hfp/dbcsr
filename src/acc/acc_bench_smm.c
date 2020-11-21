@@ -123,6 +123,7 @@ int main(int argc, char* argv[])
   start = libxsmm_timer_tick();
 #endif
   for (r = 0; r < nrepeat; ++r) {
+    /* GPU-kernel is limited to C += Ai * Bi^T (i.e., NT, for NN, all Bi must be transposed upfront) */
     CHECK(libsmm_acc_process(stack_hst, stack_dev, stack_size, 3/*nparams*/, DBCSR_TYPE(ELEM_TYPE),
       amat_dev, bmat_dev, cmat_dev, m, n, k, MAX_KERNEL_DIM, 1/*homogeneous*/, stream), &result);
   }
@@ -130,21 +131,26 @@ int main(int argc, char* argv[])
   CHECK(acc_stream_sync(stream), &result);
   duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
   if (EXIT_SUCCESS == result) {
+    const char transa = 'N', transb = 'T';
+    const ELEM_TYPE alpha = 1, beta = 1;
     printf("device: %.1f ms %.1f GFLOPS/s\n", 1000.0 * duration / nrepeat,
       ((size_t)2 * m * n * k) * stack_size / (duration * (1ULL << 30) / nrepeat));
-#if 0
+    memset(cmat_hst, 0, sizeof(ELEM_TYPE) * mn * stack_size);
     start = libxsmm_timer_tick();
     for (r = 0; r < nrepeat; ++r) {
-      libxsmm_itrans_batch_omp(amat_hst, sizeof(ELEM_TYPE), m, n, m, n,
-        0/*index_base*/, /*index_stride*/sizeof(int) * 3, stack_hst, stack_size);
+      /* CPU-kernel performs C += Ai * Bi^T to match result of GPU-kernel (NT may perform below NN) */
+      libxsmm_gemm_batch_omp(LIBXSMM_GEMM_PRECISION(ELEM_TYPE), LIBXSMM_GEMM_PRECISION(ELEM_TYPE),
+        &transa, &transb, m, n, k, &alpha, amat_hst, &m/*lda*/, bmat_hst, &k/*ldb*/,
+        &beta, cmat_hst, &m/*ldc*/, 1/*index_base*/, sizeof(int) * 3,
+        stack_hst + 0, stack_hst + 1, stack_hst + 2, stack_size);
     }
     duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
     printf("host: %.1f ms %.1f GB/s\n", 1000.0 * duration / nrepeat,
       ((size_t)2 * m * n * k) * stack_size / (duration * (1ULL << 30) / nrepeat));
     /* transfer result from device back to host for validation */
-    CHECK(acc_memcpy_d2h(data_dev, amat_hst,
-      sizeof(ELEM_TYPE) * (mk + kn + mn) * stack_size, stream), &result);
+    CHECK(acc_memcpy_d2h(cmat_dev, cmat_hst, sizeof(ELEM_TYPE) * mn * stack_size, stream), &result);
     CHECK(acc_stream_sync(stream), &result);
+#if 0
     if (EXIT_SUCCESS == result) {
       unsigned int nerrors = 0;
       int j;

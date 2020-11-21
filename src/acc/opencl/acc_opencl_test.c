@@ -28,7 +28,7 @@ int main(int argc, char* argv[])
     "/* comment */\n"
     "#define S (M*N)\n"
     "#define T float";
-  { 
+  {
     lines[0] = source;
     nlines = acc_opencl_source(NULL, lines,
       ACC_OPENCL_TEST_MAXNLINES, 1/*cleanup*/);

@@ -145,7 +145,7 @@ int main(int argc, char* argv[])
         stack_hst + 0, stack_hst + 1, stack_hst + 2, stack_size);
     }
     duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
-    printf("host: %.1f ms %.1f GB/s\n", 1000.0 * duration / nrepeat,
+    printf("host: %.1f ms %.1f GFLOPS/s\n", 1000.0 * duration / nrepeat,
       ((size_t)2 * m * n * k) * stack_size / (duration * (1ULL << 30) / nrepeat));
     /* transfer result from device back to host for validation */
     CHECK(acc_memcpy_d2h(cmat_dev, cmat_hst, sizeof(ELEM_TYPE) * mn * stack_size, stream), &result);

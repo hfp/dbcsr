@@ -20,7 +20,7 @@ const char* acc_opencl_batchtrans_source[] = {
 };
 
 
-const char* acc_opencl_batchmm_source[] = {
+const char* acc_opencl_batchsmm_source[] = {
   NULL
 };
 
@@ -47,7 +47,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
     key.m = m; key.n = n; /* initialize key */
     config = (config_t*)libxsmm_xdispatch(&key, sizeof(key));
     if (NULL == config) {
-      char build_options[512], fname[16];
+      char build_options[512], fname[32];
       const char *const env_options = getenv("ACC_OPENCL_TRANS_BUILD_OPTIONS");
 #if defined(ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY) && (0 < ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY)
       const int local = (ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY >= m ? 0/*private*/ : 1/*local*/);
@@ -174,7 +174,72 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
       key.m = m_max; key.n = n_max; key.k = k_max; /* initialize key */
       config = (config_t*)libxsmm_xdispatch(&key, sizeof(key));
       if (NULL == config) {
-        result = EXIT_FAILURE; /* TODO */
+        char build_options[512], fname[48];
+        const char *const env_options = getenv("ACC_OPENCL_SMM_BUILD_OPTIONS");
+        int nchar = ACC_OPENCL_SNPRINTF(fname, sizeof(fname), "xsmm%ix%ix%i", m_max, n_max, k_max);
+        const char* typename = "";
+        switch (datatype) {
+          case dbcsr_type_real_8: {
+            typename = "char8"; /* double */
+            fname[0] = 'd';
+          } break;
+          case dbcsr_type_real_4: {
+            typename = "float";
+            fname[0] = 's';
+          } break;
+          default: ;
+        }
+        nchar = ((0 < nchar && (int)sizeof(fname) > nchar)
+          ? ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options), "%s -DT=%s -DFN=%s -DSM=%i -DSN=%i -DSK=%i",
+          (NULL == env_options || '\0' == *env_options) ? "" : env_options, typename, fname, m_max, n_max, k_max) : 0);
+        if ('\0' != *typename && 0 < nchar && (int)sizeof(build_options) > nchar) {
+          const char *const paths[] = {
+            "../../exts/dbcsr/src/acc/opencl/smm/kernel",
+            "opencl/smm/kernels"
+          };
+          FILE *const file = acc_opencl_source_open("multiply.cl", paths, sizeof(paths) / sizeof(*paths));
+          int max_wgsize;
+          config_t new_config;
+          if (NULL != file) {
+            char* lines[50];
+            const int nlines = acc_opencl_source(file, lines, sizeof(lines) / sizeof(*lines),
+              /* whether to cleanup the loaded source code or not */
+#if defined(NDEBUG)
+              1);
+#else
+              0);
+#endif
+            fclose(file);
+            result = acc_opencl_kernel((const char**)lines, nlines, build_options, fname, &new_config.kernel);
+          }
+          assert(NULL != acc_opencl_batchsmm_source);
+          if (EXIT_FAILURE == result) {
+            if (sizeof(*acc_opencl_batchsmm_source) <= sizeof(acc_opencl_batchsmm_source)
+              && NULL != *acc_opencl_batchsmm_source)
+            {
+              const int nlines = sizeof(acc_opencl_batchsmm_source) / sizeof(*acc_opencl_batchsmm_source);
+              result = acc_opencl_kernel(acc_opencl_batchsmm_source, nlines, build_options, fname, &new_config.kernel);
+            }
+          }
+          if (EXIT_SUCCESS == result) {
+            result = acc_opencl_wgsize(new_config.kernel, NULL/*preferred_multiple*/, &max_wgsize);
+          }
+          if (EXIT_SUCCESS == result) {
+            const char *const env_wgsize = getenv("ACC_OPENCL_SMM_WGSIZE");
+            if (NULL == env_wgsize || '\0' == *env_wgsize) {
+              new_config.wgsize = (size_t)n_max;
+            }
+            else {
+              const int int_wgsize = atoi(env_wgsize);
+              new_config.wgsize = (size_t)((n_max <= int_wgsize || 0 == (n_max % int_wgsize)) ? int_wgsize : n_max);
+            }
+            if (max_wgsize < (int)new_config.wgsize) new_config.wgsize = 1;
+            config = (config_t*)libxsmm_xregister(&key, sizeof(key), sizeof(new_config), &new_config);
+          }
+        }
+        else {
+          result = EXIT_FAILURE;
+        }
       }
       assert((NULL != config && NULL != config->kernel && 0 < config->wgsize) || EXIT_SUCCESS != result);
       if (EXIT_SUCCESS == result) {

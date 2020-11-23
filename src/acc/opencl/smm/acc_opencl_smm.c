@@ -43,7 +43,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
     } config_t;
     struct { int m, n; } key;
     config_t *config;
-    /*LIBXSMM_MEMZERO127(&key);*/
+    /* homogeneous key-data (no need for prior memset) */
     key.m = m; key.n = n; /* initialize key */
     config = (config_t*)libxsmm_xdispatch(&key, sizeof(key));
     if (NULL == config) {
@@ -123,12 +123,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
           }
           else {
             const int int_wgsize = atoi(env_wgsize);
-            if (0 < int_wgsize) {
-              new_config.wgsize = (size_t)((m <= int_wgsize || 0 == (m % int_wgsize)) ? int_wgsize : m);
-            }
-            else {
-              new_config.wgsize = 0;
-            }
+            new_config.wgsize = (size_t)((m <= int_wgsize || 0 == (m % int_wgsize)) ? int_wgsize : m);
           }
           if (max_wgsize < (int)new_config.wgsize || 0 == local) new_config.wgsize = 1;
           config = (config_t*)libxsmm_xregister(&key, sizeof(key), sizeof(new_config), &new_config);
@@ -138,17 +133,17 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
         result = EXIT_FAILURE;
       }
     }
-    assert((NULL != config && NULL != config->kernel) || EXIT_SUCCESS != result);
+    assert((NULL != config && NULL != config->kernel && 0 < config->wgsize) || EXIT_SUCCESS != result);
     if (EXIT_SUCCESS == result) {
-      const size_t work_size = (0 < config->wgsize ? config->wgsize : (size_t)m) * stack_size;
+      const size_t work_size = config->wgsize * stack_size;
       ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 0, sizeof(cl_mem), ACC_OPENCL_MEM(dev_trs_stack)),
         "set batch-list argument of transpose kernel", result);
       ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 1, sizeof(int), &offset),
         "set offset argument of transpose kernel", result);
       ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 2, sizeof(cl_mem), ACC_OPENCL_MEM(dev_data)),
-        "set matix-data argument of transpose kernel", result);
+        "set matrix-data argument of transpose kernel", result);
       ACC_OPENCL_CHECK(clEnqueueNDRangeKernel(*ACC_OPENCL_STREAM(stream),
-        config->kernel, 1/*work_dim*/, NULL, &work_size, 0 < config->wgsize ? &config->wgsize : NULL, 0, NULL, NULL),
+        config->kernel, 1/*work_dim*/, NULL, &work_size, &config->wgsize, 0, NULL, NULL),
         "launch transpose kernel", result);
     }
   }
@@ -161,16 +156,49 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
   int m_max, int n_max, int k_max, int max_kernel_dim, acc_bool_t def_mnk, void* stream)
 {
   int result = EXIT_SUCCESS;
-#if 0
   assert((NULL != dev_param_stack && NULL != dev_a_data && NULL != dev_b_data && NULL != dev_c_data) || 0 == stack_size);
-  assert(7 == nparams);
-  if (0 != stack_size && def_mnk/*homogeneous*/) {
+  assert(0 < nparams && 0 < max_kernel_dim && NULL != stream);
+  if (0 <= stack_size) {
+    if (0 < stack_size && def_mnk/*homogeneous*/ &&
+        0 < m_max && m_max <= max_kernel_dim &&
+        0 < n_max && n_max <= max_kernel_dim &&
+        0 < k_max && k_max <= max_kernel_dim)
+    {
+      typedef struct config_t {
+        cl_kernel kernel;
+        size_t wgsize;
+      } config_t;
+      struct { int m, n, k; } key;
+      config_t *config;
+      /* homogeneous key-data (no need for prior memset) */
+      key.m = m_max; key.n = n_max; key.k = k_max; /* initialize key */
+      config = (config_t*)libxsmm_xdispatch(&key, sizeof(key));
+      if (NULL == config) {
+        result = EXIT_FAILURE; /* TODO */
+      }
+      assert((NULL != config && NULL != config->kernel && 0 < config->wgsize) || EXIT_SUCCESS != result);
+      if (EXIT_SUCCESS == result) {
+        const size_t work_size = config->wgsize * 3 * stack_size;
+        ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 0, sizeof(cl_mem), ACC_OPENCL_MEM(dev_param_stack)),
+          "set batch-list argument of SMM-kernel", result);
+        ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 1, sizeof(cl_mem), ACC_OPENCL_MEM(dev_a_data)),
+          "set A-matrix argument of SMM-kernel", result);
+        ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 2, sizeof(cl_mem), ACC_OPENCL_MEM(dev_b_data)),
+          "set B-matrix argument of SMM-kernel", result);
+        ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 3, sizeof(cl_mem), ACC_OPENCL_MEM(dev_c_data)),
+          "set C-matrix argument of SMM-kernel", result);
+        ACC_OPENCL_CHECK(clEnqueueNDRangeKernel(*ACC_OPENCL_STREAM(stream),
+          config->kernel, 1/*work_dim*/, NULL, &work_size, &config->wgsize, 0, NULL, NULL),
+          "launch SMM-kernel", result);
+      }
+    }
+    else if (0 != stack_size) { /* inhomogeneous or large */
+      result = EXIT_FAILURE; /* TODO: signal host-fallback */
+    }
   }
-  else if (0 != stack_size) { /* inhomogeneous */
-    /* stream status: do not flag an error */
-    result = EXIT_FAILURE; /* reject work */
+  else {
+    result = EXIT_FAILURE;
   }
-#endif
   ACC_OPENCL_RETURN(result);
 }
 

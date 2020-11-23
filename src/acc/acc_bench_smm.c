@@ -150,33 +150,7 @@ int main(int argc, char* argv[])
     /* transfer result from device back to host for validation */
     CHECK(acc_memcpy_d2h(cmat_dev, cmat_hst, sizeof(ELEM_TYPE) * mn * stack_size, stream), &result);
     CHECK(acc_stream_sync(stream), &result);
-#if 0
-    if (EXIT_SUCCESS == result) {
-      unsigned int nerrors = 0;
-      int j;
-      for (i = 0; i < stack_size; ++i) {
-        ELEM_TYPE gold[MAX_KERNEL_DIM*MAX_KERNEL_DIM];
-        const ELEM_TYPE *const test = cmat_hst + mn * i;
-        init(i/*seed*/, gold, m, n);
-        libxsmm_itrans(gold, sizeof(ELEM_TYPE), m, n, m, n);
-        for (j = 0; j < (m * n); ++j) {
-          if (gold[j] != test[j]) {
-            ++nerrors;
-# if defined(_DEBUG)
-            print(stderr, "gold = ", gold, n, m);
-            print(stderr, "this = ", test, n, m);
-            init(i/*seed*/, gold, m, n);
-            print(stderr, "orig = ", gold, m, n);
-            fprintf(stderr, "\n");
-# endif
-            break;
-          }
-        }
-      }
-      printf("errors: %u\n", nerrors);
-      if (0 != nerrors) result = EXIT_FAILURE;
-    }
-#endif
+    /* TODO: validation code TBD */
   }
 #endif
   CHECK(acc_host_mem_deallocate(stack_hst, stream), NULL);

@@ -20,7 +20,7 @@ const char* acc_opencl_batchtrans_source[] = {
 };
 
 
-const char* acc_opencl_batchsmm_source[] = {
+const char* acc_opencl_batchmm_source[] = {
   NULL
 };
 
@@ -176,7 +176,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
       if (NULL == config) {
         char build_options[512], fname[48];
         const char *const env_options = getenv("ACC_OPENCL_SMM_BUILD_OPTIONS");
-        int nchar = ACC_OPENCL_SNPRINTF(fname, sizeof(fname), "xsmm%ix%ix%i", m_max, n_max, k_max);
+        int nchar = ACC_OPENCL_SNPRINTF(fname, sizeof(fname), "xmm%ix%ix%i", m_max, n_max, k_max);
         const char* typename = "";
         switch (datatype) {
           case dbcsr_type_real_8: {
@@ -212,13 +212,13 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
             fclose(file);
             result = acc_opencl_kernel((const char**)lines, nlines, build_options, fname, &new_config.kernel);
           }
-          assert(NULL != acc_opencl_batchsmm_source);
+          assert(NULL != acc_opencl_batchmm_source);
           if (EXIT_FAILURE == result) {
-            if (sizeof(*acc_opencl_batchsmm_source) <= sizeof(acc_opencl_batchsmm_source)
-              && NULL != *acc_opencl_batchsmm_source)
+            if (sizeof(*acc_opencl_batchmm_source) <= sizeof(acc_opencl_batchmm_source)
+              && NULL != *acc_opencl_batchmm_source)
             {
-              const int nlines = sizeof(acc_opencl_batchsmm_source) / sizeof(*acc_opencl_batchsmm_source);
-              result = acc_opencl_kernel(acc_opencl_batchsmm_source, nlines, build_options, fname, &new_config.kernel);
+              const int nlines = sizeof(acc_opencl_batchmm_source) / sizeof(*acc_opencl_batchmm_source);
+              result = acc_opencl_kernel(acc_opencl_batchmm_source, nlines, build_options, fname, &new_config.kernel);
             }
           }
           if (EXIT_SUCCESS == result) {

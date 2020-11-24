@@ -154,24 +154,23 @@ int main(int argc, char* argv[])
     printf("host: %.1f ms %.1f GB/s\n", 1000.0 * duration / nodd,
       (sizeof(ELEM_TYPE) * mn + sizeof(int))
         * stack_size / (duration * (1ULL << 30) / nodd));
-    /* transfer result from device back to host for validation */
+    /* transfer result from device to host for validation */
     CHECK(acc_memcpy_d2h(mat_dev, mat_hst,
       sizeof(ELEM_TYPE) * mn * stack_size, stream), &result);
     CHECK(acc_stream_sync(stream), &result);
     if (EXIT_SUCCESS == result) {
       unsigned int nerrors = 0;
-      int j;
       for (i = 0; i < stack_size; ++i) {
         ELEM_TYPE gold[MAX_KERNEL_DIM*MAX_KERNEL_DIM];
         const ELEM_TYPE *const test = mat_hst + mn * i;
         init(i/*seed*/, gold, m, n);
         libxsmm_itrans(gold, sizeof(ELEM_TYPE), m, n, m, n);
-        for (j = 0; j < (m * n); ++j) {
-          if (gold[j] != test[j]) {
+        for (r = 0; r < (m * n); ++r) {
+          if (gold[r] != test[r]) {
             ++nerrors;
 # if defined(_DEBUG)
             print(stderr, "gold = ", gold, n, m);
-            print(stderr, "this = ", test, n, m);
+            print(stderr, "test = ", test, n, m);
             init(i/*seed*/, gold, m, n);
             print(stderr, "orig = ", gold, m, n);
             fprintf(stderr, "\n");

@@ -118,6 +118,7 @@ int main(int argc, char* argv[])
     CHECK(libsmm_acc_process(stack_hst, stack_dev, stack_size, 3/*nparams*/, DBCSR_TYPE(ELEM_TYPE),
       amat_dev, bmat_dev, cmat_dev, m, n, k, MAX_KERNEL_DIM, 1/*homogeneous*/, stream), &result);
   }
+  CHECK(acc_memset_zero(cmat_dev, 0/*offset*/, sizeof(ELEM_TYPE) * mn * stack_size, stream), &result);
 #if defined(USE_LIBXSMM)
   CHECK(acc_stream_sync(stream), &result);
   start = libxsmm_timer_tick();
@@ -131,26 +132,55 @@ int main(int argc, char* argv[])
   CHECK(acc_stream_sync(stream), &result);
   duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
   if (EXIT_SUCCESS == result) {
+    ELEM_TYPE *const gold_hst = (ELEM_TYPE*)libxsmm_malloc(sizeof(ELEM_TYPE) * mn * stack_size);
     const char transa = 'N', transb = 'T';
     const ELEM_TYPE alpha = 1, beta = 1;
     printf("device: %.1f ms %.1f GFLOPS/s\n", 1000.0 * duration / nrepeat,
       ((size_t)2 * m * n * k) * stack_size / (duration * (1ULL << 30) / nrepeat));
-    memset(cmat_hst, 0, sizeof(ELEM_TYPE) * mn * stack_size);
+    memset(gold_hst, 0, sizeof(ELEM_TYPE) * mn * stack_size);
+    for (r = 0; r < warmup; ++r) {
+      libxsmm_gemm_batch_omp(LIBXSMM_GEMM_PRECISION(ELEM_TYPE), LIBXSMM_GEMM_PRECISION(ELEM_TYPE),
+        &transa, &transb, m, n, k, &alpha, amat_hst, &m/*lda*/, bmat_hst, &k/*ldb*/,
+        &beta, gold_hst, &m/*ldc*/, 1/*index_base*/, sizeof(int) * 3,
+        stack_hst + 0, stack_hst + 1, stack_hst + 2, stack_size);
+    }
+    memset(gold_hst, 0, sizeof(ELEM_TYPE) * mn * stack_size);
     start = libxsmm_timer_tick();
+    /* CPU-kernel operates on data that is not initialized in NUMA-aware fashion */
     for (r = 0; r < nrepeat; ++r) {
       /* CPU-kernel performs C += Ai * Bi^T to match result of GPU-kernel (NT may perform below NN) */
       libxsmm_gemm_batch_omp(LIBXSMM_GEMM_PRECISION(ELEM_TYPE), LIBXSMM_GEMM_PRECISION(ELEM_TYPE),
         &transa, &transb, m, n, k, &alpha, amat_hst, &m/*lda*/, bmat_hst, &k/*ldb*/,
-        &beta, cmat_hst, &m/*ldc*/, 1/*index_base*/, sizeof(int) * 3,
+        &beta, gold_hst, &m/*ldc*/, 1/*index_base*/, sizeof(int) * 3,
         stack_hst + 0, stack_hst + 1, stack_hst + 2, stack_size);
     }
     duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
     printf("host: %.1f ms %.1f GFLOPS/s\n", 1000.0 * duration / nrepeat,
       ((size_t)2 * m * n * k) * stack_size / (duration * (1ULL << 30) / nrepeat));
-    /* transfer result from device back to host for validation */
+    /* transfer result from device to host for validation */
     CHECK(acc_memcpy_d2h(cmat_dev, cmat_hst, sizeof(ELEM_TYPE) * mn * stack_size, stream), &result);
     CHECK(acc_stream_sync(stream), &result);
-    /* TODO: validation code TBD */
+    if (EXIT_SUCCESS == result) {
+      unsigned int nerrors = 0;
+      for (i = 0; i < stack_size; ++i) {
+        const ELEM_TYPE *const gold = gold_hst + mn * i;
+        const ELEM_TYPE *const test = cmat_hst + mn * i;
+        for (r = 0; r < (m * n); ++r) {
+          if (gold[r] != test[r]) {
+            ++nerrors;
+# if defined(_DEBUG)
+            print(stderr, "gold = ", gold, n, m);
+            print(stderr, "test = ", test, n, m);
+            fprintf(stderr, "\n");
+# endif
+            break;
+          }
+        }
+      }
+      printf("errors: %u\n", nerrors);
+      if (0 != nerrors) result = EXIT_FAILURE;
+    }
+    libxsmm_free(gold_hst);
   }
 #endif
   CHECK(acc_host_mem_deallocate(stack_hst, stream), NULL);

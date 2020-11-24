@@ -42,7 +42,7 @@ void acc_opencl_notify(const char* errinfo, const void* private_info, size_t cb,
 }
 
 
-/** Returns the pointer to the 1st match of "b" in "a". */
+/** Returns the pointer to the 1st match of "b" in "a", or NULL. */
 const char* acc_opencl_stristr(const char* /*a*/, const char* /*b*/);
 const char* acc_opencl_stristr(const char* a, const char* b)
 {
@@ -127,8 +127,10 @@ int acc_init(void)
   if (NULL == disable || '0' == *disable) {
     cl_platform_id platforms[ACC_OPENCL_DEVICES_MAXCOUNT];
     char buffer[ACC_OPENCL_BUFFER_MAXSIZE];
-    const char *const vendor = getenv("ACC_OPENCL_VENDOR");
-    const char *const device = getenv("ACC_OPENCL_DEVTYPE");
+    const char *const env_device_vendor = getenv("ACC_OPENCL_VENDOR");
+    const char *const env_device_type = getenv("ACC_OPENCL_DEVTYPE");
+    const char *const env_device_id = getenv("ACC_OPENCL_DEVICE");
+    int device_id = (NULL == env_device_id ? 0 : atoi(env_device_id));
     cl_uint nplatforms = 0, ndevices = 0, i;
     cl_device_type type = CL_DEVICE_TYPE_ALL;
     ACC_OPENCL_CHECK(clGetPlatformIDs(0, NULL, &nplatforms),
@@ -136,24 +138,13 @@ int acc_init(void)
     ACC_OPENCL_CHECK(clGetPlatformIDs(
       nplatforms <= ACC_OPENCL_DEVICES_MAXCOUNT ? nplatforms : ACC_OPENCL_DEVICES_MAXCOUNT,
       platforms, 0), "retrieve platform ids", result);
-    if (NULL != device && '\0' != *device) {
-      if (NULL != acc_opencl_stristr(device, "gpu")) type = CL_DEVICE_TYPE_GPU;
-      else if (NULL != acc_opencl_stristr(device, "cpu")) type = CL_DEVICE_TYPE_CPU;
+    if (NULL != env_device_type && '\0' != *env_device_type) {
+      if (NULL != acc_opencl_stristr(env_device_type, "gpu")) type = CL_DEVICE_TYPE_GPU;
+      else if (NULL != acc_opencl_stristr(env_device_type, "cpu")) type = CL_DEVICE_TYPE_CPU;
       else type = CL_DEVICE_TYPE_ACCELERATOR;
     }
     acc_opencl_ndevices = 0;
     for (i = 0; i < nplatforms; ++i) {
-      if (NULL != vendor && '\0' != *vendor) {
-        size_t size = 0;
-        ACC_OPENCL_CHECK(clGetPlatformInfo(platforms[i], CL_PLATFORM_VENDOR,
-          0, NULL, &size), "query platform vendor", result);
-        buffer[0] = '\0'; size = (size <= ACC_OPENCL_BUFFER_MAXSIZE
-          ? size : ACC_OPENCL_BUFFER_MAXSIZE);
-        ACC_OPENCL_CHECK(clGetPlatformInfo(platforms[i], CL_PLATFORM_VENDOR,
-          size, buffer, NULL), "retrieve platform vendor", result);
-        if (NULL == acc_opencl_stristr(buffer, vendor)) continue;
-      }
-      assert(acc_opencl_ndevices <= ACC_OPENCL_DEVICES_MAXCOUNT);
       if (EXIT_SUCCESS == result
         && CL_SUCCESS == clGetDeviceIDs(platforms[i], type, 0, NULL, &ndevices))
       {
@@ -171,13 +162,29 @@ int acc_init(void)
       }
     }
     assert(NULL == acc_opencl_context);
-    if (0 < acc_opencl_ndevices) {
-      int device_id = 0;
-      if (1 < acc_opencl_ndevices) { /* preselect default device */
-        const char *const env_device_id = getenv("ACC_OPENCL_DEVICE");
+    if (device_id < acc_opencl_ndevices) {
+      if (NULL != env_device_vendor && '\0' != *env_device_vendor) {
+        for (i = 0; i < (cl_uint)acc_opencl_ndevices; ++i) {
+          buffer[0] = '\0';
+          ACC_OPENCL_CHECK(clGetDeviceInfo(acc_opencl_devices[i],
+            CL_DEVICE_VENDOR, ACC_OPENCL_BUFFER_MAXSIZE, buffer, NULL),
+            "retrieve device vendor", result);
+          if (NULL == acc_opencl_stristr(buffer, env_device_vendor)) {
+            --acc_opencl_ndevices;
+            if (i < acc_opencl_ndevices) { /* keep relative order of IDs */
+              memmove(acc_opencl_devices + i, acc_opencl_devices + i + 1,
+                sizeof(cl_device_id) * (acc_opencl_ndevices - i));
+            }
+          }
+        }
+      }
+    }
+    if (device_id < acc_opencl_ndevices) {
+      if (EXIT_SUCCESS == result && 1 < acc_opencl_ndevices) {
         /* reorder devices according to acc_opencl_order_devices */
-        qsort(acc_opencl_devices, acc_opencl_ndevices, sizeof(cl_device_id),
-          acc_opencl_order_devices);
+        qsort(acc_opencl_devices, acc_opencl_ndevices,
+          sizeof(cl_device_id), acc_opencl_order_devices);
+        /* preselect default device */
         if (NULL == env_device_id || '\0' == *env_device_id) {
           for (i = 0; i < (cl_uint)acc_opencl_ndevices; ++i) {
             ACC_OPENCL_CHECK(clGetDeviceInfo(acc_opencl_devices[i],
@@ -189,7 +196,6 @@ int acc_init(void)
             }
           }
         }
-        else device_id = atoi(env_device_id);
       }
       if (EXIT_SUCCESS == result) {
         result = acc_set_active_device(device_id);

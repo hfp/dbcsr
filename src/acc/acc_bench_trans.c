@@ -85,7 +85,12 @@ int main(int argc, char* argv[])
   printf("%s%s%i %i %i %i\n", 0 < argc ? argv[0] : "", 0 < argc ? " " : "", nrepeat, stack_size, m, n);
   CHECK(acc_init(), &result);
   CHECK(acc_get_ndevices(&ndevices), &result);
-  if (1 > ndevices) {
+  if (0 < ndevices) {
+#if defined(_DEBUG)
+    fprintf(stderr, "Device%s %i\n", 1 < ndevices ? "s:" : ":", ndevices);
+#endif
+  }
+  else {
 #if defined(_DEBUG)
     fprintf(stderr, "Error: no device found!\n");
 #endif

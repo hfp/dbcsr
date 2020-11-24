@@ -156,7 +156,6 @@ int acc_init(void)
           acc_opencl_ndevices += n;
         }
         else {
-          assert(CL_SUCCESS != result);
           ACC_OPENCL_ERROR("retrieve device ids", result);
         }
       }
@@ -164,17 +163,23 @@ int acc_init(void)
     assert(NULL == acc_opencl_context);
     if (device_id < acc_opencl_ndevices) {
       if (NULL != env_device_vendor && '\0' != *env_device_vendor) {
-        for (i = 0; i < (cl_uint)acc_opencl_ndevices; ++i) {
+        for (i = 0; i < (cl_uint)acc_opencl_ndevices;) {
           buffer[0] = '\0';
-          ACC_OPENCL_CHECK(clGetDeviceInfo(acc_opencl_devices[i],
-            CL_DEVICE_VENDOR, ACC_OPENCL_BUFFER_MAXSIZE, buffer, NULL),
-            "retrieve device vendor", result);
-          if (NULL == acc_opencl_stristr(buffer, env_device_vendor)) {
-            --acc_opencl_ndevices;
-            if (i < (cl_uint)acc_opencl_ndevices) { /* keep relative order of IDs */
-              memmove(acc_opencl_devices + i, acc_opencl_devices + i + 1,
-                sizeof(cl_device_id) * (acc_opencl_ndevices - i));
+          if (CL_SUCCESS == clGetDeviceInfo(acc_opencl_devices[i],
+            CL_DEVICE_VENDOR, ACC_OPENCL_BUFFER_MAXSIZE, buffer, NULL))
+          {
+            if (NULL == acc_opencl_stristr(buffer, env_device_vendor)) {
+              --acc_opencl_ndevices;
+              if (i < (cl_uint)acc_opencl_ndevices) { /* keep relative order of IDs */
+                memmove(acc_opencl_devices + i, acc_opencl_devices + i + 1,
+                  sizeof(cl_device_id) * (acc_opencl_ndevices - i));
+              }
             }
+            else ++i;
+          }
+          else {
+            ACC_OPENCL_ERROR("retrieve device vendor", result);
+            break;
           }
         }
       }
@@ -208,7 +213,6 @@ int acc_init(void)
               acc_opencl_context = context;
             }
             else {
-              assert(CL_SUCCESS != result);
               ACC_OPENCL_ERROR("retain context", result);
               acc_opencl_context = NULL;
             }

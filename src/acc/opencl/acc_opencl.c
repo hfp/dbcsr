@@ -301,9 +301,10 @@ int acc_opencl_device(void* stream, cl_device_id* device)
 
 int acc_opencl_device_vendor(cl_device_id device, const char* vendor, int* confirmed)
 {
-  char buffer[ACC_OPENCL_BUFFER_MAXSIZE]; buffer[0] = '\0';
+  char buffer[ACC_OPENCL_BUFFER_MAXSIZE];
   int result = EXIT_SUCCESS;
-  assert(NULL != device && NULL != vendor && NULL != confirmed));
+  assert(NULL != device && NULL != vendor && NULL != confirmed);
+  buffer[0] = '\0';
   ACC_OPENCL_CHECK(clGetDeviceInfo(device,
     CL_DEVICE_VENDOR, ACC_OPENCL_BUFFER_MAXSIZE, buffer, NULL),
     "retrieve device vendor", result);

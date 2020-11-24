@@ -74,21 +74,23 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
         (NULL == env_options || '\0' == *env_options) ? "" : env_options,
         local ? "local" : "private", typename, fname, m, n) : 0);
       if ('\0' != *typename && 0 < nchar && (int)sizeof(build_options) > nchar) {
-#if !defined(ACC_OPENCL_SMM_PERMIT_TRANSPOSE_INPLACE)
+#if defined(ACC_OPENCL_SMM_PERMIT_TRANSPOSE_INPLACE)
+        const int inplace = (m == n && 0 == tiny);
+#else
         const char *const env_inplace = getenv("ACC_OPENCL_TRANS_INPLACE");
+        cl_device_id active_device; int confirmed;
+        const int inplace = (m == n && 0 == tiny) &&
+          ((NULL != env_inplace && '\0' != *env_inplace && '0' != *env_inplace)
+            ||  (EXIT_SUCCESS == acc_opencl_device(stream, &active_device)
+              && EXIT_SUCCESS == acc_opencl_device_vendor(active_device, "intel", &confirmed)
+              && confirmed));
 #endif
         const char *const paths[] = {
           "../../exts/dbcsr/src/acc/opencl/smm/kernel",
           "opencl/smm/kernels"
         };
         FILE *const file = acc_opencl_source_open(
-#if defined(ACC_OPENCL_SMM_PERMIT_TRANSPOSE_INPLACE)
-          (m == n && 0 == tiny) ? "transpose_inplace.cl"
-#else
-          (m == n && 0 == tiny && (NULL == env_inplace || '0' != *env_inplace))
-            ? "transpose_inplace.cl"
-#endif
-            : "transpose.cl",
+          inplace ? "transpose_inplace.cl" : "transpose.cl",
           paths, sizeof(paths) / sizeof(*paths));
         int max_wgsize;
         config_t new_config;

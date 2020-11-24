@@ -172,6 +172,8 @@ extern cl_context acc_opencl_context;
 
 /** Get active device (can be thread/queue-specific). */
 int acc_opencl_device(void* stream, cl_device_id* device);
+/** Confirm the vendor of the given device. */
+int acc_opencl_device_vendor(cl_device_id device, const char* vendor, int* confirmed);
 /** Return the OpenCL support level for the given device. */
 int acc_opencl_device_level(cl_device_id device,
   int* level_major, int* level_minor);

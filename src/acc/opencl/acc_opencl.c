@@ -171,7 +171,7 @@ int acc_init(void)
             "retrieve device vendor", result);
           if (NULL == acc_opencl_stristr(buffer, env_device_vendor)) {
             --acc_opencl_ndevices;
-            if (i < acc_opencl_ndevices) { /* keep relative order of IDs */
+            if (i < (cl_uint)acc_opencl_ndevices) { /* keep relative order of IDs */
               memmove(acc_opencl_devices + i, acc_opencl_devices + i + 1,
                 sizeof(cl_device_id) * (acc_opencl_ndevices - i));
             }
@@ -295,6 +295,19 @@ int acc_opencl_device(void* stream, cl_device_id* device)
   else {
     *device = NULL;
   }
+  ACC_OPENCL_RETURN(result);
+}
+
+
+int acc_opencl_device_vendor(cl_device_id device, const char* vendor, int* confirmed)
+{
+  char buffer[ACC_OPENCL_BUFFER_MAXSIZE]; buffer[0] = '\0';
+  int result = EXIT_SUCCESS;
+  assert(NULL != device && NULL != vendor && NULL != confirmed));
+  ACC_OPENCL_CHECK(clGetDeviceInfo(device,
+    CL_DEVICE_VENDOR, ACC_OPENCL_BUFFER_MAXSIZE, buffer, NULL),
+    "retrieve device vendor", result);
+  *confirmed = (NULL != acc_opencl_stristr(buffer, vendor));
   ACC_OPENCL_RETURN(result);
 }
 

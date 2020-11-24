@@ -86,7 +86,7 @@ int main(int argc, char* argv[])
   CHECK(acc_get_ndevices(&ndevices), &result);
   if (0 < ndevices) {
 #if defined(_DEBUG)
-    fprintf(stderr, "Device%s %i\n", 1 < ndevices ? "s:" : ":", ndevices);
+    fprintf(stderr, "number of devices found: %i\n", ndevices);
 #endif
   }
   else {

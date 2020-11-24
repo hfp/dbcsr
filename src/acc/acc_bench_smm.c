@@ -81,7 +81,8 @@ int main(int argc, char* argv[])
   double duration;
 #endif
   assert(m <= (mn / n) && 0 == (mn % n) && k <= (mk / k) && 0 == (mk % k) && n <= (kn / n) && 0 == (kn % n));
-  printf("%s%s%i %i %i %i %i\n", 0 < argc ? argv[0] : "", 0 < argc ? " " : "", nrepeat, stack_size, m, n, k);
+  printf("%s%s%i %i %i %i %i %i %i %i\n", 0 < argc ? argv[0] : "", 0 < argc ? " " : "",
+    nrepeat, stack_size, m, n, k, nc, na, nb);
   CHECK(acc_init(), &result);
   CHECK(acc_get_ndevices(&ndevices), &result);
   if (0 < ndevices) {
@@ -97,27 +98,26 @@ int main(int argc, char* argv[])
     return result;
   }
   CHECK(acc_stream_create(&stream, "stream", -1/*default priority*/), &result);
-  CHECK(acc_host_mem_allocate((void**)&amat_hst, sizeof(ELEM_TYPE) * mk * stack_size, stream), &result);
-  CHECK(acc_host_mem_allocate((void**)&bmat_hst, sizeof(ELEM_TYPE) * kn * stack_size, stream), &result);
-  CHECK(acc_host_mem_allocate((void**)&cmat_hst, sizeof(ELEM_TYPE) * mn * stack_size, stream), &result);
+  CHECK(acc_host_mem_allocate((void**)&amat_hst, sizeof(ELEM_TYPE) * mk * na, stream), &result);
+  CHECK(acc_host_mem_allocate((void**)&bmat_hst, sizeof(ELEM_TYPE) * kn * nb, stream), &result);
+  CHECK(acc_host_mem_allocate((void**)&cmat_hst, sizeof(ELEM_TYPE) * mn * nc, stream), &result);
   CHECK(acc_host_mem_allocate((void**)&stack_hst, sizeof(int) * 3 * stack_size, stream), &result);
   CHECK(acc_stream_sync(stream), &result); /* ensure host-data is allocated */
-  for (i = 0; i < stack_size; ++i) { /* initialize matrices */
-    init(i/*seed*/ + 42, &amat_hst[i*mk], m, k);
-    init(i/*seed*/ + 24, &bmat_hst[i*kn], k, n);
-  }
+  /* initialize matrices */
+  for (i = 0; i < na; ++i) init(i/*seed*/ + 42, &amat_hst[i*mk], m, k);
+  for (i = 0; i < nb; ++i) init(i/*seed*/ + 24, &bmat_hst[i*kn], k, n);
   init_stack(stack_hst, stack_size, mn, mk, kn, nc, na, nb);
-  CHECK(acc_dev_mem_allocate((void**)&amat_dev, sizeof(ELEM_TYPE) * mk * stack_size), &result);
-  CHECK(acc_dev_mem_allocate((void**)&bmat_dev, sizeof(ELEM_TYPE) * kn * stack_size), &result);
-  CHECK(acc_dev_mem_allocate((void**)&cmat_dev, sizeof(ELEM_TYPE) * mn * stack_size), &result);
+  CHECK(acc_dev_mem_allocate((void**)&amat_dev, sizeof(ELEM_TYPE) * mk * na), &result);
+  CHECK(acc_dev_mem_allocate((void**)&bmat_dev, sizeof(ELEM_TYPE) * kn * nb), &result);
+  CHECK(acc_dev_mem_allocate((void**)&cmat_dev, sizeof(ELEM_TYPE) * mn * nc), &result);
   CHECK(acc_dev_mem_allocate((void**)&stack_dev, sizeof(int) * 3 * stack_size), &result);
-  CHECK(acc_memset_zero(cmat_dev, 0/*offset*/, sizeof(ELEM_TYPE) * mn * stack_size, stream), &result);
+  CHECK(acc_memset_zero(cmat_dev, 0/*offset*/, sizeof(ELEM_TYPE) * mn * nc, stream), &result);
 #if defined(USE_LIBXSMM)
   CHECK(acc_stream_sync(stream), &result);
   start = libxsmm_timer_tick();
 #endif
-  CHECK(acc_memcpy_h2d(amat_hst, amat_dev, sizeof(ELEM_TYPE) * mk * stack_size, stream), &result);
-  CHECK(acc_memcpy_h2d(bmat_hst, bmat_dev, sizeof(ELEM_TYPE) * kn * stack_size, stream), &result);
+  CHECK(acc_memcpy_h2d(amat_hst, amat_dev, sizeof(ELEM_TYPE) * mk * na, stream), &result);
+  CHECK(acc_memcpy_h2d(bmat_hst, bmat_dev, sizeof(ELEM_TYPE) * kn * nb, stream), &result);
   CHECK(acc_memcpy_h2d(stack_hst, stack_dev, sizeof(int) * 3 * stack_size, stream), &result);
 #if defined(USE_LIBXSMM)
   CHECK(acc_stream_sync(stream), &result);
@@ -141,7 +141,7 @@ int main(int argc, char* argv[])
     CHECK(libsmm_acc_process(stack_hst, stack_dev, stack_size, 3/*nparams*/, DBCSR_TYPE(ELEM_TYPE),
       amat_dev, bmat_dev, cmat_dev, m, n, k, MAX_KERNEL_DIM, 1/*homogeneous*/, stream), &result);
   }
-  CHECK(acc_memset_zero(cmat_dev, 0/*offset*/, sizeof(ELEM_TYPE) * mn * stack_size, stream), &result);
+  CHECK(acc_memset_zero(cmat_dev, 0/*offset*/, sizeof(ELEM_TYPE) * mn * nc, stream), &result);
 #if defined(USE_LIBXSMM)
   CHECK(acc_stream_sync(stream), &result);
   start = libxsmm_timer_tick();
@@ -155,19 +155,19 @@ int main(int argc, char* argv[])
   CHECK(acc_stream_sync(stream), &result);
   duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
   if (EXIT_SUCCESS == result) {
-    ELEM_TYPE *const gold_hst = (ELEM_TYPE*)libxsmm_malloc(sizeof(ELEM_TYPE) * mn * stack_size);
+    ELEM_TYPE *const gold_hst = (ELEM_TYPE*)libxsmm_malloc(sizeof(ELEM_TYPE) * mn * nc);
     const char transa = 'N', transb = 'N';
     const ELEM_TYPE alpha = 1, beta = 1;
     printf("device: %.1f ms %.1f GFLOPS/s\n", 1000.0 * duration / nrepeat,
       ((size_t)2 * m * n * k) * stack_size / (duration * (1ULL << 30) / nrepeat));
-    memset(gold_hst, 0, sizeof(ELEM_TYPE) * mn * stack_size);
+    memset(gold_hst, 0, sizeof(ELEM_TYPE) * mn * nc);
     for (r = 0; r < warmup; ++r) {
       libxsmm_gemm_batch_omp(LIBXSMM_GEMM_PRECISION(ELEM_TYPE), LIBXSMM_GEMM_PRECISION(ELEM_TYPE),
         &transa, &transb, m, n, k, &alpha, amat_hst, &m/*lda*/, bmat_hst, &k/*ldb*/,
         &beta, gold_hst, &m/*ldc*/, 1/*index_base*/, sizeof(int) * 3,
         stack_hst + 0, stack_hst + 1, stack_hst + 2, stack_size);
     }
-    memset(gold_hst, 0, sizeof(ELEM_TYPE) * mn * stack_size);
+    memset(gold_hst, 0, sizeof(ELEM_TYPE) * mn * nc);
     start = libxsmm_timer_tick();
     /* CPU-kernel operates on data that is not initialized in NUMA-aware fashion */
     for (r = 0; r < nrepeat; ++r) {
@@ -180,7 +180,7 @@ int main(int argc, char* argv[])
     printf("host: %.1f ms %.1f GFLOPS/s\n", 1000.0 * duration / nrepeat,
       ((size_t)2 * m * n * k) * stack_size / (duration * (1ULL << 30) / nrepeat));
     /* transfer result from device to host for validation */
-    CHECK(acc_memcpy_d2h(cmat_dev, cmat_hst, sizeof(ELEM_TYPE) * mn * stack_size, stream), &result);
+    CHECK(acc_memcpy_d2h(cmat_dev, cmat_hst, sizeof(ELEM_TYPE) * mn * nc, stream), &result);
     CHECK(acc_stream_sync(stream), &result);
     if (EXIT_SUCCESS == result) {
       unsigned int nerrors = 0;

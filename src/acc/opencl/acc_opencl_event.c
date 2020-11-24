@@ -48,7 +48,6 @@ int acc_event_create(void** event_p)
 #endif
     }
     else {
-      assert(CL_SUCCESS != result);
       ACC_OPENCL_ERROR("set initial event state", result);
       clReleaseEvent(event);
       *event_p = NULL;

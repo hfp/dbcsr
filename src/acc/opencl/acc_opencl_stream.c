@@ -93,7 +93,6 @@ int acc_stream_create(void** stream_p, const char* name, int priority)
 #endif
     }
     else {
-      assert(CL_SUCCESS != result);
       ACC_OPENCL_ERROR("create command queue", result);
       *stream_p = NULL;
     }

@@ -81,6 +81,7 @@ int acc_host_mem_allocate(void** host_mem, size_t nbytes, void* stream)
       const size_t offset = ACC_OPENCL_UP2(address + sizeof(acc_opencl_meminfo_t), alignment) - address;
       acc_opencl_meminfo_t* meminfo;
       assert(sizeof(acc_opencl_meminfo_t) <= offset);
+      assert(CL_SUCCESS == result);
 #if defined(ACC_OPENCL_MEM_MAPMULTI)
       meminfo = (acc_opencl_meminfo_t*)clEnqueueMapBuffer(queue, buffer,
         CL_TRUE/*blocking*/, CL_MAP_READ | CL_MAP_WRITE,
@@ -96,7 +97,6 @@ int acc_host_mem_allocate(void** host_mem, size_t nbytes, void* stream)
         *host_mem = (void*)(address + offset);
       }
       else {
-        assert(CL_SUCCESS != result);
         ACC_OPENCL_ERROR("map buffer info", result);
         *host_mem = NULL;
       }

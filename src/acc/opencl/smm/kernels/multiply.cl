@@ -11,9 +11,10 @@ kernel void FN(global const int *restrict param_stack,
   global const T *restrict amat, global const T *restrict bmat, global T *restrict cmat)
 {
   global const int *restrict param_base = param_stack + get_group_id(0) * 3;
-  global const T *const restrict a = amat + param_base[0];
-  global const T *const restrict b = bmat + param_base[1];
-  global T *const restrict c = cmat + param_base[2];
+  /* indexes given by param_stack are one-based */
+  global const T *const restrict a = amat + param_base[0] - 1;
+  global const T *const restrict b = bmat + param_base[1] - 1;
+  global T *const restrict c = cmat + param_base[2] - 1;
   local T buf[SK*SN], cuf[SM*SN];
 
   const int index = get_local_id(0);

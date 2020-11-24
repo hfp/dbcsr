@@ -182,7 +182,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
         const char* typename = "";
         switch (datatype) {
           case dbcsr_type_real_8: {
-            typename = "char8"; /* double */
+            typename = "double";
             fname[0] = 'd';
           } break;
           case dbcsr_type_real_4: {

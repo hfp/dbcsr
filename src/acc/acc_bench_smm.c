@@ -191,8 +191,8 @@ int main(int argc, char* argv[])
           if (gold[r] != test[r]) {
             ++nerrors;
 # if defined(_DEBUG)
-            print(stderr, "gold = ", gold, n, m);
-            print(stderr, "test = ", test, n, m);
+            print(stderr, "gold = ", gold, m, n);
+            print(stderr, "test = ", test, m, n);
             fprintf(stderr, "\n");
 # endif
             break;

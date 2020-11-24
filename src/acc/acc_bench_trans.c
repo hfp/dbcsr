@@ -75,7 +75,7 @@ int main(int argc, char* argv[])
 #endif
   int *stack_hst = NULL, *stack_dev = NULL;
   ELEM_TYPE *mat_hst = NULL, *mat_dev = NULL;
-  int result = EXIT_SUCCESS, r, i, mm = m, nn = n;
+  int result = EXIT_SUCCESS, ndevices = 0, r, i, mm = m, nn = n;
   void *stream = NULL;
 #if defined(USE_LIBXSMM)
   libxsmm_timer_tickint start;
@@ -84,6 +84,14 @@ int main(int argc, char* argv[])
   assert(m <= (mn / n) && 0 == (mn % n));
   printf("%s%s%i %i %i %i\n", 0 < argc ? argv[0] : "", 0 < argc ? " " : "", nrepeat, stack_size, m, n);
   CHECK(acc_init(), &result);
+  CHECK(acc_get_ndevices(&ndevices), &result);
+  if (1 > ndevices) {
+#if defined(_DEBUG)
+    fprintf(stderr, "Error: no device found!\n");
+#endif
+    CHECK(acc_finalize(), NULL);
+    return result;
+  }
 #if defined(PRIORITY)
   CHECK(acc_stream_priority_range(&priomin, &priomax), &result);
   CHECK(acc_stream_create(&stream, "stream", (priomin + priomax) / 2), &result);
@@ -189,6 +197,7 @@ int main(int argc, char* argv[])
   CHECK(acc_dev_mem_deallocate(stack_dev), NULL);
   CHECK(acc_dev_mem_deallocate(mat_dev), NULL);
   CHECK(acc_stream_destroy(stream), NULL);
+  CHECK(acc_finalize(), NULL);
   if (EXIT_SUCCESS != result) {
     fprintf(stderr, "FAILED\n");
   }

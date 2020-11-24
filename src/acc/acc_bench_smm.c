@@ -67,7 +67,7 @@ int main(int argc, char* argv[])
   const int mn = m * n, mk = m * k, kn = k * n;
 #endif
 #if defined(WARMUP) && (0 < WARMUP) && !defined(_DEBUG)
-  const int warmup = WARMUP;
+  const int warmup = MAX(WARMUP, 2) / 2 * 2;
 #else
   const int warmup = 0;
 #endif
@@ -113,7 +113,17 @@ int main(int argc, char* argv[])
     (sizeof(ELEM_TYPE) * (mk + kn) + sizeof(int) * 3)
       * stack_size / (duration * (1ULL << 30)));
 #endif
-  /* warmup execution and prebuild JIT kernels */
+  /* warmup execution and prebuild transpose-kernel */
+  for (r = 0; r < warmup / 2; ++r) {
+    CHECK(libsmm_acc_transpose(stack_dev, 1/*offset*/, stack_size, bmat_dev,
+      DBCSR_TYPE(ELEM_TYPE), k, n, MAX_KERNEL_DIM, stream), &result);
+    CHECK(libsmm_acc_transpose(stack_dev, 1/*offset*/, stack_size, bmat_dev,
+      DBCSR_TYPE(ELEM_TYPE), n, k, MAX_KERNEL_DIM, stream), &result);
+  }
+  /* to perform NN-SMM on the device, all B-matrices are transposed upfront (SMM-kernel is limited to NT) */
+  CHECK(libsmm_acc_transpose(stack_dev, 1/*offset*/, stack_size, bmat_dev,
+    DBCSR_TYPE(ELEM_TYPE), k, n, MAX_KERNEL_DIM, stream), &result);
+  /* warmup execution and prebuild SMM-kernel */
   for (r = 0; r < warmup; ++r) {
     CHECK(libsmm_acc_process(stack_hst, stack_dev, stack_size, 3/*nparams*/, DBCSR_TYPE(ELEM_TYPE),
       amat_dev, bmat_dev, cmat_dev, m, n, k, MAX_KERNEL_DIM, 1/*homogeneous*/, stream), &result);
@@ -124,7 +134,7 @@ int main(int argc, char* argv[])
   start = libxsmm_timer_tick();
 #endif
   for (r = 0; r < nrepeat; ++r) {
-    /* GPU-kernel is limited to C += Ai * Bi^T (i.e., NT, for NN, all Bi must be transposed upfront) */
+    /* GPU-kernel is limited to C += Ai * Bi^T, i.e., NT (for NN, all Bi must be transposed upfront) */
     CHECK(libsmm_acc_process(stack_hst, stack_dev, stack_size, 3/*nparams*/, DBCSR_TYPE(ELEM_TYPE),
       amat_dev, bmat_dev, cmat_dev, m, n, k, MAX_KERNEL_DIM, 1/*homogeneous*/, stream), &result);
   }
@@ -133,7 +143,7 @@ int main(int argc, char* argv[])
   duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
   if (EXIT_SUCCESS == result) {
     ELEM_TYPE *const gold_hst = (ELEM_TYPE*)libxsmm_malloc(sizeof(ELEM_TYPE) * mn * stack_size);
-    const char transa = 'N', transb = 'T';
+    const char transa = 'N', transb = 'N';
     const ELEM_TYPE alpha = 1, beta = 1;
     printf("device: %.1f ms %.1f GFLOPS/s\n", 1000.0 * duration / nrepeat,
       ((size_t)2 * m * n * k) * stack_size / (duration * (1ULL << 30) / nrepeat));
@@ -148,7 +158,6 @@ int main(int argc, char* argv[])
     start = libxsmm_timer_tick();
     /* CPU-kernel operates on data that is not initialized in NUMA-aware fashion */
     for (r = 0; r < nrepeat; ++r) {
-      /* CPU-kernel performs C += Ai * Bi^T to match result of GPU-kernel (NT may perform below NN) */
       libxsmm_gemm_batch_omp(LIBXSMM_GEMM_PRECISION(ELEM_TYPE), LIBXSMM_GEMM_PRECISION(ELEM_TYPE),
         &transa, &transb, m, n, k, &alpha, amat_hst, &m/*lda*/, bmat_hst, &k/*ldb*/,
         &beta, gold_hst, &m/*ldc*/, 1/*index_base*/, sizeof(int) * 3,

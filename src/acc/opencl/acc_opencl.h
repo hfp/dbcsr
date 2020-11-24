@@ -99,7 +99,7 @@
 # elif defined(__GNUC__) && !defined(__STRICT_ANSI__)
 #   define ACC_OPENCL_FUNCNAME __PRETTY_FUNCTION__
 # else
-#   define ACC_OPENCL_FUNCNAME NULL
+#   define ACC_OPENCL_FUNCNAME ""
 # endif
 #endif
 

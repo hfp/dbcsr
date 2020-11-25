@@ -25,12 +25,12 @@ kernel void FN(global const int *restrict param_stack,
       barrier(CLK_LOCAL_MEM_FENCE);
       for (int m = 0; m < SM; ++m) {
         T r = 0;
-        for (int k = 0; k < SK; ++k) r += a[SK*m+k] * buf[SK*n+k];
-        cuf[SN*m+n] = r;
+        for (int k = 0; k < SK; ++k) r += a[SM*k+m] * buf[SN*k+n];
+        cuf[SM*n+m] = r;
       }
       barrier(CLK_LOCAL_MEM_FENCE);
       /* TODO: atomic commit */
-      for (int m = 0; m < SM; ++m) c[SN*m+n] = cuf[SN*m+n];
+      for (int m = 0; m < SM; ++m) c[SM*n+m] = cuf[SM*n+m];
     } break;
     default: if (index < SN) {
     }

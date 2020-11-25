@@ -15,22 +15,20 @@ kernel void FN(global const int *restrict param_stack,
   global const T *const restrict a = amat + param_base[0] - 1;
   global const T *const restrict b = bmat + param_base[1] - 1;
   global T *const restrict c = cmat + param_base[2] - 1;
-  local T buf[SK*SN], cuf[SM*SN];
+  local T buf[SK], cuf[SM];
 
   const int index = get_local_id(0);
   switch (get_local_size(0)) {
     case SN: {
       const int n = index;
-      for (int k = 0; k < SK; ++k) buf[SN*k+n] = b[SN*k+n];
-      barrier(CLK_LOCAL_MEM_FENCE);
+      for (int k = 0; k < SK; ++k) buf[k] = b[SN*k+n];
       for (int m = 0; m < SM; ++m) {
         T r = 0;
-        for (int k = 0; k < SK; ++k) r += a[SM*k+m] * buf[SN*k+n];
-        cuf[SM*n+m] = r;
+        for (int k = 0; k < SK; ++k) r += a[SM*k+m] * buf[k];
+        cuf[m] = r;
       }
-      barrier(CLK_LOCAL_MEM_FENCE);
       /* TODO: atomic commit */
-      for (int m = 0; m < SM; ++m) c[SM*n+m] = cuf[SM*n+m];
+      for (int m = 0; m < SM; ++m) c[SM*n+m] = cuf[m];
     } break;
     default: if (index < SN) {
     }

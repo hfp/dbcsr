@@ -123,7 +123,11 @@
 # define ACC_OPENCL_EXPECT(EXPECTED, EXPR) assert((EXPECTED) == (EXPR))
 # define ACC_OPENCL_ERROR(MSG, RESULT) do { \
     if (-1001 != (RESULT)) { \
-      fprintf(stderr, "ERROR ACC/OpenCL: " MSG " (code=%i)\n", RESULT); \
+      fprintf(stderr, "ERROR ACC/OpenCL: " MSG); \
+      if (EXIT_FAILURE != (RESULT)) { \
+        fprintf(stderr, " (code=%i)\n", RESULT); \
+      } \
+      else fprintf(stderr, "\n"); \
       assert(CL_SUCCESS != (RESULT)); \
     } \
     else { \

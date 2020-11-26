@@ -97,6 +97,7 @@ int main(int argc, char* argv[])
     CHECK(acc_finalize(), NULL);
     return result;
   }
+  printf("element type: %s\n", DBCSR_STRINGIFY(ELEM_TYPE));
   CHECK(acc_stream_create(&stream, "stream", -1/*default priority*/), &result);
   CHECK(acc_host_mem_allocate((void**)&amat_hst, sizeof(ELEM_TYPE) * mk * na, stream), &result);
   CHECK(acc_host_mem_allocate((void**)&bmat_hst, sizeof(ELEM_TYPE) * kn * nb, stream), &result);

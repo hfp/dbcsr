@@ -81,7 +81,7 @@ int main(int argc, char* argv[])
   void *stream = NULL;
 #if defined(USE_LIBXSMM)
   libxsmm_timer_tickint start;
-  double duration;
+  double duration, transpose;
 #endif
   assert(m <= (mn / n) && 0 == (mn % n) && k <= (mk / k) && 0 == (mk % k) && n <= (kn / n) && 0 == (kn % n));
   printf("%s%s%i %i %i %i %i %i %i %i\n", 0 < argc ? argv[0] : "", 0 < argc ? " " : "",
@@ -154,10 +154,10 @@ int main(int argc, char* argv[])
     DBCSR_TYPE(ELEM_TYPE), k, n, MAX_KERNEL_DIM, stream), &result);
 #if defined(USE_LIBXSMM)
   CHECK(acc_stream_sync(stream), &result);
-  duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
-  printf("transpose: %.1f ms %.1f GB/s\n", 1000.0 * duration,
+  transpose = libxsmm_timer_duration(start, libxsmm_timer_tick());
+  printf("transpose: %.1f ms %.1f GB/s\n", 1000.0 * transpose,
     (sizeof(ELEM_TYPE) * kn + sizeof(int))
-      * nb / (duration * (1ULL << 30)));
+      * nb / (transpose * (1ULL << 30)));
 #endif
   /* warmup execution and prebuild SMM-kernel */
   for (r = 0; r < warmup; ++r) {
@@ -183,6 +183,8 @@ int main(int argc, char* argv[])
     const ELEM_TYPE alpha = 1, beta = 1;
     printf("device: %.1f ms %.1f GFLOPS/s\n", 1000.0 * duration / nrepeat,
       ((size_t)2 * m * n * k) * stack_size / (duration * (1ULL << 30) / nrepeat));
+    printf("smm+t: %.1f ms %.1f GFLOPS/s\n", 1000.0 * (duration + transpose) / nrepeat,
+      ((size_t)2 * m * n * k) * stack_size / ((duration + transpose) * (1ULL << 30) / nrepeat));
     memset(gold_hst, 0, sizeof(ELEM_TYPE) * mn * nc);
     for (r = 0; r < warmup; ++r) {
       libxsmm_gemm_batch_omp(LIBXSMM_GEMM_PRECISION(ELEM_TYPE), LIBXSMM_GEMM_PRECISION(ELEM_TYPE),

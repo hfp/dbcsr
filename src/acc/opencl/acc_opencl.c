@@ -356,8 +356,7 @@ int acc_opencl_device_ext(cl_device_id device, const char *const extnames[], int
     do {
       --num_exts;
       if (NULL == extnames[num_exts] || NULL == strstr(buffer, extnames[num_exts])) {
-        result = EXIT_FAILURE;
-        break;
+        return EXIT_FAILURE;
       }
     } while (0 < num_exts);
   }

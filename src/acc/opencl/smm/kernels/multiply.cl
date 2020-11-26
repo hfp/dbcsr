@@ -28,7 +28,7 @@ kernel void FN(global const int *restrict param_stack,
         cuf[m] = r;
       }
       /* TODO: atomic commit */
-      for (int m = 0; m < SM; ++m) c[SM*n+m] = cuf[m];
+      for (int m = 0; m < SM; ++m) c[SM*n+m] += cuf[m];
     } break;
     default: if (index < SN) {
     }

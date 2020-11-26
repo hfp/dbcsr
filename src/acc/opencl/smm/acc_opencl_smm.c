@@ -177,37 +177,46 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
       if (NULL == config) {
         char build_options[512], fname[48];
         const char *const env_options = getenv("ACC_OPENCL_SMM_BUILD_OPTIONS");
-        int nchar = ACC_OPENCL_SNPRINTF(fname, sizeof(fname), "xmm%ix%ix%i", m_max, n_max, k_max);
         cl_device_id active_device;
-        const char* typename = "";
-        result = acc_opencl_device(stream, &active_device);
-        if (EXIT_SUCCESS == result) {
-          assert(NULL != active_device);
-          switch (datatype) {
-            case dbcsr_type_real_8: {
-              const char *const extnames[] = { "cl_khr_global_int64_base_atomics", "cl_khr_fp64" };
-              if (EXIT_SUCCESS == acc_opencl_device_ext(active_device, extnames,
-                sizeof(extnames) / sizeof(*extnames)))
-              {
-                typename = "double";
-                fname[0] = 'd';
-              }
-            } break;
-            case dbcsr_type_real_4: {
-              const char *const extnames[] = { "cl_khr_global_int32_base_atomics" };
-              if (EXIT_SUCCESS == acc_opencl_device_ext(active_device, extnames,
-                sizeof(extnames) / sizeof(*extnames)))
-              {
-                typename = "float";
-                fname[0] = 's';
-              }
-            } break;
-            default: ;
+        const char* typename = NULL;
+        int nchar = ACC_OPENCL_SNPRINTF(fname, sizeof(fname), "xmm%ix%ix%i", m_max, n_max, k_max);
+        if (0 < nchar && (int)sizeof(fname) > nchar) {
+          result = acc_opencl_device(stream, &active_device);
+          if (EXIT_SUCCESS == result) {
+            assert(NULL != active_device);
+            switch (datatype) {
+              case dbcsr_type_real_8: {
+                const char *const extnames[] = { "cl_khr_global_int64_base_atomics", "cl_khr_fp64" };
+                if (EXIT_SUCCESS == acc_opencl_device_ext(active_device, extnames,
+                  sizeof(extnames) / sizeof(*extnames)))
+                {
+                  typename = "double";
+                  fname[0] = 'd';
+                }
+              } break;
+              case dbcsr_type_real_4: {
+                const char *const extnames[] = { "cl_khr_global_int32_base_atomics" };
+                if (EXIT_SUCCESS == acc_opencl_device_ext(active_device, extnames,
+                  sizeof(extnames) / sizeof(*extnames)))
+                {
+                  typename = "float";
+                  fname[0] = 's';
+                }
+              } break;
+              default: ;
+            }
+            if (NULL != typename && '\0' == *typename) {
+              nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options), "%s -DT=%s -DFN=%s -DSM=%i -DSN=%i -DSK=%i",
+                (NULL == env_options || '\0' == *env_options) ? "" : env_options, typename, fname, m_max, n_max, k_max);
+              if (0 >= nchar || (int)sizeof(build_options) <= nchar) result = EXIT_FAILURE;
+            }
+            else {
+              result = EXIT_FAILURE;
+            }
           }
-          nchar = ((0 < nchar && (int)sizeof(fname) > nchar)
-            ? ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options), "%s -DT=%s -DFN=%s -DSM=%i -DSN=%i -DSK=%i",
-            (NULL == env_options || '\0' == *env_options) ? "" : env_options, typename, fname, m_max, n_max, k_max) : 0);
-          if ('\0' == *typename || 0 >= nchar || (int)sizeof(build_options) <= nchar) result = EXIT_FAILURE;
+        }
+        else {
+          result = EXIT_FAILURE;
         }
         if (EXIT_SUCCESS == result) {
           const char *const paths[] = {

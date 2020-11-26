@@ -13,7 +13,7 @@ inline void add_atomic(global volatile T* address, T inc)
   do {
     old_val.f = *address;
     new_val.f = old_val.f + inc;
-  } while (atom_cmpxchg((global volatile long*)address, old_val.a, new_val.a) != old_val.a);
+  } while (old_val.a != atom_cmpxchg((global volatile TA*)address, old_val.a, new_val.a));
 }
 
 

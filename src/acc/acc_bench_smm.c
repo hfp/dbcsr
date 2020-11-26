@@ -195,11 +195,11 @@ int main(int argc, char* argv[])
     CHECK(acc_memcpy_d2h(cmat_dev, cmat_hst, sizeof(ELEM_TYPE) * mn * nc, stream), &result);
     CHECK(acc_stream_sync(stream), &result);
     if (EXIT_SUCCESS == result) {
-      double abserror = 0, relerror;
+      double abserror = 0, relerror = 0;
       for (i = 0; i < nc; ++i) {
         const ELEM_TYPE *const gold = gold_hst + mn * i;
         const ELEM_TYPE *const test = cmat_hst + mn * i;
-        double diff = 0, a, b;
+        double diff = 0, a = 0, b = 0;
         for (r = 0; r < (m * n); ++r) {
           const double ar = (double)gold[r];
           const double br = (double)test[r];

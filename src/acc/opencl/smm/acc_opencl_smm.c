@@ -178,7 +178,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
         char build_options[512], fname[48];
         const char *const env_options = getenv("ACC_OPENCL_SMM_BUILD_OPTIONS");
         cl_device_id active_device;
-        const char* typename = NULL;
+        const char *typename = NULL, atomic = NULL;
         int nchar = ACC_OPENCL_SNPRINTF(fname, sizeof(fname), "xmm%ix%ix%i", m_max, n_max, k_max);
         if (0 < nchar && (int)sizeof(fname) > nchar) {
           result = acc_opencl_device(stream, &active_device);
@@ -191,6 +191,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                   sizeof(extnames) / sizeof(*extnames)))
                 {
                   typename = "double";
+                  atomic = "long";
                   fname[0] = 'd';
                 }
               } break;
@@ -200,14 +201,15 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                   sizeof(extnames) / sizeof(*extnames)))
                 {
                   typename = "float";
+                  atomic = "int";
                   fname[0] = 's';
                 }
               } break;
               default: ;
             }
             if (NULL != typename && '\0' != *typename) {
-              nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options), "%s -DT=%s -DFN=%s -DSM=%i -DSN=%i -DSK=%i",
-                (NULL == env_options || '\0' == *env_options) ? "" : env_options, typename, fname, m_max, n_max, k_max);
+              nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options), "%s -DT=%s -DTA=%s -DFN=%s -DSM=%i -DSN=%i -DSK=%i",
+                (NULL == env_options || '\0' == *env_options) ? "" : env_options, typename, atomic, fname, m_max, n_max, k_max);
               if (0 >= nchar || (int)sizeof(build_options) <= nchar) result = EXIT_FAILURE;
             }
             else {

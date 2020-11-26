@@ -186,7 +186,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
             assert(NULL != active_device);
             switch (datatype) {
               case dbcsr_type_real_8: {
-                const char *const extnames[] = { "cl_khr_global_int64_base_atomics", "cl_khr_fp64" };
+                const char *const extnames[] = { "cl_khr_int64_base_atomics", "cl_khr_fp64" };
                 if (EXIT_SUCCESS == acc_opencl_device_ext(active_device, extnames,
                   sizeof(extnames) / sizeof(*extnames)))
                 {

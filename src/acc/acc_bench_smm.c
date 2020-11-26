@@ -20,6 +20,9 @@
 #if !defined(ELEM_TYPE)
 # define ELEM_TYPE double
 #endif
+#if !defined(EPSILON)
+# define EPSILON 1E-6
+#endif
 #if !defined(MAX_KERNEL_DIM)
 # define MAX_KERNEL_DIM 80
 #endif
@@ -192,24 +195,35 @@ int main(int argc, char* argv[])
     CHECK(acc_memcpy_d2h(cmat_dev, cmat_hst, sizeof(ELEM_TYPE) * mn * nc, stream), &result);
     CHECK(acc_stream_sync(stream), &result);
     if (EXIT_SUCCESS == result) {
-      unsigned int nerrors = 0;
+      double abserror = 0, relerror;
       for (i = 0; i < nc; ++i) {
         const ELEM_TYPE *const gold = gold_hst + mn * i;
         const ELEM_TYPE *const test = cmat_hst + mn * i;
+        double diff = 0, a, b;
         for (r = 0; r < (m * n); ++r) {
-          if (gold[r] != test[r]) {
-            ++nerrors;
+          const double ar = (double)gold[r];
+          const double br = (double)test[r];
+          const double d = fabs(ar - br);
+          if (d > diff) {
+            diff = d;
+            a = ar;
+            b = br;
+          }
+        }
+        if (0 < diff) {
 # if defined(_DEBUG)
-            print(stderr, "gold = ", gold, m, n);
-            print(stderr, "test = ", test, m, n);
-            fprintf(stderr, "\n");
+          print(stderr, "gold = ", gold, m, n);
+          print(stderr, "test = ", test, m, n);
+          fprintf(stderr, "diff = %g (%g != %g)\n", diff, a, b);
 # endif
-            break;
+          if (abserror < diff) {
+            relerror = (0 != a ? fabs(diff / a) : fabs(diff / b));
+            abserror = diff;
           }
         }
       }
-      printf("errors: %u\n", nerrors);
-      if (0 != nerrors) result = EXIT_FAILURE;
+      printf("errors: abs=%g rel=%g\n", abserror, relerror);
+      if (EPSILON < relerror) result = EXIT_FAILURE;
     }
     libxsmm_free(gold_hst);
   }

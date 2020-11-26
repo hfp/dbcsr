@@ -213,6 +213,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
               if (0 >= nchar || (int)sizeof(build_options) <= nchar) result = EXIT_FAILURE;
             }
             else {
+              result = EXIT_FAILURE;
               ACC_OPENCL_ERROR("insufficient device capabilities", result);
             }
           }

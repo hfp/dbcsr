@@ -18,8 +18,10 @@
 int main(int argc, char* argv[])
 {
   char* lines[ACC_OPENCL_TEST_MAXNLINES];
-  const char * paths[] = { "../opencl_smm/kernels" };
-  FILE *const file = acc_opencl_source_open("transpose.cl", paths, sizeof(paths) / sizeof(*paths));
+  const char *const paths[] = { "smm/kernels" };
+  FILE *const file = acc_opencl_source_open(
+    1 < argc ? argv[1] : "transpose.cl",
+    paths, sizeof(paths) / sizeof(*paths));
   int result = EXIT_SUCCESS, nlines = 0;
   char source[] =
     "/* banner */\n"

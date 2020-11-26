@@ -178,7 +178,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
         char build_options[512], fname[48];
         const char *const env_options = getenv("ACC_OPENCL_SMM_BUILD_OPTIONS");
         cl_device_id active_device;
-        const char *typename = NULL, atomic = NULL;
+        const char *typename = NULL, *atomic = NULL;
         int nchar = ACC_OPENCL_SNPRINTF(fname, sizeof(fname), "xmm%ix%ix%i", m_max, n_max, k_max);
         if (0 < nchar && (int)sizeof(fname) > nchar) {
           result = acc_opencl_device(stream, &active_device);

@@ -205,7 +205,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
               } break;
               default: ;
             }
-            if (NULL != typename && '\0' == *typename) {
+            if (NULL != typename && '\0' != *typename) {
               nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options), "%s -DT=%s -DFN=%s -DSM=%i -DSN=%i -DSK=%i",
                 (NULL == env_options || '\0' == *env_options) ? "" : env_options, typename, fname, m_max, n_max, k_max);
               if (0 >= nchar || (int)sizeof(build_options) <= nchar) result = EXIT_FAILURE;

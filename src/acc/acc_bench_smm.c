@@ -118,7 +118,7 @@ int main(int argc, char* argv[])
   CHECK(acc_dev_mem_allocate((void**)&bmat_dev, sizeof(ELEM_TYPE) * kn * nb), &result);
   CHECK(acc_dev_mem_allocate((void**)&cmat_dev, sizeof(ELEM_TYPE) * mn * nc), &result);
   CHECK(acc_dev_mem_allocate((void**)&stack_dev, sizeof(int) * 3 * stack_size), &result);
-  CHECK(acc_dev_mem_allocate((void**)&trans_dev, sizeof(int) * nb, stream), &result);
+  CHECK(acc_dev_mem_allocate((void**)&trans_dev, sizeof(int) * nb), &result);
   CHECK(acc_memset_zero(cmat_dev, 0/*offset*/, sizeof(ELEM_TYPE) * mn * nc, stream), &result);
   CHECK(acc_memcpy_h2d(trans_hst, trans_dev, sizeof(int) * nb, stream), &result);
 #if defined(USE_LIBXSMM)

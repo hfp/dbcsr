@@ -145,9 +145,20 @@ int main(int argc, char* argv[])
     CHECK(libsmm_acc_transpose(trans_dev, 0/*offset*/, nb, bmat_dev,
       DBCSR_TYPE(ELEM_TYPE), n, k, MAX_KERNEL_DIM, stream), &result);
   }
-  /* to perform NN-SMM on the device, all B-matrices are transposed upfront (SMM-kernel is limited to NT) */
+#if defined(USE_LIBXSMM)
+  CHECK(acc_stream_sync(stream), &result);
+  start = libxsmm_timer_tick();
+#endif
+  /* to perform NN-SMMs on the device, all B-matrices are transposed upfront (SMM-kernel is limited to NT) */
   CHECK(libsmm_acc_transpose(trans_dev, 0/*offset*/, nb, bmat_dev,
     DBCSR_TYPE(ELEM_TYPE), k, n, MAX_KERNEL_DIM, stream), &result);
+#if defined(USE_LIBXSMM)
+  CHECK(acc_stream_sync(stream), &result);
+  duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
+  printf("transpose: %.1f ms %.1f GB/s\n", 1000.0 * duration,
+    (sizeof(ELEM_TYPE) * kn + sizeof(int))
+      * nb / (duration * (1ULL << 30)));
+#endif
   /* warmup execution and prebuild SMM-kernel */
   for (r = 0; r < warmup; ++r) {
     CHECK(libsmm_acc_process(stack_hst, stack_dev, stack_size, 3/*nparams*/, DBCSR_TYPE(ELEM_TYPE),

@@ -71,7 +71,7 @@ int main(int argc, char* argv[])
 #else
   const int warmup = 0;
 #endif
-  int *stack_hst = NULL, *stack_dev = NULL, *trans_hst = NULL, *trans_dev = NZLL;
+  int *stack_hst = NULL, *stack_dev = NULL, *trans_hst = NULL, *trans_dev = NULL;
   ELEM_TYPE *amat_hst = NULL, *bmat_hst = NULL, *cmat_hst = NULL;
   ELEM_TYPE *amat_dev = NULL, *bmat_dev = NULL, *cmat_dev = NULL;
   int result = EXIT_SUCCESS, ndevices = 0, r, i;

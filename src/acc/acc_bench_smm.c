@@ -222,7 +222,7 @@ int main(int argc, char* argv[])
           }
         }
       }
-      printf("errors: abs=%g rel=%g\n", abserror, relerror);
+      printf("max. error: rel=%g\n", relerror);
       if (EPSILON < relerror) result = EXIT_FAILURE;
     }
     libxsmm_free(gold_hst);

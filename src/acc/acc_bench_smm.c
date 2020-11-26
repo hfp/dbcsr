@@ -71,7 +71,7 @@ int main(int argc, char* argv[])
 #else
   const int warmup = 0;
 #endif
-  int *stack_hst = NULL, *stack_dev = NULL;
+  int *stack_hst = NULL, *stack_dev = NULL, *trans_hst = NULL, *trans_dev = NZLL;
   ELEM_TYPE *amat_hst = NULL, *bmat_hst = NULL, *cmat_hst = NULL;
   ELEM_TYPE *amat_dev = NULL, *bmat_dev = NULL, *cmat_dev = NULL;
   int result = EXIT_SUCCESS, ndevices = 0, r, i;
@@ -103,16 +103,24 @@ int main(int argc, char* argv[])
   CHECK(acc_host_mem_allocate((void**)&bmat_hst, sizeof(ELEM_TYPE) * kn * nb, stream), &result);
   CHECK(acc_host_mem_allocate((void**)&cmat_hst, sizeof(ELEM_TYPE) * mn * nc, stream), &result);
   CHECK(acc_host_mem_allocate((void**)&stack_hst, sizeof(int) * 3 * stack_size, stream), &result);
+  CHECK(acc_host_mem_allocate((void**)&trans_hst, sizeof(int) * nb, stream), &result);
   CHECK(acc_stream_sync(stream), &result); /* ensure host-data is allocated */
   /* initialize matrices */
-  for (i = 0; i < na; ++i) init(i/*seed*/ + 42, &amat_hst[i*mk], m, k);
-  for (i = 0; i < nb; ++i) init(i/*seed*/ + 24, &bmat_hst[i*kn], k, n);
+  for (i = 0; i < na; ++i) {
+    init(i/*seed*/ + 42, &amat_hst[i*mk], m, k);
+  }
+  for (i = 0; i < nb; ++i) {
+    init(i/*seed*/ + 24, &bmat_hst[i*kn], k, n);
+    trans_hst[i] = i * kn;
+  }
   init_stack(stack_hst, stack_size, mn, mk, kn, nc, na, nb);
   CHECK(acc_dev_mem_allocate((void**)&amat_dev, sizeof(ELEM_TYPE) * mk * na), &result);
   CHECK(acc_dev_mem_allocate((void**)&bmat_dev, sizeof(ELEM_TYPE) * kn * nb), &result);
   CHECK(acc_dev_mem_allocate((void**)&cmat_dev, sizeof(ELEM_TYPE) * mn * nc), &result);
   CHECK(acc_dev_mem_allocate((void**)&stack_dev, sizeof(int) * 3 * stack_size), &result);
+  CHECK(acc_dev_mem_allocate((void**)&trans_dev, sizeof(int) * nb, stream), &result);
   CHECK(acc_memset_zero(cmat_dev, 0/*offset*/, sizeof(ELEM_TYPE) * mn * nc, stream), &result);
+  CHECK(acc_memcpy_h2d(trans_hst, trans_dev, sizeof(int) * nb, stream), &result);
 #if defined(USE_LIBXSMM)
   CHECK(acc_stream_sync(stream), &result);
   start = libxsmm_timer_tick();
@@ -129,13 +137,13 @@ int main(int argc, char* argv[])
 #endif
   /* warmup execution and prebuild transpose-kernel */
   for (r = 0; r < warmup / 2; ++r) {
-    CHECK(libsmm_acc_transpose(stack_dev, 1/*offset*/, stack_size, bmat_dev,
+    CHECK(libsmm_acc_transpose(trans_dev, 0/*offset*/, nb, bmat_dev,
       DBCSR_TYPE(ELEM_TYPE), k, n, MAX_KERNEL_DIM, stream), &result);
-    CHECK(libsmm_acc_transpose(stack_dev, 1/*offset*/, stack_size, bmat_dev,
+    CHECK(libsmm_acc_transpose(trans_dev, 0/*offset*/, nb, bmat_dev,
       DBCSR_TYPE(ELEM_TYPE), n, k, MAX_KERNEL_DIM, stream), &result);
   }
   /* to perform NN-SMM on the device, all B-matrices are transposed upfront (SMM-kernel is limited to NT) */
-  CHECK(libsmm_acc_transpose(stack_dev, 1/*offset*/, stack_size, bmat_dev,
+  CHECK(libsmm_acc_transpose(trans_dev, 0/*offset*/, nb, bmat_dev,
     DBCSR_TYPE(ELEM_TYPE), k, n, MAX_KERNEL_DIM, stream), &result);
   /* warmup execution and prebuild SMM-kernel */
   for (r = 0; r < warmup; ++r) {

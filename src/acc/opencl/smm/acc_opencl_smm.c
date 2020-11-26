@@ -78,12 +78,11 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
         const int inplace = (m == n && 0 == tiny);
 #else
         const char *const env_inplace = getenv("ACC_OPENCL_TRANS_INPLACE");
-        cl_device_id active_device; int confirmed;
+        cl_device_id active_device;
         const int inplace = (m == n && 0 == tiny) &&
           ((NULL != env_inplace && '\0' != *env_inplace && '0' != *env_inplace)
             ||  (EXIT_SUCCESS == acc_opencl_device(stream, &active_device)
-              && EXIT_SUCCESS == acc_opencl_device_vendor(active_device, "intel", &confirmed)
-              && confirmed));
+              && EXIT_SUCCESS == acc_opencl_device_vendor(active_device, "intel")));
 #endif
         const char *const paths[] = {
           "../../exts/dbcsr/src/acc/opencl/smm/kernel",
@@ -179,22 +178,38 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
         char build_options[512], fname[48];
         const char *const env_options = getenv("ACC_OPENCL_SMM_BUILD_OPTIONS");
         int nchar = ACC_OPENCL_SNPRINTF(fname, sizeof(fname), "xmm%ix%ix%i", m_max, n_max, k_max);
+        cl_device_id active_device;
         const char* typename = "";
-        switch (datatype) {
-          case dbcsr_type_real_8: {
-            typename = "double";
-            fname[0] = 'd';
-          } break;
-          case dbcsr_type_real_4: {
-            typename = "float";
-            fname[0] = 's';
-          } break;
-          default: ;
+        result = acc_opencl_device(stream, &active_device);
+        if (EXIT_SUCCESS == result) {
+          assert(NULL != active_device);
+          switch (datatype) {
+            case dbcsr_type_real_8: {
+              const char *const extnames[] = { "cl_khr_global_int64_base_atomics", "cl_khr_fp64" };
+              if (EXIT_SUCCESS == acc_opencl_device_ext(active_device, extnames,
+                sizeof(extnames) / sizeof(*extnames)))
+              {
+                typename = "double";
+                fname[0] = 'd';
+              }
+            } break;
+            case dbcsr_type_real_4: {
+              const char *const extnames[] = { "cl_khr_global_int32_base_atomics" };
+              if (EXIT_SUCCESS == acc_opencl_device_ext(active_device, extnames,
+                sizeof(extnames) / sizeof(*extnames)))
+              {
+                typename = "float";
+                fname[0] = 's';
+              }
+            } break;
+            default: ;
+          }
+          nchar = ((0 < nchar && (int)sizeof(fname) > nchar)
+            ? ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options), "%s -DT=%s -DFN=%s -DSM=%i -DSN=%i -DSK=%i",
+            (NULL == env_options || '\0' == *env_options) ? "" : env_options, typename, fname, m_max, n_max, k_max) : 0);
+          if ('\0' == *typename || 0 >= nchar || (int)sizeof(build_options) <= nchar) result = EXIT_FAILURE;
         }
-        nchar = ((0 < nchar && (int)sizeof(fname) > nchar)
-          ? ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options), "%s -DT=%s -DFN=%s -DSM=%i -DSN=%i -DSK=%i",
-          (NULL == env_options || '\0' == *env_options) ? "" : env_options, typename, fname, m_max, n_max, k_max) : 0);
-        if ('\0' != *typename && 0 < nchar && (int)sizeof(build_options) > nchar) {
+        if (EXIT_SUCCESS == result) {
           const char *const paths[] = {
             "../../exts/dbcsr/src/acc/opencl/smm/kernel",
             "opencl/smm/kernels"

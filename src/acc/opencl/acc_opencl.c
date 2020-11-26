@@ -303,7 +303,7 @@ int acc_opencl_device(void* stream, cl_device_id* device)
 }
 
 
-int acc_opencl_device_vendor(cl_device_id device, const char* vendor, int* confirmed)
+int acc_opencl_device_vendor(cl_device_id device, const char* vendor)
 {
   char buffer[ACC_OPENCL_BUFFER_MAXSIZE];
   int result = EXIT_SUCCESS;
@@ -312,8 +312,12 @@ int acc_opencl_device_vendor(cl_device_id device, const char* vendor, int* confi
   ACC_OPENCL_CHECK(clGetDeviceInfo(device,
     CL_DEVICE_VENDOR, ACC_OPENCL_BUFFER_MAXSIZE, buffer, NULL),
     "retrieve device vendor", result);
-  *confirmed = (NULL != acc_opencl_stristr(buffer, vendor));
-  ACC_OPENCL_RETURN(result);
+  if (EXIT_SUCCESS == result) {
+    return (NULL != acc_opencl_stristr(buffer, vendor)
+      ? EXIT_SUCCESS
+      : EXIT_FAILURE);
+  }
+  else ACC_OPENCL_RETURN(result);
 }
 
 

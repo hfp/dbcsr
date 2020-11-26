@@ -35,27 +35,28 @@ int main(int argc, char* argv[])
     nlines = acc_opencl_source(NULL, lines,
       ACC_OPENCL_TEST_MAXNLINES, 1/*cleanup*/);
     if (0 < nlines) {
-      if (1 < argc ? 2 == atoi(argv[1]) : 1) {
-        int i = 0;
-        do {
-          ACC_OPENCL_DEBUG_PRINTF("%s\n", lines[i]);
-        } while (++i < nlines);
-      }
+#if defined(_DEBUG)
+      int i = 0;
+      do {
+        ACC_OPENCL_DEBUG_PRINTF("%s\n", lines[i]);
+      } while (++i < nlines);
+#endif
     }
+    else result = EXIT_FAILURE;
   }
   if (NULL != file) {
-    nlines = acc_opencl_source(file, lines,
-      ACC_OPENCL_TEST_MAXNLINES, 1/*cleanup*/);
-    fclose(file);
+    nlines = (EXIT_SUCCESS == result ? acc_opencl_source(file, lines,
+      ACC_OPENCL_TEST_MAXNLINES, 1/*cleanup*/) : 0);
+#if defined(_DEBUG)
     if (0 < nlines) {
-      if (1 < argc ? 1 == atoi(argv[1]) : 1) {
-        int i = 0;
-        do {
-          ACC_OPENCL_DEBUG_PRINTF("%s\n", lines[i]);
-        } while (++i < nlines);
-      }
+      int i = 0;
+      do {
+        ACC_OPENCL_DEBUG_PRINTF("%s\n", lines[i]);
+      } while (++i < nlines);
       free(lines[0]);
     }
+#endif
+    fclose(file);
   }
   return result;
 }

@@ -510,24 +510,37 @@ int acc_opencl_source(FILE* source, char* lines[], int max_nlines, int cleanup)
       }
       else input = NULL;
       if (0 != cleanup) {
-        const char *const line = lines[nlines] + strspn(lines[nlines], " \t");
+        char *const line = lines[nlines] + strspn(lines[nlines], " \t"), *start = NULL;
         size_t len = strlen(line);
         if (0 == len) inc = 0;
         else if (2 <= len) {
           if ('/' == line[0] && '/' == line[1]) inc = 0;
           else {
+            start = strstr(line, "/*");
             end = strstr(line, "*/");
-            if ('/' == line[0] && '*' == line[1]) {
-              ++cleanup_begin;
-              inc = 0;
+            if (NULL != end) { /* closing comment */
+              if ('\0' == end[2+strspn(end + 2, " \t")]) {
+                if (NULL == start) {
+                  --cleanup_begin;
+                  inc = 0;
+                }
+                else if (start == line) {
+                  inc = 0;
+                }
+                else {
+                  start[0] = start[1] = '\0';
+                }
+              }
             }
-            if (NULL != end && '\0' == end[2+strspn(end + 2, " \t")]) {
-              --cleanup_begin;
-              inc = 0;
+            else if (NULL != start) { /* opening comment */
+              ++cleanup_begin;
+              if (start != line) {
+                start[0] = start[1] = '\0';
+              }
             }
           }
         }
-        if (cleanup < cleanup_begin) inc = 0;
+        if (cleanup < cleanup_begin && (NULL == start || start == line)) inc = 0;
         if (0 == inc && 0 == nlines && NULL != source) input = begin;
       }
       nlines += inc;

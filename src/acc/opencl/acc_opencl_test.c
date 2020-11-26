@@ -24,12 +24,13 @@ int main(int argc, char* argv[])
     paths, sizeof(paths) / sizeof(*paths));
   int result = EXIT_SUCCESS, nlines = 0;
   char source[] =
-    "/* banner */\n"
-    "#define M 23\n"
-    "#define N 24\n"
-    "/* comment */\n"
-    "#define S (M*N)\n"
-    "#define T float";
+    "{ /* banner */\n"
+    "# define M 23\n"
+    "# define N 24\n"
+    "  /* comment */\n"
+    "# define S (M*N)\n"
+    "# define T float"
+    "} /*end*/";
   {
     lines[0] = source;
     nlines = acc_opencl_source(NULL, lines,

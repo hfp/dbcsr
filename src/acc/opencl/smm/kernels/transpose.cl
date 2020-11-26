@@ -39,5 +39,6 @@ kernel void FN(global const int *restrict trs_stack, int trs_offset, global T *r
         for (int n = 0; n < SN; ++n) mat[SN*m+n] = buf[SM*n+m];
       }
     }
+    else barrier(CLK_LOCAL_MEM_FENCE);
   }
 }

@@ -184,7 +184,7 @@ int main(int argc, char* argv[])
     CHECK(acc_stream_sync(stream), &result);
     if (EXIT_SUCCESS == result) {
       unsigned int nerrors = 0;
-      for (i = 0; i < stack_size; ++i) {
+      for (i = 0; i < nc; ++i) {
         const ELEM_TYPE *const gold = gold_hst + mn * i;
         const ELEM_TYPE *const test = cmat_hst + mn * i;
         for (r = 0; r < (m * n); ++r) {

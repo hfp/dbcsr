@@ -25,7 +25,7 @@ kernel void FN(global const int *restrict param_stack,
   global const T *const restrict a = amat + param_base[0] - 1;
   global const T *const restrict b = bmat + param_base[1] - 1;
   global T *const restrict c = cmat + param_base[2] - 1;
-  local T buf[SK], cuf[SM];
+  private T buf[SK];
 
   const int index = get_local_id(0);
   switch (get_local_size(0)) {
@@ -35,10 +35,7 @@ kernel void FN(global const int *restrict param_stack,
       for (int m = 0; m < SM; ++m) {
         T r = 0;
         for (int k = 0; k < SK; ++k) r += a[SM*k+m] * buf[k];
-        cuf[m] = r;
-      }
-      for (int m = 0; m < SM; ++m) {
-        add_atomic(c + SM * n + m, cuf[m]);
+        add_atomic(c + SM * n + m, r);
       }
     } break;
     default: if (index < SN) {

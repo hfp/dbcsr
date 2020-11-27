@@ -176,30 +176,27 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
       config = (config_t*)libxsmm_xdispatch(&key, sizeof(key));
       if (NULL == config) {
         char build_options[512], fname[48];
-        const char *const env_options = getenv("ACC_OPENCL_SMM_BUILD_OPTIONS");
-        cl_device_id active_device;
-        const char *typename = NULL, *atomic = NULL;
         int nchar = ACC_OPENCL_SNPRINTF(fname, sizeof(fname), "xmm%ix%ix%i", m_max, n_max, k_max);
+        const char* extnames = NULL;
         if (0 < nchar && (int)sizeof(fname) > nchar) {
+          cl_device_id active_device;
           result = acc_opencl_device(stream, &active_device);
           if (EXIT_SUCCESS == result) {
+            const char *const env_options = getenv("ACC_OPENCL_SMM_BUILD_OPTIONS");
+            const char *typename = NULL, *atomic = NULL;
             assert(NULL != active_device);
             switch (datatype) {
               case dbcsr_type_real_8: {
-                const char *const extnames[] = { "cl_khr_int64_base_atomics", "cl_khr_fp64" };
-                if (EXIT_SUCCESS == acc_opencl_device_ext(active_device, extnames,
-                  sizeof(extnames) / sizeof(*extnames)))
-                {
+                extnames = "cl_khr_int64_base_atomics cl_khr_fp64";
+                if (EXIT_SUCCESS == acc_opencl_device_ext(active_device, &extnames, 1)) {
                   typename = "double";
                   atomic = "long";
                   fname[0] = 'd';
                 }
               } break;
               case dbcsr_type_real_4: {
-                const char *const extnames[] = { "cl_khr_global_int32_base_atomics" };
-                if (EXIT_SUCCESS == acc_opencl_device_ext(active_device, extnames,
-                  sizeof(extnames) / sizeof(*extnames)))
-                {
+                extnames = "cl_khr_global_int32_base_atomics";
+                if (EXIT_SUCCESS == acc_opencl_device_ext(active_device, &extnames, 1)) {
                   typename = "float";
                   atomic = "int";
                   fname[0] = 's';
@@ -231,6 +228,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
           config_t new_config;
           if (NULL != file) {
             char* lines[50];
+            /*TODO: #pragma OPENCL EXTENSION extension: enable */
             const int nlines = acc_opencl_source(file, lines, sizeof(lines) / sizeof(*lines),
               /* whether to cleanup the loaded source code or not */
 #if defined(NDEBUG)

@@ -505,13 +505,15 @@ int acc_opencl_source(FILE* source, char* lines[], const char* extensions, int m
     && (NULL != source || NULL != lines[0]))
   {
     char* input = (NULL != source ? ((char*)malloc(max_nlines * ACC_OPENCL_MAXLINELEN)) : lines[0]);
-    int cleanup_begin = cleanup;
     if (NULL != input) {
+      int cleanup_begin = cleanup;
       char buffer[ACC_OPENCL_BUFFER_MAXSIZE], *const begin = input;
-      char *const exts = (NULL != extensions ? strncpy(buffer, extensions, ACC_OPENCL_BUFFER_MAXSIZE - 1) : NULL);
+      char *const exts = (NULL != extensions
+        ? strncpy(buffer, extensions, ACC_OPENCL_BUFFER_MAXSIZE - 1) : NULL);
       const char* ext = (NULL != exts ? strtok(exts, ACC_OPENCL_DELIMS) : NULL);
       for (; NULL != ext; ext = strtok(NULL, ACC_OPENCL_DELIMS)) {
-        const int nchar = ACC_OPENCL_SNPRINTF(input, ACC_OPENCL_BUFFER_MAXSIZE, "#pragma OPENCL EXTENSION %s: enable", ext);
+        const int nchar = ACC_OPENCL_SNPRINTF(input, ACC_OPENCL_BUFFER_MAXSIZE,
+          "#pragma OPENCL EXTENSION %s: enable\n", ext);
         if (0 < nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) {
           lines[nlines] = input;
           input += nchar + 1;

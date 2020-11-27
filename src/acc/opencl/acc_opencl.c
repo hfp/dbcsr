@@ -23,6 +23,9 @@
 # include <glob.h>
 # define ACC_OPENCL_PATHSEP "/"
 #endif
+#if !defined(INTERNAL_DELIMS)
+# define ACC_OPENCL_DELIMS " \t;,:"
+#endif
 
 
 #if defined(__cplusplus)
@@ -347,16 +350,25 @@ int acc_opencl_device_level(cl_device_id device, int* level_major, int* level_mi
 int acc_opencl_device_ext(cl_device_id device, const char *const extnames[], int num_exts)
 {
   int result = ((NULL != extnames && 0 < num_exts) ? EXIT_SUCCESS : EXIT_FAILURE);
-  char buffer[ACC_OPENCL_BUFFER_MAXSIZE];
+  char extensions[ACC_OPENCL_BUFFER_MAXSIZE], buffer[ACC_OPENCL_BUFFER_MAXSIZE];
   assert(NULL != device);
   ACC_OPENCL_CHECK(clGetDeviceInfo(device, CL_DEVICE_EXTENSIONS,
-    ACC_OPENCL_BUFFER_MAXSIZE, buffer, NULL),
+    ACC_OPENCL_BUFFER_MAXSIZE, extensions, NULL),
     "retrieve device extensions", result);
   if (EXIT_SUCCESS == result) {
     do {
       --num_exts;
-      if (NULL == extnames[num_exts] || NULL == strstr(buffer, extnames[num_exts])) {
+      if (NULL == extnames[num_exts]) {
         return EXIT_FAILURE;
+      }
+      else {
+        char *const exts = strncpy(buffer, extnames[num_exts], ACC_OPENCL_BUFFER_MAXSIZE);
+        const char* ext = strtok(exts, ACC_OPENCL_DELIMS);
+        for (; NULL != ext; ext = strtok(NULL, ACC_OPENCL_DELIMS)) {
+          if (NULL == strstr(extensions, ext)) {
+            return EXIT_FAILURE;
+          }
+        }
       }
     } while (0 < num_exts);
   }

@@ -636,8 +636,9 @@ int acc_opencl_kernel(const char *const source[], int nlines, const char* build_
 #if defined(_DEBUG)
             int i = 1;
             ACC_OPENCL_DEBUG_PRINTF("\n%s\n", source[0]);
-            while (++i < nlines) {
+            while (i < nlines) {
               ACC_OPENCL_DEBUG_PRINTF("%s\n", source[i]);
+              ++i;
             }
 #endif
             ACC_OPENCL_ERROR("create kernel", result);

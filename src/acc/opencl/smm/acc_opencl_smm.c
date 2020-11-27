@@ -194,7 +194,8 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
               default: ;
             }
             if (NULL != typename && '\0' != *typename) {
-              nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options), "%s -DT=%s -DTA=\"%s\" -DFN=%s -DSM=%i -DSN=%i -DSK=%i",
+              nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options),
+                "%s -cl-fast-relaxed-math -DT=%s -DTA=\"%s\" -DFN=%s -DSM=%i -DSN=%i -DSK=%i",
                 (NULL == env_options || '\0' == *env_options) ? "" : env_options, typename, atomic, fname, m_max, n_max, k_max);
               if (0 >= nchar || (int)sizeof(build_options) <= nchar) result = EXIT_FAILURE;
             }

@@ -634,10 +634,11 @@ int acc_opencl_kernel(const char *const source[], int nlines, const char* build_
           if (CL_SUCCESS == result) assert(NULL != *kernel);
           else {
 #if defined(_DEBUG)
-            int i = 0;
-            do {
+            int i = 1;
+            ACC_OPENCL_DEBUG_PRINTF("\n%s\n", source[0]);
+            while (++i < nlines) {
               ACC_OPENCL_DEBUG_PRINTF("%s\n", source[i]);
-            } while (++i < nlines);
+            }
 #endif
             ACC_OPENCL_ERROR("create kernel", result);
           }

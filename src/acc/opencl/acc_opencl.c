@@ -632,7 +632,15 @@ int acc_opencl_kernel(const char *const source[], int nlines, const char* build_
         if (CL_SUCCESS == result) {
           *kernel = clCreateKernel(program, kernel_name, &result);
           if (CL_SUCCESS == result) assert(NULL != *kernel);
-          else ACC_OPENCL_ERROR("create kernel", result);
+          else {
+#if defined(_DEBUG)
+            int i = 0;
+            do {
+              ACC_OPENCL_DEBUG_PRINTF("%s\n", source[i]);
+            } while (++i < nlines);
+#endif
+            ACC_OPENCL_ERROR("create kernel", result);
+          }
         }
         else {
           clGetProgramBuildInfo(program, active_id, CL_PROGRAM_BUILD_LOG,

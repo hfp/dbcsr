@@ -498,71 +498,89 @@ FILE* acc_opencl_source_open(const char* filename, const char *const dirpaths[],
 }
 
 
-int acc_opencl_source(FILE* source, char* lines[], int max_nlines, int cleanup)
+int acc_opencl_source(FILE* source, char* lines[], const char* extensions, int max_nlines, int cleanup)
 {
   int nlines = 0;
   if  ((NULL != lines && 0 < max_nlines)
     && (NULL != source || NULL != lines[0]))
   {
-    char *input = (NULL != source ? ((char*)malloc(max_nlines * ACC_OPENCL_MAXLINELEN)) : lines[0]);
+    char* input = (NULL != source ? ((char*)malloc(max_nlines * ACC_OPENCL_MAXLINELEN)) : lines[0]);
     int cleanup_begin = cleanup;
-    while (nlines < max_nlines && NULL != input && (NULL == source
-      || NULL != fgets(input, ACC_OPENCL_MAXLINELEN, source)))
-    {
-      char *const begin = input, *end = strchr(input, '\n');
-      int inc = 1;
-      lines[nlines] = input;
-      if (NULL != source) {
-        input += ACC_OPENCL_MAXLINELEN;
-        if (NULL != end) *end = '\0';
+    if (NULL != input) {
+      char buffer[ACC_OPENCL_BUFFER_MAXSIZE], *const begin = input;
+      char *const exts = (NULL != extensions ? strncpy(buffer, extensions, ACC_OPENCL_BUFFER_MAXSIZE - 1) : NULL);
+      const char* ext = (NULL != exts ? strtok(exts, ACC_OPENCL_DELIMS) : NULL);
+      for (; NULL != ext; ext = strtok(NULL, ACC_OPENCL_DELIMS)) {
+        const int nchar = ACC_OPENCL_SNPRINTF(input, ACC_OPENCL_BUFFER_MAXSIZE, "#pragma OPENCL EXTENSION %s: enable", ext);
+        if (0 < nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) {
+          lines[nlines] = input;
+          input += nchar + 1;
+          ++nlines;
+        }
+        else {
+          max_nlines = 0;
+          nlines = 0;
+          break;
+        }
       }
-      else if (NULL != end) {
-        input = end + 1;
-        *end = '\0';
-      }
-      else input = NULL;
-      if (0 != cleanup) {
-        char *const line = lines[nlines] + strspn(lines[nlines], " \t"), *start = NULL;
-        size_t len = strlen(line);
-        if (0 == len) inc = 0;
-        else if (2 <= len) {
-          if ('/' == line[0] && '/' == line[1]) inc = 0;
-          else {
-            start = strstr(line, "/*");
-            end = strstr(line, "*/");
-            if (NULL != end) { /* closing comment */
-              if ('\0' == end[2+strspn(end + 2, " \t")]) {
-                if (NULL == start) {
-                  --cleanup_begin;
-                  inc = 0;
+      while (nlines < max_nlines && NULL != input && (NULL == source
+        || NULL != fgets(input, ACC_OPENCL_MAXLINELEN, source)))
+      {
+        char* end = strchr(input, '\n');
+        int inc = 1;
+        lines[nlines] = input;
+        if (NULL != source) {
+          input += ACC_OPENCL_MAXLINELEN;
+          if (NULL != end) *end = '\0';
+        }
+        else if (NULL != end) {
+          input = end + 1;
+          *end = '\0';
+        }
+        else input = NULL;
+        if (0 != cleanup) {
+          char *const line = lines[nlines] + strspn(lines[nlines], " \t"), *start = NULL;
+          size_t len = strlen(line);
+          if (0 == len) inc = 0;
+          else if (2 <= len) {
+            if ('/' == line[0] && '/' == line[1]) inc = 0;
+            else {
+              start = strstr(line, "/*");
+              end = strstr(line, "*/");
+              if (NULL != end) { /* closing comment */
+                if ('\0' == end[2+strspn(end + 2, " \t")]) {
+                  if (NULL == start) {
+                    --cleanup_begin;
+                    inc = 0;
+                  }
+                  else if (start == line) {
+                    inc = 0;
+                  }
+                  else {
+                    start[0] = start[1] = '\0';
+                  }
                 }
-                else if (start == line) {
-                  inc = 0;
-                }
-                else {
+              }
+              else if (NULL != start) { /* opening comment */
+                ++cleanup_begin;
+                if (start != line) {
                   start[0] = start[1] = '\0';
                 }
               }
             }
-            else if (NULL != start) { /* opening comment */
-              ++cleanup_begin;
-              if (start != line) {
-                start[0] = start[1] = '\0';
-              }
-            }
           }
+          if (cleanup < cleanup_begin && (NULL == start || start == line)) inc = 0;
+          if (0 == inc && 0 == nlines && NULL != source) input = begin;
         }
-        if (cleanup < cleanup_begin && (NULL == start || start == line)) inc = 0;
-        if (0 == inc && 0 == nlines && NULL != source) input = begin;
+        nlines += inc;
       }
-      nlines += inc;
     }
   }
   if (0 < max_nlines && NULL != lines) {
     lines[nlines] = NULL; /* terminator */
   }
   else if (0 == nlines && NULL != source) {
-    free(lines[nlines]);
+    free(lines[0]);
   }
   return nlines;
 }

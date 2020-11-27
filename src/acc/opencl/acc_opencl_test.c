@@ -34,7 +34,7 @@ int main(int argc, char* argv[])
     "} /*end*/";
   {
     lines[0] = source;
-    nlines = acc_opencl_source(NULL, lines,
+    nlines = acc_opencl_source(NULL, lines, NULL/*extensions*/,
       ACC_OPENCL_TEST_MAXNLINES, 1/*cleanup*/);
     if (0 < nlines) {
 #if defined(_DEBUG)
@@ -48,7 +48,7 @@ int main(int argc, char* argv[])
   }
   if (NULL != file) {
     nlines = (EXIT_SUCCESS == result ? acc_opencl_source(file, lines,
-      ACC_OPENCL_TEST_MAXNLINES, 1/*cleanup*/) : 0);
+      NULL/*extensions*/, ACC_OPENCL_TEST_MAXNLINES, 1/*cleanup*/) : 0);
 #if defined(_DEBUG)
     if (0 < nlines) {
       int i = 0;

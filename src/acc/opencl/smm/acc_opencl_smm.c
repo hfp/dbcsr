@@ -47,7 +47,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
     key.m = m; key.n = n; /* initialize key */
     config = (config_t*)libxsmm_xdispatch(&key, sizeof(key));
     if (NULL == config) {
-      char build_options[512], fname[32];
+      char build_options[ACC_OPENCL_BUFFER_MAXSIZE], fname[32];
       const char *const env_options = getenv("ACC_OPENCL_TRANS_BUILD_OPTIONS");
 #if defined(ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY) && (0 < ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY)
       const int local = (ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY >= m ? 0/*private*/ : 1/*local*/);
@@ -95,7 +95,8 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
         config_t new_config;
         if (NULL != file) {
           char* lines[50];
-          const int nlines = acc_opencl_source(file, lines, sizeof(lines) / sizeof(*lines),
+          const int nlines = acc_opencl_source(file, lines,
+            NULL/*extensions*/, sizeof(lines) / sizeof(*lines),
             /* whether to cleanup the loaded source code or not */
 #if defined(NDEBUG)
             1);
@@ -175,9 +176,9 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
       key.m = m_max; key.n = n_max; key.k = k_max; /* initialize key */
       config = (config_t*)libxsmm_xdispatch(&key, sizeof(key));
       if (NULL == config) {
-        char build_options[512], fname[48];
+        char build_options[ACC_OPENCL_BUFFER_MAXSIZE], fname[48];
         int nchar = ACC_OPENCL_SNPRINTF(fname, sizeof(fname), "xmm%ix%ix%i", m_max, n_max, k_max);
-        const char* extnames = NULL;
+        const char* extensions = NULL;
         if (0 < nchar && (int)sizeof(fname) > nchar) {
           cl_device_id active_device;
           result = acc_opencl_device(stream, &active_device);
@@ -187,16 +188,16 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
             assert(NULL != active_device);
             switch (datatype) {
               case dbcsr_type_real_8: {
-                extnames = "cl_khr_int64_base_atomics cl_khr_fp64";
-                if (EXIT_SUCCESS == acc_opencl_device_ext(active_device, &extnames, 1)) {
+                extensions = "cl_khr_int64_base_atomics cl_khr_fp64";
+                if (EXIT_SUCCESS == acc_opencl_device_ext(active_device, &extensions, 1)) {
                   typename = "double";
                   atomic = "long";
                   fname[0] = 'd';
                 }
               } break;
               case dbcsr_type_real_4: {
-                extnames = "cl_khr_global_int32_base_atomics";
-                if (EXIT_SUCCESS == acc_opencl_device_ext(active_device, &extnames, 1)) {
+                extensions = "cl_khr_global_int32_base_atomics";
+                if (EXIT_SUCCESS == acc_opencl_device_ext(active_device, &extensions, 1)) {
                   typename = "float";
                   atomic = "int";
                   fname[0] = 's';
@@ -228,8 +229,8 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
           config_t new_config;
           if (NULL != file) {
             char* lines[50];
-            /*TODO: #pragma OPENCL EXTENSION extension: enable */
-            const int nlines = acc_opencl_source(file, lines, sizeof(lines) / sizeof(*lines),
+            const int nlines = acc_opencl_source(file, lines,
+              extensions, sizeof(lines) / sizeof(*lines),
               /* whether to cleanup the loaded source code or not */
 #if defined(NDEBUG)
               1);

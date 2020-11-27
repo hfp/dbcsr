@@ -46,14 +46,14 @@
 #if !defined(ACC_OPENCL_MAXALIGN_NBYTES)
 # define ACC_OPENCL_MAXALIGN_NBYTES (2 << 20/*2MB*/)
 #endif
+#if !defined(ACC_OPENCL_MAXLINELEN)
+# define ACC_OPENCL_MAXLINELEN 128
+#endif
 #if !defined(ACC_OPENCL_BUFFER_MAXSIZE)
-# define ACC_OPENCL_BUFFER_MAXSIZE (8 << 10/*8kB*/)
+# define ACC_OPENCL_BUFFER_MAXSIZE (64 * ACC_OPENCL_MAXLINELEN)
 #endif
 #if !defined(ACC_OPENCL_DEVICES_MAXCOUNT)
 # define ACC_OPENCL_DEVICES_MAXCOUNT 32
-#endif
-#if !defined(ACC_OPENCL_MAXLINELEN)
-# define ACC_OPENCL_MAXLINELEN 128
 #endif
 #if !defined(ACC_OPENCL_SRCEXT)
 # define ACC_OPENCL_SRCEXT "cl"
@@ -196,9 +196,10 @@ FILE* acc_opencl_source_open(const char* filename,
 /**
  * Reads source file or lines[0] (if source is NULL), and builds an array of strings
  * with line-wise content (lines). Returns the number of processed lines, and when
- * non-zero, lines[0] shall be released by the caller (free).
+ * non-zero, lines[0] shall be released by the caller (free). Optionally applies
+ * extensions (if not NULL).
  */
-int acc_opencl_source(FILE* source, char* lines[], int max_nlines, int cleanup);
+int acc_opencl_source(FILE* source, char* lines[], const char* extensions, int max_nlines, int cleanup);
 /** Get preferred multiple of the size of the workgroup (kernel-specific). */
 int acc_opencl_wgsize(cl_kernel kernel, int* preferred_multiple, int* max_value);
 /** Build kernel function with given name from source using given build_options. */

@@ -34,8 +34,9 @@ kernel void FN(global const int *restrict param_stack,
     case SN: {
       const int n = index, nblocks = (SM * SK + size - 1) / size;
       const int i0 = n * nblocks, i1 = min(i0 + nblocks, SM * SK);
+      /* split work among WG (a[m,k] does not depend on WG-index) */
       for (int i = i0; i < i1; ++i) a[i] = awg[i];
-      barrier(CLK_LOCAL_MEM_FENCE);
+      barrier(CLK_LOCAL_MEM_FENCE); /* finish workshare among WG */
       for (int k = 0; k < SK; ++k) b[k] = bwg[SK*n+k];
       for (int m = 0; m < SM; ++m) {
         T r = 0;

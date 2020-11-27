@@ -49,13 +49,6 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
     if (NULL == config) {
       char build_options[ACC_OPENCL_BUFFER_MAXSIZE], fname[32];
       const char *const env_options = getenv("ACC_OPENCL_TRANS_BUILD_OPTIONS");
-#if defined(ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY) && (0 < ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY)
-      const int local = (ACC_OPENCL_SMM_PERMIT_TRANSPOSE_TINY >= m ? 0/*private*/ : 1/*local*/);
-#else
-      const char *const env_tiny = getenv("ACC_OPENCL_TRANS_TINY");
-      const int tiny = ((NULL == env_tiny || '0' == *env_tiny) ? 0 : atoi(env_tiny));
-      const int local = ((0 == tiny || (1 < tiny && tiny < m)) ? 1/*local*/ : 0/*private*/);
-#endif
       int nchar = ACC_OPENCL_SNPRINTF(fname, sizeof(fname), "xtrans%ix%i", m, n);
       const char* typename = "";
       switch (datatype) {
@@ -70,20 +63,15 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
         default: ;
       }
       nchar = ((0 < nchar && (int)sizeof(fname) > nchar)
-        ? ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options), "%s -DKIND=%s -DT=%s -DFN=%s -DSM=%i -DSN=%i",
-        (NULL == env_options || '\0' == *env_options) ? "" : env_options,
-        local ? "local" : "private", typename, fname, m, n) : 0);
+        ? ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options), "%s -DT=%s -DFN=%s -DSM=%i -DSN=%i",
+        (NULL == env_options || '\0' == *env_options) ? "" : env_options, typename, fname, m, n) : 0);
       if ('\0' != *typename && 0 < nchar && (int)sizeof(build_options) > nchar) {
-#if defined(ACC_OPENCL_SMM_PERMIT_TRANSPOSE_INPLACE)
-        const int inplace = (m == n && 0 == tiny);
-#else
         const char *const env_inplace = getenv("ACC_OPENCL_TRANS_INPLACE");
         cl_device_id active_device;
-        const int inplace = (m == n && 0 == tiny) &&
+        const int inplace = (m == n &&
           ((NULL != env_inplace && '\0' != *env_inplace && '0' != *env_inplace)
             ||  (EXIT_SUCCESS == acc_opencl_device(stream, &active_device)
-              && EXIT_SUCCESS == acc_opencl_device_vendor(active_device, "intel")));
-#endif
+              && EXIT_SUCCESS == acc_opencl_device_vendor(active_device, "intel"))));
         const char *const paths[] = {
           "../../exts/dbcsr/src/acc/opencl/smm/kernel",
           "opencl/smm/kernels"
@@ -127,7 +115,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
             const int int_wgsize = atoi(env_wgsize);
             new_config.wgsize = (size_t)((m <= int_wgsize || 0 == (m % int_wgsize)) ? int_wgsize : m);
           }
-          if (max_wgsize < (int)new_config.wgsize || 0 == local) new_config.wgsize = 1;
+          if (max_wgsize < (int)new_config.wgsize) new_config.wgsize = 1;
           config = (config_t*)libxsmm_xregister(&key, sizeof(key), sizeof(new_config), &new_config);
         }
       }

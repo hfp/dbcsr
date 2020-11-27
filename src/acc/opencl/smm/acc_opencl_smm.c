@@ -93,6 +93,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
 #endif
           fclose(file);
           result = acc_opencl_kernel((const char**)lines, nlines, build_options, fname, &new_config.kernel);
+          if (0 < nlines) free(lines[0]);
         }
         assert(NULL != acc_opencl_batchtrans_source);
         if (EXIT_FAILURE == result) {
@@ -228,6 +229,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
 #endif
             fclose(file);
             result = acc_opencl_kernel((const char**)lines, nlines, build_options, fname, &new_config.kernel);
+            if (0 < nlines) free(lines[0]);
           }
           assert(NULL != acc_opencl_batchmm_source);
           if (EXIT_FAILURE == result) {

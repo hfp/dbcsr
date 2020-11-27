@@ -55,6 +55,11 @@
 #if !defined(ACC_OPENCL_DEVICES_MAXCOUNT)
 # define ACC_OPENCL_DEVICES_MAXCOUNT 32
 #endif
+#if defined(_WIN32)
+# define ACC_OPENCL_PATHSEP "\\"
+#else
+# define ACC_OPENCL_PATHSEP "/"
+#endif
 #if !defined(ACC_OPENCL_SRCEXT)
 # define ACC_OPENCL_SRCEXT "cl"
 #endif

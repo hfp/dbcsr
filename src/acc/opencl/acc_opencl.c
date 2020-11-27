@@ -18,10 +18,8 @@
 #endif
 #if defined(_WIN32)
 # include <windows.h>
-# define ACC_OPENCL_PATHSEP "\\"
 #else
 # include <glob.h>
-# define ACC_OPENCL_PATHSEP "/"
 #endif
 #if !defined(ACC_OPENCL_EXTLINE)
 # define ACC_OPENCL_EXTLINE

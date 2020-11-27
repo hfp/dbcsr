@@ -23,7 +23,10 @@
 # include <glob.h>
 # define ACC_OPENCL_PATHSEP "/"
 #endif
-#if !defined(INTERNAL_DELIMS)
+#if !defined(ACC_OPENCL_EXTLINE)
+# define ACC_OPENCL_EXTLINE
+#endif
+#if !defined(ACC_OPENCL_DELIMS)
 # define ACC_OPENCL_DELIMS " \t;,:"
 #endif
 
@@ -507,22 +510,31 @@ int acc_opencl_source(FILE* source, char* lines[], const char* extensions, int m
     char* input = (NULL != source ? ((char*)malloc(max_nlines * ACC_OPENCL_MAXLINELEN)) : lines[0]);
     if (NULL != input) {
       int cleanup_begin = cleanup;
-      char buffer[ACC_OPENCL_BUFFER_MAXSIZE], *const begin = input;
-      char *const exts = (NULL != extensions
+      char buffer[ACC_OPENCL_BUFFER_MAXSIZE], *const begin = input, *const exts = (NULL != extensions
         ? strncpy(buffer, extensions, ACC_OPENCL_BUFFER_MAXSIZE - 1) : NULL);
-      const char* ext = (NULL != exts ? strtok(exts, ACC_OPENCL_DELIMS) : NULL);
-      for (; NULL != ext; ext = strtok(NULL, ACC_OPENCL_DELIMS)) {
-        const int nchar = ACC_OPENCL_SNPRINTF(input, ACC_OPENCL_BUFFER_MAXSIZE,
-          "#pragma OPENCL EXTENSION %s: enable\n", ext);
-        if (0 < nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) {
-          lines[nlines] = input;
-          input += nchar + 1;
-          ++nlines;
-        }
-        else {
-          max_nlines = 0;
-          nlines = 0;
-          break;
+      if (NULL != exts) {
+        const char* ext = strtok(exts, ACC_OPENCL_DELIMS);
+        for(;;) {
+          const int nchar = ACC_OPENCL_SNPRINTF(input, ACC_OPENCL_BUFFER_MAXSIZE,
+            "#pragma OPENCL EXTENSION %s: enable\n", ext);
+          if (0 < nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) {
+#if defined(ACC_OPENCL_EXTLINE)
+            if (begin == input) lines[nlines++] = input;
+            input += nchar;
+#else
+            lines[nlines++] = input;
+            input += nchar + 1;
+#endif
+          }
+          else {
+            max_nlines = nlines = 0;
+            break;
+          }
+          ext = strtok(NULL, ACC_OPENCL_DELIMS);
+          if (NULL == ext) {
+            *input++ = '\0';
+            break;
+          }
         }
       }
       while (nlines < max_nlines && NULL != input && (NULL == source

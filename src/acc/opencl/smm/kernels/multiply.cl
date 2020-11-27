@@ -7,7 +7,7 @@
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
 
-inline void add_atomic(global volatile T* address, T inc)
+inline void add_atomic_global(global volatile T* address, T inc)
 {
   union { TA a; T f; } old_val, new_val;
   do {
@@ -41,7 +41,7 @@ kernel void FN(global const int *restrict param_stack,
       for (int m = 0; m < SM; ++m) {
         T r = 0;
         for (int k = 0; k < SK; ++k) r += a[SK*m+k] * b[k];
-        add_atomic(&c[SN*m+n], r);
+        add_atomic_global(&c[SN*m+n], r);
       }
     } break;
     default: if (index < SN) {

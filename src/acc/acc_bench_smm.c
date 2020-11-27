@@ -21,7 +21,7 @@
 # define ELEM_TYPE double
 #endif
 #if !defined(EPSILON)
-# define EPSILON 1E-6
+# define EPSILON 1E-3
 #endif
 #if !defined(MAX_KERNEL_DIM)
 # define MAX_KERNEL_DIM 80

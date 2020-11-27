@@ -36,11 +36,11 @@ kernel void FN(global const int *restrict param_stack,
       const int i0 = n * nblocks, i1 = min(i0 + nblocks, SM * SK);
       for (int i = i0; i < i1; ++i) a[i] = awg[i];
       barrier(CLK_LOCAL_MEM_FENCE);
-      for (int k = 0; k < SK; ++k) b[k] = bwg[SN*k+n];
+      for (int k = 0; k < SK; ++k) b[k] = bwg[SK*n+k];
       for (int m = 0; m < SM; ++m) {
         T r = 0;
-        for (int k = 0; k < SK; ++k) r += a[SM*k+m] * b[k];
-        add_atomic(&c[SM*n+m], r);
+        for (int k = 0; k < SK; ++k) r += a[SK*m+k] * b[k];
+        add_atomic(&c[SN*m+n], r);
       }
     } break;
     default: if (index < SN) {

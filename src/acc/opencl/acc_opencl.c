@@ -362,7 +362,7 @@ int acc_opencl_device_ext(cl_device_id device, const char *const extnames[], int
         return EXIT_FAILURE;
       }
       else {
-        char *const exts = strncpy(buffer, extnames[num_exts], ACC_OPENCL_BUFFER_MAXSIZE);
+        char *const exts = strncpy(buffer, extnames[num_exts], ACC_OPENCL_BUFFER_MAXSIZE - 1);
         const char* ext = strtok(exts, ACC_OPENCL_DELIMS);
         for (; NULL != ext; ext = strtok(NULL, ACC_OPENCL_DELIMS)) {
           if (NULL == strstr(extensions, ext)) {

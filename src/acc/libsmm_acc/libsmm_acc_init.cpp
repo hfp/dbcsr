@@ -54,7 +54,7 @@ int libsmm_acc_gpu_blas_init(){
 
 
 //===========================================================================
-int libsmm_acc_init() {
+extern "C" int libsmm_acc_init() {
 #if !defined(NO_DBCSR_TIMESET)
     std::string routineN = "libsmm_acc_init";
     int handle;

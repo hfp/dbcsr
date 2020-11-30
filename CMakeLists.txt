@@ -91,21 +91,7 @@ set(USE_SMM
 set_property(CACHE USE_SMM PROPERTY STRINGS blas libxsmm)
 
 option(USE_CUDA "Build with CUDA support" OFF)
-set(SUPPORTED_CUDA_ARCHITECTURES K20X K40 K80 P100 V100)
-set(WITH_GPU
-    "P100"
-    CACHE STRING
-          "Set the CUDA GPU architecture if CUDA is enabled (default: P100)")
-set_property(CACHE WITH_GPU PROPERTY STRINGS ${SUPPORTED_CUDA_ARCHITECTURES})
-
 option(USE_HIP "Build with HIP support" OFF)
-set(SUPPORTED_HIP_ARCHITECTURES ${SUPPORTED_CUDA_ARCHITECTURES} Mi50)
-set(WITH_GPU
-    "P100"
-    CACHE STRING
-          "Set the CUDA GPU architecture if HIP is enabled (default: P100)")
-set_property(CACHE WITH_GPU PROPERTY STRINGS ${SUPPORTED_HIP_ARCHITECTURES})
-
 option(USE_OPENCL "Build with OpenCL support" OFF)
 set(SUPPORTED_OPENCL_ARCHITECTURES ${SUPPORTED_CUDA_ARCHITECTURES})
 set(WITH_GPU
@@ -123,6 +109,17 @@ if ((USE_CUDA AND USE_HIP)
       "USE_CUDA, USE_HIP, and USE_OPENCL are mutually exclusive. Please choose one."
   )
 endif ()
+
+set(SUPPORTED_CUDA_ARCHITECTURES K20X K40 K80 P100 V100)
+set(SUPPORTED_HIP_ARCHITECTURES Mi50)
+set(WITH_GPU
+    "P100"
+    CACHE STRING
+          "Set the CUDA GPU architecture if HIP is enabled (default: P100)")
+set_property(CACHE WITH_GPU PROPERTY STRINGS ${SUPPORTED_CUDA_ARCHITECTURES}
+                                     ${SUPPORTED_HIP_ARCHITECTURES})
+
+option(WITH_CUDA_PROFILING "Enable profiling within CUDA" OFF)
 
 # =================================================================================================
 # LANGUAGES AND TESTING
@@ -239,11 +236,13 @@ if (USE_CUDA)
 
   # set cuda architecture number and compilation flags
   set(ACC_ARCH_NUMBER ${GPU_ARCH_NUMBER_${WITH_GPU}})
-  set(CMAKE_CUDA_FLAGS
-      "${CMAKE_CUDA_FLAGS} -arch=sm_${ACC_ARCH_NUMBER} --cudart static -D__CUDA"
-  )
+  # TODO: use CMAKE_CUDA_RUNTIME_LIBRARY with CMake 3.17+ and CUDA_ARCHITECTURES
+  # with CMake 3.18+
+  string(APPEND CMAKE_CUDA_FLAGS " -arch=sm_${ACC_ARCH_NUMBER} --cudart static")
+  add_compile_definitions($<$<COMPILE_LANGUAGE:CUDA>:__CUDA>)
   message(STATUS "GPU target architecture: " ${WITH_GPU})
   message(STATUS "GPU architecture number: " ${ACC_ARCH_NUMBER})
+  message(STATUS "GPU profiling enabled: " ${WITH_CUDA_PROFILING})
 
   # =================================== BLAS on GPU backend
   find_library(CUBLAS cublas HINT ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES})
@@ -255,6 +254,15 @@ if (USE_CUDA)
   else ()
     message(STATUS "Found cuBLAS: ${CUBLAS}")
   endif ()
+  if (WITH_CUDA_PROFILING)
+    find_library(
+      CUDA_NVTOOLSEXT nvToolsExt
+      PATHS ${CMAKE_CUDA_IMPLICIT_LINK_DIRECTORIES}
+      DOC "Building with CUDA profiling requires the nvToolsExt CUDA library"
+          REQUIRED)
+    message(STATUS "Found nvToolsExt: ${CUDA_NVTOOLSEXT}")
+endif ()
+
 endif ()
 
 # inspired from

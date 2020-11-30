@@ -16,9 +16,10 @@ MODULE dbcsr_config
                              dbcsr_data_allocation_type
    USE dbcsr_mpiwrap, ONLY: mp_get_numnodes
    USE dbcsr_kinds, ONLY: real_8
+   USE dbcsr_mpiwrap, ONLY: mp_environ, mp_comm_world
 #include "base/dbcsr_base_uses.f90"
 
-!$ USE OMP_LIB, ONLY: omp_get_max_threads
+!$ USE OMP_LIB, ONLY: omp_get_num_threads, omp_get_max_threads
 
    IMPLICIT NONE
 
@@ -102,7 +103,7 @@ MODULE dbcsr_config
 #else
       LOGICAL  :: mm_densification = .FALSE.
 #endif
-      INTEGER  :: multrec_limit = 256
+      INTEGER  :: multrec_limit = 512
       INTEGER  :: accdrv_priority_streams = 4
       INTEGER  :: accdrv_priority_buffers = 40
       INTEGER  :: accdrv_posterior_streams = 4
@@ -194,7 +195,7 @@ CONTAINS
       IF (PRESENT(use_mpi_allocator)) dbcsr_data_allocation%use_mpi_allocator = use_mpi_allocator
       IF (PRESENT(avg_elements_images)) dbcsr_cfg%avg_elements_images = avg_elements_images
       IF (PRESENT(num_mult_images)) dbcsr_cfg%num_mult_images = num_mult_images
-      IF (PRESENT(use_mpi_rma)) dbcsr_cfg%use_mpi_rma = use_mpi_rma .AND. has_MPI
+      IF (PRESENT(use_mpi_rma)) dbcsr_cfg%use_mpi_rma = use_mpi_rma .AND. has_mpi
       IF (PRESENT(num_layers_3D)) dbcsr_cfg%num_layers_3D = num_layers_3D
       IF (PRESENT(use_comm_thread)) dbcsr_cfg%use_comm_thread = use_comm_thread
       IF (PRESENT(multrec_limit)) dbcsr_cfg%multrec_limit = multrec_limit
@@ -343,7 +344,9 @@ CONTAINS
 
       CHARACTER(len=default_string_length)               :: mm_name
 
-      IF (unit_nr > 0) THEN
+      IF (unit_nr <= 0) &
+         RETURN
+
          SELECT CASE (dbcsr_cfg%mm_driver)
          CASE (mm_driver_blas); mm_name = mm_name_blas
          CASE (mm_driver_matmul); mm_name = mm_name_matmul
@@ -352,6 +355,7 @@ CONTAINS
          CASE DEFAULT
             DBCSR_ABORT("Unknown MM driver")
          END SELECT
+
          WRITE (UNIT=unit_nr, FMT='(1X,A,T41,A40)') &
             "DBCSR| CPU Multiplication driver", ADJUSTR(mm_name(1:40))
 
@@ -406,7 +410,39 @@ CONTAINS
                "DBCSR| Use Communication thread", dbcsr_cfg%use_comm_thread
             WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
                "DBCSR| Communication thread load", dbcsr_cfg%comm_thread_load
+
+         BLOCK
+            INTEGER :: numnodes, mynode
+            CALL mp_environ(numnodes, mynode, mp_comm_world)
+            WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
+               "DBCSR| MPI: My node id", mynode
+            WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
+               "DBCSR| MPI: Number of nodes", numnodes
+         END BLOCK
          ENDIF
+
+      BLOCK
+         INTEGER :: numthreads, numthreads_max
+         numthreads = -1
+         numthreads_max = -1
+!$OMP PARALLEL DEFAULT(NONE) SHARED(numthreads, numthreads_max)
+!$OMP MASTER
+!$       numthreads = omp_get_num_threads()
+!$       numthreads_max = omp_get_max_threads()
+!$OMP END MASTER
+!$OMP END PARALLEL
+         IF (numthreads_max > 0) THEN
+            WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
+               "DBCSR| OMP: Current number of threads", numthreads
+            WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
+               "DBCSR| OMP: Max number of threads", numthreads_max
+         ELSE
+            WRITE (UNIT=unit_nr, FMT='(1X,A,T70,A11)') &
+               "DBCSR| OMP: Current number of threads", "<N/A>"
+            WRITE (UNIT=unit_nr, FMT='(1X,A,T70,A11)') &
+               "DBCSR| OMP: Max number of threads", "<N/A>"
+         END IF
+      END BLOCK
 
          IF (has_acc) THEN
             WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
@@ -434,7 +470,6 @@ CONTAINS
                   "DBCSR| ACC: Size of binning bins", dbcsr_cfg%accdrv_binning_binsize
             END IF
          END IF
-      ENDIF
 
       WRITE (UNIT=unit_nr, FMT='(1X,A,T74,ES7.1)') &
          "DBCSR| Split modifier for TAS multiplication algorithm", dbcsr_cfg%tas_split_factor

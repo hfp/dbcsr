@@ -30,8 +30,6 @@ MODULE dbcsr_acc_devmem
 
    PRIVATE
 
-   CHARACTER(len=*), PARAMETER, PRIVATE :: moduleN = 'dbcsr_acc_devmem'
-
    PUBLIC :: acc_devmem_type
    PUBLIC :: acc_devmem_allocate_bytes, acc_devmem_deallocate
    PUBLIC :: acc_devmem_setzero_bytes
@@ -41,6 +39,7 @@ MODULE dbcsr_acc_devmem
    PUBLIC :: acc_devmem_ensure_size_bytes
    PUBLIC :: acc_devmem_cptr
    PUBLIC :: acc_devmem_set_cptr
+   PUBLIC :: acc_devmem_info
 
    INTERFACE acc_devmem_dev2host
       MODULE PROCEDURE dev2host_i4_1D
@@ -79,7 +78,7 @@ MODULE dbcsr_acc_devmem
    INTERFACE
       FUNCTION acc_interface_dev_mem_info(free, avail) RESULT(istat) BIND(C, name="acc_dev_mem_info")
          IMPORT
-         INTEGER(KIND=C_INT), INTENT(OUT)         :: free, avail
+         INTEGER(KIND=C_SIZE_T), INTENT(OUT)      :: free, avail
          INTEGER(KIND=C_INT)                      :: istat
 
       END FUNCTION acc_interface_dev_mem_info
@@ -327,21 +326,20 @@ CONTAINS
 #endif
    END SUBROUTINE acc_devmem_set_cptr
 
-   SUBROUTINE acc_devmem_info(free, avail)
-      !! Fortran-wrapper for getting GPU memory info.
+   SUBROUTINE acc_devmem_info(free, total)
+      INTEGER(KIND=int_8), INTENT(OUT)         :: free, total
+#if defined(__DBCSR_ACC)
+      INTEGER(KIND=C_INT)                      :: istat
+      INTEGER(KIND=C_SIZE_T)                   :: free_c, total_c
 
-      INTEGER, INTENT(OUT)                     :: free, avail
-         !! free device memory
-         !! available device memory
-
-#if ! defined (__DBCSR_ACC)
-      avail = -1; free = -1 ! assign intent-out arguments to silence compiler warnings
-      DBCSR_ABORT("__DBCSR_ACC not compiled in.")
-#else
-      INTEGER                                  :: istat
-      istat = acc_interface_dev_mem_info(free, avail)
+      istat = acc_interface_dev_mem_info(free_c, total_c)
       IF (istat /= 0) &
-         DBCSR_ABORT("acc_devmem_info: failed.")
+         DBCSR_ABORT("acc_devmem_info: failed")
+      free = free_c
+      total = total_c
+#else
+      free = 0
+      total = 0
 #endif
    END SUBROUTINE acc_devmem_info
 
@@ -356,8 +354,7 @@ CONTAINS
       MARK_USED(size_in_bytes)
       DBCSR_ABORT("__DBCSR_ACC not compiled in.")
 #else
-      CHARACTER(len=*), PARAMETER :: routineN = 'acc_devmem_allocate', &
-                                     routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'acc_devmem_allocate'
 
       INTEGER                                  :: istat
 
@@ -367,7 +364,7 @@ CONTAINS
       IF (size_in_bytes > 0) THEN
          istat = acc_interface_dev_mem_alloc(this%cptr, INT(this%size_in_bytes, KIND=C_SIZE_T))
          IF (istat /= 0) &
-            DBCSR_ABORT("acc_devmem_allocate: failed.")
+            DBCSR_ABORT("acc_devmem_allocate: failed")
       END IF
 #endif
    END SUBROUTINE acc_devmem_allocate_bytes
@@ -381,8 +378,7 @@ CONTAINS
       MARK_USED(this)
       DBCSR_ABORT("__DBCSR_ACC not compiled in.")
 #else
-      CHARACTER(len=*), PARAMETER :: routineN = 'acc_devmem_deallocate', &
-                                     routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'acc_devmem_deallocate'
 
       INTEGER                                  :: istat
 
@@ -416,8 +412,7 @@ CONTAINS
       MARK_USED(stream)
       DBCSR_ABORT("__DBCSR_ACC not compiled in.")
 #else
-      CHARACTER(len=*), PARAMETER :: routineN = 'acc_devmem_setzero', &
-                                     routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'acc_devmem_setzero'
 
       INTEGER                                  :: istat
       INTEGER(KIND=C_SIZE_T)                   :: length, offset
@@ -454,7 +449,7 @@ CONTAINS
       TYPE(acc_stream_type), INTENT(IN)                  :: stream
          !! stream used for memory transfer
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'host2dev_raw', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'host2dev_raw'
 
       INTEGER                                            :: istat
       TYPE(C_PTR)                                        :: stream_cptr
@@ -481,7 +476,7 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: n_bytes
       TYPE(acc_stream_type), INTENT(IN)                  :: stream
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'dev2host_raw', routineP = moduleN//':'//routineN
+      CHARACTER(len=*), PARAMETER :: routineN = 'dev2host_raw'
 
       INTEGER                                            :: istat
       TYPE(C_PTR)                                        :: stream_cptr

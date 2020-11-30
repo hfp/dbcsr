@@ -156,9 +156,6 @@ CONTAINS
       INTEGER, DIMENSION(:), INTENT(OUT), OPTIONAL       :: offsets_stop
          !! offsets of ends
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'convert_sizes_to_offsets', &
-                                     routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, n
 
 !   ---------------------------------------------------------------------------
@@ -200,9 +197,6 @@ CONTAINS
       INTEGER, DIMENSION(:), INTENT(IN), OPTIONAL        :: offsets_stop
          !! offsets of ends
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'convert_offsets_to_sizes', &
-                                     routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, n
 
 !   ---------------------------------------------------------------------------
@@ -233,9 +227,6 @@ CONTAINS
          !! Which elements are local
       INTEGER, DIMENSION(:), INTENT(OUT)                 :: local_offsets
          !! Offsets of local elements.
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'global_offsets_to_local', &
-                                     routineP = moduleN//':'//routineN
 
       INTEGER                                            :: acc, el, lel, nglobal, nlo, nlocal, &
                                                             prev_el, sz
@@ -283,9 +274,6 @@ CONTAINS
       INTEGER, DIMENSION(:), INTENT(IN)                  :: blk_local_els, el_map, blk_el_offsets, &
                                                             dense_el_offsets
       INTEGER, DIMENSION(:), INTENT(OUT)                 :: internal_offsets
-
-      CHARACTER(len=*), PARAMETER :: routineN = 'get_internal_offsets', &
-                                     routineP = moduleN//':'//routineN
 
       INTEGER                                            :: blk_el, d_el, i, ndense, nlblk
       INTEGER, ALLOCATABLE, DIMENSION(:)                 :: off_acc
@@ -354,8 +342,6 @@ CONTAINS
          !! row block sizes
          !! column block sizes
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'meta_from_dist', routineP = moduleN//':'//routineN
-
       INTEGER                                            :: i, nfullcols_local, nfullcols_total, &
                                                             nfullrows_local, nfullrows_total
       INTEGER, DIMENSION(:), POINTER                     :: blkcols_local, blkrows_local
@@ -399,9 +385,6 @@ CONTAINS
       INTEGER, DIMENSION(dbcsr_meta_size), INTENT(OUT)   :: meta
          !! Metadata elements
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'dbcsr_pack_meta', &
-                                     routineP = moduleN//':'//routineN
-
 !   ---------------------------------------------------------------------------
 
       meta(dbcsr_slot_nblks) = matrix%nblks
@@ -434,9 +417,6 @@ CONTAINS
       INTEGER, DIMENSION(dbcsr_meta_size), INTENT(IN)    :: meta
          !! Metadata elements
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'dbcsr_unpack_meta', &
-                                     routineP = moduleN//':'//routineN
-
 !   ---------------------------------------------------------------------------
 
       matrix%nblks = meta(dbcsr_slot_nblks)
@@ -467,8 +447,7 @@ CONTAINS
       REAL(KIND=dp)                                      :: checksum
          !! calculated checksum
 
-      CHARACTER(len=*), PARAMETER :: routineN = 'dbcsr_checksum', routineP = moduleN//':'//routineN
-
+      CHARACTER(len=*), PARAMETER :: routineN = 'dbcsr_checksum'
       COMPLEX(KIND=real_4), DIMENSION(:), POINTER        :: c_sp
       COMPLEX(KIND=real_8), DIMENSION(:), POINTER        :: c_dp
       INTEGER                                            :: bc, blk, blk_p, br, co, handle, m, mn, &
@@ -808,9 +787,6 @@ CONTAINS
       INTEGER, INTENT(IN)                                :: size_limit
          !! Limit maximum size to this value
       INTEGER, INTENT(OUT)                               :: max_val
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'map_most_common', &
-                                     routineP = moduleN//':'//routineN
 
       INTEGER                                            :: i, max_val_l, nmc
       INTEGER, ALLOCATABLE, DIMENSION(:)                 :: permutation, size_counts

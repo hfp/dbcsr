@@ -239,10 +239,12 @@ int main(int argc, char* argv[])
   }
 #endif
   CHECK(acc_host_mem_deallocate(stack_hst, stream), NULL);
+  CHECK(acc_host_mem_deallocate(trans_hst, stream), NULL);
   CHECK(acc_host_mem_deallocate(amat_hst, stream), NULL);
   CHECK(acc_host_mem_deallocate(bmat_hst, stream), NULL);
   CHECK(acc_host_mem_deallocate(cmat_hst, stream), NULL);
   CHECK(acc_dev_mem_deallocate(stack_dev), NULL);
+  CHECK(acc_dev_mem_deallocate(trans_dev), NULL);
   CHECK(acc_dev_mem_deallocate(amat_dev), NULL);
   CHECK(acc_dev_mem_deallocate(bmat_dev), NULL);
   CHECK(acc_dev_mem_deallocate(cmat_dev), NULL);

@@ -25,7 +25,7 @@ inline void atomic_global_addn(global volatile T* dst, const T* vec, int n)
 }
 
 
-kernel void FN(global const int *restrict param_stack,
+kernel void FN(global const int *restrict param_stack, global int *restrict atomic,
   global const T *restrict amat, global const T *restrict bmat, global T *restrict cmat)
 {
   global const int *const restrict param_base = param_stack + get_group_id(0) * 3;

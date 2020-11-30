@@ -15,6 +15,9 @@
 extern "C" {
 #endif
 
+int* acc_opencl_smm_locks;
+
+
 const char* acc_opencl_batchtrans_source[] = {
   NULL
 };
@@ -23,6 +26,19 @@ const char* acc_opencl_batchtrans_source[] = {
 const char* acc_opencl_batchmm_source[] = {
   NULL
 };
+
+
+int libsmm_acc_init(void)
+{
+  const int nlocks = 16;
+  ACC_OPENCL_RETURN(acc_dev_mem_allocate((void**)&acc_opencl_smm_locks, sizeof(int) * nlocks));
+}
+
+
+int libsmm_acc_finalize(void)
+{
+  ACC_OPENCL_RETURN(acc_dev_mem_deallocate(acc_opencl_smm_locks));
+}
 
 
 acc_bool_t libsmm_acc_is_thread_safe(void)
@@ -267,7 +283,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
         const size_t work_size = config->wgsize * stack_size;
         ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 0, sizeof(cl_mem), ACC_OPENCL_MEM(dev_param_stack)),
           "set batch-list argument of SMM-kernel", result);
-        ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 1, sizeof(int) * 16, NULL),
+        ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 1, sizeof(cl_mem), ACC_OPENCL_MEM(acc_opencl_smm_locks)),
           "set lock argument of SMM-kernel", result);
         ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 2, sizeof(cl_mem), ACC_OPENCL_MEM(dev_a_data)),
           "set A-matrix argument of SMM-kernel", result);

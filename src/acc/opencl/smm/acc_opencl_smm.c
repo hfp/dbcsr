@@ -204,10 +204,10 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
             const int nlocks = ((NULL == env_nlocks || '\0' == *env_nlocks) ? 16 : atoi(env_nlocks));
             acc_opencl_smm_nlocks = LIBXSMM_UP2POT(nlocks);
             result = acc_dev_mem_allocate((void**)&acc_opencl_smm_locks,
-              sizeof(int) * (acc_opencl_smm_nlocks + 1));
+              sizeof(int) * (acc_opencl_smm_nlocks * 2));
             if (EXIT_SUCCESS == result) {
               result = acc_memset_zero(acc_opencl_smm_locks, 0/*offset*/,
-                sizeof(int) * (acc_opencl_smm_nlocks + 1), stream);
+                sizeof(int) * (acc_opencl_smm_nlocks * 2), stream);
             }
             else {
               ACC_OPENCL_EXPECT(EXIT_SUCCESS, libsmm_acc_finalize_locks());

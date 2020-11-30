@@ -7,13 +7,21 @@
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
 
-inline void add_atomic_global(global volatile T* address, T inc)
+inline void atomic_global_add1(global volatile T* dst, T inc)
 {
   union { TA a; T f; } old_val, new_val;
   do {
-    old_val.f = *address;
+    old_val.f = *dst;
     new_val.f = old_val.f + inc;
-  } while (old_val.a != atom_cmpxchg((global volatile TA*)address, old_val.a, new_val.a));
+  } while (old_val.a != atom_cmpxchg((global volatile TA*)dst, old_val.a, new_val.a));
+}
+
+
+inline void atomic_global_addn(global volatile T* dst, const T* vec, int n)
+{
+  for (int m = 0; m < SM; ++m) {
+    atomic_global_add1(&dst[SN*m+n], vec[m]);
+  }
 }
 
 
@@ -24,9 +32,9 @@ kernel void FN(global const int *restrict param_stack,
   /* indexes given by param_stack are one-based */
   global const T *const restrict awg = amat + param_base[0] - 1;
   global const T *const restrict bwg = bmat + param_base[1] - 1;
-  global T *const restrict c = cmat + param_base[2] - 1;
+  global T *const restrict cwg = cmat + param_base[2] - 1;
   local T a[SM*SK];
-  T b[SK];
+  T b[SK], c[SM];
 
   const int size = get_local_size(0);
   const int index = get_local_id(0);
@@ -41,8 +49,9 @@ kernel void FN(global const int *restrict param_stack,
       for (int m = 0; m < SM; ++m) {
         T r = 0;
         for (int k = 0; k < SK; ++k) r += a[SK*m+k] * b[k];
-        add_atomic_global(&c[SN*m+n], r);
+        c[m] = r;
       }
+      atomic_global_addn(cwg, c, n);
     } break;
     default: if (index < SN) {
       barrier(CLK_LOCAL_MEM_FENCE);

@@ -15,7 +15,7 @@
 extern "C" {
 #endif
 
-int* acc_opencl_smm_locks;
+int* acc_opencl_smm_locks, acc_opencl_smm_nlocks;
 
 
 const char* acc_opencl_batchtrans_source[] = {
@@ -30,14 +30,25 @@ const char* acc_opencl_batchmm_source[] = {
 
 int libsmm_acc_init(void)
 {
-  const int nlocks = 16;
-  ACC_OPENCL_RETURN(acc_dev_mem_allocate((void**)&acc_opencl_smm_locks, sizeof(int) * nlocks));
+  const int result = (0 == acc_opencl_smm_nlocks
+    ? acc_init() : EXIT_FAILURE);
+  ACC_OPENCL_RETURN(result);
+}
+
+
+static int libsmm_acc_finalize_locks(void);
+static int libsmm_acc_finalize_locks(void)
+{
+  int *const smm_locks = acc_opencl_smm_locks;
+  acc_opencl_smm_nlocks = 0;
+  acc_opencl_smm_locks = NULL;
+  return acc_dev_mem_deallocate(smm_locks);
 }
 
 
 int libsmm_acc_finalize(void)
 {
-  ACC_OPENCL_RETURN(acc_dev_mem_deallocate(acc_opencl_smm_locks));
+  ACC_OPENCL_RETURN(libsmm_acc_finalize_locks());
 }
 
 
@@ -188,16 +199,30 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
         if (0 < nchar && (int)sizeof(fname) > nchar) {
           cl_device_id active_device;
           result = acc_opencl_device(stream, &active_device);
+          if (0 == acc_opencl_smm_nlocks && EXIT_SUCCESS == result) {
+            const char *const env_nlocks = getenv("ACC_OPENCL_SMM_NLOCKS");
+            const int nlocks = ((NULL == env_nlocks || '\0' == *env_nlocks) ? 16 : atoi(env_nlocks));
+            acc_opencl_smm_nlocks = LIBXSMM_UP2POT(nlocks);
+            result = acc_dev_mem_allocate((void**)&acc_opencl_smm_locks,
+              sizeof(int) * (acc_opencl_smm_nlocks + 1));
+            if (EXIT_SUCCESS == result) {
+              result = acc_memset_zero(acc_opencl_smm_locks, 0/*offset*/,
+                sizeof(int) * (acc_opencl_smm_nlocks + 1), stream);
+            }
+            else {
+              ACC_OPENCL_EXPECT(EXIT_SUCCESS, libsmm_acc_finalize_locks());
+              acc_opencl_smm_nlocks = 0;
+            }
+          }
           if (EXIT_SUCCESS == result) {
             const char *const env_options = getenv("ACC_OPENCL_SMM_BUILD_OPTIONS");
-            const char *typename = NULL, *atomic = NULL;
+            const char *typename = NULL;
             assert(NULL != active_device);
             switch (datatype) {
               case dbcsr_type_real_8: {
-                extensions = "cl_khr_int64_base_atomics cl_khr_fp64";
+                extensions = "cl_khr_global_int32_base_atomics cl_khr_fp64";
                 if (EXIT_SUCCESS == acc_opencl_device_ext(active_device, &extensions, 1)) {
                   typename = "double";
-                  atomic = "long";
                   fname[0] = 'd';
                 }
               } break;
@@ -205,7 +230,6 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                 extensions = "cl_khr_global_int32_base_atomics";
                 if (EXIT_SUCCESS == acc_opencl_device_ext(active_device, &extensions, 1)) {
                   typename = "float";
-                  atomic = "int";
                   fname[0] = 's';
                 }
               } break;
@@ -213,8 +237,9 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
             }
             if (NULL != typename && '\0' != *typename) {
               nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options),
-                "%s -cl-fast-relaxed-math -DT=%s -DTA=\"%s\" -DFN=%s -DSM=%i -DSN=%i -DSK=%i",
-                (NULL == env_options || '\0' == *env_options) ? "" : env_options, typename, atomic, fname, m_max, n_max, k_max);
+                "%s -cl-fast-relaxed-math -DT=%s -DFN=%s -DNLOCKS=%i -DSM=%i -DSN=%i -DSK=%i",
+                (NULL == env_options || '\0' == *env_options) ? "" : env_options,
+                typename, fname, acc_opencl_smm_nlocks, m_max, n_max, k_max);
               if (0 >= nchar || (int)sizeof(build_options) <= nchar) result = EXIT_FAILURE;
             }
             else {
@@ -279,6 +304,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
         }
       }
       assert((NULL != config && NULL != config->kernel && 0 < config->wgsize) || EXIT_SUCCESS != result);
+      assert((NULL != acc_opencl_smm_locks && 0 != acc_opencl_smm_nlocks) || EXIT_SUCCESS != result);
       if (EXIT_SUCCESS == result) {
         const size_t work_size = config->wgsize * stack_size;
         ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 0, sizeof(cl_mem), ACC_OPENCL_MEM(dev_param_stack)),

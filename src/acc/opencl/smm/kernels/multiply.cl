@@ -17,7 +17,7 @@ inline void atomic_global_add1(global volatile T* dst, T inc)
 }
 
 
-inline void atomic_global_addn(global volatile T* dst, const T* vec, int n)
+inline void atomic_global_addn(global volatile int* locks, global T* dst, const T* vec, int n)
 {
   for (int m = 0; m < SM; ++m) {
     atomic_global_add1(&dst[SN*m+n], vec[m]);
@@ -25,7 +25,7 @@ inline void atomic_global_addn(global volatile T* dst, const T* vec, int n)
 }
 
 
-kernel void FN(global const int *restrict param_stack, global int *restrict atomic,
+kernel void FN(global const int *restrict param_stack, global volatile int *restrict locks,
   global const T *restrict amat, global const T *restrict bmat, global T *restrict cmat)
 {
   global const int *const restrict param_base = param_stack + get_group_id(0) * 3;
@@ -51,7 +51,7 @@ kernel void FN(global const int *restrict param_stack, global int *restrict atom
         for (int k = 0; k < SK; ++k) r += a[SK*m+k] * b[k];
         c[m] = r;
       }
-      atomic_global_addn(cwg, c, n);
+      atomic_global_addn(locks, cwg, c, n);
     } break;
     default: if (index < SN) {
       barrier(CLK_LOCAL_MEM_FENCE);

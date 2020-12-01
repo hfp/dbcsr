@@ -227,7 +227,7 @@ int main(int argc, char* argv[])
           fprintf(stderr, "diff = %g (%g != %g)\n", diff, a, b);
 # endif
           if (abserror < diff) {
-            relerror = (0 != a ? fabs(diff / a) : fabs(diff / b));
+            relerror = fabs(0 != a ? (diff / a) : (diff / b));
             abserror = diff;
           }
         }

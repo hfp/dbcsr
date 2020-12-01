@@ -216,13 +216,14 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
           }
           if (EXIT_SUCCESS == result) {
             const char *const env_options = getenv("ACC_OPENCL_SMM_BUILD_OPTIONS");
-            const char *typename = NULL;
+            const char *typename = NULL, *atomic = NULL;
             assert(NULL != active_device);
             switch (datatype) {
               case dbcsr_type_real_8: {
                 extensions = "cl_khr_global_int32_base_atomics cl_khr_fp64 cl_khr_int64_base_atomics";
                 if (EXIT_SUCCESS == acc_opencl_device_ext(active_device, &extensions, 1)) {
                   typename = "double";
+                  atomic = "long";
                   fname[0] = 'd';
                 }
               } break;
@@ -230,6 +231,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                 extensions = "cl_khr_global_int32_base_atomics";
                 if (EXIT_SUCCESS == acc_opencl_device_ext(active_device, &extensions, 1)) {
                   typename = "float";
+                  atomic = "int";
                   fname[0] = 's';
                 }
               } break;
@@ -237,9 +239,9 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
             }
             if (NULL != typename && '\0' != *typename) {
               nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options),
-                "%s -cl-fast-relaxed-math -DT=%s -DFN=%s -DNLOCKS=%i -DSM=%i -DSN=%i -DSK=%i",
+                "%s -cl-fast-relaxed-math -DT=%s -DTA=\"%s\" -DFN=%s -DNLOCKS=%i -DSM=%i -DSN=%i -DSK=%i",
                 (NULL == env_options || '\0' == *env_options) ? "" : env_options,
-                typename, fname, acc_opencl_smm_nlocks, m_max, n_max, k_max);
+                typename, atomic, fname, acc_opencl_smm_nlocks, m_max, n_max, k_max);
               if (0 >= nchar || (int)sizeof(build_options) <= nchar) result = EXIT_FAILURE;
             }
             else {

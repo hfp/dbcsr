@@ -29,11 +29,11 @@ kernel void FN(global const int *restrict param_stack, global volatile int *rest
   global const T *restrict amat, global const T *restrict bmat, global T *restrict cmat)
 {
   const int gid = get_group_id(0);
-  global const int *const restrict param_base = param_stack + gid * 3;
   /* indexes given by param_stack are one-based */
-  global const T *const restrict awg = amat + param_base[0] - 1;
-  global const T *const restrict bwg = bmat + param_base[1] - 1;
-  global T *const restrict cwg = cmat + param_base[2] - 1;
+  const int3 idx = *(global const int3*)(param_stack + gid * 3) - 1;
+  global const T *const restrict awg = amat + idx.s0;
+  global const T *const restrict bwg = bmat + idx.s1;
+  global T *const restrict cwg = cmat + idx.s2;
   local T a[SM*SK], c[SM*SN];
   T b[SK];
 

@@ -7,21 +7,20 @@
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
 
-inline void atomic_global_addn(int gid, global volatile int* locks, global T* dst, const T* vec, int n)
-{ /* NLOCKS is POT */
-  global volatile int *const lock = locks + (((unsigned long)dst) & ((unsigned long)(NLOCKS - 1)));
-  for (const int i = gid + 1;;) {
-    const int j = atom_cmpxchg(lock, i, i);
-    if (i == j) {
-      for (int m = 0; m < SM; ++m) dst[SN*m+n] += vec[m];
-      *lock = 0;
-      break;
-    }
-    else if (0 == j) {
-      for (int m = 0; m < SM; ++m) dst[SN*m+n] += vec[m];
-      *lock = 0;
-      break;
-    }
+inline void atomic_global_add1(global volatile T* dst, T inc)
+{
+  union { TA a; T f; } old_val, new_val;
+  do {
+    old_val.f = *dst;
+    new_val.f = old_val.f + inc;
+  } while (old_val.a != atom_cmpxchg((global volatile TA*)dst, old_val.a, new_val.a));
+}
+
+
+inline void atomic_global_addn(global volatile T* dst, local const T* mat, int n)
+{
+  for (int m = 0; m < SM; ++m) {
+    atomic_global_add1(&dst[SN*m+n], mat[SM*n+m]);
   }
 }
 
@@ -35,8 +34,8 @@ kernel void FN(global const int *restrict param_stack, global volatile int *rest
   global const T *const restrict awg = amat + param_base[0] - 1;
   global const T *const restrict bwg = bmat + param_base[1] - 1;
   global T *const restrict cwg = cmat + param_base[2] - 1;
-  local T a[SM*SK];
-  T b[SK], c[SM];
+  local T a[SM*SK], c[SM*SN];
+  T b[SK];
 
   const int size = get_local_size(0);
   const int index = get_local_id(0);
@@ -46,18 +45,17 @@ kernel void FN(global const int *restrict param_stack, global volatile int *rest
       const int i0 = n * nblocks, i1 = min(i0 + nblocks, SM * SK);
       /* split work among WG (a[m,k] does not depend on WG-index) */
       for (int i = i0; i < i1; ++i) a[i] = awg[i];
-      barrier(CLK_LOCAL_MEM_FENCE); /* finish workshare among WG */
+      barrier(CLK_LOCAL_MEM_FENCE);
       for (int k = 0; k < SK; ++k) b[k] = bwg[SK*n+k];
       for (int m = 0; m < SM; ++m) {
         T r = 0;
         for (int k = 0; k < SK; ++k) r += a[SK*m+k] * b[k];
-        c[m] = r;
+        c[SM*n+m] = r;
       }
-      atomic_global_addn(gid, locks, cwg, c, n);
+      barrier(CLK_LOCAL_MEM_FENCE);
+      atomic_global_addn(cwg, c, n);
     } break;
     default: if (index < SN) {
-      barrier(CLK_LOCAL_MEM_FENCE);
     }
-    else barrier(CLK_LOCAL_MEM_FENCE);
   }
 }

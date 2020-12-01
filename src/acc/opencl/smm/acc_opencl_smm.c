@@ -220,7 +220,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
             assert(NULL != active_device);
             switch (datatype) {
               case dbcsr_type_real_8: {
-                extensions = "cl_khr_global_int32_base_atomics cl_khr_fp64";
+                extensions = "cl_khr_global_int32_base_atomics cl_khr_fp64 cl_khr_int64_base_atomics";
                 if (EXIT_SUCCESS == acc_opencl_device_ext(active_device, &extensions, 1)) {
                   typename = "double";
                   fname[0] = 'd';

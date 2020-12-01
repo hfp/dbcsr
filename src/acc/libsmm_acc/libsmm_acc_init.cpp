@@ -71,12 +71,7 @@ extern "C" int libsmm_acc_init() {
 
 
 //===========================================================================
-extern "C" int libsmm_acc_finalize()
-{}
-
-
-//===========================================================================
-int libsmm_acc_finalize() {
+extern "C" int libsmm_acc_finalize() {
 #if !defined(NO_DBCSR_TIMESET)
     std::string routineN = "libsmm_acc_finalize";
     int handle;

@@ -9,11 +9,13 @@
 
 inline void atomic_global_add(global volatile T* dst, T inc)
 {
-  union { TA a; T f; } old_val, new_val;
-  do {
-    old_val.f = *dst;
-    new_val.f = old_val.f + inc;
-  } while (old_val.a != atom_cmpxchg((global volatile TA*)dst, old_val.a, new_val.a));
+  union { TA a; T f; } old_val, try_val, new_val;
+  for (old_val.f = *dst;;) {
+    try_val.f = old_val.f + inc;
+    new_val.a = atom_cmpxchg((global volatile TA*)dst, old_val.a, try_val.a);
+    if (old_val.a == new_val.a) break;
+    old_val.a = new_val.a;
+  }
 }
 
 

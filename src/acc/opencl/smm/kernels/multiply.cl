@@ -8,10 +8,10 @@
  *------------------------------------------------------------------------------------------------*/
 
 inline void atomic_global_addn(global volatile int* locks, global T* dst, const T* vec, int n)
-{
-  global volatile int *const lock = locks + ((unsigned long)dst & (NLOCKS - 1)); /* NLOCKS is POT */
+{ /* NLOCKS is POT */
+  global volatile int *const lock = locks + ((unsigned long)(dst + n) & (NLOCKS - 1));
   const int ticket = atomic_inc(lock);
-  while (ticket != locks[NLOCKS]);
+  while (ticket != lock[NLOCKS]);
   for (int m = 0; m < SM; ++m) dst[SN*m+n] += vec[m];
   ++lock[NLOCKS];
 }
@@ -43,7 +43,6 @@ kernel void FN(global const int *restrict param_stack, global volatile int *rest
         for (int k = 0; k < SK; ++k) r += a[SK*m+k] * b[k];
         c[m] = r;
       }
-printf("DEBUG: %p\n", cwg);
       atomic_global_addn(locks, cwg, c, n);
     } break;
     default: if (index < SN) {

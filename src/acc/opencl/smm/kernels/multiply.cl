@@ -7,21 +7,13 @@
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
 
-inline void atomic_global_add1(global volatile T* dst, T inc)
+inline void atomic_global_add(global volatile T* dst, T inc)
 {
   union { TA a; T f; } old_val, new_val;
   do {
     old_val.f = *dst;
     new_val.f = old_val.f + inc;
   } while (old_val.a != atom_cmpxchg((global volatile TA*)dst, old_val.a, new_val.a));
-}
-
-
-inline void atomic_global_addn(global volatile T* dst, const T* vec, int n)
-{
-  for (int m = 0; m < SM; ++m) {
-    atomic_global_add1(&dst[SN*m+n], vec[m]);
-  }
 }
 
 
@@ -50,7 +42,9 @@ kernel void FN(global const int *restrict param_stack, global volatile int *rest
       for (int m = 0; m < SM; ++m) {
         for (int k = 0; k < SK; ++k) c[m] += a[SK*m+k] * b[k];
       }
-      atomic_global_addn(cwg, c, n);
+      for (int m = 0; m < SM; ++m) {
+        atomic_global_add(&cwg[SN*m+n], c[m]);
+      }
     } break;
     default: if (index < SN) {
     }

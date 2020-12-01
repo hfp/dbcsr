@@ -17,10 +17,10 @@ inline void atomic_global_add1(global volatile T* dst, T inc)
 }
 
 
-inline void atomic_global_addn(global volatile T* dst, local const T* mat, int n)
+inline void atomic_global_addn(global volatile T* dst, const T* vec, int n)
 {
   for (int m = 0; m < SM; ++m) {
-    atomic_global_add1(&dst[SN*m+n], mat[SM*n+m]);
+    atomic_global_add1(&dst[SN*m+n], vec[m]);
   }
 }
 
@@ -34,8 +34,8 @@ kernel void FN(global const int *restrict param_stack, global volatile int *rest
   global const T *const restrict awg = amat + idx.s0;
   global const T *const restrict bwg = bmat + idx.s1;
   global T *const restrict cwg = cmat + idx.s2;
-  local T a[SM*SK], c[SM*SN];
-  T b[SK];
+  local T a[SM*SK];
+  T b[SK], c[SM];
 
   const int size = get_local_size(0);
   const int index = get_local_id(0);
@@ -48,11 +48,8 @@ kernel void FN(global const int *restrict param_stack, global volatile int *rest
       barrier(CLK_LOCAL_MEM_FENCE);
       for (int k = 0; k < SK; ++k) b[k] = bwg[SK*n+k];
       for (int m = 0; m < SM; ++m) {
-        T r = 0;
-        for (int k = 0; k < SK; ++k) r += a[SK*m+k] * b[k];
-        c[SM*n+m] = r;
+        for (int k = 0; k < SK; ++k) c[m] += a[SK*m+k] * b[k];
       }
-      barrier(CLK_LOCAL_MEM_FENCE);
       atomic_global_addn(cwg, c, n);
     } break;
     default: if (index < SN) {

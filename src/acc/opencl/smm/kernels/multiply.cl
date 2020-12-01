@@ -7,20 +7,30 @@
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
 
-inline void atomic_global_addn(global volatile int* locks, global T* dst, const T* vec, int n)
+inline void atomic_global_addn(int gid, global volatile int* locks, global T* dst, const T* vec, int n)
 { /* NLOCKS is POT */
-  global volatile int *const lock = locks + ((unsigned long)(dst + n) & (NLOCKS - 1));
-  const int ticket = atomic_inc(lock);
-  while (ticket != lock[NLOCKS]);
-  for (int m = 0; m < SM; ++m) dst[SN*m+n] += vec[m];
-  ++lock[NLOCKS];
+  global volatile int *const lock = locks + (((unsigned long)dst) & ((unsigned long)(NLOCKS - 1)));
+  for (const int i = gid + 1;;) {
+    const int j = atom_cmpxchg(lock, i, i);
+    if (i == j) {
+      for (int m = 0; m < SM; ++m) dst[SN*m+n] += vec[m];
+      *lock = 0;
+      break;
+    }
+    else if (0 == j) {
+      for (int m = 0; m < SM; ++m) dst[SN*m+n] += vec[m];
+      *lock = 0;
+      break;
+    }
+  }
 }
 
 
 kernel void FN(global const int *restrict param_stack, global volatile int *restrict locks,
   global const T *restrict amat, global const T *restrict bmat, global T *restrict cmat)
 {
-  global const int *const restrict param_base = param_stack + get_group_id(0) * 3;
+  const int gid = get_group_id(0);
+  global const int *const restrict param_base = param_stack + gid * 3;
   /* indexes given by param_stack are one-based */
   global const T *const restrict awg = amat + param_base[0] - 1;
   global const T *const restrict bwg = bmat + param_base[1] - 1;
@@ -43,7 +53,7 @@ kernel void FN(global const int *restrict param_stack, global volatile int *rest
         for (int k = 0; k < SK; ++k) r += a[SK*m+k] * b[k];
         c[m] = r;
       }
-      atomic_global_addn(locks, cwg, c, n);
+      atomic_global_addn(gid, locks, cwg, c, n);
     } break;
     default: if (index < SN) {
       barrier(CLK_LOCAL_MEM_FENCE);

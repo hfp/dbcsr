@@ -172,11 +172,12 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
 
 int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, int stack_size,
   int nparams, libsmm_acc_data_t datatype, const void* dev_a_data, const void* dev_b_data, void* dev_c_data,
-  int m_max, int n_max, int k_max, int max_kernel_dim, acc_bool_t def_mnk, void* stream)
+  int m_max, int n_max, int k_max, int max_kernel_dim, acc_bool_t def_mnk, void* stack_stream, void* c_stream)
 {
   int result = EXIT_SUCCESS;
+  ACC_OPENCL_UNUSED(c_stream);
   assert((NULL != dev_param_stack && NULL != dev_a_data && NULL != dev_b_data && NULL != dev_c_data) || 0 == stack_size);
-  assert(0 < nparams && 0 < max_kernel_dim && NULL != stream);
+  assert(0 < nparams && 0 < max_kernel_dim && NULL != stack_stream);
   if (0 <= stack_size) {
     if (0 < stack_size && def_mnk/*homogeneous*/ &&
         0 < m_max && m_max <= max_kernel_dim &&
@@ -198,7 +199,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
         const char* extensions = NULL;
         if (0 < nchar && (int)sizeof(fname) > nchar) {
           cl_device_id active_device;
-          result = acc_opencl_device(stream, &active_device);
+          result = acc_opencl_device(stack_stream, &active_device);
           if (0 == acc_opencl_smm_nlocks && EXIT_SUCCESS == result) {
             const char *const env_nlocks = getenv("ACC_OPENCL_SMM_NLOCKS");
             const int nlocks = ((NULL == env_nlocks || '\0' == *env_nlocks) ? 16 : atoi(env_nlocks));
@@ -207,7 +208,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
               sizeof(int) * (acc_opencl_smm_nlocks * 2));
             if (EXIT_SUCCESS == result) {
               result = acc_memset_zero(acc_opencl_smm_locks, 0/*offset*/,
-                sizeof(int) * (acc_opencl_smm_nlocks * 2), stream);
+                sizeof(int) * (acc_opencl_smm_nlocks * 2), stack_stream);
             }
             else {
               ACC_OPENCL_EXPECT(EXIT_SUCCESS, libsmm_acc_finalize_locks());
@@ -319,7 +320,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
           "set B-matrix argument of SMM-kernel", result);
         ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 4, sizeof(cl_mem), ACC_OPENCL_MEM(dev_c_data)),
           "set C-matrix argument of SMM-kernel", result);
-        ACC_OPENCL_CHECK(clEnqueueNDRangeKernel(*ACC_OPENCL_STREAM(stream),
+        ACC_OPENCL_CHECK(clEnqueueNDRangeKernel(*ACC_OPENCL_STREAM(stack_stream),
           config->kernel, 1/*work_dim*/, NULL, &work_size, &config->wgsize, 0, NULL, NULL),
           "launch SMM-kernel", result);
       }

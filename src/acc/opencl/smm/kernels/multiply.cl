@@ -13,7 +13,7 @@ inline void atomic_global_add(global volatile T* dst, T inc)
   do {
     old_val.a = new_val.a;
     try_val.f = old_val.f + inc;
-    new_val.a = atomic_cmpxchg((global volatile TA*)dst, old_val.a, try_val.a);
+    new_val.a = FA((global volatile TA*)dst, old_val.a, try_val.a);
   } while (old_val.a != new_val.a);
 }
 

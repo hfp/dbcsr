@@ -108,7 +108,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
           paths, sizeof(paths) / sizeof(*paths));
         config_t new_config;
         if (NULL != file) {
-          char* lines[64];
+          char* lines[128];
           const int nlines = acc_opencl_source(file, lines,
             NULL/*extensions*/, sizeof(lines) / sizeof(*lines),
             /* whether to cleanup the loaded source code or not */
@@ -263,7 +263,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
           FILE *const file = acc_opencl_source_open("multiply.cl", paths, sizeof(paths) / sizeof(*paths));
           config_t new_config;
           if (NULL != file) {
-            char* lines[64];
+            char* lines[128];
             const int nlines = acc_opencl_source(file, lines,
               extensions, sizeof(lines) / sizeof(*lines),
               /* whether to cleanup the loaded source code or not */

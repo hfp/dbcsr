@@ -13,7 +13,7 @@ inline void atomic_global_add(global volatile T* dst, T inc)
   do {
     old_val.a = new_val.a;
     try_val.f = old_val.f + inc;
-    new_val.a = atom_cmpxchg((global volatile TA*)dst, old_val.a, try_val.a);
+    new_val.a = atomic_cmpxchg((global volatile TA*)dst, old_val.a, try_val.a);
   } while (old_val.a != new_val.a);
 }
 
@@ -24,11 +24,11 @@ kernel void FN(global const int *restrict param_stack, global volatile int *rest
   const int gid = get_group_id(0);
   global const int *const restrict param_base = param_stack + gid * 3;
   /* indexes given by param_stack are one-based */
-  global const T *const restrict awg = amat + param_base[0] - 1;
-  global const T *const restrict bwg = bmat + param_base[1] - 1;
-  global T *const restrict cwg = cmat + param_base[2] - 1;
-  local T a[SM*SK];
-  T b[SK], c[SM];
+  const int ai = param_base[0] - 1, bi = param_base[1] - 1, ci = param_base[2] - 1;
+  global const T *const restrict awg = amat + ai, *const restrict bwg = bmat + bi;
+  global T *const restrict cwg = cmat + ci;
+  local T a[SM*SK], c[SM*SN];
+  T b[SK];
 
   const int size = get_local_size(0);
   const int index = get_local_id(0);
@@ -43,10 +43,20 @@ kernel void FN(global const int *restrict param_stack, global volatile int *rest
       for (int m = 0; m < SM; ++m) {
         T r = 0;
         for (int k = 0; k < SK; ++k) r += a[SK*m+k] * b[k];
-        c[m] = r;
+        c[SN*m+n] = r;
       }
-      for (int m = 0; m < SM; ++m) {
+      /*for (int m = 0; m < SM; ++m) {
         atomic_global_add(&cwg[SN*m+n], c[m]);
+      }*/
+      barrier(CLK_LOCAL_MEM_FENCE);
+      if (0 == index) {
+        const long adr = (long)cwg;
+        /*const int ntz = ctz(adr), shift = (ntz >> 3) << 3;*/
+        const int shift = 8;
+        const int idx = (adr >> shift) & (NLOCKS - 1);
+        while (atomic_cmpxchg(locks + idx, 0, gid + 1));
+        for (int i = 0; i < (SM*SN); ++i) cwg[i] += c[i];
+        atomic_and(locks + idx, 0); /*locks[idx] = 0;*/
       }
     } break;
     default: if (index < SN) {

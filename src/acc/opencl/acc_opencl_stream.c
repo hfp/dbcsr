@@ -40,7 +40,7 @@ int acc_opencl_stream_create(cl_command_queue* stream_p, const char* name,
   const ACC_OPENCL_COMMAND_QUEUE_PROPERTIES* properties)
 {
   cl_int result = EXIT_SUCCESS;
-  assert(NULL != stream_p && NULL != *stream_p);
+  assert(NULL != stream_p);
   if (NULL != acc_opencl_context) {
     cl_device_id device_id = NULL;
     result = acc_opencl_device(NULL/*stream*/, &device_id);

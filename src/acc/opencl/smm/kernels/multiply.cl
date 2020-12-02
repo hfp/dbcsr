@@ -27,8 +27,8 @@ kernel void FN(global const int *restrict param_stack, global volatile int *rest
   const int ai = param_base[0] - 1, bi = param_base[1] - 1, ci = param_base[2] - 1;
   global const T *const restrict awg = amat + ai, *const restrict bwg = bmat + bi;
   global T *const restrict cwg = cmat + ci;
-  local T a[SM*SK], c[SM*SN];
-  T b[SK];
+  local T a[SM*SK];
+  T b[SK], c[SM];
 
   const int size = get_local_size(0);
   const int index = get_local_id(0);
@@ -43,20 +43,10 @@ kernel void FN(global const int *restrict param_stack, global volatile int *rest
       for (int m = 0; m < SM; ++m) {
         T r = 0;
         for (int k = 0; k < SK; ++k) r += a[SK*m+k] * b[k];
-        c[SN*m+n] = r;
+        c[m] = r;
       }
-      /*for (int m = 0; m < SM; ++m) {
+      for (int m = 0; m < SM; ++m) {
         atomic_global_add(&cwg[SN*m+n], c[m]);
-      }*/
-      barrier(CLK_LOCAL_MEM_FENCE);
-      if (0 == index) {
-        const long adr = (long)cwg;
-        /*const int ntz = ctz(adr), shift = (ntz >> 3) << 3;*/
-        const int shift = 8;
-        const int idx = (adr >> shift) & (NLOCKS - 1);
-        while (atomic_cmpxchg(locks + idx, 0, gid + 1));
-        for (int i = 0; i < (SM*SN); ++i) cwg[i] += c[i];
-        atomic_and(locks + idx, 0); /*locks[idx] = 0;*/
       }
     } break;
     default: if (index < SN) {

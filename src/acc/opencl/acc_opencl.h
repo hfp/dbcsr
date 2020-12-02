@@ -139,13 +139,13 @@
     if (-1001 != (RESULT)) { \
       fprintf(stderr, "ERROR ACC/OpenCL: " MSG); \
       if (EXIT_FAILURE != (RESULT)) { \
-        fprintf(stderr, " (code=%i)\n", RESULT); \
+        fprintf(stderr, " (code=%i)", RESULT); \
       } \
-      else fprintf(stderr, "\n"); \
+      fprintf(stderr, ".\n"); \
       assert(CL_SUCCESS != (RESULT)); \
     } \
     else { \
-      fprintf(stderr, "ERROR ACC/OpenCL: incomplete installation (" MSG ")\n"); \
+      fprintf(stderr, "ERROR ACC/OpenCL: incomplete installation (" MSG ").\n"); \
     } \
     assert(!MSG); \
     (RESULT) = EXIT_FAILURE; \
@@ -153,7 +153,7 @@
 # define ACC_OPENCL_RETURN_CAUSE(RESULT, CAUSE) do { \
     const int acc_opencl_return_cause_result_ = (RESULT); \
     if (EXIT_SUCCESS != acc_opencl_return_cause_result_) { \
-      fprintf(stderr, "ERROR ACC/OpenCL: failed for %s\n", \
+      fprintf(stderr, "ERROR ACC/OpenCL: failed for %s!\n", \
         (NULL != (CAUSE) && '\0' != *(const char*)(CAUSE)) \
           ? ((const char*)CAUSE) \
           : (ACC_OPENCL_FUNCNAME)); \

@@ -40,6 +40,9 @@
 #if !defined(ACC_OPENCL_THREADLOCAL_CONTEXT)
 # define ACC_OPENCL_THREADLOCAL_CONTEXT
 #endif
+#if !defined(ACC_OPENCL_DYNAMIC_PARALLELISM)
+# define ACC_OPENCL_DYNAMIC_PARALLELISM
+#endif
 #if !defined(ACC_OPENCL_CACHELINE_NBYTES)
 # define ACC_OPENCL_CACHELINE_NBYTES 64
 #endif
@@ -83,6 +86,12 @@
 # define ACC_OPENCL_EVENT(A) ((cl_event*)&(A))
 #else
 # define ACC_OPENCL_EVENT(A) ((cl_event*)(A))
+#endif
+
+#if defined(CL_VERSION_2_0)
+# define ACC_OPENCL_COMMAND_QUEUE_PROPERTIES cl_queue_properties
+#else
+# define ACC_OPENCL_COMMAND_QUEUE_PROPERTIES cl_int
 #endif
 
 #define ACC_OPENCL_UP2(N, NPOT) ((((uint64_t)N) + ((NPOT) - 1)) & ~((NPOT) - 1))
@@ -210,6 +219,9 @@ int acc_opencl_wgsize(cl_kernel kernel, int* preferred_multiple, int* max_value)
 /** Build kernel function with given name from source using given build_options. */
 int acc_opencl_kernel(const char *const source[], int nlines, const char* build_options,
   const char* kernel_name, cl_kernel* kernel);
+/** Create command queue (stream). */
+int acc_opencl_stream_create(cl_command_queue* stream_p, const char* name,
+  const ACC_OPENCL_COMMAND_QUEUE_PROPERTIES* properties);
 
 #if defined(__cplusplus)
 }

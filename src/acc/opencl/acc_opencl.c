@@ -385,9 +385,10 @@ int acc_set_active_device(int device_id)
     /* allow successful completion if no device was found */
     0 > acc_opencl_ndevices) ? EXIT_SUCCESS : EXIT_FAILURE);
   if (0 < acc_opencl_ndevices) {
-    cl_device_id active_id = NULL;
-    if (EXIT_SUCCESS == result) result = acc_opencl_device(NULL/*stream*/, &active_id);
-    if (acc_opencl_devices[device_id] != active_id) {
+    const cl_device_id active_id = acc_opencl_devices[device_id];
+    cl_device_id current_id = NULL;
+    if (EXIT_SUCCESS == result) result = acc_opencl_device(NULL/*stream*/, &current_id);
+    if (active_id != current_id) {
       if (NULL != acc_opencl_context) {
         ACC_OPENCL_CHECK(clReleaseContext(acc_opencl_context),
           "release context", result);
@@ -398,21 +399,28 @@ int acc_set_active_device(int device_id)
           CL_CONTEXT_INTEROP_USER_SYNC, CL_FALSE, /* TODO */
           0 /* end of properties */
         };
-        acc_opencl_context = clCreateContext(properties,
-          1/*num_devices*/, acc_opencl_devices + device_id,
-          acc_opencl_notify, NULL/* user_data*/,
-          &result);
+        acc_opencl_context = clCreateContext(properties, 1/*num_devices*/, &active_id,
+          acc_opencl_notify, NULL/* user_data*/, &result);
         if (CL_INVALID_VALUE == result) { /* retry */
           const size_t n = sizeof(properties) / sizeof(*properties);
           assert(3 <= n);
           properties[n-3] = 0;
           acc_opencl_context = clCreateContext(0 != properties[0] ? properties : NULL,
-            1/*num_devices*/, acc_opencl_devices + device_id,
-            acc_opencl_notify, NULL/* user_data*/,
-            &result);
+            1/*num_devices*/, &active_id, acc_opencl_notify, NULL/* user_data*/, &result);
         }
         ACC_OPENCL_CHECK(result, "create context", result);
       }
+#if defined(ACC_OPENCL_DYNAMIC_PARALLELISM)
+      if (EXIT_SUCCESS == result) {
+        cl_queue_properties properties[] = {
+          CL_QUEUE_SIZE, 16 << 20,
+          CL_QUEUE_PROPERTIES, CL_QUEUE_ON_DEVICE | CL_QUEUE_ON_DEVICE_DEFAULT,
+          0 /* end of properties */
+        };
+        cl_command_queue queue;
+        result = acc_opencl_stream_create(&queue, "device-side queue", properties);
+      }
+#endif
     }
   }
   ACC_OPENCL_RETURN(result);

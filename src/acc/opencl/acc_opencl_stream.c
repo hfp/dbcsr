@@ -17,11 +17,9 @@
 #endif
 
 #if defined(CL_VERSION_2_0)
-# define ACC_OPENCL_COMMAND_QUEUE_PROPERTIES cl_queue_properties
 # define ACC_OPENCL_CREATE_COMMAND_QUEUE(CTX, DEV, PROPS, RESULT) \
     clCreateCommandQueueWithProperties(CTX, DEV, PROPS, RESULT)
 #else
-# define ACC_OPENCL_COMMAND_QUEUE_PROPERTIES cl_int
 # define ACC_OPENCL_CREATE_COMMAND_QUEUE(CTX, DEV, PROPS, RESULT) \
     clCreateCommandQueue(CTX, DEV, /* avoid warning about unused argument */ \
       (cl_command_queue_properties)(NULL != (PROPS) ? (((cl_int*)(PROPS))[sizeof(PROPS)/sizeof(cl_int)-1]) : 0), RESULT)
@@ -38,45 +36,60 @@
 extern "C" {
 #endif
 
+int acc_opencl_stream_create(cl_command_queue* stream_p, const char* name,
+  const ACC_OPENCL_COMMAND_QUEUE_PROPERTIES* properties)
+{
+  cl_int result = EXIT_SUCCESS;
+  assert(NULL != stream_p && NULL != *stream_p);
+  if (NULL != acc_opencl_context) {
+    cl_device_id device_id = NULL;
+    result = acc_opencl_device(NULL/*stream*/, &device_id);
+    if (EXIT_SUCCESS == result) {
+      *stream_p = ACC_OPENCL_CREATE_COMMAND_QUEUE(acc_opencl_context, device_id, properties, &result);
+    }
+    else {
+      ACC_OPENCL_ERROR("create command queue", result);
+    }
+  }
+  ACC_OPENCL_RETURN_CAUSE(result, name);
+}
+
+
 int acc_stream_create(void** stream_p, const char* name, int priority)
 {
   cl_int result = EXIT_SUCCESS;
   if (NULL != acc_opencl_context) {
     cl_command_queue queue = NULL;
-    cl_device_id device_id = NULL;
 #if !defined(CL_QUEUE_PRIORITY_KHR)
     ACC_OPENCL_UNUSED(priority);
 #endif
-    /*if (EXIT_SUCCESS == result)*/ result = acc_opencl_device(NULL/*stream*/, &device_id);
-    if (EXIT_SUCCESS == result) {
 #if defined(CL_QUEUE_PRIORITY_KHR)
-      if (0 <= priority) {
-        ACC_OPENCL_COMMAND_QUEUE_PROPERTIES properties[] = {
-          CL_QUEUE_PRIORITY_KHR, 0/*placeholder filled-in below*/,
+    if (0 <= priority) {
+      ACC_OPENCL_COMMAND_QUEUE_PROPERTIES properties[] = {
+        CL_QUEUE_PRIORITY_KHR, 0/*placeholder filled-in below*/,
 # if defined(ACC_OPENCL_STREAM_OOO_EXEC)
-          CL_QUEUE_PROPERTIES, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE,
+        CL_QUEUE_PROPERTIES, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE,
 # endif
-          0 /* terminator */
-        };
-        properties[1] = (CL_QUEUE_PRIORITY_HIGH_KHR <= priority && CL_QUEUE_PRIORITY_LOW_KHR >= priority)
-          ? priority : ((CL_QUEUE_PRIORITY_HIGH_KHR + CL_QUEUE_PRIORITY_LOW_KHR) / 2);
-        queue = ACC_OPENCL_CREATE_COMMAND_QUEUE(acc_opencl_context, device_id, properties, &result);
-      }
-      else
+        0 /* terminator */
+      };
+      properties[1] = (CL_QUEUE_PRIORITY_HIGH_KHR <= priority && CL_QUEUE_PRIORITY_LOW_KHR >= priority)
+        ? priority : ((CL_QUEUE_PRIORITY_HIGH_KHR + CL_QUEUE_PRIORITY_LOW_KHR) / 2);
+      result = acc_opencl_stream_create(&queue, name, properties);
+    }
+    else
 #endif
-      {
-        ACC_OPENCL_COMMAND_QUEUE_PROPERTIES properties[] = {
-# if defined(ACC_OPENCL_STREAM_OOO_EXEC)
-          CL_QUEUE_PROPERTIES, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE,
-# endif
-          0 /* terminator */
-        };
-        queue = ACC_OPENCL_CREATE_COMMAND_QUEUE(acc_opencl_context, device_id, properties, &result);
-      }
+    {
+      ACC_OPENCL_COMMAND_QUEUE_PROPERTIES properties[] = {
+#if defined(ACC_OPENCL_STREAM_OOO_EXEC)
+        CL_QUEUE_PROPERTIES, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE,
+#endif
+        0 /* terminator */
+      };
+      result = acc_opencl_stream_create(&queue, name, properties);
     }
     assert(NULL != stream_p);
-    if (NULL != queue) {
-      assert(CL_SUCCESS == result);
+    if (EXIT_SUCCESS == result) {
+      assert(NULL != queue);
 #if defined(ACC_OPENCL_STREAM_NOALLOC)
       assert(sizeof(void*) >= sizeof(cl_command_queue));
       *stream_p = (void*)queue;
@@ -84,7 +97,6 @@ int acc_stream_create(void** stream_p, const char* name, int priority)
       *stream_p = malloc(sizeof(cl_command_queue));
       if (NULL != *stream_p) {
         *(cl_command_queue*)*stream_p = queue;
-        result = EXIT_SUCCESS;
       }
       else {
         clReleaseCommandQueue(queue);
@@ -93,7 +105,6 @@ int acc_stream_create(void** stream_p, const char* name, int priority)
 #endif
     }
     else {
-      ACC_OPENCL_ERROR("create command queue", result);
       *stream_p = NULL;
     }
   }

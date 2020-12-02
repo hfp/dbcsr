@@ -410,17 +410,6 @@ int acc_set_active_device(int device_id)
         }
         ACC_OPENCL_CHECK(result, "create context", result);
       }
-#if defined(ACC_OPENCL_DYNAMIC_PARALLELISM)
-      if (EXIT_SUCCESS == result) {
-        cl_queue_properties properties[] = {
-          CL_QUEUE_SIZE, 16 << 20,
-          CL_QUEUE_PROPERTIES, CL_QUEUE_ON_DEVICE | CL_QUEUE_ON_DEVICE_DEFAULT,
-          0 /* end of properties */
-        };
-        cl_command_queue queue;
-        result = acc_opencl_stream_create(&queue, "device-side queue", properties);
-      }
-#endif
     }
   }
   ACC_OPENCL_RETURN(result);

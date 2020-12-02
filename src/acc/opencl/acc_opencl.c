@@ -514,7 +514,7 @@ int acc_opencl_source(FILE* source, char* lines[], const char* extensions, int m
         for(;;) {
           const int nchar = ACC_OPENCL_SNPRINTF(input, ACC_OPENCL_BUFFER_MAXSIZE,
             "#pragma OPENCL EXTENSION %s: enable\n", ext);
-          if (0 < nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) {
+          if (nlines < max_nlines && 0 < nchar && ACC_OPENCL_BUFFER_MAXSIZE > nchar) {
 #if defined(ACC_OPENCL_EXTLINE)
             if (begin == input) lines[nlines++] = input;
             input += nchar;
@@ -534,12 +534,18 @@ int acc_opencl_source(FILE* source, char* lines[], const char* extensions, int m
           }
         }
       }
-      while (nlines < max_nlines && NULL != input && (NULL == source
+      while (NULL != input && (NULL == source
         || NULL != fgets(input, ACC_OPENCL_MAXLINELEN, source)))
       {
         char* end = strchr(input, '\n');
         int inc = 1;
-        lines[nlines] = input;
+        if (nlines < max_nlines) {
+          lines[nlines] = input;
+        }
+        else {
+          max_nlines = nlines = 0;
+          break;
+        }
         if (NULL != source) {
           input += ACC_OPENCL_MAXLINELEN;
           if (NULL != end) *end = '\0';

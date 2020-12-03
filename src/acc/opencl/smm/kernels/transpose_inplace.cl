@@ -14,8 +14,9 @@ kernel void FN(global const int *restrict trs_stack, int trs_offset, global T *r
   /* matrix according to the index (transpose-stack) */
   global T *const restrict mat = matrix + offset;
 
+  const int size = get_local_size(0);
   const int index = get_local_id(0);
-  switch (get_local_size(0)) {
+  switch (size) {
     case SM: {
       const int m = index;
       for (int n = 0; n < m; ++n) {
@@ -27,9 +28,9 @@ kernel void FN(global const int *restrict trs_stack, int trs_offset, global T *r
       }
     } break;
     default: if (index < SM) {
-      const int nblocks = max(SM / (int)get_local_size(0), 1);
-      const int base = nblocks * index;
-      for (int m = base; m < (base + nblocks); ++m) {
+      const int mblocks = max(SM / size, 1);
+      const int m0 = mblocks * index, m1 = m0 + mblocks;
+      for (int m = m0; m < m1; ++m) {
         for (int n = 0; n < m; ++n) {
           const int i = SM * n + m;
           const int j = SN * m + n;

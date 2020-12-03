@@ -18,7 +18,7 @@ inline void atomic_global_add(global volatile T* dst, T inc)
 }
 
 
-kernel void FN(global const int *restrict param_stack, global volatile int *restrict locks,
+kernel void FN(global const int *restrict param_stack,
   global const T *restrict amat, global const T *restrict bmat, global T *restrict cmat)
 {
   const int gid = get_group_id(0);
@@ -45,16 +45,9 @@ kernel void FN(global const int *restrict param_stack, global volatile int *rest
         for (int k = 0; k < SK; ++k) r += a[SK*m+k] * b[k];
         c[m] = r;
       }
-      const long adr = (long)cwg + n;
-      /*const int ntz = ctz(adr), shift = (ntz >> 3) << 3;*/
-      const int shift = 8;
-      const int idx = (adr >> shift) & (NLOCKS - 1);
-      int lock;
-      do {
-        lock = atomic_cmpxchg(locks + idx, 0, gid + 1);
-      } while (0 != lock && lock != (gid + 1));
-      for (int m = 0; m < SM; ++m) cwg[SN*m+n] += c[m];
-      if (0 == index) atomic_and(locks + idx, 0);
+      for (int m = 0; m < SM; ++m) {
+        atomic_global_add(&cwg[SN*m+n], c[m]);
+      }
     } break;
     default: if (index < SN) {
     }

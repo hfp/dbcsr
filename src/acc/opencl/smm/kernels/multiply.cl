@@ -28,7 +28,7 @@ kernel void FN(global const int *restrict param_stack,
   global const T *const restrict awg = amat + ai, *const restrict bwg = bmat + bi;
   global T *const restrict cwg = cmat + ci;
   local T a[SM*SK];
-  T b[SK], c[SM];
+  T b[SK];
 
   const int size = get_local_size(0);
   const int index = get_local_id(0);
@@ -39,15 +39,12 @@ kernel void FN(global const int *restrict param_stack,
       const int k0 = n * kblocks, k1 = min(k0 + kblocks, SM * SK);
       /* split work among WG (a[m,k] does not depend on WG-index) */
       for (int k = k0; k < k1; ++k) a[k] = awg[k];
-      for (int k = 0; k < SK; ++k) b[k] = bwg[SK*n+k];
+      for (int k = 0; k < SK; ++k) b[k] = bwg[SN*k+n];
       barrier(CLK_LOCAL_MEM_FENCE);
       for (int m = 0; m < SM; ++m) {
         T r = 0;
-        for (int k = 0; k < SK; ++k) r += a[SK*m+k] * b[k];
-        c[m] = r;
-      }
-      for (int m = 0; m < SM; ++m) {
-        atomic_global_add(&cwg[SN*m+n], c[m]);
+        for (int k = 0; k < SK; ++k) r += a[SM*k+m] * b[k];
+        atomic_global_add(&cwg[SM*n+m], r);
       }
     } break;
     default: if (index < SN) {

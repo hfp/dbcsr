@@ -217,7 +217,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
 #if defined(ACC_OPENCL_SMM_LOCKS) && (0 != ACC_OPENCL_SMM_LOCKS)
           if (0 == acc_opencl_smm_nlocks && EXIT_SUCCESS == result) {
             const char *const env_nlocks = getenv("ACC_OPENCL_SMM_NLOCKS");
-            const int nlocks = ((NULL == env_nlocks || '\0' == *env_nlocks) ? 16 : atoi(env_nlocks));
+            const int nlocks = ((NULL == env_nlocks || '\0' == *env_nlocks) ? 64 : atoi(env_nlocks));
             acc_opencl_smm_nlocks = LIBXSMM_UP2POT(nlocks);
             result = acc_dev_mem_allocate((void**)&acc_opencl_smm_locks,
               sizeof(int) * acc_opencl_smm_nlocks);

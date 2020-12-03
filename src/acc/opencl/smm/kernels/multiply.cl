@@ -34,12 +34,13 @@ kernel void FN(global const int *restrict param_stack,
   const int index = get_local_id(0);
   switch (size) {
     case SN: {
-      const int n = index, nblocks = (SM * SK + SN/*size*/ - 1) / SN/*size*/;
-      const int i0 = n * nblocks, i1 = min(i0 + nblocks, SM * SK);
+      const int n = index;
+      const int kblocks = (SM * SK + SN/*size*/ - 1) / SN/*size*/;
+      const int k0 = n * kblocks, k1 = min(k0 + kblocks, SM * SK);
       /* split work among WG (a[m,k] does not depend on WG-index) */
-      for (int i = i0; i < i1; ++i) a[i] = awg[i];
-      barrier(CLK_LOCAL_MEM_FENCE);
+      for (int k = k0; k < k1; ++k) a[k] = awg[k];
       for (int k = 0; k < SK; ++k) b[k] = bwg[SK*n+k];
+      barrier(CLK_LOCAL_MEM_FENCE);
       for (int m = 0; m < SM; ++m) {
         T r = 0;
         for (int k = 0; k < SK; ++k) r += a[SK*m+k] * b[k];

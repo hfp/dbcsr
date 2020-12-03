@@ -18,6 +18,7 @@ inline void atomic_global_add(global volatile T* dst, T inc)
 }
 
 
+__attribute__((reqd_work_group_size(SN, 1, 1)))
 kernel void FN(global const int *restrict param_stack,
   global const T *restrict amat, global const T *restrict bmat, global T *restrict cmat)
 {
@@ -30,24 +31,18 @@ kernel void FN(global const int *restrict param_stack,
   local T a[SM*SK];
   T b[SK];
 
-  const int size = get_local_size(0);
-  const int index = get_local_id(0);
-  switch (size) {
-    case SN: {
-      const int n = index;
-      const int kblocks = (SM * SK + SN/*size*/ - 1) / SN/*size*/;
-      const int k0 = n * kblocks, k1 = min(k0 + kblocks, SM * SK);
-      /* split work among WG (a[m,k] does not depend on WG-index) */
-      for (int k = k0; k < k1; ++k) a[k] = awg[k];
-      for (int k = 0; k < SK; ++k) b[k] = bwg[SN*k+n];
-      barrier(CLK_LOCAL_MEM_FENCE);
-      for (int m = 0; m < SM; ++m) {
-        T r = 0;
-        for (int k = 0; k < SK; ++k) r += a[SM*k+m] * b[k];
-        atomic_global_add(&cwg[SM*n+m], r);
-      }
-    } break;
-    default: if (index < SN) {
-    }
+  const int n = get_local_id(0);
+  const int mblocks = max(SM / SN/*get_local_size(0)*/, 1);
+  const int m0 = n * mblocks, m1 = m0 + mblocks;
+  /* split work among WG (a[m,k] does not depend on WG-index) */
+  for (int m = m0; m < m1; ++m) {
+    for (int k = 0; k < SK; ++k) a[SK*m+k] = awg[SM*k+m];
+  }
+  for (int k = 0; k < SK; ++k) b[k] = bwg[SN*k+n];
+  barrier(CLK_LOCAL_MEM_FENCE);
+  for (int m = 0; m < SM; ++m) {
+    T r = 0;
+    for (int k = 0; k < SK; ++k) r += a[SK*m+k] * b[k];
+    atomic_global_add(&cwg[SM*n+m], r);
   }
 }

@@ -172,7 +172,6 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
     {
       typedef struct config_t {
         cl_kernel kernel;
-        size_t wgsize;
       } config_t;
       struct { int m, n, k; } key;
       config_t *config;
@@ -262,17 +261,11 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
             int max_wgsize;
             result = acc_opencl_wgsize(new_config.kernel, NULL/*preferred_multiple*/, &max_wgsize);
             if (EXIT_SUCCESS == result) {
-              const char *const env_wgsize = getenv("ACC_OPENCL_SMM_WGSIZE");
               assert(0 < max_wgsize);
-              if (NULL == env_wgsize || '\0' == *env_wgsize) {
-                new_config.wgsize = (size_t)n_max;
+              if (n_max <= max_wgsize) {
+                config = (config_t*)libxsmm_xregister(&key, sizeof(key), sizeof(new_config), &new_config);
               }
-              else {
-                const int int_wgsize = atoi(env_wgsize);
-                new_config.wgsize = (size_t)((n_max <= int_wgsize || 0 == (n_max % int_wgsize)) ? int_wgsize : n_max);
-              }
-              if (max_wgsize < (int)new_config.wgsize) new_config.wgsize = 1;
-              config = (config_t*)libxsmm_xregister(&key, sizeof(key), sizeof(new_config), &new_config);
+              else result = EXIT_FAILURE;
             }
           }
         }
@@ -280,9 +273,9 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
           result = EXIT_FAILURE;
         }
       }
-      assert((NULL != config && NULL != config->kernel && 0 < config->wgsize) || EXIT_SUCCESS != result);
+      assert((NULL != config && NULL != config->kernel) || EXIT_SUCCESS != result);
       if (EXIT_SUCCESS == result) {
-        const size_t work_size = config->wgsize * stack_size;
+        const size_t wgsize = n_max, work_size = wgsize * stack_size;
         ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 0, sizeof(cl_mem), ACC_OPENCL_MEM(dev_param_stack)),
           "set batch-list argument of SMM-kernel", result);
         ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 1, sizeof(cl_mem), ACC_OPENCL_MEM(dev_a_data)),
@@ -292,7 +285,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
         ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 3, sizeof(cl_mem), ACC_OPENCL_MEM(dev_c_data)),
           "set C-matrix argument of SMM-kernel", result);
         ACC_OPENCL_CHECK(clEnqueueNDRangeKernel(*ACC_OPENCL_STREAM(stack_stream),
-          config->kernel, 1/*work_dim*/, NULL, &work_size, &config->wgsize, 0, NULL, NULL),
+          config->kernel, 1/*work_dim*/, NULL, &work_size, &wgsize, 0, NULL, NULL),
           "launch SMM-kernel", result);
       }
     }

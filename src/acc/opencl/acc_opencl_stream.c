@@ -22,7 +22,7 @@
 #else
 # define ACC_OPENCL_CREATE_COMMAND_QUEUE(CTX, DEV, PROPS, RESULT) \
     clCreateCommandQueue(CTX, DEV, /* avoid warning about unused argument */ \
-      (cl_command_queue_properties)(NULL != (PROPS) ? (((cl_int*)(PROPS))[sizeof(PROPS)/sizeof(cl_int)-1]) : 0), RESULT)
+      (cl_command_queue_properties)(0 & (NULL != (PROPS) ? (((cl_int*)(PROPS))[0]) : 0)), RESULT)
 #endif
 
 #if defined(CL_VERSION_1_2)

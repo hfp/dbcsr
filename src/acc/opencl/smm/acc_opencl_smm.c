@@ -161,7 +161,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
   int m_max, int n_max, int k_max, int max_kernel_dim, acc_bool_t def_mnk, void* stack_stream, void* c_stream)
 {
   int result = EXIT_SUCCESS;
-  ACC_OPENCL_UNUSED(host_param_stack); ACC_OPENCL_UNUSED(c_stream); /* TODO */
+  ACC_OPENCL_UNUSED(host_param_stack); ACC_OPENCL_UNUSED(nparams); ACC_OPENCL_UNUSED(c_stream); /* TODO */
   assert((NULL != dev_param_stack && NULL != dev_a_data && NULL != dev_b_data && NULL != dev_c_data) || 0 == stack_size);
   assert(0 < nparams && 0 < max_kernel_dim && NULL != stack_stream);
   if (0 <= stack_size) {

@@ -34,7 +34,7 @@ kernel void FN(global const int *restrict param_stack,
   const int index = get_local_id(0);
   switch (size) {
     case SN: {
-      const int n = index, nblocks = (SM * SK + size - 1) / size;
+      const int n = index, nblocks = (SM * SK + SN/*size*/ - 1) / SN/*size*/;
       const int i0 = n * nblocks, i1 = min(i0 + nblocks, SM * SK);
       /* split work among WG (a[m,k] does not depend on WG-index) */
       for (int i = i0; i < i1; ++i) a[i] = awg[i];

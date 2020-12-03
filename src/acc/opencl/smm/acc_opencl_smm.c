@@ -10,12 +10,18 @@
 #include "acc_opencl_smm.h"
 #include <assert.h>
 
+#if !defined(ACC_OPENCL_SMM_LOCKS)
+# define ACC_OPENCL_SMM_LOCKS 2
+#endif
+
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
+#if defined(ACC_OPENCL_SMM_LOCKS) && (0 != ACC_OPENCL_SMM_LOCKS)
 int* acc_opencl_smm_locks, acc_opencl_smm_nlocks;
+#endif
 
 
 const char* acc_opencl_batchtrans_source[] = {
@@ -39,16 +45,24 @@ int libsmm_acc_init(void)
 static int libsmm_acc_finalize_locks(void);
 static int libsmm_acc_finalize_locks(void)
 {
+#if defined(ACC_OPENCL_SMM_LOCKS) && (0 != ACC_OPENCL_SMM_LOCKS)
   int *const smm_locks = acc_opencl_smm_locks;
   acc_opencl_smm_nlocks = 0;
   acc_opencl_smm_locks = NULL;
   return acc_dev_mem_deallocate(smm_locks);
+#else
+  return EXIT_SUCCESS;
+#endif
 }
 
 
 int libsmm_acc_finalize(void)
 {
+#if defined(ACC_OPENCL_SMM_LOCKS) && (0 != ACC_OPENCL_SMM_LOCKS)
   ACC_OPENCL_RETURN(libsmm_acc_finalize_locks());
+#else
+  return EXIT_SUCCESS;
+#endif
 }
 
 
@@ -200,12 +214,14 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
         if (0 < nchar && (int)sizeof(fname) > nchar) {
           cl_device_id active_device;
           result = acc_opencl_device(stack_stream, &active_device);
+#if defined(ACC_OPENCL_SMM_LOCKS) && (0 != ACC_OPENCL_SMM_LOCKS)
           if (0 == acc_opencl_smm_nlocks && EXIT_SUCCESS == result) {
             const char *const env_nlocks = getenv("ACC_OPENCL_SMM_NLOCKS");
             const int nlocks = ((NULL == env_nlocks || '\0' == *env_nlocks) ? 16 : atoi(env_nlocks));
             acc_opencl_smm_nlocks = LIBXSMM_UP2POT(nlocks);
             result = acc_dev_mem_allocate((void**)&acc_opencl_smm_locks,
               sizeof(int) * (acc_opencl_smm_nlocks * 2));
+# if (1 == ACC_OPENCL_SMM_LOCKS)
             if (EXIT_SUCCESS == result) {
               result = acc_memset_zero(acc_opencl_smm_locks, 0/*offset*/,
                 sizeof(int) * (acc_opencl_smm_nlocks * 2), stack_stream);
@@ -214,7 +230,9 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
               ACC_OPENCL_EXPECT(EXIT_SUCCESS, libsmm_acc_finalize_locks());
               acc_opencl_smm_nlocks = 0;
             }
+# endif
           }
+#endif
           if (EXIT_SUCCESS == result) {
             const char *const env_options = getenv("ACC_OPENCL_SMM_BUILD_OPTIONS");
             const char *typename = NULL, *atomic_t = NULL, *atomic_f = NULL;
@@ -310,9 +328,15 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
         }
       }
       assert((NULL != config && NULL != config->kernel && 0 < config->wgsize) || EXIT_SUCCESS != result);
+#if defined(ACC_OPENCL_SMM_LOCKS) && (0 != ACC_OPENCL_SMM_LOCKS)
       assert((NULL != acc_opencl_smm_locks && 0 != acc_opencl_smm_nlocks) || EXIT_SUCCESS != result);
+#endif
       if (EXIT_SUCCESS == result) {
         const size_t work_size = config->wgsize * stack_size;
+#if defined(ACC_OPENCL_SMM_LOCKS) && (1 < ACC_OPENCL_SMM_LOCKS)
+        ACC_OPENCL_CHECK(acc_memset_zero(acc_opencl_smm_locks, 0/*offset*/,
+          sizeof(int) * (acc_opencl_smm_nlocks * 2), stack_stream), "reset locks", result);
+#endif
         ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 0, sizeof(cl_mem), ACC_OPENCL_MEM(dev_param_stack)),
           "set batch-list argument of SMM-kernel", result);
         ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 1, sizeof(cl_mem), ACC_OPENCL_MEM(acc_opencl_smm_locks)),

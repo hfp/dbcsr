@@ -45,9 +45,9 @@ kernel void FN(global const int *restrict param_stack, global volatile int *rest
         for (int k = 0; k < SK; ++k) r += a[SK*m+k] * b[k];
         c[m] = r;
       }
-      for (int m = 0; m < SM; ++m) {
-        atomic_global_add(&cwg[SN*m+n], c[m]);
-      }
+      while (*locks < gid);
+      for (int m = 0; m < SM; ++m) cwg[SN*m+n] += c[m];
+      if (0 == index) atomic_add(locks, 1);
     } break;
     default: if (index < SN) {
     }

@@ -121,6 +121,7 @@ enable_language(Fortran)
 
 if (WITH_C_API AND WITH_EXAMPLES)
   enable_language(CXX)
+  enable_language(C)
 endif ()
 
 # always use at least C++11

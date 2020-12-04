@@ -2160,9 +2160,8 @@ CONTAINS
       INTEGER, OPTIONAL, INTENT(IN) :: groupid
          !! mpi communicator
       INTEGER :: mp_get_numnodes
-
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_get_numnodes'
 #if defined(__parallel)
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_get_numnodes'
       INTEGER :: mp_comm, ierr
 #if (__MPI_VERSION > 2)
       INTEGER :: comm, rank, is_node

@@ -147,13 +147,10 @@ add_library(dbcsr ${DBCSR_SRCS})
 set_target_properties(dbcsr PROPERTIES VERSION ${dbcsr_VERSION}
                                        SOVERSION ${dbcsr_APIVERSION})
 
-if (TARGET PkgConfig::deps)
-  target_link_libraries(dbcsr PRIVATE PkgConfig::deps)
-endif ()
-
 if (USE_SMM MATCHES "libxsmm")
   # linker/include flags are managed by pkg-config (above)
   target_compile_definitions(dbcsr PRIVATE __LIBXSMM)
+  target_link_libraries(dbcsr PRIVATE PkgConfig::LIBXSMM)
 endif ()
 
 if (BLAS_LIBRARIES MATCHES "mkl_")

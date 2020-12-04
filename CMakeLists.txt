@@ -190,7 +190,7 @@ if (USE_SMM MATCHES "blas")
   message("-- Using BLAS for Small Matrix Multiplication")
 elseif (USE_SMM MATCHES "libxsmm")
   # rely on pkg-config in order to link against libxsmm
-  pkg_check_modules(deps REQUIRED IMPORTED_TARGET GLOBAL libxsmmf)
+  pkg_check_modules(LIBXSMM REQUIRED IMPORTED_TARGET GLOBAL libxsmmf)
   message("-- Using libxsmm for Small Matrix Multiplication")
 else ()
   message(FATAL_ERROR "Unknown SMM library specified")

@@ -638,8 +638,10 @@ int acc_opencl_source(FILE* source, char* lines[], const char* extensions, int m
 int acc_opencl_wgsize(cl_kernel kernel, int* preferred_multiple, int* max_value)
 {
   cl_device_id active_id = NULL;
-  int result = NULL != kernel && acc_opencl_device(NULL/*stream*/, &active_id);
+  int result = (NULL != kernel ? EXIT_SUCCESS : EXIT_FAILURE);
   assert(NULL != preferred_multiple || NULL != max_value);
+  ACC_OPENCL_CHECK(acc_opencl_device(NULL/*stream*/, &active_id),
+    "query active device", result);
   if (NULL != preferred_multiple) {
     size_t value = 0;
     ACC_OPENCL_CHECK(clGetKernelWorkGroupInfo(kernel, active_id,

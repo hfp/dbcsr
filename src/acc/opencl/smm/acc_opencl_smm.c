@@ -36,7 +36,7 @@ int libsmm_acc_init(void)
   ACC_OPENCL_RETURN(acc_init());
 #else
   /* avoid recursion */
-  return EXIT_SUCCESS
+  return EXIT_SUCCESS;
 #endif
 }
 
@@ -44,7 +44,7 @@ int libsmm_acc_init(void)
 int libsmm_acc_finalize(void)
 {
   /* acc_finalize() is not called since it can be used independently  */
-  return EXIT_SUCCESS
+  return EXIT_SUCCESS;
 }
 
 

@@ -2161,7 +2161,7 @@ CONTAINS
          !! mpi communicator
       INTEGER :: mp_get_numnodes
 
-      CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_get_numnodes', routineP = moduleN//':'//routineN
+      CHARACTER(LEN=*), PARAMETER :: routineN = 'mp_get_numnodes'
 #if defined(__parallel)
       INTEGER :: mp_comm, ierr
 #if (__MPI_VERSION > 2)

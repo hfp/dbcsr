@@ -223,7 +223,7 @@ if (USE_OPENCL)
   target_include_directories(acc PRIVATE ${OpenCL_INCLUDE_DIRS})
   target_sources(dbcsr PRIVATE $<TARGET_OBJECTS:acc>)
   add_subdirectory(acc/opencl/smm)
-  target_sources(dbcsr PRIVATE $<TARGET_OBJECTS:smm>)
+  target_sources(dbcsr PRIVATE $<TARGET_OBJECTS:libsmm_acc>)
 endif ()
 
 # =================================================================================================

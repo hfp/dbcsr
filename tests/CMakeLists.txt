@@ -148,9 +148,9 @@ if (WITH_C_API OR USE_OPENCL OR USE_CUDA OR USE_HIP)
   # C API: tests and other supplemental code can be written in C++ as well
   foreach (dbcsr_test_cpp ${DBCSR_TESTS_CPP})
     add_executable(${dbcsr_test_cpp} ${${dbcsr_test_cpp}_SRCS})
-    target_link_libraries(${dbcsr_test_cpp} dbcsr_c MPI::MPI_CXX)
     # register unittest executable with CMake
     if (USE_MPI)
+      target_link_libraries(${dbcsr_test_cpp} dbcsr_c MPI::MPI_CXX)
       separate_arguments(MPIEXEC_PREFLAGS)
       add_test(
         NAME ${dbcsr_test_cpp}
@@ -168,9 +168,9 @@ if (WITH_C_API OR USE_OPENCL OR USE_CUDA OR USE_HIP)
 
   foreach (dbcsr_test_c ${DBCSR_TESTS_C})
     add_executable(${dbcsr_test_c} ${${dbcsr_test_c}_SRCS})
-    target_link_libraries(${dbcsr_test_c} dbcsr_c MPI::MPI_C)
     # register unittest executable with CMake
     if (USE_MPI)
+      target_link_libraries(${dbcsr_test_c} dbcsr_c MPI::MPI_C)
       separate_arguments(MPIEXEC_PREFLAGS)
       add_test(
         NAME ${dbcsr_test_c}

@@ -203,9 +203,7 @@ else ()
 endif ()
 
 # =================================== GPU backend
-if (USE_CUDA
-    OR USE_HIP
-    OR USE_OPENCL)
+if (USE_CUDA OR USE_HIP)
   enable_language(CXX)
   set(GPU_ARCH_NUMBER_K20X 35)
   set(GPU_ARCH_NUMBER_K40 35)
@@ -360,10 +358,9 @@ if (USE_HIP)
 endif ()
 
 if (USE_OPENCL)
+  enable_language(C)
   # set OpenCL compilation flags
-  set(ACC_ARCH_NUMBER ${GPU_ARCH_NUMBER_${WITH_GPU}})
   set(OPENCL_CFLAGS "${OPENCL_CFLAGS} -D__OPENCL")
-  message(STATUS "GPU target architecture: " ${WITH_GPU})
   message(STATUS "OPENCL flags: " ${OPENCL_CFLAGS})
 endif ()
 

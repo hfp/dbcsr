@@ -21,6 +21,10 @@
 #else
 # include <glob.h>
 #endif
+#if defined(__DBCSR_ACC)
+# include "../acc_libsmm.h"
+#endif
+
 #if !defined(ACC_OPENCL_EXTLINE)
 # define ACC_OPENCL_EXTLINE
 #endif

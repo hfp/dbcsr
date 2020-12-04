@@ -66,10 +66,10 @@ set(DBCSR_TESTS
     dbcsr_tas_unittest
     dbcsr_test_csr_conversions)
 
-set(DBCSR_TESTS_C dbcsr_acc_test_c)
+set(DBCSR_TESTS_C dbcsr_acc_test)
 if (USE_MPI)
   if (NOT (CMAKE_Fortran_COMPILER_ID STREQUAL "Cray"))
-    set(DBCSR_TESTS_CPP dbcsr_tensor_test_cpp)
+    set(DBCSR_TESTS_CPP dbcsr_tensor_test)
   endif ()
 endif ()
 
@@ -84,8 +84,8 @@ set(dbcsr_unittest4_SRCS dbcsr_unittest4.F dbcsr_test_scale_by_vector.F)
 set(dbcsr_tensor_unittest_SRCS dbcsr_tensor_unittest.F)
 set(dbcsr_tas_unittest_SRCS dbcsr_tas_unittest.F)
 set(dbcsr_test_csr_conversions_SRCS dbcsr_test_csr_conversions.F)
-set(dbcsr_tensor_test_cpp_SRCS dbcsr_tensor_test.cpp)
-set(dbcsr_acc_test_c_SRCS dbcsr_acc_test.c)
+set(dbcsr_tensor_test_SRCS dbcsr_tensor_test.cpp)
+set(dbcsr_acc_test_SRCS dbcsr_acc_test.c)
 
 # instead of building a full-blown lib, it would be better to simply build an
 # OBJECT lib, but we would need cmake 3.12 to be able to specify

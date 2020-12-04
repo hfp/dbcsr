@@ -11,7 +11,7 @@ if (USE_OPENCL)
   add_library(libsmm_acc OBJECT ${LIBSMM_ACC_FILES})
   target_compile_definitions(libsmm_acc PRIVATE __OPENCL)
   target_compile_definitions(libsmm_acc PRIVATE __LIBXSMM)
-  target_include_directories(libsmm_acc PRIVATE LIBXSMM_INCLUDE_DIRS)
+  target_include_directories(libsmm_acc PRIVATE ${LIBXSMM_INCLUDE_DIRS})
 endif ()
 
 if (OpenMP_FOUND)

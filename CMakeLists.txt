@@ -145,8 +145,8 @@ find_package(LAPACK REQUIRED) # needed for some of the integrated test routines,
 # environment for a python interpreter before searching elsewhere in the system.
 # In CMake <3.15, the system is searched before the virtual environment.
 if (NOT Python_EXECUTABLE)
-  # If the python interpreter is not specified as a command line option, look for
-  # it:
+  # If the python interpreter is not specified as a command line option, look
+  # for it:
   find_package(
     Python
     COMPONENTS Interpreter
@@ -262,7 +262,7 @@ if (USE_CUDA)
       DOC "Building with CUDA profiling requires the nvToolsExt CUDA library"
           REQUIRED)
     message(STATUS "Found nvToolsExt: ${CUDA_NVTOOLSEXT}")
-endif ()
+  endif ()
 
 endif ()
 

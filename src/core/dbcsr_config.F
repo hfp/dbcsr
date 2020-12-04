@@ -347,69 +347,69 @@ CONTAINS
       IF (unit_nr <= 0) &
          RETURN
 
-         SELECT CASE (dbcsr_cfg%mm_driver)
-         CASE (mm_driver_blas); mm_name = mm_name_blas
-         CASE (mm_driver_matmul); mm_name = mm_name_matmul
-         CASE (mm_driver_smm); mm_name = mm_name_smm
-         CASE (mm_driver_xsmm); mm_name = mm_name_xsmm
-         CASE DEFAULT
-            DBCSR_ABORT("Unknown MM driver")
-         END SELECT
+      SELECT CASE (dbcsr_cfg%mm_driver)
+      CASE (mm_driver_blas); mm_name = mm_name_blas
+      CASE (mm_driver_matmul); mm_name = mm_name_matmul
+      CASE (mm_driver_smm); mm_name = mm_name_smm
+      CASE (mm_driver_xsmm); mm_name = mm_name_xsmm
+      CASE DEFAULT
+         DBCSR_ABORT("Unknown MM driver")
+      END SELECT
 
-         WRITE (UNIT=unit_nr, FMT='(1X,A,T41,A40)') &
-            "DBCSR| CPU Multiplication driver", ADJUSTR(mm_name(1:40))
+      WRITE (UNIT=unit_nr, FMT='(1X,A,T41,A40)') &
+         "DBCSR| CPU Multiplication driver", ADJUSTR(mm_name(1:40))
 
+      WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
+         "DBCSR| Multrec recursion limit", dbcsr_cfg%multrec_limit
+      WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
+         "DBCSR| Multiplication stack size", dbcsr_cfg%mm_stack_size
+
+      IF (dbcsr_cfg%avg_elements_images > 0) THEN
          WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
-            "DBCSR| Multrec recursion limit", dbcsr_cfg%multrec_limit
-         WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
-            "DBCSR| Multiplication stack size", dbcsr_cfg%mm_stack_size
+            "DBCSR| Average elements for images", dbcsr_cfg%avg_elements_images
+      ELSE
+         WRITE (UNIT=unit_nr, FMT='(1X,A,T72,A)') &
+            "DBCSR| Maximum elements for images", "UNLIMITED"
+      ENDIF
+      WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
+         "DBCSR| Multiplicative factor virtual images", dbcsr_cfg%num_mult_images
 
-         IF (dbcsr_cfg%avg_elements_images > 0) THEN
-            WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
-               "DBCSR| Average elements for images", dbcsr_cfg%avg_elements_images
+      WRITE (UNIT=unit_nr, FMT='(1X,A,T80,L1)') &
+         "DBCSR| Use multiplication densification", dbcsr_cfg%mm_densification
+
+      IF (dbcsr_cfg%nm_stacks == dbcsr_cfg%nn_stacks .AND. dbcsr_cfg%nm_stacks == dbcsr_cfg%nk_stacks) THEN
+         WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
+            "DBCSR| Multiplication size stacks", dbcsr_cfg%nm_stacks
+      ELSE
+         WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
+            "DBCSR| Multiplication size m stacks", dbcsr_cfg%nm_stacks
+         WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
+            "DBCSR| Multiplication size n stacks", dbcsr_cfg%nn_stacks
+         WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
+            "DBCSR| Multiplication size k stacks", dbcsr_cfg%nk_stacks
+      ENDIF
+
+      WRITE (UNIT=unit_nr, FMT='(1X,A,T80,L1)') &
+         "DBCSR| Use memory pool for CPU allocation", dbcsr_cfg%use_mempools_cpu
+
+      IF (has_mpi) THEN
+         !WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
+         !"DBCSR| Number of physical nodes", mp_get_numnodes()
+         IF (dbcsr_cfg%num_layers_3D < 2) THEN
+            WRITE (UNIT=unit_nr, FMT='(1X,A,T75,A)') &
+               "DBCSR| Number of 3D layers", "SINGLE"
          ELSE
-            WRITE (UNIT=unit_nr, FMT='(1X,A,T72,A)') &
-               "DBCSR| Maximum elements for images", "UNLIMITED"
+            WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
+               "DBCSR| Number of 3D layers", dbcsr_cfg%num_layers_3D
          ENDIF
+         WRITE (UNIT=unit_nr, FMT='(1X,A,T80,L1)') &
+            "DBCSR| Use MPI memory allocation", dbcsr_data_allocation%use_mpi_allocator
+         WRITE (UNIT=unit_nr, FMT='(1X,A,T80,L1)') &
+            "DBCSR| Use RMA algorithm", dbcsr_cfg%use_mpi_rma
+         WRITE (UNIT=unit_nr, FMT='(1X,A,T80,L1)') &
+            "DBCSR| Use Communication thread", dbcsr_cfg%use_comm_thread
          WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
-            "DBCSR| Multiplicative factor virtual images", dbcsr_cfg%num_mult_images
-
-         WRITE (UNIT=unit_nr, FMT='(1X,A,T80,L1)') &
-            "DBCSR| Use multiplication densification", dbcsr_cfg%mm_densification
-
-         IF (dbcsr_cfg%nm_stacks == dbcsr_cfg%nn_stacks .AND. dbcsr_cfg%nm_stacks == dbcsr_cfg%nk_stacks) THEN
-            WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
-               "DBCSR| Multiplication size stacks", dbcsr_cfg%nm_stacks
-         ELSE
-            WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
-               "DBCSR| Multiplication size m stacks", dbcsr_cfg%nm_stacks
-            WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
-               "DBCSR| Multiplication size n stacks", dbcsr_cfg%nn_stacks
-            WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
-               "DBCSR| Multiplication size k stacks", dbcsr_cfg%nk_stacks
-         ENDIF
-
-         WRITE (UNIT=unit_nr, FMT='(1X,A,T80,L1)') &
-            "DBCSR| Use memory pool for CPU allocation", dbcsr_cfg%use_mempools_cpu
-
-         IF (has_mpi) THEN
-            !WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
-               !"DBCSR| Number of physical nodes", mp_get_numnodes()
-            IF (dbcsr_cfg%num_layers_3D < 2) THEN
-               WRITE (UNIT=unit_nr, FMT='(1X,A,T75,A)') &
-                  "DBCSR| Number of 3D layers", "SINGLE"
-            ELSE
-               WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
-                  "DBCSR| Number of 3D layers", dbcsr_cfg%num_layers_3D
-            ENDIF
-            WRITE (UNIT=unit_nr, FMT='(1X,A,T80,L1)') &
-               "DBCSR| Use MPI memory allocation", dbcsr_data_allocation%use_mpi_allocator
-            WRITE (UNIT=unit_nr, FMT='(1X,A,T80,L1)') &
-               "DBCSR| Use RMA algorithm", dbcsr_cfg%use_mpi_rma
-            WRITE (UNIT=unit_nr, FMT='(1X,A,T80,L1)') &
-               "DBCSR| Use Communication thread", dbcsr_cfg%use_comm_thread
-            WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
-               "DBCSR| Communication thread load", dbcsr_cfg%comm_thread_load
+            "DBCSR| Communication thread load", dbcsr_cfg%comm_thread_load
 
          BLOCK
             INTEGER :: numnodes, mynode
@@ -419,7 +419,7 @@ CONTAINS
             WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
                "DBCSR| MPI: Number of nodes", numnodes
          END BLOCK
-         ENDIF
+      ENDIF
 
       BLOCK
          INTEGER :: numthreads, numthreads_max
@@ -444,32 +444,32 @@ CONTAINS
          END IF
       END BLOCK
 
-         IF (has_acc) THEN
+      IF (has_acc) THEN
+         WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
+            "DBCSR| ACC: Number of devices/node", dbcsr_acc_get_ndevices()
+         WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
+            "DBCSR| ACC: Number of priority stack-buffers", dbcsr_cfg%accdrv_priority_buffers
+         WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
+            "DBCSR| ACC: Number of posterior stack-buffers", dbcsr_cfg%accdrv_posterior_buffers
+         WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
+            "DBCSR| ACC: Number of priority streams", dbcsr_cfg%accdrv_priority_streams
+         WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
+            "DBCSR| ACC: Number of posterior streams", dbcsr_cfg%accdrv_posterior_streams
+         WRITE (UNIT=unit_nr, FMT='(1X,A,T80,L1)') &
+            "DBCSR| ACC: Avoid driver after busy ", dbcsr_cfg%accdrv_avoid_after_busy
+         WRITE (UNIT=unit_nr, FMT='(1X,A,T80,L1)') &
+            "DBCSR| ACC: Process inhomogeneous stacks", dbcsr_cfg%accdrv_do_inhomogenous
+         WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
+            "DBCSR| ACC: Min. flop for processing", dbcsr_cfg%accdrv_min_flop_process
+         IF (dbcsr_cfg%accdrv_stack_sort) THEN
             WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
-               "DBCSR| ACC: Number of devices/node", dbcsr_acc_get_ndevices()
+               "DBCSR| ACC: Min. flop for sorting", dbcsr_cfg%accdrv_min_flop_sort
             WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
-               "DBCSR| ACC: Number of priority stack-buffers", dbcsr_cfg%accdrv_priority_buffers
+               "DBCSR| ACC: Number of binning bins", dbcsr_cfg%accdrv_binning_nbins
             WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
-               "DBCSR| ACC: Number of posterior stack-buffers", dbcsr_cfg%accdrv_posterior_buffers
-            WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
-               "DBCSR| ACC: Number of priority streams", dbcsr_cfg%accdrv_priority_streams
-            WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
-               "DBCSR| ACC: Number of posterior streams", dbcsr_cfg%accdrv_posterior_streams
-            WRITE (UNIT=unit_nr, FMT='(1X,A,T80,L1)') &
-               "DBCSR| ACC: Avoid driver after busy ", dbcsr_cfg%accdrv_avoid_after_busy
-            WRITE (UNIT=unit_nr, FMT='(1X,A,T80,L1)') &
-               "DBCSR| ACC: Process inhomogeneous stacks", dbcsr_cfg%accdrv_do_inhomogenous
-            WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
-               "DBCSR| ACC: Min. flop for processing", dbcsr_cfg%accdrv_min_flop_process
-            IF (dbcsr_cfg%accdrv_stack_sort) THEN
-               WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
-                  "DBCSR| ACC: Min. flop for sorting", dbcsr_cfg%accdrv_min_flop_sort
-               WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
-                  "DBCSR| ACC: Number of binning bins", dbcsr_cfg%accdrv_binning_nbins
-               WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
-                  "DBCSR| ACC: Size of binning bins", dbcsr_cfg%accdrv_binning_binsize
-            END IF
+               "DBCSR| ACC: Size of binning bins", dbcsr_cfg%accdrv_binning_binsize
          END IF
+      END IF
 
       WRITE (UNIT=unit_nr, FMT='(1X,A,T74,ES7.1)') &
          "DBCSR| Split modifier for TAS multiplication algorithm", dbcsr_cfg%tas_split_factor

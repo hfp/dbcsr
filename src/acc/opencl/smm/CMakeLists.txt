@@ -1,7 +1,5 @@
-set(SMM_ACC_KERNELS
-    kernels/multiply.cl
-    kernels/transpose.cl
-    kernels/transpose_inplace.cl)
+set(SMM_ACC_KERNELS kernels/multiply.cl kernels/transpose.cl
+                    kernels/transpose_inplace.cl)
 
 set(LIBSMM_ACC_SRC_FILES acc_opencl_smm.c)
 set(LIBSMM_ACC_HEADER_FILES acc_opencl_smm.h)

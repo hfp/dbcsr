@@ -106,10 +106,8 @@ add_fypp_sources(
   work/dbcsr_work_operations.F)
 
 set(DBCSR_OPENCL_SRCS
-    acc/opencl/acc_opencl.c
-    acc/opencl/acc_opencl_event.c
-    acc/opencl/acc_opencl_mem.c
-    acc/opencl/acc_opencl_stream.c)
+    acc/opencl/acc_opencl.c acc/opencl/acc_opencl_event.c
+    acc/opencl/acc_opencl_mem.c acc/opencl/acc_opencl_stream.c)
 
 set(DBCSR_CUDA_SRCS
     acc/cuda/acc_cublas.cu

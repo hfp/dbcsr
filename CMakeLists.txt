@@ -202,7 +202,12 @@ else ()
   message(FATAL_ERROR "Unknown SMM library specified")
 endif ()
 
-# =================================== GPU backend
+# =================================== GPU backends
+if (USE_OPENCL)
+  find_package(OpenCL REQUIRED)
+  enable_language(C)
+endif ()
+
 if (USE_CUDA OR USE_HIP)
   enable_language(CXX)
   set(GPU_ARCH_NUMBER_K20X 35)
@@ -355,13 +360,6 @@ if (USE_HIP)
   else ()
     message(STATUS "Found hipBLAS: ${HIPBLAS}")
   endif ()
-endif ()
-
-if (USE_OPENCL)
-  enable_language(C)
-  # set OpenCL compilation flags
-  set(OPENCL_CFLAGS "${OPENCL_CFLAGS} -D__OPENCL")
-  message(STATUS "OPENCL flags: " ${OPENCL_CFLAGS})
 endif ()
 
 # =================================================================================================

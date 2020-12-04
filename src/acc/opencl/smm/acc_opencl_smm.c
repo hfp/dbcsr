@@ -119,8 +119,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
           if (0 < nlines) free(lines[0]);
         }
         assert(NULL != acc_opencl_batchtrans_source);
-
-        if (EXIT_FAILURE == result || NULL == file) {
+        if (EXIT_SUCCESS == result && NULL == file) {
           if (sizeof(*acc_opencl_batchtrans_source) <= sizeof(acc_opencl_batchtrans_source)
             && NULL != *acc_opencl_batchtrans_source)
           {
@@ -261,7 +260,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
             if (0 < nlines) free(lines[0]);
           }
           assert(NULL != acc_opencl_batchmm_source);
-          if (EXIT_FAILURE == result || NULL == file) {
+          if (EXIT_SUCCESS == result && NULL == file) {
             if (sizeof(*acc_opencl_batchmm_source) <= sizeof(acc_opencl_batchmm_source)
               && NULL != *acc_opencl_batchmm_source)
             {

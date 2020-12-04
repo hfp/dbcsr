@@ -168,7 +168,7 @@ if (WITH_C_API)
 
   foreach (dbcsr_test_c ${DBCSR_TESTS_C})
     add_executable(${dbcsr_test_c} ${${dbcsr_test_c}_SRCS})
-    target_link_libraries(${dbcsr_test_c} dbcsr_c MPI::MPI_CXX)
+    target_link_libraries(${dbcsr_test_c} dbcsr_c MPI::MPI_C)
     # register unittest executable with CMake
     if (USE_MPI)
       separate_arguments(MPIEXEC_PREFLAGS)

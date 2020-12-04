@@ -299,7 +299,7 @@ int acc_get_ndevices(int* ndevices)
 
 #if defined(__DBCSR_ACC)
   /* DBCSR calls acc_get_ndevices before calling acc_init(). */
-  result = libsmm_acc_finalize();
+  result = acc_init();
   if (EXIT_SUCCESS == result)
 #endif
   {

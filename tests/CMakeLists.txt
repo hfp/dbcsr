@@ -153,6 +153,7 @@ if (WITH_C_API
   # C API: tests and other supplemental code can be written in C++ as well
   foreach (dbcsr_test_cpp ${DBCSR_TESTS_CPP})
     add_executable(${dbcsr_test_cpp} ${${dbcsr_test_cpp}_SRCS})
+    target_link_libraries(${dbcsr_test_cpp} PUBLIC dbcsr)
     # register unittest executable with CMake
     if (USE_MPI)
       target_link_libraries(${dbcsr_test_cpp} dbcsr_c MPI::MPI_CXX)

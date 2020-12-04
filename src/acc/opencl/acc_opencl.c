@@ -242,7 +242,7 @@ int acc_init(void)
   /* DBCSR may call acc_init() as well as libsmm_acc_init() since both interface are used.
    * libsmm_acc_init may privately call acc_init (as it depends on the ACC interface).
    * The implementation of acc_init() should be safe against "over initialization".
-   * However, DBCSR only calls acc_init() and expects an implicit ibsmm_acc_init().
+   * However, DBCSR only calls acc_init() and expects an implicit libsmm_acc_init().
    */
   if (EXIT_SUCCESS == result) {
     result = libsmm_acc_init();
@@ -278,7 +278,7 @@ int acc_finalize(void)
   /* DBCSR may call acc_init() as well as libsmm_acc_init() since both interface are used.
    * libsmm_acc_init may privately call acc_init (as it depends on the ACC interface).
    * The implementation of acc_init() should be safe against "over initialization".
-   * However, DBCSR only calls acc_init() and expects an implicit ibsmm_acc_init().
+   * However, DBCSR only calls acc_init() and expects an implicit libsmm_acc_init().
    */
   if (EXIT_SUCCESS == result) {
     result = libsmm_acc_finalize();
@@ -296,12 +296,20 @@ void acc_clear_errors(void)
 int acc_get_ndevices(int* ndevices)
 {
   int result;
-  if (NULL != ndevices && 0 != acc_opencl_ndevices) {
-    *ndevices = (0 < acc_opencl_ndevices ? acc_opencl_ndevices : 0);
-    result = EXIT_SUCCESS;
-  }
-  else {
-    result = EXIT_FAILURE;
+
+#if defined(__DBCSR_ACC)
+  /* DBCSR calls acc_get_ndevices before calling acc_init(). */
+  result = libsmm_acc_finalize();
+  if (EXIT_SUCCESS == result)
+#endif
+  {
+    if (NULL != ndevices && 0 != acc_opencl_ndevices) {
+      *ndevices = (0 < acc_opencl_ndevices ? acc_opencl_ndevices : 0);
+      result = EXIT_SUCCESS;
+    }
+    else {
+      result = EXIT_FAILURE;
+    }
   }
   ACC_OPENCL_RETURN(result);
 }

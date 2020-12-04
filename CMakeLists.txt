@@ -93,12 +93,6 @@ set_property(CACHE USE_SMM PROPERTY STRINGS blas libxsmm)
 option(USE_CUDA "Build with CUDA support" OFF)
 option(USE_HIP "Build with HIP support" OFF)
 option(USE_OPENCL "Build with OpenCL support" OFF)
-set(SUPPORTED_OPENCL_ARCHITECTURES ${SUPPORTED_CUDA_ARCHITECTURES})
-set(WITH_GPU
-    "P100"
-    CACHE STRING
-          "Set the GPU architecture if OpenCL is enabled (default: P100)")
-set_property(CACHE WITH_GPU PROPERTY STRINGS ${SUPPORTED_OPENCL_ARCHITECTURES})
 
 # USE_CUDA, USE_HIP, and USE_OPENCL shall be mutually exclusive options
 if ((USE_CUDA AND USE_HIP)
@@ -204,6 +198,10 @@ endif ()
 
 # =================================== GPU backends
 if (USE_OPENCL)
+  if (NOT USE_SMM MATCHES "libxsmm")
+    message(FATAL_ERROR "LIBXSMM is required for ACC/OpenCL.")
+  endif ()
+
   find_package(OpenCL REQUIRED)
   enable_language(C)
 endif ()

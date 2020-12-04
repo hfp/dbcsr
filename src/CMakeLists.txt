@@ -105,6 +105,12 @@ add_fypp_sources(
   utils/dbcsr_toollib.F
   work/dbcsr_work_operations.F)
 
+set(DBCSR_OPENCL_SRCS
+    acc/opencl/acc_opencl.c
+    acc/opencl/acc_opencl_event.c
+    acc/opencl/acc_opencl_mem.c
+    acc/opencl/acc_opencl_stream.c)
+
 set(DBCSR_CUDA_SRCS
     acc/cuda/acc_cublas.cu
     acc/cuda/acc_cuda.cpp
@@ -203,10 +209,21 @@ if (OpenMP_FOUND)
   target_link_libraries(dbcsr PRIVATE OpenMP::OpenMP_Fortran)
 endif ()
 
-# OpenMP/offload backend is built if no other backend is enabled
-if ((NOT USE_CUDA) AND (NOT USE_HIP))
-  add_subdirectory(acc/omp)
-  target_sources(dbcsr PRIVATE $<TARGET_OBJECTS:dbcsr_omp>)
+# =================================================================================================
+# DBCSR LIBRARY's OPENCL BACKEND
+
+if (USE_OPENCL)
+  target_compile_definitions(dbcsr PRIVATE __DBCSR_ACC)
+  target_link_libraries(dbcsr PUBLIC ${OpenCL_LIBRARY})
+
+  # OpenCL backend
+  set(DBCSR_ACC_SRCS ${DBCSR_OPENCL_SRCS})
+  add_library(acc OBJECT ${DBCSR_ACC_SRCS})
+  target_compile_definitions(acc PRIVATE __OPENCL)
+  target_include_directories(acc PRIVATE ${OpenCL_INCLUDE_DIRS})
+  target_sources(dbcsr PRIVATE $<TARGET_OBJECTS:acc>)
+  add_subdirectory(acc/opencl/smm)
+  target_sources(dbcsr PRIVATE $<TARGET_OBJECTS:smm>)
 endif ()
 
 # =================================================================================================
@@ -303,7 +320,6 @@ endif ()
 # DBCSR LIBRARY's HIP BACKEND
 
 if (USE_HIP)
-
   if (USE_OPENMP)
     set(HIP_HIPCC_FLAGS "${HIP_HIPCC_FLAGS} ${OpenMP_CXX_FLAGS}")
   endif ()
@@ -341,7 +357,6 @@ if (USE_HIP)
 
   target_compile_definitions(dbcsr PRIVATE __DBCSR_ACC)
   target_compile_definitions(dbcsr PRIVATE __HIP)
-
 endif ()
 
 # =================================================================================================

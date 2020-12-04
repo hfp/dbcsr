@@ -237,17 +237,17 @@ int acc_init(void)
     else { /* mark as initialized */
       acc_opencl_ndevices = -1;
     }
-  }
 #if defined(__DBCSR_ACC)
-  /* DBCSR may call acc_init() as well as libsmm_acc_init() since both interface are used.
-   * libsmm_acc_init may privately call acc_init (as it depends on the ACC interface).
-   * The implementation of acc_init() should be safe against "over initialization".
-   * However, DBCSR only calls acc_init() and expects an implicit libsmm_acc_init().
-   */
-  if (EXIT_SUCCESS == result) {
-    result = libsmm_acc_init();
-  }
+    /* DBCSR may call acc_init() as well as libsmm_acc_init() since both interface are used.
+     * libsmm_acc_init may privately call acc_init (as it depends on the ACC interface).
+     * The implementation of acc_init() should be safe against "over initialization".
+     * However, DBCSR only calls acc_init() and expects an implicit libsmm_acc_init().
+     */
+    if (EXIT_SUCCESS == result) {
+      result = libsmm_acc_init();
+    }
 #endif
+  }
   ACC_OPENCL_RETURN(result);
 }
 
@@ -273,17 +273,17 @@ int acc_finalize(void)
     ACC_OPENCL_CHECK(clReleaseContext(context),
       "release context", result);
     acc_opencl_context = NULL;
-  }
 #if defined(__DBCSR_ACC)
-  /* DBCSR may call acc_init() as well as libsmm_acc_init() since both interface are used.
-   * libsmm_acc_init may privately call acc_init (as it depends on the ACC interface).
-   * The implementation of acc_init() should be safe against "over initialization".
-   * However, DBCSR only calls acc_init() and expects an implicit libsmm_acc_init().
-   */
-  if (EXIT_SUCCESS == result) {
-    result = libsmm_acc_finalize();
-  }
+    /* DBCSR may call acc_init() as well as libsmm_acc_init() since both interface are used.
+     * libsmm_acc_init may privately call acc_init (as it depends on the ACC interface).
+     * The implementation of acc_init() should be safe against "over initialization".
+     * However, DBCSR only calls acc_init() and expects an implicit libsmm_acc_init().
+     */
+    if (EXIT_SUCCESS == result) {
+      result = libsmm_acc_finalize();
+    }
 #endif
+  }
   ACC_OPENCL_RETURN(result);
 }
 

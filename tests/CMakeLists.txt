@@ -82,6 +82,7 @@ set(dbcsr_tensor_unittest_SRCS dbcsr_tensor_unittest.F)
 set(dbcsr_tas_unittest_SRCS dbcsr_tas_unittest.F)
 set(dbcsr_test_csr_conversions_SRCS dbcsr_test_csr_conversions.F)
 set(dbcsr_tensor_test_cpp_SRCS dbcsr_tensor_test.cpp)
+set(dbcsr_acc_test_c_SRCS dbcsr_acc_test.c)
 
 # instead of building a full-blown lib, it would be better to simply build an
 # OBJECT lib, but we would need cmake 3.12 to be able to specify

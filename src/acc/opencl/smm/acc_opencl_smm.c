@@ -27,13 +27,24 @@ const char* acc_opencl_batchmm_source[] = {
 
 int libsmm_acc_init(void)
 {
+#if !defined(__DBCSR_ACC)
+  /* DBCSR may call acc_init() as well as libsmm_acc_init() since both interface are used.
+   * libsmm_acc_init may privately call acc_init (as it depends on the ACC interface).
+   * The implementation of acc_init() should be safe against "over initialization".
+   * However, DBCSR only calls acc_init() and expects an implicit libsmm_acc_init().
+   */
   ACC_OPENCL_RETURN(acc_init());
+#else
+  /* avoid recursion */
+  return EXIT_SUCCESS
+#endif
 }
 
 
 int libsmm_acc_finalize(void)
 {
-  return EXIT_SUCCESS;
+  /* acc_finalize() is not called since it can be used independently  */
+  return EXIT_SUCCESS
 }
 
 

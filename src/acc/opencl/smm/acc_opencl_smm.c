@@ -126,6 +126,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
             const int nlines = sizeof(acc_opencl_batchtrans_source) / sizeof(*acc_opencl_batchtrans_source);
             result = acc_opencl_kernel(acc_opencl_batchtrans_source, nlines, build_options, fname, &new_config.kernel);
           }
+          else result = EXIT_FAILURE;
         }
         if (EXIT_SUCCESS == result) {
           int max_wgsize;
@@ -267,6 +268,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
               const int nlines = sizeof(acc_opencl_batchmm_source) / sizeof(*acc_opencl_batchmm_source);
               result = acc_opencl_kernel(acc_opencl_batchmm_source, nlines, build_options, fname, &new_config.kernel);
             }
+            else result = EXIT_FAILURE;
           }
           if (EXIT_SUCCESS == result) {
             int max_wgsize;

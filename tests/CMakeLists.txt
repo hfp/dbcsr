@@ -55,11 +55,8 @@ foreach (dbcsr_perf_test ${DBCSR_PERF_TESTS})
     PROPERTIES ENVIRONMENT OMP_NUM_THREADS=${TEST_OMP_THREADS})
 endforeach ()
 
-# =================================== DBCSR CORRECTNESS TESTS Define simple
-# C-tests here, will be used as the executable name
-set(DBCSR_CTESTS_SIMPLE dbcsr_test_acc)
-
-# Define all the tests here, will be used as the executable name
+# =================================== DBCSR CORRECTNESS TESTS Define all the
+# tests here, will be used as the executable name
 set(DBCSR_TESTS
     dbcsr_unittest1
     dbcsr_unittest2
@@ -84,35 +81,7 @@ set(dbcsr_unittest4_SRCS dbcsr_unittest4.F dbcsr_test_scale_by_vector.F)
 set(dbcsr_tensor_unittest_SRCS dbcsr_tensor_unittest.F)
 set(dbcsr_tas_unittest_SRCS dbcsr_tas_unittest.F)
 set(dbcsr_test_csr_conversions_SRCS dbcsr_test_csr_conversions.F)
-set(dbcsr_test_acc_SRCS dbcsr_acc_test.c)
 set(dbcsr_tensor_test_cpp_SRCS dbcsr_tensor_test.cpp)
-
-foreach (dbcsr_ctests_simple ${DBCSR_CTESTS_SIMPLE})
-  add_executable(${dbcsr_ctests_simple} ${${dbcsr_ctests_simple}_SRCS})
-  target_link_libraries(${dbcsr_ctests_simple} dbcsr)
-  if (NOT CMAKE_BUILD_TYPE MATCHES Coverage)
-    set(dbcsr_ctests_link_lang Fortran)
-    if (CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
-      set_target_properties(${dbcsr_ctests_simple} PROPERTIES LINK_FLAGS
-                                                              "-nofor-main")
-    endif ()
-  else () # avoid linker error under MacOS (llvm_gcda_emit_arcs)
-    set(dbcsr_ctests_link_lang C)
-  endif ()
-  set_target_properties(${dbcsr_ctests_simple}
-                        PROPERTIES LINKER_LANGUAGE ${dbcsr_ctests_link_lang})
-  if (OpenMP_FOUND)
-    target_link_libraries(${dbcsr_ctests_simple}
-                          OpenMP::OpenMP_${dbcsr_ctests_link_lang})
-  endif ()
-  # register C-tests executable that do not need additional arguments with CMake
-  add_test(NAME ${dbcsr_ctests_simple} COMMAND ./${dbcsr_ctests_simple})
-  if (OpenMP_FOUND)
-    set_tests_properties(
-      ${dbcsr_ctests_simple} PROPERTIES ENVIRONMENT
-                                        OMP_NUM_THREADS=${TEST_OMP_THREADS})
-  endif ()
-endforeach ()
 
 # instead of building a full-blown lib, it would be better to simply build an
 # OBJECT lib, but we would need cmake 3.12 to be able to specify
@@ -271,7 +240,7 @@ if (USE_CUDA OR USE_HIP)
                        libsmm_acc_unittest_transpose.cpp)
     target_link_options(libsmm_acc_unittest_transpose PRIVATE ${HIP_ARCH_FLAGS})
 
-    # Workaround issue in hip_add_library: explicitly write dependency between
+    # Workaround issue in hip_add_library: explicitely write dependency between
     # the unit test & the script that generates it
     add_custom_target(generate_libsmm_acc_unittest_multiply_test_cpp
                       DEPENDS libsmm_acc_unittest_multiply.cpp)

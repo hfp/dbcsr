@@ -66,6 +66,7 @@ set(DBCSR_TESTS
     dbcsr_tas_unittest
     dbcsr_test_csr_conversions)
 
+set(DBCSR_TESTS_C dbcsr_acc_test_c)
 if (NOT (CMAKE_Fortran_COMPILER_ID STREQUAL "Cray"))
   set(DBCSR_TESTS_CPP dbcsr_tensor_test_cpp)
 endif ()
@@ -144,6 +145,7 @@ foreach (
 endforeach ()
 
 if (WITH_C_API)
+  # C API: tests and other supplemental code can be written in C++ as well
   foreach (dbcsr_test_cpp ${DBCSR_TESTS_CPP})
     add_executable(${dbcsr_test_cpp} ${${dbcsr_test_cpp}_SRCS})
     target_link_libraries(${dbcsr_test_cpp} dbcsr_c MPI::MPI_CXX)
@@ -161,6 +163,26 @@ if (WITH_C_API)
       set_tests_properties(
         ${dbcsr_test_cpp} PROPERTIES ENVIRONMENT
                                      OMP_NUM_THREADS=${TEST_OMP_THREADS})
+    endif ()
+  endforeach ()
+
+  foreach (dbcsr_test_c ${DBCSR_TESTS_C})
+    add_executable(${dbcsr_test_c} ${${dbcsr_test_c}_SRCS})
+    target_link_libraries(${dbcsr_test_c} dbcsr_c MPI::MPI_CXX)
+    # register unittest executable with CMake
+    if (USE_MPI)
+      separate_arguments(MPIEXEC_PREFLAGS)
+      add_test(
+        NAME ${dbcsr_test_c}
+        COMMAND ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${num_ranks}
+                ${MPIEXEC_PREFLAGS} ./${dbcsr_test_c} ${MPIEXEC_POSTFLAGS})
+    else ()
+      add_test(NAME ${dbcsr_test_c} COMMAND ./${dbcsr_test_c})
+    endif ()
+    if (OpenMP_FOUND)
+      set_tests_properties(
+        ${dbcsr_test_c} PROPERTIES ENVIRONMENT
+                                   OMP_NUM_THREADS=${TEST_OMP_THREADS})
     endif ()
   endforeach ()
 endif ()

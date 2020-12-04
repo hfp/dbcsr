@@ -173,6 +173,7 @@ if (WITH_C_API
 
   foreach (dbcsr_test_c ${DBCSR_TESTS_C})
     add_executable(${dbcsr_test_c} ${${dbcsr_test_c}_SRCS})
+    target_link_libraries(${dbcsr_test_c} PUBLIC dbcsr)
     # register unittest executable with CMake
     if (USE_MPI)
       target_link_libraries(${dbcsr_test_c} dbcsr_c MPI::MPI_C)

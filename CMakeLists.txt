@@ -198,8 +198,8 @@ endif ()
 
 # =================================== GPU backends
 if (USE_OPENCL)
-  if (NOT USE_SMM MATCHES "libxsmm")
-    message(FATAL_ERROR "LIBXSMM is required for ACC/OpenCL.")
+  if (NOT LIBXSMM_FOUND)
+    message(FATAL_ERROR "LIBXSMM is not found but required for ACC/OpenCL.")
   endif ()
 
   find_package(OpenCL REQUIRED)

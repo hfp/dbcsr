@@ -147,8 +147,7 @@ add_library(dbcsr ${DBCSR_SRCS})
 set_target_properties(dbcsr PROPERTIES VERSION ${dbcsr_VERSION}
                                        SOVERSION ${dbcsr_APIVERSION})
 
-if (USE_SMM MATCHES "libxsmm")
-  # linker/include flags are managed by pkg-config (above)
+if (LIBXSMM_FOUND)
   target_compile_definitions(dbcsr PRIVATE __LIBXSMM)
   target_link_libraries(dbcsr PRIVATE PkgConfig::LIBXSMM)
 endif ()

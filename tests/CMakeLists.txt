@@ -67,8 +67,10 @@ set(DBCSR_TESTS
     dbcsr_test_csr_conversions)
 
 set(DBCSR_TESTS_C dbcsr_acc_test_c)
-if (NOT (CMAKE_Fortran_COMPILER_ID STREQUAL "Cray"))
-  set(DBCSR_TESTS_CPP dbcsr_tensor_test_cpp)
+if (USE_MPI)
+  if (NOT (CMAKE_Fortran_COMPILER_ID STREQUAL "Cray"))
+    set(DBCSR_TESTS_CPP dbcsr_tensor_test_cpp)
+  endif ()
 endif ()
 
 # Common object files linked to all tests
@@ -144,7 +146,10 @@ foreach (
     ${tests_src} PROPERTIES COMPILE_DEFINITIONS __SHORT_FILE__="${short_file}")
 endforeach ()
 
-if (WITH_C_API OR USE_OPENCL OR USE_CUDA OR USE_HIP)
+if (WITH_C_API
+    OR USE_OPENCL
+    OR USE_CUDA
+    OR USE_HIP)
   # C API: tests and other supplemental code can be written in C++ as well
   foreach (dbcsr_test_cpp ${DBCSR_TESTS_CPP})
     add_executable(${dbcsr_test_cpp} ${${dbcsr_test_cpp}_SRCS})

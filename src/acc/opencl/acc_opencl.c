@@ -638,7 +638,7 @@ int acc_opencl_source(FILE* source, char* lines[], const char* extensions, int m
 int acc_opencl_wgsize(cl_kernel kernel, int* preferred_multiple, int* max_value)
 {
   cl_device_id active_id = NULL;
-  int result = acc_opencl_device(NULL/*stream*/, &active_id);
+  int result = NULL != kernel && acc_opencl_device(NULL/*stream*/, &active_id);
   assert(NULL != preferred_multiple || NULL != max_value);
   if (NULL != preferred_multiple) {
     size_t value = 0;

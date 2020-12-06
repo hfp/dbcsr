@@ -12,7 +12,8 @@ if [ "$#" -gt 1 ] && [ "${OFILE##*.}" = "h" ]; then
         echo "#define ${MNAME} ${VNAME}" >>${OFILE}
         echo "const char ${VNAME}[] =" >>${OFILE}
         sed \
-          -e '/\/\*.*\*\//d' -e '/\/\*/,/\*\//d' -e '/^[[:space:]]*$/d' \
+          -e 's/\/\*.[^/*]*\*\///g' -e '/\/\*/,/\*\//d' \
+          -e '/^[[:space:]]*$/d' -e 's/[[:space:]]*$//' \
           -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e 's/^/  "/' -e 's/$/\\n"/' \
           ${IFILE} >>${OFILE}
         echo ";" >>${OFILE}

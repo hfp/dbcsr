@@ -12,6 +12,9 @@
 #include "opencl_kernels.h"
 #include <assert.h>
 
+#if !defined(OPENCL_LIBSMM_VERBOSE) && 0
+# define OPENCL_LIBSMM_VERBOSE
+#endif
 #if !defined(OPENCL_SOURCE_LOAD) && 0
 # define OPENCL_SOURCE_LOAD
 #endif
@@ -55,6 +58,11 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
 {
   int result = EXIT_SUCCESS;
   assert((NULL != dev_trs_stack && NULL != dev_data && 0 <= stack_size) || 0 == stack_size);
+#if defined(OPENCL_LIBSMM_VERBOSE)
+  printf("libsmm_acc_transpose(%p, %i, %i, %p, %i, %i, %i, %i, %p)\n",
+    (const void*)dev_trs_stack, offset, stack_size, dev_data,
+    datatype, m, n, max_kernel_dim, stream);
+#endif
   if (0 < stack_size && 1 < (m * n) && m <= max_kernel_dim && n <= max_kernel_dim) {
     typedef struct config_t {
       cl_kernel kernel;
@@ -173,6 +181,12 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
   assert((NULL != dev_param_stack && NULL != dev_a_data && NULL != dev_b_data && NULL != dev_c_data) || 0 == stack_size);
   assert(0 < nparams && 0 < max_kernel_dim && NULL != stack_stream);
   assert(0 <= stack_size && 0 <= m_max && 0 <= n_max && 0 <= k_max);
+#if defined(OPENCL_LIBSMM_VERBOSE)
+  printf("libsmm_acc_process(%p, %p, %i, %i, %i, %p, %p, %p, %i, %i, %i, %i, %i, %p, %p)\n",
+    (const void*)host_param_stack, (const void*)dev_param_stack, stack_size, nparams, datatype,
+    dev_a_data, dev_b_data, dev_c_data, m_max, n_max, k_max, max_kernel_dim, def_mnk,
+    stack_stream, c_stream);
+#endif
   if (0 < stack_size && def_mnk/*homogeneous*/ &&
       0 < m_max && m_max <= max_kernel_dim &&
       0 < n_max && n_max <= max_kernel_dim &&

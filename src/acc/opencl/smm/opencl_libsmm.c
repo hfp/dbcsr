@@ -313,7 +313,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
     }
   }
   else if (0 < stack_size) { /* inhomogeneous or large */
-    result = -1; /* TODO: document result code to trigger host-fallback */
+    return -1; /* TODO: document result code to trigger host-fallback */
   }
   ACC_OPENCL_RETURN(result);
 }

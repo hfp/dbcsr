@@ -63,7 +63,9 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
     (const void*)dev_trs_stack, offset, stack_size, dev_data,
     datatype, m, n, max_kernel_dim, stream);
 #endif
-  if (0 < stack_size && 1 < (m * n) && m <= max_kernel_dim && n <= max_kernel_dim) {
+  if (0 < stack_size && 1 < (m * n) && m <= max_kernel_dim && n <= max_kernel_dim
+    && (dbcsr_type_real_8 == datatype || dbcsr_type_real_4 == datatype))
+  {
     typedef struct config_t {
       cl_kernel kernel;
       size_t wgsize;
@@ -187,7 +189,8 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
     dev_a_data, dev_b_data, dev_c_data, m_max, n_max, k_max, max_kernel_dim, def_mnk,
     stack_stream, c_stream);
 #endif
-  if (0 < stack_size && def_mnk/*homogeneous*/ &&
+  if ((dbcsr_type_real_8 == datatype || dbcsr_type_real_4 == datatype) &&
+      0 < stack_size && def_mnk/*homogeneous*/ &&
       0 < m_max && m_max <= max_kernel_dim &&
       0 < n_max && n_max <= max_kernel_dim &&
       0 < k_max && k_max <= max_kernel_dim)
@@ -312,7 +315,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
         "launch SMM-kernel", result);
     }
   }
-  else if (0 < stack_size) { /* inhomogeneous or large */
+  else if (0 < stack_size) { /* inhomogeneous, large kernel, or unsupported datatype */
     return -1; /* TODO: document result code to trigger host-fallback */
   }
   ACC_OPENCL_RETURN(result);

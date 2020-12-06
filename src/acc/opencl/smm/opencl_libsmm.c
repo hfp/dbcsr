@@ -54,9 +54,8 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
   void* dev_data, libsmm_acc_data_t datatype, int m, int n, int max_kernel_dim, void* stream)
 {
   int result = EXIT_SUCCESS;
-  ACC_OPENCL_UNUSED(max_kernel_dim); /* TODO */
   assert((NULL != dev_trs_stack && NULL != dev_data && 0 <= stack_size) || 0 == stack_size);
-  if (0 < stack_size && 1 < (m * n)) {
+  if (0 < stack_size && 1 < (m * n) && m <= max_kernel_dim && n <= max_kernel_dim) {
     typedef struct config_t {
       cl_kernel kernel;
       size_t wgsize;
@@ -173,138 +172,134 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
   ACC_OPENCL_UNUSED(host_param_stack); ACC_OPENCL_UNUSED(nparams); ACC_OPENCL_UNUSED(c_stream); /* TODO */
   assert((NULL != dev_param_stack && NULL != dev_a_data && NULL != dev_b_data && NULL != dev_c_data) || 0 == stack_size);
   assert(0 < nparams && 0 < max_kernel_dim && NULL != stack_stream);
-  if (0 <= stack_size) {
-    if (0 < stack_size && def_mnk/*homogeneous*/ &&
-        0 < m_max && m_max <= max_kernel_dim &&
-        0 < n_max && n_max <= max_kernel_dim &&
-        0 < k_max && k_max <= max_kernel_dim)
-    {
-      typedef struct config_t {
-        cl_kernel kernel;
-      } config_t;
-      struct { int m, n, k; } key;
-      config_t *config;
-      /* homogeneous key-data (no need for prior memset) */
-      key.m = m_max; key.n = n_max; key.k = k_max; /* initialize key */
-      config = (config_t*)libxsmm_xdispatch(&key, sizeof(key));
-      if (NULL == config) {
-        char build_options[ACC_OPENCL_BUFFER_MAXSIZE], fname[48];
-        int nchar = ACC_OPENCL_SNPRINTF(fname, sizeof(fname), "xmm%ix%ix%i", m_max, n_max, k_max);
-        const char* extensions = NULL;
-        if (0 < nchar && (int)sizeof(fname) > nchar) {
-          cl_device_id active_device;
-          result = acc_opencl_device(stack_stream, &active_device);
-          if (EXIT_SUCCESS == result) {
-            const char *const env_options = getenv("ACC_OPENCL_SMM_BUILD_OPTIONS");
-            const char *typename = NULL, *atomic_t = NULL, *atomic_f = NULL;
-            assert(NULL != active_device);
-            switch (datatype) {
-              case dbcsr_type_real_8: {
-                extensions = "cl_khr_fp64 cl_khr_int64_base_atomics";
-                if (EXIT_SUCCESS == acc_opencl_device_ext(active_device, &extensions, 1)) {
-                  typename = "double";
-                  atomic_t = "long";
-                  atomic_f = "atom_cmpxchg";
-                  fname[0] = 'd';
-                }
-              } break;
-              case dbcsr_type_real_4: {
-                extensions = "cl_khr_global_int32_base_atomics";
-                if (EXIT_SUCCESS == acc_opencl_device_ext(active_device, &extensions, 1)) {
-                  typename = "float";
-                  atomic_t = "int";
-                  atomic_f = "atomic_cmpxchg";
-                  fname[0] = 's';
-                }
-              } break;
-              default: ;
-            }
-            if (NULL != typename && '\0' != *typename) {
-              const char *const build_setup = "%s -cl-fast-relaxed-math"
-                " -DT=%s -DTA=\"%s\" -DFA=%s -DFN=%s -DSM=%i -DSN=%i -DSK=%i";
-              nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options), build_setup,
-                (NULL == env_options || '\0' == *env_options) ? "" : env_options,
-                typename, atomic_t, atomic_f, fname, m_max, n_max, k_max);
-              if (0 >= nchar || (int)sizeof(build_options) <= nchar) result = EXIT_FAILURE;
-            }
-            else {
-              result = EXIT_FAILURE;
-              ACC_OPENCL_ERROR("insufficient device capabilities", result);
-            }
-          }
-        }
-        else {
-          result = EXIT_FAILURE;
-        }
+  assert(0 <= stack_size && 0 <= m_max && 0 <= n_max && 0 <= k_max);
+  if (0 < stack_size && def_mnk/*homogeneous*/ &&
+      0 < m_max && m_max <= max_kernel_dim &&
+      0 < n_max && n_max <= max_kernel_dim &&
+      0 < k_max && k_max <= max_kernel_dim)
+  {
+    typedef struct config_t {
+      cl_kernel kernel;
+    } config_t;
+    struct { int m, n, k; } key;
+    config_t *config;
+    /* homogeneous key-data (no need for prior memset) */
+    key.m = m_max; key.n = n_max; key.k = k_max; /* initialize key */
+    config = (config_t*)libxsmm_xdispatch(&key, sizeof(key));
+    if (NULL == config) {
+      char build_options[ACC_OPENCL_BUFFER_MAXSIZE], fname[48];
+      int nchar = ACC_OPENCL_SNPRINTF(fname, sizeof(fname), "xmm%ix%ix%i", m_max, n_max, k_max);
+      const char* extensions = NULL;
+      if (0 < nchar && (int)sizeof(fname) > nchar) {
+        cl_device_id active_device;
+        result = acc_opencl_device(stack_stream, &active_device);
         if (EXIT_SUCCESS == result) {
-          config_t new_config;
-          FILE* file = NULL;
-#if defined(OPENCL_SOURCE_LOAD)
-          const char *const paths[] = {
-            "../../exts/dbcsr/src/acc/opencl/smm/kernel",
-            "opencl/smm/kernels"
-          };
-          file = acc_opencl_source_open("multiply.cl", paths, sizeof(paths) / sizeof(*paths));
-          if (NULL != file) {
-            char* lines[128];
-            const int nlines = acc_opencl_source(file, lines,
-              extensions, sizeof(lines) / sizeof(*lines),
-              /* whether to cleanup the loaded source code or not */
-# if defined(NDEBUG)
-              1);
-# else
-              0);
-# endif
-            fclose(file);
-            result = acc_opencl_kernel((const char**)lines, nlines, build_options, fname, &new_config.kernel);
-            if (0 < nlines) free(lines[0]);
+          const char *const env_options = getenv("ACC_OPENCL_SMM_BUILD_OPTIONS");
+          const char *typename = NULL, *atomic_t = NULL, *atomic_f = NULL;
+          assert(NULL != active_device);
+          switch (datatype) {
+            case dbcsr_type_real_8: {
+              extensions = "cl_khr_fp64 cl_khr_int64_base_atomics";
+              if (EXIT_SUCCESS == acc_opencl_device_ext(active_device, &extensions, 1)) {
+                typename = "double";
+                atomic_t = "long";
+                atomic_f = "atom_cmpxchg";
+                fname[0] = 'd';
+              }
+            } break;
+            case dbcsr_type_real_4: {
+              extensions = "cl_khr_global_int32_base_atomics";
+              if (EXIT_SUCCESS == acc_opencl_device_ext(active_device, &extensions, 1)) {
+                typename = "float";
+                atomic_t = "int";
+                atomic_f = "atomic_cmpxchg";
+                fname[0] = 's';
+              }
+            } break;
+            default: ;
           }
+          if (NULL != typename && '\0' != *typename) {
+            const char *const build_setup = "%s -cl-fast-relaxed-math"
+              " -DT=%s -DTA=\"%s\" -DFA=%s -DFN=%s -DSM=%i -DSN=%i -DSK=%i";
+            nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options), build_setup,
+              (NULL == env_options || '\0' == *env_options) ? "" : env_options,
+              typename, atomic_t, atomic_f, fname, m_max, n_max, k_max);
+            if (0 >= nchar || (int)sizeof(build_options) <= nchar) result = EXIT_FAILURE;
+          }
+          else {
+            result = EXIT_FAILURE;
+            ACC_OPENCL_ERROR("insufficient device capabilities", result);
+          }
+        }
+      }
+      else {
+        result = EXIT_FAILURE;
+      }
+      if (EXIT_SUCCESS == result) {
+        config_t new_config;
+        FILE* file = NULL;
+#if defined(OPENCL_SOURCE_LOAD)
+        const char *const paths[] = {
+          "../../exts/dbcsr/src/acc/opencl/smm/kernel",
+          "opencl/smm/kernels"
+        };
+        file = acc_opencl_source_open("multiply.cl", paths, sizeof(paths) / sizeof(*paths));
+        if (NULL != file) {
+          char* lines[128];
+          const int nlines = acc_opencl_source(file, lines,
+            extensions, sizeof(lines) / sizeof(*lines),
+            /* whether to cleanup the loaded source code or not */
+# if defined(NDEBUG)
+            1);
+# else
+            0);
+# endif
+          fclose(file);
+          result = acc_opencl_kernel((const char**)lines, nlines, build_options, fname, &new_config.kernel);
+          if (0 < nlines) free(lines[0]);
+        }
 #endif
 #if defined(OPENCL_SOURCE_MULTIPLY)
-          if (EXIT_SUCCESS == result && NULL == file) {
-            const char *const lines[] = { OPENCL_SOURCE_MULTIPLY };
-            result = acc_opencl_kernel(lines, 1/*nlines*/,
-              build_options, fname, &new_config.kernel);
-          }
-#endif
-          if (EXIT_SUCCESS == result) {
-            int max_wgsize;
-            result = acc_opencl_wgsize(new_config.kernel, NULL/*preferred_multiple*/, &max_wgsize);
-            if (EXIT_SUCCESS == result) {
-              assert(0 < max_wgsize);
-              if (n_max <= max_wgsize) {
-                config = (config_t*)libxsmm_xregister(&key, sizeof(key), sizeof(new_config), &new_config);
-              }
-              else result = EXIT_FAILURE;
-            }
-          }
+        if (EXIT_SUCCESS == result && NULL == file) {
+          const char *const lines[] = { OPENCL_SOURCE_MULTIPLY };
+          result = acc_opencl_kernel(lines, 1/*nlines*/,
+            build_options, fname, &new_config.kernel);
         }
-        else {
-          result = EXIT_FAILURE;
+#endif
+        if (EXIT_SUCCESS == result) {
+          int max_wgsize;
+          result = acc_opencl_wgsize(new_config.kernel, NULL/*preferred_multiple*/, &max_wgsize);
+          if (EXIT_SUCCESS == result) {
+            assert(0 < max_wgsize);
+            if (n_max <= max_wgsize) {
+              config = (config_t*)libxsmm_xregister(&key, sizeof(key), sizeof(new_config), &new_config);
+            }
+            else result = EXIT_FAILURE;
+          }
         }
       }
-      assert((NULL != config && NULL != config->kernel) || EXIT_SUCCESS != result);
-      if (EXIT_SUCCESS == result) {
-        const size_t wgsize = n_max, work_size = wgsize * stack_size;
-        ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 0, sizeof(cl_mem), ACC_OPENCL_MEM(dev_param_stack)),
-          "set batch-list argument of SMM-kernel", result);
-        ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 1, sizeof(cl_mem), ACC_OPENCL_MEM(dev_a_data)),
-          "set A-matrix argument of SMM-kernel", result);
-        ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 2, sizeof(cl_mem), ACC_OPENCL_MEM(dev_b_data)),
-          "set B-matrix argument of SMM-kernel", result);
-        ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 3, sizeof(cl_mem), ACC_OPENCL_MEM(dev_c_data)),
-          "set C-matrix argument of SMM-kernel", result);
-        ACC_OPENCL_CHECK(clEnqueueNDRangeKernel(*ACC_OPENCL_STREAM(stack_stream),
-          config->kernel, 1/*work_dim*/, NULL, &work_size, &wgsize, 0, NULL, NULL),
-          "launch SMM-kernel", result);
+      else {
+        result = EXIT_FAILURE;
       }
     }
-    else if (0 != stack_size) { /* inhomogeneous or large */
-      result = EXIT_FAILURE; /* TODO: signal host-fallback */
+    assert((NULL != config && NULL != config->kernel) || EXIT_SUCCESS != result);
+    if (EXIT_SUCCESS == result) {
+      const size_t wgsize = n_max, work_size = wgsize * stack_size;
+      ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 0, sizeof(cl_mem), ACC_OPENCL_MEM(dev_param_stack)),
+        "set batch-list argument of SMM-kernel", result);
+      ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 1, sizeof(cl_mem), ACC_OPENCL_MEM(dev_a_data)),
+        "set A-matrix argument of SMM-kernel", result);
+      ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 2, sizeof(cl_mem), ACC_OPENCL_MEM(dev_b_data)),
+        "set B-matrix argument of SMM-kernel", result);
+      ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 3, sizeof(cl_mem), ACC_OPENCL_MEM(dev_c_data)),
+        "set C-matrix argument of SMM-kernel", result);
+      ACC_OPENCL_CHECK(clEnqueueNDRangeKernel(*ACC_OPENCL_STREAM(stack_stream),
+        config->kernel, 1/*work_dim*/, NULL, &work_size, &wgsize, 0, NULL, NULL),
+        "launch SMM-kernel", result);
     }
   }
-  else {
-    result = EXIT_FAILURE;
+  else if (0 < stack_size) { /* inhomogeneous or large */
+    result = -1; /* TODO: document result code to trigger host-fallback */
   }
   ACC_OPENCL_RETURN(result);
 }

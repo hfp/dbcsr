@@ -2,9 +2,10 @@ INCACC := $(wildcard *.h*) ../acc.h
 SRCACC := $(wildcard *.c)
 OBJACC := $(SRCACC:.c=.o)
 
-INCSMM := $(wildcard smm/*.h*) ../acc_libsmm.h
+INCSMM := $(wildcard smm/*.h*) smm/opencl_kernels.h ../acc_libsmm.h
 SRCSMM := $(wildcard smm/*.c)
 OBJSMM := $(SRCSMM:.c=.o)
+KERNEL := $(wildcard smm/kernels/*.cl)
 
 INCALL := $(INCACC) $(INCSMM)
 
@@ -94,6 +95,9 @@ bench: ../acc_bench_smm ../acc_bench_trans
 .PHONY: test
 test: ../dbcsr_acc_test acc_opencl_test
 
+smm/opencl_kernels.h: acc_opencl.sh $(KERNEL)
+	./acc_opencl.sh $(KERNEL) $@
+
 ../dbcsr_acc.a: $(OBJACC)
 	$(AR) -rs $@ $^
 
@@ -125,6 +129,7 @@ acc_opencl_test: acc_opencl_test.o ../dbcsr_acc.a
 clean:
 	@rm -f $(OBJACC) $(OBJSMM)
 	@rm -f acc_bench_smm.o acc_bench_trans.o dbcsr_acc_test.o
+	@rm -f smm/opencl_kernels.h
 
 .PHONY: realclean
 realclean: clean

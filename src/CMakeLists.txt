@@ -106,10 +106,8 @@ add_fypp_sources(
   work/dbcsr_work_operations.F)
 
 set(DBCSR_OPENCL_SRCS
-    acc/opencl/acc_opencl.c
-    acc/opencl/acc_opencl_event.c
-    acc/opencl/acc_opencl_mem.c
-    acc/opencl/acc_opencl_stream.c)
+    acc/opencl/acc_opencl.c acc/opencl/acc_opencl_event.c
+    acc/opencl/acc_opencl_mem.c acc/opencl/acc_opencl_stream.c)
 
 set(DBCSR_CUDA_SRCS
     acc/cuda/acc_cublas.cu
@@ -216,6 +214,8 @@ if (USE_OPENCL)
   set(DBCSR_ACC_SRCS ${DBCSR_OPENCL_SRCS})
   add_library(acc OBJECT ${DBCSR_ACC_SRCS})
   target_compile_definitions(acc PRIVATE __OPENCL)
+  # account for DBCSR not calling libsmm_acc_init() (DBCSR only calls acc_init)
+  target_compile_definitions(acc PRIVATE __DBCSR_ACC)
   target_include_directories(acc PRIVATE ${OpenCL_INCLUDE_DIRS})
   target_sources(dbcsr PRIVATE $<TARGET_OBJECTS:acc>)
   add_subdirectory(acc/opencl/smm)

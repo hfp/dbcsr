@@ -21,6 +21,10 @@
 #else
 # include <glob.h>
 #endif
+#if defined(__DBCSR_ACC)
+# include "../acc_libsmm.h"
+#endif
+
 #if !defined(ACC_OPENCL_EXTLINE)
 # define ACC_OPENCL_EXTLINE
 #endif
@@ -233,6 +237,16 @@ int acc_init(void)
     else { /* mark as initialized */
       acc_opencl_ndevices = -1;
     }
+#if defined(__DBCSR_ACC)
+    /* DBCSR may call acc_init() as well as libsmm_acc_init() since both interface are used.
+     * libsmm_acc_init may privately call acc_init (as it depends on the ACC interface).
+     * The implementation of acc_init() should be safe against "over initialization".
+     * However, DBCSR only calls acc_init() and expects an implicit libsmm_acc_init().
+     */
+    if (EXIT_SUCCESS == result) {
+      result = libsmm_acc_init();
+    }
+#endif
   }
   ACC_OPENCL_RETURN(result);
 }
@@ -259,6 +273,16 @@ int acc_finalize(void)
     ACC_OPENCL_CHECK(clReleaseContext(context),
       "release context", result);
     acc_opencl_context = NULL;
+#if defined(__DBCSR_ACC)
+    /* DBCSR may call acc_init() as well as libsmm_acc_init() since both interface are used.
+     * libsmm_acc_init may privately call acc_init (as it depends on the ACC interface).
+     * The implementation of acc_init() should be safe against "over initialization".
+     * However, DBCSR only calls acc_init() and expects an implicit libsmm_acc_init().
+     */
+    if (EXIT_SUCCESS == result) {
+      result = libsmm_acc_finalize();
+    }
+#endif
   }
   ACC_OPENCL_RETURN(result);
 }
@@ -272,12 +296,20 @@ void acc_clear_errors(void)
 int acc_get_ndevices(int* ndevices)
 {
   int result;
-  if (NULL != ndevices && 0 != acc_opencl_ndevices) {
-    *ndevices = (0 < acc_opencl_ndevices ? acc_opencl_ndevices : 0);
-    result = EXIT_SUCCESS;
-  }
-  else {
-    result = EXIT_FAILURE;
+
+#if defined(__DBCSR_ACC)
+  /* DBCSR calls acc_get_ndevices before calling acc_init(). */
+  result = acc_init();
+  if (EXIT_SUCCESS == result)
+#endif
+  {
+    if (NULL != ndevices && 0 != acc_opencl_ndevices) {
+      *ndevices = (0 < acc_opencl_ndevices ? acc_opencl_ndevices : 0);
+      result = EXIT_SUCCESS;
+    }
+    else {
+      result = EXIT_FAILURE;
+    }
   }
   ACC_OPENCL_RETURN(result);
 }
@@ -606,8 +638,10 @@ int acc_opencl_source(FILE* source, char* lines[], const char* extensions, int m
 int acc_opencl_wgsize(cl_kernel kernel, int* preferred_multiple, int* max_value)
 {
   cl_device_id active_id = NULL;
-  int result = acc_opencl_device(NULL/*stream*/, &active_id);
+  int result = (NULL != kernel ? EXIT_SUCCESS : EXIT_FAILURE);
   assert(NULL != preferred_multiple || NULL != max_value);
+  ACC_OPENCL_CHECK(acc_opencl_device(NULL/*stream*/, &active_id),
+    "query active device", result);
   if (NULL != preferred_multiple) {
     size_t value = 0;
     ACC_OPENCL_CHECK(clGetKernelWorkGroupInfo(kernel, active_id,

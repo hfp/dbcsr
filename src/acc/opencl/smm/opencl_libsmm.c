@@ -109,7 +109,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
           "opencl/smm/kernels"
         };
         file = acc_opencl_source_open(
-          inplace ? "transpose_inplace.cl" : "transpose.cl",
+          inplace ? ("transpose_inplace." ACC_OPENCL_SRCEXT) : ("transpose." ACC_OPENCL_SRCEXT),
           paths, sizeof(paths) / sizeof(*paths));
         if (NULL != file) {
           char* lines[128];
@@ -260,7 +260,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
           "../../exts/dbcsr/src/acc/opencl/smm/kernel",
           "opencl/smm/kernels"
         };
-        file = acc_opencl_source_open("multiply.cl", paths, sizeof(paths) / sizeof(*paths));
+        file = acc_opencl_source_open("multiply." ACC_OPENCL_SRCEXT, paths, sizeof(paths) / sizeof(*paths));
         if (NULL != file) {
           char* lines[128];
           const int nlines = acc_opencl_source(file, lines,

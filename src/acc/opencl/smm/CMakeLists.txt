@@ -1,5 +1,5 @@
 set(LIBSMM_ACC_SRC_FILES opencl_libsmm.c)
-set(LIBSMM_ACC_HEADER_FILES opencl_libsmm.h)
+set(LIBSMM_ACC_HEADER_FILES opencl_libsmm.h opencl_kernels.h)
 set(LIBSMM_ACC_FILES ${LIBSMM_ACC_SRC_FILES} ${LIBSMM_ACC_HEADER_FILES})
 
 set(SMM_ACC_KERNEL_SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/../acc_opencl.sh)

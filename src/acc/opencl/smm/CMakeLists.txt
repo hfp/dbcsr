@@ -5,6 +5,8 @@ set(LIBSMM_ACC_FILES ${LIBSMM_ACC_SRC_FILES} ${LIBSMM_ACC_HEADER_FILES})
 set(SMM_ACC_KERNEL_SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/../acc_opencl.sh)
 set(SMM_ACC_KERNELS kernels/multiply.cl kernels/transpose.cl
                     kernels/transpose_inplace.cl)
+set(SMM_ACC_KERNEL_FILES list (TRANSFORM SMM_ACC_KERNELS PREPEND
+                               ${CMAKE_CURRENT_SOURCE_DIR}))
 
 if (USE_OPENCL)
   add_custom_command(

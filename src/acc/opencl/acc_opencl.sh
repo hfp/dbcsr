@@ -11,6 +11,7 @@ if [ "$#" -gt 1 ] && [ "${OFILE##*.}" = "h" ]; then
         MNAME=$(echo ${VNAME} | tr '[:lower:]' '[:upper:]')
         echo "#define ${MNAME} ${VNAME}" >>${OFILE}
         echo "const char ${VNAME}[] =" >>${OFILE}
+        echo "  \"#pragma OPENCL EXTENSION all: enable\\n\"" >>${OFILE}
         sed \
           -e 's/\/\*.[^/*]*\*\///g' -e '/\/\*/,/\*\//d' \
           -e '/^[[:space:]]*$/d' -e 's/[[:space:]]*$//' \

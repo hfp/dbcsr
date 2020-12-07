@@ -59,7 +59,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
   int result = EXIT_SUCCESS;
   assert((NULL != dev_trs_stack && NULL != dev_data && 0 <= stack_size) || 0 == stack_size);
 #if defined(OPENCL_LIBSMM_VERBOSE)
-  result = acc_stream_sync(stack_stream);
+  result = acc_stream_sync(stream);
   printf("libsmm_acc_transpose(%p, %i, %i, %p, %i, %i, %i, %i, %p)\n",
     (const void*)dev_trs_stack, offset, stack_size, dev_data,
     datatype, m, n, max_kernel_dim, stream);

@@ -5,13 +5,12 @@ set(LIBSMM_ACC_FILES ${LIBSMM_ACC_SRC_FILES} ${LIBSMM_ACC_HEADER_FILES})
 set(SMM_ACC_KERNEL_SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/../acc_opencl.sh)
 set(SMM_ACC_KERNELS kernels/multiply.cl kernels/transpose.cl
                     kernels/transpose_inplace.cl)
-set(SMM_ACC_KERNEL_FILES list (TRANSFORM SMM_ACC_KERNELS PREPEND
-                               ${CMAKE_CURRENT_SOURCE_DIR}))
+list(TRANSFORM SMM_ACC_KERNELS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
 
 if (USE_OPENCL)
   add_custom_command(
-    COMMAND ${SMM_ACC_KERNEL_SCRIPT} ${SMM_ACC_KERNEL_FILES} opencl_kernels.h
-    DEPENDS ${SMM_ACC_KERNEL_SCRIPT} ${SMM_ACC_KERNEL_FILES}
+    COMMAND ${SMM_ACC_KERNEL_SCRIPT} ${SMM_ACC_KERNELS} opencl_kernels.h
+    DEPENDS ${SMM_ACC_KERNEL_SCRIPT} ${SMM_ACC_KERNELS}
     OUTPUT opencl_kernels.h
     COMMENT "libsmm_acc: generating kernels")
   add_library(libsmm_acc OBJECT ${LIBSMM_ACC_FILES})

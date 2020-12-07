@@ -5,6 +5,12 @@ set(LIBSMM_ACC_SRC_FILES opencl_libsmm.c)
 set(LIBSMM_ACC_HEADER_FILES opencl_libsmm.h)
 set(LIBSMM_ACC_FILES ${LIBSMM_ACC_SRC_FILES} ${LIBSMM_ACC_HEADER_FILES})
 
+add_custom_command(
+  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/../acc_opencl.sh ${SMM_ACC_KERNELS} opencl_kernels.h
+  DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../acc_opencl.sh ${SMM_ACC_KERNELS}
+  OUTPUT opencl_kernels.h
+  COMMENT "libsmm_acc: generating kernels")
+
 if (USE_OPENCL)
   add_library(libsmm_acc OBJECT ${LIBSMM_ACC_FILES})
   target_compile_definitions(libsmm_acc PRIVATE __OPENCL)

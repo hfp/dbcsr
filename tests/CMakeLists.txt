@@ -66,8 +66,9 @@ set(DBCSR_TESTS
     dbcsr_tas_unittest
     dbcsr_test_csr_conversions)
 
-
-if (USE_OPENCL OR USE_CUDA OR USE_HIP)
+if (USE_OPENCL
+    OR USE_CUDA
+    OR USE_HIP)
   set(DBCSR_TESTS_C dbcsr_acc_test_c)
 endif ()
 

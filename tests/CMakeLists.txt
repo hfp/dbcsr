@@ -66,11 +66,13 @@ set(DBCSR_TESTS
     dbcsr_tas_unittest
     dbcsr_test_csr_conversions)
 
-set(DBCSR_TESTS_C dbcsr_acc_test)
-if (USE_MPI)
-  if (NOT (CMAKE_Fortran_COMPILER_ID STREQUAL "Cray"))
-    set(DBCSR_TESTS_CPP dbcsr_tensor_test)
-  endif ()
+
+if (USE_OPENCL OR USE_CUDA OR USE_HIP)
+  set(DBCSR_TESTS_C dbcsr_acc_test_c)
+endif ()
+
+if (NOT (CMAKE_Fortran_COMPILER_ID STREQUAL "Cray"))
+  set(DBCSR_TESTS_CPP dbcsr_tensor_test_cpp)
 endif ()
 
 # Common object files linked to all tests
@@ -84,8 +86,8 @@ set(dbcsr_unittest4_SRCS dbcsr_unittest4.F dbcsr_test_scale_by_vector.F)
 set(dbcsr_tensor_unittest_SRCS dbcsr_tensor_unittest.F)
 set(dbcsr_tas_unittest_SRCS dbcsr_tas_unittest.F)
 set(dbcsr_test_csr_conversions_SRCS dbcsr_test_csr_conversions.F)
-set(dbcsr_tensor_test_SRCS dbcsr_tensor_test.cpp)
-set(dbcsr_acc_test_SRCS dbcsr_acc_test.c)
+set(dbcsr_tensor_test_cpp_SRCS dbcsr_tensor_test.cpp)
+set(dbcsr_acc_test_c_SRCS dbcsr_acc_test.c)
 
 # instead of building a full-blown lib, it would be better to simply build an
 # OBJECT lib, but we would need cmake 3.12 to be able to specify
@@ -146,17 +148,12 @@ foreach (
     ${tests_src} PROPERTIES COMPILE_DEFINITIONS __SHORT_FILE__="${short_file}")
 endforeach ()
 
-if (WITH_C_API
-    OR USE_OPENCL
-    OR USE_CUDA
-    OR USE_HIP)
-  # C API: tests and other supplemental code can be written in C++ as well
+if (WITH_C_API)
   foreach (dbcsr_test_cpp ${DBCSR_TESTS_CPP})
     add_executable(${dbcsr_test_cpp} ${${dbcsr_test_cpp}_SRCS})
-    target_link_libraries(${dbcsr_test_cpp} PUBLIC dbcsr)
+    target_link_libraries(${dbcsr_test_cpp} dbcsr_c MPI::MPI_CXX)
     # register unittest executable with CMake
     if (USE_MPI)
-      target_link_libraries(${dbcsr_test_cpp} dbcsr_c MPI::MPI_CXX)
       separate_arguments(MPIEXEC_PREFLAGS)
       add_test(
         NAME ${dbcsr_test_cpp}
@@ -174,10 +171,9 @@ if (WITH_C_API
 
   foreach (dbcsr_test_c ${DBCSR_TESTS_C})
     add_executable(${dbcsr_test_c} ${${dbcsr_test_c}_SRCS})
-    target_link_libraries(${dbcsr_test_c} PUBLIC dbcsr)
+    target_link_libraries(${dbcsr_test_c} dbcsr_c)
     # register unittest executable with CMake
     if (USE_MPI)
-      target_link_libraries(${dbcsr_test_c} dbcsr_c MPI::MPI_C)
       separate_arguments(MPIEXEC_PREFLAGS)
       add_test(
         NAME ${dbcsr_test_c}

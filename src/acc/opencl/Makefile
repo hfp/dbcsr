@@ -129,6 +129,7 @@ acc_opencl_test: acc_opencl_test.o ../dbcsr_acc.a
 clean:
 	@rm -f $(OBJACC) $(OBJSMM)
 	@rm -f acc_bench_smm.o acc_bench_trans.o dbcsr_acc_test.o
+	@rm -f smm/opencl_kernels.h
 
 .PHONY: realclean
 realclean: clean

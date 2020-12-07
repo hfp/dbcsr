@@ -10,8 +10,8 @@ set(SMM_ACC_KERNEL_FILES list (TRANSFORM SMM_ACC_KERNELS PREPEND
 
 if (USE_OPENCL)
   add_custom_command(
-    COMMAND ${SMM_ACC_KERNEL_SCRIPT} ${SMM_ACC_KERNELS} opencl_kernels.h
-    DEPENDS ${SMM_ACC_KERNEL_SCRIPT} ${SMM_ACC_KERNELS}
+    COMMAND ${SMM_ACC_KERNEL_SCRIPT} ${SMM_ACC_KERNEL_FILES} opencl_kernels.h
+    DEPENDS ${SMM_ACC_KERNEL_SCRIPT} ${SMM_ACC_KERNEL_FILES}
     OUTPUT opencl_kernels.h
     COMMENT "libsmm_acc: generating kernels")
   add_library(libsmm_acc OBJECT ${LIBSMM_ACC_FILES})

@@ -331,7 +331,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
     return -1; /* TODO: document result code to trigger host-fallback */
   }
 #if defined(OPENCL_LIBSMM_SYNC)
-  ACC_OPENCL_CHECK(acc_stream_sync(stream), "sync stream", result);
+  ACC_OPENCL_CHECK(acc_stream_sync(stack_stream), "sync stream", result);
 #endif
   ACC_OPENCL_RETURN(result);
 }

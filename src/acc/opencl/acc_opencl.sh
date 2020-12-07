@@ -19,7 +19,8 @@ if [ "$#" -gt 1 ] && [ "${OFILE##*.}" = "h" ]; then
           ${IFILE} >>${OFILE}
         echo ";" >>${OFILE}
       else
-        echo "ERROR: ${IFILE} does not exist or no OpenCL source!"
+        echo "ERROR: ${IFILE} does not exist or is no OpenCL file!"
+        rm -f ${OFILE}
         exit 1
       fi
     fi

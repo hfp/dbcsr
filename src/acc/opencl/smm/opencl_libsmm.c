@@ -12,8 +12,8 @@
 #include "opencl_kernels.h"
 #include <assert.h>
 
-#if !defined(OPENCL_LIBSMM_VERBOSE) && 0
-# define OPENCL_LIBSMM_VERBOSE
+#if !defined(OPENCL_LIBSMM_DEBUG) && 0
+# define OPENCL_LIBSMM_DEBUG
 #endif
 #if !defined(OPENCL_LIBSMM_SYNC) && 0
 # define OPENCL_LIBSMM_SYNC
@@ -179,6 +179,25 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
     assert((NULL != config && NULL != config->kernel && 0 < config->wgsize) || EXIT_SUCCESS != result);
     if (EXIT_SUCCESS == result) {
       const size_t work_size = config->wgsize * stack_size;
+#if defined(OPENCL_LIBSMM_DEBUG)
+      int *const hst_stack = (int*)libxsmm_aligned_scratch(sizeof(int) * stack_size, 0/*auto-align*/);
+      char *hst_imat = NULL, *hst_test = NULL;
+      size_t dev_data_size;
+      if (NULL != hst_stack) {
+        ACC_OPENCL_CHECK(clGetMemObjectInfo(*ACC_OPENCL_MEM(dev_data), CL_MEM_SIZE,
+          sizeof(size_t), &dev_data_size, NULL), "query debug buffer size", result);
+        hst_imat = (EXIT_SUCCESS == result ? libxsmm_aligned_scratch(dev_data_size, 0/*auto-align*/) : NULL);
+        hst_test = (EXIT_SUCCESS == result ? libxsmm_aligned_scratch(dev_data_size, 0/*auto-align*/) : NULL);
+        if (NULL != hst_imat && NULL != hst_test) {
+          ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_trs_stack, hst_stack, sizeof(int) * stack_size, stream),
+            "transfer debug stack", result);
+          ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_data, hst_imat, dev_data_size, stream),
+            "transfer debug gold", result);
+        }
+        else result = EXIT_FAILURE;
+      }
+      else result = EXIT_FAILURE;
+#endif
       ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 0, sizeof(cl_mem), ACC_OPENCL_MEM(dev_trs_stack)),
         "set batch-list argument of transpose kernel", result);
       ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 1, sizeof(int), &offset),
@@ -188,17 +207,36 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
       ACC_OPENCL_CHECK(clEnqueueNDRangeKernel(*ACC_OPENCL_STREAM(stream),
         config->kernel, 1/*work_dim*/, NULL, &work_size, &config->wgsize, 0, NULL, NULL),
         "launch transpose kernel", result);
+#if defined(OPENCL_LIBSMM_DEBUG)
+      ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_data, hst_test, dev_data_size, stream),
+        "transfer debug test", result);
+#endif
+#if defined(OPENCL_LIBSMM_DEBUG) || defined(OPENCL_LIBSMM_SYNC)
+      ACC_OPENCL_CHECK(acc_stream_sync(stream), "sync stream", result);
+#endif
+#if defined(OPENCL_LIBSMM_DEBUG)
+      if (EXIT_SUCCESS == result) {
+        const int typesize = (dbcsr_type_real_8 == datatype ? 8
+          : (dbcsr_type_real_8 == datatype ? 4 : 0/*unknown*/));
+        int nerrors = 0, i;
+        for (i = 0; i < stack_size; ++i) {
+          const int j = hst_stack[i];
+          const char *const test = hst_test + j;
+          char *const gold = hst_imat + j;
+          libxsmm_itrans(gold, typesize, m, n, m, n);
+          nerrors += (0 == memcmp(gold, test, m * n * typesize) ? 0 : 1);
+        }
+        printf("libsmm_acc_transpose("
+          "offset=%i, size=%i, type=%s, m=%i, n=%i, max=%i, stream=%p) => %s\n", offset, stack_size,
+          dbcsr_type_real_8 == datatype ? "f64" : (dbcsr_type_real_8 == datatype ? "f32" : "unknown"),
+          m, n, max_kernel_dim, stream, (EXIT_SUCCESS == result && 0 == nerrors) ? "OK" : "ERROR");
+      }
+      libxsmm_free(hst_stack);
+      libxsmm_free(hst_imat);
+      libxsmm_free(hst_test);
+#endif
     }
   }
-#if defined(OPENCL_LIBSMM_SYNC)
-  ACC_OPENCL_CHECK(acc_stream_sync(stream), "sync stream", result);
-#endif
-#if defined(OPENCL_LIBSMM_VERBOSE)
-  printf("libsmm_acc_transpose("
-    "offset=%i, size=%i, type=%s, m=%i, n=%i, max=%i, stream=%p)\n", offset, stack_size,
-    dbcsr_type_real_8 == datatype ? "f64" : (dbcsr_type_real_8 == datatype ? "f32" : "unknown"),
-    m, n, max_kernel_dim, stream);
-#endif
   ACC_OPENCL_RETURN(result);
 }
 
@@ -361,7 +399,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
 #if defined(OPENCL_LIBSMM_SYNC)
   ACC_OPENCL_CHECK(acc_stream_sync(stack_stream), "sync stream", result);
 #endif
-#if defined(OPENCL_LIBSMM_VERBOSE)
+#if defined(OPENCL_LIBSMM_DEBUG)
   printf("libsmm_acc_process(size=%i, type=%s, m=%i, n=%i, k=%i, max=%i, stream=%p)\n", stack_size,
     dbcsr_type_real_8 == datatype ? "f64" : (dbcsr_type_real_8 == datatype ? "f32" : "unknown"),
     m_max, n_max, k_max, max_kernel_dim, stack_stream);

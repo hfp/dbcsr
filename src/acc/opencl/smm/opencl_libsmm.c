@@ -21,7 +21,7 @@
 #if !defined(OPENCL_SOURCE_LOAD) && 0
 # define OPENCL_SOURCE_LOAD
 #endif
-#if !defined(OPENCL_LIBSMM_F32) && 0
+#if !defined(OPENCL_LIBSMM_F32) && !defined(__DBCSR_ACC)
 # define OPENCL_LIBSMM_F32
 #endif
 #if !defined(OPENCL_LIBSMM_F64) && 1

@@ -174,9 +174,10 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
     }
     assert((NULL != config && NULL != config->kernel && 0 < config->wgsize) || EXIT_SUCCESS != result);
     if (EXIT_SUCCESS == result) {
-      const size_t work_size = config->wgsize * stack_size;
+      const int offset_stack_size = offset + stack_size;
+      const size_t work_size = config->wgsize * offset_stack_size;
 #if defined(OPENCL_LIBSMM_DEBUG)
-      int *const hst_stack = (int*)libxsmm_aligned_scratch(sizeof(int) * stack_size, 0/*auto-align*/);
+      int *const hst_stack = (int*)libxsmm_aligned_scratch(sizeof(int) * offset_stack_size, 0/*auto-align*/);
       char *hst_imat = NULL, *hst_test = NULL;
       size_t dev_data_size;
       if (CL_SUCCESS == clGetMemObjectInfo(*ACC_OPENCL_MEM(dev_data), CL_MEM_SIZE,
@@ -185,7 +186,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
         hst_imat = (char*)libxsmm_aligned_scratch(dev_data_size, 0/*auto-align*/);
         hst_test = (char*)libxsmm_aligned_scratch(dev_data_size, 0/*auto-align*/);
         if (NULL != hst_stack && NULL != hst_imat && NULL != hst_test) {
-          ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_trs_stack, hst_stack, sizeof(int) * stack_size, stream),
+          ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_trs_stack, hst_stack, sizeof(int) * offset_stack_size, stream),
             "transfer debug stack", result);
           ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_data, hst_imat, dev_data_size, stream),
             "transfer debug gold", result);
@@ -215,7 +216,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
         const int typesize = (dbcsr_type_real_8 == datatype ? 8
           : (dbcsr_type_real_4 == datatype ? 4 : 0/*unknown*/));
         int i;
-        for (i = offset; i < (offset + stack_size); ++i) {
+        for (i = offset; i < offset_stack_size; ++i) {
           const int j = hst_stack[i] * typesize;
           const char *const test = hst_test + j;
           char *const gold = hst_imat + j;

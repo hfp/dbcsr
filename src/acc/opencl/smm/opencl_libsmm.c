@@ -214,18 +214,20 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
       if (EXIT_SUCCESS == result) {
         const int typesize = (dbcsr_type_real_8 == datatype ? 8
           : (dbcsr_type_real_4 == datatype ? 4 : 0/*unknown*/));
-        int nerrors = 0, i;
+        int i;
         for (i = 0; i < stack_size; ++i) {
           const int j = hst_stack[i];
           const char *const test = hst_test + j;
           char *const gold = hst_imat + j;
           libxsmm_itrans(gold, typesize, m, n, m, n);
-          nerrors += (0 == memcmp(gold, test, m * n * typesize) ? 0 : 1);
+          if (0 != memcmp(gold, test, m * n * typesize)) {
+            result = EXIT_FAILURE; break;
+          }
         }
         printf("libsmm_acc_transpose("
           "offset=%i, size=%i, type=%s, m=%i, n=%i, max=%i, stream=%p) => %s\n", offset, stack_size,
           dbcsr_type_real_8 == datatype ? "f64" : (dbcsr_type_real_4 == datatype ? "f32" : "unknown"),
-          m, n, max_kernel_dim, stream, (EXIT_SUCCESS == result && 0 == nerrors) ? "OK" : "ERROR");
+          m, n, max_kernel_dim, stream, EXIT_SUCCESS == result ? "OK" : "ERROR");
       }
       libxsmm_free(hst_stack);
       libxsmm_free(hst_imat);

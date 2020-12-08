@@ -275,7 +275,8 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
             default: ;
           }
           if (NULL != typename && '\0' != *typename) {
-            const char *const build_setup = "%s -cl-fast-relaxed-math"
+            const char *const build_setup =
+              "%s -cl-fast-relaxed-math -cl-no-signed-zeros -cl-denorms-are-zero"
               " -DT=%s -DTA=\"%s\" -DFA=%s -DFN=%s -DSM=%i -DSN=%i -DSK=%i";
             nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options), build_setup,
               (NULL == env_options || '\0' == *env_options) ? "" : env_options,

@@ -97,18 +97,14 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
       int nchar = ACC_OPENCL_SNPRINTF(fname, sizeof(fname), "xtrans%ix%i", m, n);
       const char* typename = "";
       switch (datatype) {
-#if defined(OPENCL_LIBSMM_F64)
         case dbcsr_type_real_8: {
           typename = "char8"; /* double */
           fname[0] = 'd';
         } break;
-#endif
-#if defined(OPENCL_LIBSMM_F32)
         case dbcsr_type_real_4: {
           typename = "float";
           fname[0] = 's';
         } break;
-#endif
         default: ;
       }
       nchar = ((0 < nchar && (int)sizeof(fname) > nchar)
@@ -217,7 +213,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
 #if defined(OPENCL_LIBSMM_DEBUG)
       if (EXIT_SUCCESS == result) {
         const int typesize = (dbcsr_type_real_8 == datatype ? 8
-          : (dbcsr_type_real_8 == datatype ? 4 : 0/*unknown*/));
+          : (dbcsr_type_real_4 == datatype ? 4 : 0/*unknown*/));
         int nerrors = 0, i;
         for (i = 0; i < stack_size; ++i) {
           const int j = hst_stack[i];
@@ -228,7 +224,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
         }
         printf("libsmm_acc_transpose("
           "offset=%i, size=%i, type=%s, m=%i, n=%i, max=%i, stream=%p) => %s\n", offset, stack_size,
-          dbcsr_type_real_8 == datatype ? "f64" : (dbcsr_type_real_8 == datatype ? "f32" : "unknown"),
+          dbcsr_type_real_8 == datatype ? "f64" : (dbcsr_type_real_4 == datatype ? "f32" : "unknown"),
           m, n, max_kernel_dim, stream, (EXIT_SUCCESS == result && 0 == nerrors) ? "OK" : "ERROR");
       }
       libxsmm_free(hst_stack);
@@ -288,7 +284,6 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
           const char *typename = NULL, *atomic_t = NULL, *atomic_f = NULL;
           assert(NULL != active_device);
           switch (datatype) {
-#if defined(OPENCL_LIBSMM_F64)
             case dbcsr_type_real_8: {
               extensions = "cl_khr_fp64 cl_khr_int64_base_atomics";
               if (EXIT_SUCCESS == acc_opencl_device_ext(active_device, &extensions, 1)) {
@@ -298,8 +293,6 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                 fname[0] = 'd';
               }
             } break;
-#endif
-#if defined(OPENCL_LIBSMM_F32)
             case dbcsr_type_real_4: {
               extensions = "cl_khr_global_int32_base_atomics";
               if (EXIT_SUCCESS == acc_opencl_device_ext(active_device, &extensions, 1)) {
@@ -309,7 +302,6 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                 fname[0] = 's';
               }
             } break;
-#endif
             default: ;
           }
           if (NULL != typename && '\0' != *typename) {

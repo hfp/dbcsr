@@ -179,12 +179,12 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
       int *const hst_stack = (int*)libxsmm_aligned_scratch(sizeof(int) * stack_size, 0/*auto-align*/);
       char *hst_imat = NULL, *hst_test = NULL;
       size_t dev_data_size;
-      if (NULL != hst_stack) {
-        ACC_OPENCL_CHECK(clGetMemObjectInfo(*ACC_OPENCL_MEM(dev_data), CL_MEM_SIZE,
-          sizeof(size_t), &dev_data_size, NULL), "query debug buffer size", result);
-        hst_imat = (EXIT_SUCCESS == result ? libxsmm_aligned_scratch(dev_data_size, 0/*auto-align*/) : NULL);
-        hst_test = (EXIT_SUCCESS == result ? libxsmm_aligned_scratch(dev_data_size, 0/*auto-align*/) : NULL);
-        if (NULL != hst_imat && NULL != hst_test) {
+      if (CL_SUCCESS == clGetMemObjectInfo(*ACC_OPENCL_MEM(dev_data), CL_MEM_SIZE,
+        sizeof(size_t), &dev_data_size, NULL))
+      {
+        hst_imat = (char*)libxsmm_aligned_scratch(dev_data_size, 0/*auto-align*/);
+        hst_test = (char*)libxsmm_aligned_scratch(dev_data_size, 0/*auto-align*/);
+        if (NULL != hst_stack && NULL != hst_imat && NULL != hst_test) {
           ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_trs_stack, hst_stack, sizeof(int) * stack_size, stream),
             "transfer debug stack", result);
           ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_data, hst_imat, dev_data_size, stream),
@@ -216,7 +216,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
           : (dbcsr_type_real_4 == datatype ? 4 : 0/*unknown*/));
         int i;
         for (i = 0; i < stack_size; ++i) {
-          const int j = hst_stack[i];
+          const int j = hst_stack[i] * typesize;
           const char *const test = hst_test + j;
           char *const gold = hst_imat + j;
           libxsmm_itrans(gold, typesize, m, n, m, n);

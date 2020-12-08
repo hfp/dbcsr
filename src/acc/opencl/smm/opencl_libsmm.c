@@ -216,7 +216,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
           : (dbcsr_type_real_4 == datatype ? 4 : 0/*unknown*/));
         int i;
         for (i = 0; i < stack_size; ++i) {
-          const int j = hst_stack[i] * typesize;
+          const int j = hst_stack[offset+i] * typesize;
           const char *const test = hst_test + j;
           char *const gold = hst_imat + j;
           libxsmm_itrans(gold, typesize, m, n, m, n);

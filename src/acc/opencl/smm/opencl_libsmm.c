@@ -21,6 +21,12 @@
 #if !defined(OPENCL_SOURCE_LOAD) && 0
 # define OPENCL_SOURCE_LOAD
 #endif
+#if !defined(OPENCL_LIBSMM_F32) && 0
+# define OPENCL_LIBSMM_F32
+#endif
+#if !defined(OPENCL_LIBSMM_F64) && 1
+# define OPENCL_LIBSMM_F64
+#endif
 
 
 #if defined(__cplusplus)
@@ -61,16 +67,20 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
 {
   int result = EXIT_SUCCESS;
   assert((NULL != dev_trs_stack && NULL != dev_data && 0 <= stack_size) || 0 == stack_size);
-#if defined(OPENCL_LIBSMM_VERBOSE)
-# if defined(OPENCL_LIBSMM_SYNC)
-  result = acc_stream_sync(stream);
-# endif
-  printf("libsmm_acc_transpose(%p, %i, %i, %p, %i, %i, %i, %i, %p)\n",
-    (const void*)dev_trs_stack, offset, stack_size, dev_data,
-    datatype, m, n, max_kernel_dim, stream);
+  if ((
+#if defined(OPENCL_LIBSMM_F64)
+      dbcsr_type_real_8 == datatype
+#else
+      0
 #endif
-  if (0 < stack_size && 1 < (m * n) && m <= max_kernel_dim && n <= max_kernel_dim
-    && (dbcsr_type_real_8 == datatype || dbcsr_type_real_4 == datatype))
+      ||
+#if defined(OPENCL_LIBSMM_F32)
+      dbcsr_type_real_4 == datatype
+#else
+      0
+#endif
+    ) &&
+    0 < stack_size && 1 < (m * n) && m <= max_kernel_dim && n <= max_kernel_dim)
   {
     typedef struct config_t {
       cl_kernel kernel;
@@ -87,14 +97,18 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
       int nchar = ACC_OPENCL_SNPRINTF(fname, sizeof(fname), "xtrans%ix%i", m, n);
       const char* typename = "";
       switch (datatype) {
+#if defined(OPENCL_LIBSMM_F64)
         case dbcsr_type_real_8: {
           typename = "char8"; /* double */
           fname[0] = 'd';
         } break;
+#endif
+#if defined(OPENCL_LIBSMM_F32)
         case dbcsr_type_real_4: {
           typename = "float";
           fname[0] = 's';
         } break;
+#endif
         default: ;
       }
       nchar = ((0 < nchar && (int)sizeof(fname) > nchar)
@@ -179,6 +193,11 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
 #if defined(OPENCL_LIBSMM_SYNC)
   ACC_OPENCL_CHECK(acc_stream_sync(stream), "sync stream", result);
 #endif
+#if defined(OPENCL_LIBSMM_VERBOSE)
+  printf("libsmm_acc_transpose(%p, %i, %i, %p, %i, %i, %i, %i, %p)\n",
+    (const void*)dev_trs_stack, offset, stack_size, dev_data,
+    datatype, m, n, max_kernel_dim, stream);
+#endif
   ACC_OPENCL_RETURN(result);
 }
 
@@ -192,20 +211,23 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
   assert((NULL != dev_param_stack && NULL != dev_a_data && NULL != dev_b_data && NULL != dev_c_data) || 0 == stack_size);
   assert(0 < nparams && 0 < max_kernel_dim && NULL != stack_stream);
   assert(0 <= stack_size && 0 <= m_max && 0 <= n_max && 0 <= k_max);
-#if defined(OPENCL_LIBSMM_VERBOSE)
-# if defined(OPENCL_LIBSMM_SYNC)
-  result = acc_stream_sync(stack_stream);
-# endif
-  printf("libsmm_acc_process(%p, %p, %i, %i, %i, %p, %p, %p, %i, %i, %i, %i, %i, %p, %p)\n",
-    (const void*)host_param_stack, (const void*)dev_param_stack, stack_size, nparams, datatype,
-    dev_a_data, dev_b_data, dev_c_data, m_max, n_max, k_max, max_kernel_dim, def_mnk,
-    stack_stream, c_stream);
+  if ((
+#if defined(OPENCL_LIBSMM_F64)
+      dbcsr_type_real_8 == datatype
+#else
+      0
 #endif
-  if ((dbcsr_type_real_8 == datatype || dbcsr_type_real_4 == datatype) &&
-      0 < stack_size && def_mnk/*homogeneous*/ &&
-      0 < m_max && m_max <= max_kernel_dim &&
-      0 < n_max && n_max <= max_kernel_dim &&
-      0 < k_max && k_max <= max_kernel_dim)
+      ||
+#if defined(OPENCL_LIBSMM_F32)
+      dbcsr_type_real_4 == datatype
+#else
+      0
+#endif
+    ) &&
+    0 < stack_size && def_mnk/*homogeneous*/ &&
+    0 < m_max && m_max <= max_kernel_dim &&
+    0 < n_max && n_max <= max_kernel_dim &&
+    0 < k_max && k_max <= max_kernel_dim)
   {
     typedef struct config_t {
       cl_kernel kernel;
@@ -227,6 +249,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
           const char *typename = NULL, *atomic_t = NULL, *atomic_f = NULL;
           assert(NULL != active_device);
           switch (datatype) {
+#if defined(OPENCL_LIBSMM_F64)
             case dbcsr_type_real_8: {
               extensions = "cl_khr_fp64 cl_khr_int64_base_atomics";
               if (EXIT_SUCCESS == acc_opencl_device_ext(active_device, &extensions, 1)) {
@@ -236,6 +259,8 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                 fname[0] = 'd';
               }
             } break;
+#endif
+#if defined(OPENCL_LIBSMM_F32)
             case dbcsr_type_real_4: {
               extensions = "cl_khr_global_int32_base_atomics";
               if (EXIT_SUCCESS == acc_opencl_device_ext(active_device, &extensions, 1)) {
@@ -245,6 +270,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                 fname[0] = 's';
               }
             } break;
+#endif
             default: ;
           }
           if (NULL != typename && '\0' != *typename) {
@@ -332,6 +358,12 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
   }
 #if defined(OPENCL_LIBSMM_SYNC)
   ACC_OPENCL_CHECK(acc_stream_sync(stack_stream), "sync stream", result);
+#endif
+#if defined(OPENCL_LIBSMM_VERBOSE)
+  printf("libsmm_acc_process(%p, %p, %i, %i, %i, %p, %p, %p, %i, %i, %i, %i, %i, %p, %p)\n",
+    (const void*)host_param_stack, (const void*)dev_param_stack, stack_size, nparams, datatype,
+    dev_a_data, dev_b_data, dev_c_data, m_max, n_max, k_max, max_kernel_dim, def_mnk,
+    stack_stream, c_stream);
 #endif
   ACC_OPENCL_RETURN(result);
 }

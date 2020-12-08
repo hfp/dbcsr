@@ -66,7 +66,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
   void* dev_data, libsmm_acc_data_t datatype, int m, int n, int max_kernel_dim, void* stream)
 {
   int result = EXIT_SUCCESS;
-  assert((NULL != dev_trs_stack && NULL != dev_data && 0 <= stack_size) || 0 == stack_size);
+  assert((NULL != dev_trs_stack && NULL != dev_data && 0 <= offset && offset <= stack_size) || 0 == stack_size);
   if ((
 #if defined(OPENCL_LIBSMM_F64)
       dbcsr_type_real_8 == datatype
@@ -80,7 +80,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
       0
 #endif
     ) &&
-    0 < stack_size && 1 < (m * n) && m <= max_kernel_dim && n <= max_kernel_dim)
+    offset < stack_size && 1 < (m * n) && m <= max_kernel_dim && n <= max_kernel_dim)
   {
     typedef struct config_t {
       cl_kernel kernel;
@@ -215,8 +215,8 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
         const int typesize = (dbcsr_type_real_8 == datatype ? 8
           : (dbcsr_type_real_4 == datatype ? 4 : 0/*unknown*/));
         int i;
-        for (i = 0; i < stack_size; ++i) {
-          const int j = hst_stack[offset+i] * typesize;
+        for (i = offset; i < stack_size; ++i) {
+          const int j = hst_stack[i] * typesize;
           const char *const test = hst_test + j;
           char *const gold = hst_imat + j;
           libxsmm_itrans(gold, typesize, m, n, m, n);

@@ -83,6 +83,10 @@ int acc_event_record(void* event, void* stream)
 {
   int result = EXIT_SUCCESS;
   assert(NULL != event && NULL != stream);
+#if 0
+  ACC_OPENCL_CHECK(clSetUserEventStatus(*ACC_OPENCL_EVENT(event), CL_QUEUED),
+    "initialize event", result);
+#endif
   ACC_OPENCL_CHECK(ACC_OPENCL_ENQUEUE_EVENT(*ACC_OPENCL_STREAM(stream), ACC_OPENCL_EVENT(event)),
     "record event", result);
   ACC_OPENCL_RETURN(result);

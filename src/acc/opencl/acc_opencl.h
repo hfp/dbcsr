@@ -91,7 +91,7 @@
 #if !defined(ACC_OPENCL_STREAM_OOO_EXEC) && 0
 # define ACC_OPENCL_STREAM_OOO_EXEC
 #endif
-#if !defined(ACC_OPENCL_STREAM_FINISH) && 0
+#if !defined(ACC_OPENCL_STREAM_FINISH) && 1
 # define ACC_OPENCL_STREAM_FINISH
 #endif
 #if !defined(ACC_OPENCL_EVENT_BARRIER) && 0

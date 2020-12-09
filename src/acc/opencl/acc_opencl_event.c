@@ -17,6 +17,13 @@
 # define ACC_OPENCL_ENQUEUE_EVENT(QUEUE, EVENT) clEnqueueMarker(QUEUE, EVENT)
 #endif
 
+#if !defined(ACC_OPENCL_EVENT_COMPLETED) && 0
+# define ACC_OPENCL_EVENT_COMPLETED
+#endif
+#if !defined(ACC_OPENCL_EVENT_RESET) && 0
+# define ACC_OPENCL_EVENT_RESET
+#endif
+
 
 #if defined(__cplusplus)
 extern "C" {
@@ -29,14 +36,15 @@ int acc_event_create(void** event_p)
   assert(NULL != event_p);
   if (NULL != event) {
     assert(CL_SUCCESS == result);
+#if defined(ACC_OPENCL_EVENT_COMPLETED)
     /* an empty event (unrecorded) has no work to wait for
      * hence it is considered occurred
      */
     if (CL_SUCCESS == clSetUserEventStatus(event, CL_COMPLETE)) {
-#if defined(ACC_OPENCL_EVENT_NOALLOC)
+# if defined(ACC_OPENCL_EVENT_NOALLOC)
       assert(sizeof(void*) >= sizeof(cl_event));
       *event_p = (void*)event;
-#else
+# else
       *event_p = malloc(sizeof(cl_event));
       if (NULL != *event_p) {
         *(cl_event*)*event_p = event;
@@ -46,13 +54,14 @@ int acc_event_create(void** event_p)
         clReleaseEvent(event);
         result = EXIT_FAILURE;
       }
-#endif
+# endif
     }
     else {
       ACC_OPENCL_ERROR("set initial event state", result);
       clReleaseEvent(event);
       *event_p = NULL;
     }
+#endif
   }
   else {
     assert(CL_SUCCESS != result);
@@ -83,9 +92,8 @@ int acc_event_record(void* event, void* stream)
 {
   int result = EXIT_SUCCESS;
   assert(NULL != event && NULL != stream);
-#if 0
-  ACC_OPENCL_CHECK(clSetUserEventStatus(*ACC_OPENCL_EVENT(event), CL_QUEUED),
-    "initialize event", result);
+#if defined(ACC_OPENCL_EVENT_RESET)
+  ACC_OPENCL_CHECK(clSetUserEventStatus(*ACC_OPENCL_EVENT(event), CL_SUBMITTED), "reset event", result);
 #endif
   ACC_OPENCL_CHECK(ACC_OPENCL_ENQUEUE_EVENT(*ACC_OPENCL_STREAM(stream), ACC_OPENCL_EVENT(event)),
     "record event", result);

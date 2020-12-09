@@ -38,7 +38,7 @@ int acc_event_create(void** event_p)
     cl_int status = CL_COMPLETE;
     assert(CL_SUCCESS == result);
 #if !defined(ACC_OPENCL_EVENT_COMPLETED)
-    assert(CL_SUCCESS != clGetEventInfo(*ACC_OPENCL_EVENT(event), CL_EVENT_COMMAND_EXECUTION_STATUS,
+    assert(CL_SUCCESS != clGetEventInfo(event, CL_EVENT_COMMAND_EXECUTION_STATUS,
       sizeof(cl_int), &status, NULL) || CL_COMPLETE != status);
 #else
     /* an empty event (unrecorded) has no work to wait for

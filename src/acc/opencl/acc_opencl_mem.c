@@ -29,6 +29,7 @@
 # define ACC_OPENCL_MEM_ALIGNSCALE 8
 #endif
 
+
 #if defined(__cplusplus)
 extern "C" {
 #endif

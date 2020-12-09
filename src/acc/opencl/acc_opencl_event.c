@@ -17,6 +17,7 @@
 # define ACC_OPENCL_ENQUEUE_EVENT(QUEUE, EVENT) clEnqueueMarker(QUEUE, EVENT)
 #endif
 
+
 #if defined(__cplusplus)
 extern "C" {
 #endif

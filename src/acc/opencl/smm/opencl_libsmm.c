@@ -241,12 +241,17 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
         const int typesize = (dbcsr_type_real_8 == datatype ? 8
           : (dbcsr_type_real_4 == datatype ? 4 : 0/*unknown*/));
         int i;
+        printf("libsmm_acc_transpose("
+          "offset=%i, size=%i, type=%s, m=%i, n=%i, max=%i, stream=%p)", offset, stack_size,
+          dbcsr_type_real_8 == datatype ? "f64" : (dbcsr_type_real_4 == datatype ? "f32" : "unknown"),
+          m, n, max_kernel_dim, stream);
         for (i = offset; i < offset_stack_size; ++i) {
           const int j = hst_stack[i] * typesize;
           const char *const test = hst_test + j;
           char *const gold = hst_imat + j;
           libxsmm_itrans(gold, typesize, m, n, m, n);
           if (0 != memcmp(gold, test, m * n * typesize)) {
+            printf(" => ERROR\n");
 # if defined(_DEBUG)
             opencl_libsmm_print_matrix(stderr, "gold = ", datatype, gold, n, m);
             opencl_libsmm_print_matrix(stderr, "test = ", datatype, test, n, m);
@@ -255,10 +260,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
             result = EXIT_FAILURE; break;
           }
         }
-        printf("libsmm_acc_transpose("
-          "offset=%i, size=%i, type=%s, m=%i, n=%i, max=%i, stream=%p) => %s\n", offset, stack_size,
-          dbcsr_type_real_8 == datatype ? "f64" : (dbcsr_type_real_4 == datatype ? "f32" : "unknown"),
-          m, n, max_kernel_dim, stream, EXIT_SUCCESS == result ? "OK" : "ERROR");
+        if (EXIT_SUCCESS == result) printf(" => OK\n");
       }
       libxsmm_free(hst_stack);
       libxsmm_free(hst_imat);
@@ -468,6 +470,10 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
       if (EXIT_SUCCESS == result) {
         const int *const param_base = host_param_stack + (3 <= nparams ? (nparams - 3) : 0);
         int i;
+
+        printf("libsmm_acc_process(size=%i, type=%s, m=%i, n=%i, k=%i, max=%i, stream=%p)", stack_size,
+          dbcsr_type_real_8 == datatype ? "f64" : (dbcsr_type_real_4 == datatype ? "f32" : "unknown"),
+          m_max, n_max, k_max, max_kernel_dim, stack_stream);
         for (i = 0; i < stack_size; ++i) {
           const int *const params = param_base + nparams * i;
           const int ia = (params[0] - 1) * typesize;
@@ -481,6 +487,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
             m_max, n_max, gold, test,
             &m_max/*ldref*/, &m_max/*ldtst*/);
           if (0 != diff.normf_rel) {
+            printf(" => ERROR\n");
 # if defined(_DEBUG)
             opencl_libsmm_print_matrix(stderr, "gold = ", datatype, gold, m_max, n_max);
             opencl_libsmm_print_matrix(stderr, "test = ", datatype, test, m_max, n_max);
@@ -489,9 +496,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
             result = EXIT_FAILURE; break;
           }
         }
-        printf("libsmm_acc_process(size=%i, type=%s, m=%i, n=%i, k=%i, max=%i, stream=%p) => %s\n", stack_size,
-          dbcsr_type_real_8 == datatype ? "f64" : (dbcsr_type_real_4 == datatype ? "f32" : "unknown"),
-          m_max, n_max, k_max, max_kernel_dim, stack_stream, EXIT_SUCCESS == result ? "OK" : "ERROR");
+        if (EXIT_SUCCESS == result) printf(" => OK\n");
       }
       libxsmm_free(hst_ainp);
       libxsmm_free(hst_binp);

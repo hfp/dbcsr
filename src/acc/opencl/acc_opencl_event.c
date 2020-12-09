@@ -101,6 +101,9 @@ int acc_event_query(void* event, acc_bool_t* has_occurred)
   if (EXIT_SUCCESS == result) {
     *has_occurred = (CL_COMPLETE != status ? 0 : 1);
   }
+#if defined(_DEBUG)
+  fprintf(stderr, "acc_event_query(%p, %i)\n", event, *has_occurred);
+#endif
   ACC_OPENCL_RETURN(result);
 }
 
@@ -111,6 +114,9 @@ int acc_event_synchronize(void* event)
   assert(NULL != event);
   ACC_OPENCL_CHECK(clWaitForEvents(1, ACC_OPENCL_EVENT(event)),
     "synchronize event", result);
+#if defined(_DEBUG)
+  fprintf(stderr, "acc_event_synchronize(%p)\n", event);
+#endif
   ACC_OPENCL_RETURN(result);
 }
 

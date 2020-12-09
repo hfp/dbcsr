@@ -174,6 +174,9 @@ int acc_stream_sync(void* stream)
   assert(NULL != stream);
   ACC_OPENCL_CHECK(clFinish(*ACC_OPENCL_STREAM(stream)),
     "synchronize stream", result);
+#if defined(_DEBUG)
+  fprintf(stderr, "acc_stream_sync(%p)\n", stream);
+#endif
   ACC_OPENCL_RETURN(result);
 }
 
@@ -184,6 +187,9 @@ int acc_stream_wait_event(void* stream, void* event)
   assert(NULL != stream && NULL != event);
   ACC_OPENCL_CHECK(ACC_OPENCL_WAIT_EVENT(*ACC_OPENCL_STREAM(stream), ACC_OPENCL_EVENT(event)),
     "wait for an event", result);
+#if defined(_DEBUG)
+  fprintf(stderr, "acc_stream_wait_event(%p, %p)\n", stream, event);
+#endif
   ACC_OPENCL_RETURN(result);
 }
 

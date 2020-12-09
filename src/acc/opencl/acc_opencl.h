@@ -84,6 +84,13 @@
 #else
 # define ACC_OPENCL_EVENT(A) ((cl_event*)(A))
 #endif
+
+#if !defined(ACC_OPENCL_STREAM_PRIORITIES) && 1
+# define ACC_OPENCL_STREAM_PRIORITIES
+#endif
+#if !defined(ACC_OPENCL_STREAM_OOO_EXEC) && 0
+# define ACC_OPENCL_STREAM_OOO_EXEC
+#endif
 #if !defined(ACC_OPENCL_EVENT_BARRIER) && 0
 # define ACC_OPENCL_EVENT_BARRIER
 #endif

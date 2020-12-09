@@ -64,10 +64,9 @@ int acc_stream_create(void** stream_p, const char* name, int priority)
   cl_int result = EXIT_SUCCESS;
   if (NULL != acc_opencl_context) {
     cl_command_queue queue = NULL;
-#if !defined(CL_QUEUE_PRIORITY_KHR)
+#if !defined(ACC_OPENCL_STREAM_PRIORITIES) || !defined(CL_QUEUE_PRIORITY_KHR)
     ACC_OPENCL_UNUSED(priority);
-#endif
-#if defined(CL_QUEUE_PRIORITY_KHR)
+#else
     if (0 <= priority) {
       ACC_OPENCL_COMMAND_QUEUE_PROPERTIES properties[] = {
         CL_QUEUE_PRIORITY_KHR, 0/*placeholder filled-in below*/,
@@ -136,7 +135,7 @@ int acc_stream_priority_range(int* least, int* greatest)
 {
   int result = ((NULL != least || NULL != greatest) ? EXIT_SUCCESS : EXIT_FAILURE);
   if (NULL != acc_opencl_context) {
-#if defined(CL_QUEUE_PRIORITY_KHR)
+#if defined(ACC_OPENCL_STREAM_PRIORITIES) && defined(CL_QUEUE_PRIORITY_KHR)
     char buffer[ACC_OPENCL_BUFFER_MAXSIZE];
     cl_platform_id platform = NULL;
     cl_device_id active_id = NULL;
@@ -159,7 +158,7 @@ int acc_stream_priority_range(int* least, int* greatest)
         if (NULL != least) *least = -1;
         if (NULL != greatest) *greatest = -1;
       }
-#if defined(CL_QUEUE_PRIORITY_KHR)
+#if defined(ACC_OPENCL_STREAM_PRIORITIES) && defined(CL_QUEUE_PRIORITY_KHR)
     }
 #endif
   }

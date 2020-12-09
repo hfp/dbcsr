@@ -174,8 +174,13 @@ int acc_stream_sync(void* stream)
 #if defined(_DEBUG)
   fprintf(stderr, "acc_stream_sync(%p)\n", stream);
 #endif
+#if defined(ACC_OPENCL_STREAM_FINISH)
   ACC_OPENCL_CHECK(clFinish(*ACC_OPENCL_STREAM(stream)),
     "synchronize stream", result);
+#else
+  ACC_OPENCL_CHECK(clFlush(*ACC_OPENCL_STREAM(stream)),
+    "synchronize stream", result);
+#endif
   ACC_OPENCL_RETURN(result);
 }
 

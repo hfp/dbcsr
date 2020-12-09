@@ -69,12 +69,12 @@ static void opencl_libsmm_print_matrix(FILE* ostream, const char* label, libsmm_
   int i, j;
   const char *const s = (NULL != label ? label : "");
   const int len = (int)strlen(s);
-  for (i = 0; i < n; ++i) {
+  for (i = 0; i < m; ++i) {
     if (0 < i) fprintf(ostream, "%*s", len, " "); else fprintf(ostream, "%s", s);
-    for (j = 0; j < m; ++j) {
+    for (j = 0; j < n; ++j) {
       switch (type) {
-        case dbcsr_type_real_8: fprintf(ostream, "%.2f ", ((double*)mat)[i*m+j]); break;
-        case dbcsr_type_real_4: fprintf(ostream, "%.2f ", ((float*) mat)[i*m+j]); break;
+        case dbcsr_type_real_8: fprintf(ostream, "%.2f ", ((double*)mat)[i*n+j]); break;
+        case dbcsr_type_real_4: fprintf(ostream, "%.2f ", ((float*) mat)[i*n+j]); break;
         default: fprintf(ostream, "? ");
       }
     }

@@ -40,11 +40,13 @@ int acc_event_create(void** event_p)
     /* an empty event (unrecorded) has no work to wait for
      * hence it is considered occurred
      */
-    if (CL_SUCCESS == clSetUserEventStatus(event, CL_COMPLETE)) {
-# if defined(ACC_OPENCL_EVENT_NOALLOC)
+    if (CL_SUCCESS == clSetUserEventStatus(event, CL_COMPLETE))
+#endif
+    {
+#if defined(ACC_OPENCL_EVENT_NOALLOC)
       assert(sizeof(void*) >= sizeof(cl_event));
       *event_p = (void*)event;
-# else
+#else
       *event_p = malloc(sizeof(cl_event));
       if (NULL != *event_p) {
         *(cl_event*)*event_p = event;
@@ -54,8 +56,9 @@ int acc_event_create(void** event_p)
         clReleaseEvent(event);
         result = EXIT_FAILURE;
       }
-# endif
+#endif
     }
+#if defined(ACC_OPENCL_EVENT_COMPLETED)
     else {
       ACC_OPENCL_ERROR("set initial event state", result);
       clReleaseEvent(event);

@@ -28,7 +28,13 @@
 #if !defined(ACC_OPENCL_MEM_ALIGNSCALE)
 # define ACC_OPENCL_MEM_ALIGNSCALE 8
 #endif
-
+#if !defined(ACC_OPENCL_MEM_BLOCKING)
+# if defined(ACC_OPENCL_MEM_ASYNC)
+#   define ACC_OPENCL_MEM_BLOCKING CL_FALSE
+# else
+#   define ACC_OPENCL_MEM_BLOCKING CL_TRUE
+# endif
+#endif
 
 #if defined(__cplusplus)
 extern "C" {
@@ -76,7 +82,7 @@ int acc_host_mem_allocate(void** host_mem, size_t nbytes, void* stream)
   if (NULL != buffer) {
     const cl_command_queue queue = *ACC_OPENCL_STREAM(stream);
     const uintptr_t address = (uintptr_t)clEnqueueMapBuffer(queue, buffer,
-      CL_FALSE/*non-blocking*/, CL_MAP_READ | CL_MAP_WRITE,
+      ACC_OPENCL_MEM_BLOCKING, CL_MAP_READ | CL_MAP_WRITE,
       0/*offset*/, size, 0, NULL, NULL, &result);
     if (0 != address) {
       const size_t offset = ACC_OPENCL_UP2(address + sizeof(acc_opencl_meminfo_t), alignment) - address;
@@ -206,7 +212,7 @@ int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t nbytes, void* str
   assert((NULL != host_mem || 0 == nbytes) && (NULL != dev_mem || 0 == nbytes) && NULL != stream);
   if (NULL != host_mem && NULL != dev_mem && 0 != nbytes) {
     ACC_OPENCL_CHECK(clEnqueueWriteBuffer(*ACC_OPENCL_STREAM(stream), *ACC_OPENCL_MEM(dev_mem),
-      CL_FALSE/*non-blocking*/, 0/*offset*/, nbytes, host_mem, 0, NULL, NULL),
+      ACC_OPENCL_MEM_BLOCKING, 0/*offset*/, nbytes, host_mem, 0, NULL, NULL),
       "enqueue h2d copy", result);
   }
   ACC_OPENCL_RETURN(result);
@@ -219,7 +225,7 @@ int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t nbytes, void* str
   assert((NULL != dev_mem || 0 == nbytes) && (NULL != host_mem || 0 == nbytes) && NULL != stream);
   if (NULL != host_mem && NULL != dev_mem && 0 != nbytes) {
     ACC_OPENCL_CHECK(clEnqueueReadBuffer(*ACC_OPENCL_STREAM(stream), *ACC_OPENCL_MEM(dev_mem),
-      CL_FALSE/*non-blocking*/, 0/*offset*/, nbytes, host_mem, 0, NULL, NULL),
+      ACC_OPENCL_MEM_BLOCKING, 0/*offset*/, nbytes, host_mem, 0, NULL, NULL),
       "enqueue d2h copy", result);
   }
   ACC_OPENCL_RETURN(result);

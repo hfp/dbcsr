@@ -35,12 +35,16 @@ int acc_event_create(void** event_p)
   const cl_event event = clCreateUserEvent(acc_opencl_context, &result);
   assert(NULL != event_p);
   if (NULL != event) {
+    cl_int status = CL_COMPLETE;
     assert(CL_SUCCESS == result);
-#if defined(ACC_OPENCL_EVENT_COMPLETED)
+#if !defined(ACC_OPENCL_EVENT_COMPLETED)
+    assert(CL_SUCCESS != clGetEventInfo(*ACC_OPENCL_EVENT(event), CL_EVENT_COMMAND_EXECUTION_STATUS,
+      sizeof(cl_int), &status, NULL) || CL_COMPLETE != status);
+#else
     /* an empty event (unrecorded) has no work to wait for
      * hence it is considered occurred
      */
-    if (CL_SUCCESS == clSetUserEventStatus(event, CL_COMPLETE))
+    if (CL_SUCCESS == clSetUserEventStatus(event, status))
 #endif
     {
 #if defined(ACC_OPENCL_EVENT_NOALLOC)

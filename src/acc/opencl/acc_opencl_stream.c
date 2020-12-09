@@ -12,10 +12,6 @@
 #include <string.h>
 #include <assert.h>
 
-#if !defined(ACC_OPENCL_STREAM_OOO_EXEC) && 0
-# define ACC_OPENCL_STREAM_OOO_EXEC
-#endif
-
 #if defined(CL_VERSION_2_0)
 # define ACC_OPENCL_CREATE_COMMAND_QUEUE(CTX, DEV, PROPS, RESULT) \
     clCreateCommandQueueWithProperties(CTX, DEV, PROPS, RESULT)

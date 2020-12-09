@@ -12,22 +12,6 @@
 #include "opencl_kernels.h"
 #include <assert.h>
 
-#if !defined(OPENCL_LIBSMM_DEBUG) && 0
-# define OPENCL_LIBSMM_DEBUG
-#endif
-#if !defined(OPENCL_LIBSMM_SYNC) && 0
-# define OPENCL_LIBSMM_SYNC
-#endif
-#if !defined(OPENCL_LIBSMM_SRCLOAD) && 0
-# define OPENCL_LIBSMM_SRCLOAD
-#endif
-#if !defined(OPENCL_LIBSMM_F32) && !defined(__DBCSR_ACC)
-# define OPENCL_LIBSMM_F32
-#endif
-#if !defined(OPENCL_LIBSMM_F64) && 1
-# define OPENCL_LIBSMM_F64
-#endif
-
 
 #if defined(__cplusplus)
 extern "C" {

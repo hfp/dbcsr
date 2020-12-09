@@ -18,8 +18,8 @@
 #if !defined(OPENCL_LIBSMM_SYNC) && 0
 # define OPENCL_LIBSMM_SYNC
 #endif
-#if !defined(OPENCL_SOURCE_LOAD) && 0
-# define OPENCL_SOURCE_LOAD
+#if !defined(OPENCL_LIBSMM_SRCLOAD) && 0
+# define OPENCL_LIBSMM_SRCLOAD
 #endif
 #if !defined(OPENCL_LIBSMM_F32) && !defined(__DBCSR_ACC)
 # define OPENCL_LIBSMM_F32
@@ -62,6 +62,28 @@ acc_bool_t libsmm_acc_is_thread_safe(void)
 }
 
 
+#if defined(OPENCL_LIBSMM_DEBUG) && defined(_DEBUG)
+static void opencl_libsmm_print_matrix(FILE* ostream, const char* label, libsmm_acc_data_t type, const void* mat, int m, int n);
+static void opencl_libsmm_print_matrix(FILE* ostream, const char* label, libsmm_acc_data_t type, const void* mat, int m, int n)
+{
+  int i, j;
+  const char *const s = (NULL != label ? label : "");
+  const int len = (int)strlen(s);
+  for (i = 0; i < n; ++i) {
+    if (0 < i) fprintf(ostream, "%*s", len, " "); else fprintf(ostream, "%s", s);
+    for (j = 0; j < m; ++j) {
+      switch (type) {
+        case dbcsr_type_real_8: fprintf(ostream, "%.2f ", ((double*)mat)[i*m+j]); break;
+        case dbcsr_type_real_4: fprintf(ostream, "%.2f ", ((float*) mat)[i*m+j]); break;
+        default: fprintf(ostream, "? ");
+      }
+    }
+    fprintf(ostream, "\n");
+  }
+}
+#endif
+
+
 int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
   void* dev_data, libsmm_acc_data_t datatype, int m, int n, int max_kernel_dim, void* stream)
 {
@@ -93,7 +115,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
     config = (config_t*)libxsmm_xdispatch(&key, sizeof(key));
     if (NULL == config) {
       char build_options[ACC_OPENCL_BUFFER_MAXSIZE], fname[32];
-      const char *const env_options = getenv("ACC_OPENCL_TRANS_BUILD_OPTIONS");
+      const char *const env_options = getenv("OPENCL_LIBSMM_TRANS_BUILDOPTS");
       int nchar = ACC_OPENCL_SNPRINTF(fname, sizeof(fname), "xtrans%ix%i", m, n);
       const char* typename = "";
       switch (datatype) {
@@ -112,14 +134,17 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
         (NULL == env_options || '\0' == *env_options) ? "" : env_options, typename, fname, m, n) : 0);
       if ('\0' != *typename && 0 < nchar && (int)sizeof(build_options) > nchar) {
         cl_device_id active_device;
-        const char *const env_inplace = getenv("ACC_OPENCL_TRANS_INPLACE");
-        const int inplace = (m == n &&
-          ((NULL != env_inplace && '\0' != *env_inplace && '0' != *env_inplace)
-            ||  (EXIT_SUCCESS == acc_opencl_device(stream, &active_device)
-              && EXIT_SUCCESS == acc_opencl_device_vendor(active_device, "intel"))));
+        const char *const env_inplace = getenv("OPENCL_LIBSMM_TRANS_INPLACE");
+#if defined(OPENCL_LIBSMM_TRANS_INPLACE)
+        const int inplace = (m == n);
+#else
+        const int inplace = (m == n) && ((NULL != env_inplace && '\0' != *env_inplace && '0' != *env_inplace)
+          || (EXIT_SUCCESS == acc_opencl_device(stream, &active_device) &&
+              EXIT_SUCCESS == acc_opencl_device_vendor(active_device, "intel")));
+#endif
         config_t new_config;
         FILE* file = NULL;
-#if defined(OPENCL_SOURCE_LOAD)
+#if defined(OPENCL_LIBSMM_SRCLOAD)
         const char *const paths[] = {
           "../../exts/dbcsr/src/acc/opencl/smm/kernel",
           "opencl/smm/kernels"
@@ -154,7 +179,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
           int max_wgsize;
           result = acc_opencl_wgsize(new_config.kernel, NULL/*preferred_multiple*/, &max_wgsize);
           if (EXIT_SUCCESS == result) {
-            const char *const env_wgsize = getenv("ACC_OPENCL_TRANS_WGSIZE");
+            const char *const env_wgsize = getenv("OPENCL_LIBSMM_TRANS_WGSIZE");
             assert(0 < max_wgsize);
             if (NULL == env_wgsize || '\0' == *env_wgsize) {
               new_config.wgsize = (size_t)m;
@@ -222,6 +247,11 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
           char *const gold = hst_imat + j;
           libxsmm_itrans(gold, typesize, m, n, m, n);
           if (0 != memcmp(gold, test, m * n * typesize)) {
+# if defined(_DEBUG)
+            opencl_libsmm_print_matrix(stderr, "gold = ", datatype, gold, n, m);
+            opencl_libsmm_print_matrix(stderr, "test = ", datatype, test, n, m);
+            fprintf(stderr, "\n");
+# endif
             result = EXIT_FAILURE; break;
           }
         }
@@ -284,7 +314,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
         cl_device_id active_device;
         result = acc_opencl_device(stack_stream, &active_device);
         if (EXIT_SUCCESS == result) {
-          const char *const env_options = getenv("ACC_OPENCL_SMM_BUILD_OPTIONS");
+          const char *const env_options = getenv("OPENCL_LIBSMM_SMM_BUILDOPTS");
           const char *typename = NULL, *atomic_t = NULL, *atomic_f = NULL;
           assert(NULL != active_device);
           switch (datatype) {
@@ -329,7 +359,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
       if (EXIT_SUCCESS == result) {
         config_t new_config;
         FILE* file = NULL;
-#if defined(OPENCL_SOURCE_LOAD)
+#if defined(OPENCL_LIBSMM_SRCLOAD)
         const char *const paths[] = {
           "../../exts/dbcsr/src/acc/opencl/smm/kernel",
           "opencl/smm/kernels"
@@ -377,7 +407,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
     if (EXIT_SUCCESS == result) {
       const size_t wgsize = n_max, work_size = wgsize * stack_size;
 #if defined(OPENCL_LIBSMM_DEBUG)
-      char *hst_ainp = NULL, *hst_binp = NULL, *hst_cinp = NULL, *hst_test = NULL, *hst_gold = NULL;
+      char *hst_ainp = NULL, *hst_binp = NULL, *hst_cinp = NULL, *hst_test = NULL, *gold = NULL;
       const libxsmm_gemm_precision precision = (dbcsr_type_real_8 == datatype
         ? LIBXSMM_GEMM_PRECISION_F64 : (dbcsr_type_real_4 == datatype ? LIBXSMM_GEMM_PRECISION_F32
         : (libxsmm_gemm_precision)LIBXSMM_DATATYPE_UNSUPPORTED));
@@ -401,7 +431,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
         hst_binp = (char*)libxsmm_aligned_scratch(bsize, 0/*auto-align*/);
         hst_cinp = (char*)libxsmm_aligned_scratch(csize, 0/*auto-align*/);
         hst_test = (char*)libxsmm_aligned_scratch(csize, 0/*auto-align*/);
-        hst_gold = (char*)libxsmm_aligned_scratch(msize, 0/*auto-align*/);
+        gold = (char*)libxsmm_aligned_scratch(msize, 0/*auto-align*/);
         if (NULL != desc && NULL != hst_ainp && NULL != hst_binp && NULL != hst_cinp && NULL != hst_test) {
           ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_a_data, hst_ainp, asize, stack_stream),
             "transfer debug a-data", result);
@@ -443,13 +473,19 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
           const int ia = (params[0] - 1) * typesize;
           const int ib = (params[1] - 1) * typesize;
           const int ic = (params[2] - 1) * typesize;
+          const char *const test = hst_test + ic;
           libxsmm_matdiff_info diff;
-          memcpy(hst_gold, hst_cinp + ic, msize),
-          kernel.xmm(hst_ainp + ia, hst_binp + ib, hst_gold);
+          memcpy(gold, hst_cinp + ic, msize),
+          kernel.xmm(hst_ainp + ia, hst_binp + ib, gold);
           libxsmm_matdiff(&diff, (libxsmm_datatype)precision,
-            m_max, n_max, hst_gold, hst_test + ic,
+            m_max, n_max, gold, test,
             &m_max/*ldref*/, &m_max/*ldtst*/);
           if (0 != diff.normf_rel) {
+# if defined(_DEBUG)
+            opencl_libsmm_print_matrix(stderr, "gold = ", datatype, gold, m_max, n_max);
+            opencl_libsmm_print_matrix(stderr, "test = ", datatype, test, m_max, n_max);
+            fprintf(stderr, "\n");
+# endif
             result = EXIT_FAILURE; break;
           }
         }
@@ -461,7 +497,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
       libxsmm_free(hst_binp);
       libxsmm_free(hst_cinp);
       libxsmm_free(hst_test);
-      libxsmm_free(hst_gold);
+      libxsmm_free(gold);
 #elif !defined(NDEBUG)
       ACC_OPENCL_UNUSED(host_param_stack);
       ACC_OPENCL_UNUSED(nparams);

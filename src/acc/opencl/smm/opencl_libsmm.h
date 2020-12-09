@@ -6,8 +6,8 @@
  * For further information please visit https://dbcsr.cp2k.org                                    *
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
-#ifndef ACC_OPENCL_SMM_H
-#define ACC_OPENCL_SMM_H
+#ifndef OPENCL_LIBSMM_H
+#define OPENCL_LIBSMM_H
 
 #include "../../acc_libsmm.h"
 #include "../acc_opencl.h"
@@ -18,8 +18,8 @@
 # error OpenCL backend currently depends on LIBXSMM!
 #endif
 
-#if !defined(ACC_OPENCL_SMM_PERMIT_TRANSPOSE_INPLACE) && 0
-# define ACC_OPENCL_SMM_PERMIT_TRANSPOSE_INPLACE
+#if !defined(OPENCL_LIBSMM_TRANS_INPLACE) && 0
+# define OPENCL_LIBSMM_TRANS_INPLACE
 #endif
 
-#endif /*ACC_OPENCL_SMM_H*/
+#endif /*OPENCL_LIBSMM_H*/

@@ -87,9 +87,6 @@
 #if !defined(ACC_OPENCL_EVENT_BARRIER) && 0
 # define ACC_OPENCL_EVENT_BARRIER
 #endif
-#if !defined(ACC_OPENCL_EVENT_RESET) && 0
-# define ACC_OPENCL_EVENT_RESET
-#endif
 
 #if defined(CL_VERSION_2_0)
 # define ACC_OPENCL_COMMAND_QUEUE_PROPERTIES cl_queue_properties

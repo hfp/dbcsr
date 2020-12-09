@@ -88,9 +88,6 @@ int acc_event_record(void* event, void* stream)
 {
   int result = EXIT_SUCCESS;
   assert(NULL != event && NULL != stream);
-#if defined(ACC_OPENCL_EVENT_RESET)
-  ACC_OPENCL_CHECK(clSetUserEventStatus(*ACC_OPENCL_EVENT(event), CL_SUBMITTED), "reset event", result);
-#endif
   ACC_OPENCL_CHECK(ACC_OPENCL_ENQUEUE_EVENT(*ACC_OPENCL_STREAM(stream), ACC_OPENCL_EVENT(event)),
     "record event", result);
   ACC_OPENCL_RETURN(result);
@@ -100,17 +97,16 @@ int acc_event_record(void* event, void* stream)
 int acc_event_query(void* event, acc_bool_t* has_occurred)
 {
   int result = EXIT_SUCCESS;
-  cl_int status = CL_QUEUED;
-  assert(CL_COMPLETE != status);
-#if defined(_DEBUG)
-  fprintf(stderr, "acc_event_query(%p, %i)\n", event, *has_occurred);
-#endif
+  cl_int status = CL_COMPLETE;
   if (NULL != event) {
     ACC_OPENCL_CHECK(clGetEventInfo(*ACC_OPENCL_EVENT(event), CL_EVENT_COMMAND_EXECUTION_STATUS,
       sizeof(cl_int), &status, NULL), "retrieve event status", result);
   }
   assert(NULL != has_occurred);
-  *has_occurred = (CL_COMPLETE == status);
+  *has_occurred = (CL_COMPLETE == status || 0 > status);
+#if defined(_DEBUG)
+  fprintf(stderr, "acc_event_query(%p, %i)\n", event, *has_occurred);
+#endif
   ACC_OPENCL_RETURN(result);
 }
 

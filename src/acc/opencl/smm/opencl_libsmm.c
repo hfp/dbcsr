@@ -179,17 +179,17 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
 #if defined(OPENCL_LIBSMM_DEBUG)
       int *const hst_stack = (int*)libxsmm_aligned_scratch(sizeof(int) * offset_stack_size, 0/*auto-align*/);
       char *hst_imat = NULL, *hst_test = NULL;
-      size_t dev_data_size;
+      size_t data_size;
       if (CL_SUCCESS == clGetMemObjectInfo(*ACC_OPENCL_MEM(dev_data), CL_MEM_SIZE,
-        sizeof(size_t), &dev_data_size, NULL))
+        sizeof(size_t), &data_size, NULL))
       {
-        hst_imat = (char*)libxsmm_aligned_scratch(dev_data_size, 0/*auto-align*/);
-        hst_test = (char*)libxsmm_aligned_scratch(dev_data_size, 0/*auto-align*/);
+        hst_imat = (char*)libxsmm_aligned_scratch(data_size, 0/*auto-align*/);
+        hst_test = (char*)libxsmm_aligned_scratch(data_size, 0/*auto-align*/);
         if (NULL != hst_stack && NULL != hst_imat && NULL != hst_test) {
           ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_trs_stack, hst_stack, sizeof(int) * offset_stack_size, stream),
             "transfer debug stack", result);
-          ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_data, hst_imat, dev_data_size, stream),
-            "transfer debug gold", result);
+          ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_data, hst_imat, data_size, stream),
+            "transfer debug input", result);
         }
         else result = EXIT_FAILURE;
       }
@@ -205,7 +205,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
         config->kernel, 1/*work_dim*/, NULL, &work_size, &config->wgsize, 0, NULL, NULL),
         "launch transpose kernel", result);
 #if defined(OPENCL_LIBSMM_DEBUG)
-      ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_data, hst_test, dev_data_size, stream),
+      ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_data, hst_test, data_size, stream),
         "transfer debug test", result);
 #endif
 #if defined(OPENCL_LIBSMM_DEBUG) || defined(OPENCL_LIBSMM_SYNC)
@@ -245,8 +245,9 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
   int m_max, int n_max, int k_max, int max_kernel_dim, acc_bool_t def_mnk, void* stack_stream, void* c_stream)
 {
   int result = EXIT_SUCCESS;
-  ACC_OPENCL_UNUSED(host_param_stack); ACC_OPENCL_UNUSED(nparams); ACC_OPENCL_UNUSED(c_stream); /* TODO */
-  assert((NULL != dev_param_stack && NULL != dev_a_data && NULL != dev_b_data && NULL != dev_c_data) || 0 == stack_size);
+  ACC_OPENCL_UNUSED(c_stream); /* TODO */
+  assert(0 == stack_size || (NULL != host_param_stack && NULL != dev_param_stack
+    && NULL != dev_a_data && NULL != dev_b_data && NULL != dev_c_data));
   assert(0 < nparams && 0 < max_kernel_dim && NULL != stack_stream);
   assert(0 <= stack_size && 0 <= m_max && 0 <= n_max && 0 <= k_max);
   if ((
@@ -375,6 +376,46 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
     assert((NULL != config && NULL != config->kernel) || EXIT_SUCCESS != result);
     if (EXIT_SUCCESS == result) {
       const size_t wgsize = n_max, work_size = wgsize * stack_size;
+#if defined(OPENCL_LIBSMM_DEBUG)
+      char *hst_ainp = NULL, *hst_binp = NULL, *hst_cinp = NULL, *hst_test = NULL, *hst_gold = NULL;
+      const libxsmm_gemm_precision precision = (dbcsr_type_real_8 == datatype
+        ? LIBXSMM_GEMM_PRECISION_F64 : (dbcsr_type_real_4 == datatype ? LIBXSMM_GEMM_PRECISION_F32
+        : (libxsmm_gemm_precision)LIBXSMM_DATATYPE_UNSUPPORTED));
+      const int typesize = (dbcsr_type_real_8 == datatype ? 8
+        : (dbcsr_type_real_4 == datatype ? 4 : 0/*unknown*/));
+      size_t msize = m_max * n_max * typesize, asize, bsize, csize;
+      libxsmm_xmmfunction kernel = { NULL };
+      if (  CL_SUCCESS == clGetMemObjectInfo(*ACC_OPENCL_MEM(dev_a_data),
+              CL_MEM_SIZE, sizeof(size_t), &asize, NULL)
+        &&  CL_SUCCESS == clGetMemObjectInfo(*ACC_OPENCL_MEM(dev_b_data),
+              CL_MEM_SIZE, sizeof(size_t), &bsize, NULL)
+        &&  CL_SUCCESS == clGetMemObjectInfo(*ACC_OPENCL_MEM(dev_c_data),
+              CL_MEM_SIZE, sizeof(size_t), &csize, NULL))
+      {
+        const double alpha = 1, beta = 1;
+        libxsmm_descriptor_blob blob;
+        libxsmm_gemm_descriptor *const desc = libxsmm_gemm_descriptor_dinit(&blob,
+          precision, m_max, n_max, k_max, m_max, k_max, m_max, alpha, beta,
+          LIBXSMM_GEMM_FLAG_NONE, LIBXSMM_PREFETCH_NONE);
+        hst_ainp = (char*)libxsmm_aligned_scratch(asize, 0/*auto-align*/);
+        hst_binp = (char*)libxsmm_aligned_scratch(bsize, 0/*auto-align*/);
+        hst_cinp = (char*)libxsmm_aligned_scratch(csize, 0/*auto-align*/);
+        hst_test = (char*)libxsmm_aligned_scratch(csize, 0/*auto-align*/);
+        hst_gold = (char*)libxsmm_aligned_scratch(msize, 0/*auto-align*/);
+        if (NULL != desc && NULL != hst_ainp && NULL != hst_binp && NULL != hst_cinp && NULL != hst_test) {
+          ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_a_data, hst_ainp, asize, stack_stream),
+            "transfer debug a-data", result);
+          ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_b_data, hst_binp, bsize, stack_stream),
+            "transfer debug b-data", result);
+          ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_c_data, hst_cinp, csize, stack_stream),
+            "transfer debug c-data", result);
+          kernel = libxsmm_xmmdispatch(desc);
+          assert(NULL != kernel.xmm);
+        }
+        else result = EXIT_FAILURE;
+      }
+      else result = EXIT_FAILURE;
+#endif
       ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 0, sizeof(cl_mem), ACC_OPENCL_MEM(dev_param_stack)),
         "set batch-list argument of SMM-kernel", result);
       ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 1, sizeof(cl_mem), ACC_OPENCL_MEM(dev_a_data)),
@@ -386,19 +427,49 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
       ACC_OPENCL_CHECK(clEnqueueNDRangeKernel(*ACC_OPENCL_STREAM(stack_stream),
         config->kernel, 1/*work_dim*/, NULL, &work_size, &wgsize, 0, NULL, NULL),
         "launch SMM-kernel", result);
+#if defined(OPENCL_LIBSMM_DEBUG)
+      ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_c_data, hst_test, csize, stack_stream),
+        "transfer debug test", result);
+#endif
+#if defined(OPENCL_LIBSMM_SYNC)
+      ACC_OPENCL_CHECK(acc_stream_sync(stack_stream), "sync stream", result);
+#endif
+#if defined(OPENCL_LIBSMM_DEBUG)
+      if (EXIT_SUCCESS == result) {
+        int i;
+        for (i = 0; i < stack_size; ++i) {
+          const int *const params = host_param_stack + nparams * i;
+          const int ia = (params[3] - 1) * typesize;
+          const int ib = (params[4] - 1) * typesize;
+          const int ic = (params[5] - 1) * typesize;
+          libxsmm_matdiff_info diff;
+          memcpy(hst_gold, hst_cinp + ic, msize),
+          kernel.xmm(hst_ainp + ia, hst_binp + ib, hst_gold);
+          libxsmm_matdiff(&diff, (libxsmm_datatype)precision,
+            m_max, n_max, hst_gold, hst_test + ic,
+            &m_max/*ldref*/, &m_max/*ldtst*/);
+          if (0 != diff.normf_rel) {
+            result = EXIT_FAILURE; break;
+          }
+        }
+        printf("libsmm_acc_process(size=%i, type=%s, m=%i, n=%i, k=%i, max=%i, stream=%p) => %s\n", stack_size,
+          dbcsr_type_real_8 == datatype ? "f64" : (dbcsr_type_real_4 == datatype ? "f32" : "unknown"),
+          m_max, n_max, k_max, max_kernel_dim, stack_stream, EXIT_SUCCESS == result ? "OK" : "ERROR");
+      }
+      libxsmm_free(hst_ainp);
+      libxsmm_free(hst_binp);
+      libxsmm_free(hst_cinp);
+      libxsmm_free(hst_test);
+      libxsmm_free(hst_gold);
+#elif !defined(NDEBUG)
+      ACC_OPENCL_UNUSED(host_param_stack);
+      ACC_OPENCL_UNUSED(nparams);
+#endif
     }
   }
   else if (0 < stack_size) { /* inhomogeneous, large kernel, or unsupported datatype */
     return -1; /* TODO: document result code to trigger host-fallback */
   }
-#if defined(OPENCL_LIBSMM_SYNC)
-  ACC_OPENCL_CHECK(acc_stream_sync(stack_stream), "sync stream", result);
-#endif
-#if defined(OPENCL_LIBSMM_DEBUG)
-  printf("libsmm_acc_process(size=%i, type=%s, m=%i, n=%i, k=%i, max=%i, stream=%p)\n", stack_size,
-    dbcsr_type_real_8 == datatype ? "f64" : (dbcsr_type_real_8 == datatype ? "f32" : "unknown"),
-    m_max, n_max, k_max, max_kernel_dim, stack_stream);
-#endif
   ACC_OPENCL_RETURN(result);
 }
 

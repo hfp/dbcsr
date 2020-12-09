@@ -122,9 +122,10 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
 #if defined(OPENCL_LIBSMM_TRANS_INPLACE)
         const int inplace = (m == n);
 #else
-        const int inplace = (m == n) && ((NULL != env_inplace && '\0' != *env_inplace && '0' != *env_inplace)
-          || (EXIT_SUCCESS == acc_opencl_device(stream, &active_device) &&
-              EXIT_SUCCESS == acc_opencl_device_vendor(active_device, "intel")));
+        const int inplace = (m == n) && ((NULL == env_inplace || '\0' == *env_inplace)
+          ? (EXIT_SUCCESS == acc_opencl_device(stream, &active_device) &&
+             EXIT_SUCCESS == acc_opencl_device_vendor(active_device, "intel"))
+          : ('0' != *env_inplace));
 #endif
         config_t new_config;
         FILE* file = NULL;

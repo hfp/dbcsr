@@ -84,6 +84,9 @@
 #else
 # define ACC_OPENCL_EVENT(A) ((cl_event*)(A))
 #endif
+#if !defined(ACC_OPENCL_EVENT_BARRIER) && 0
+# define ACC_OPENCL_EVENT_BARRIER
+#endif
 
 #if defined(CL_VERSION_2_0)
 # define ACC_OPENCL_COMMAND_QUEUE_PROPERTIES cl_queue_properties

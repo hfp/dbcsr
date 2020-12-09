@@ -26,7 +26,11 @@
 #endif
 
 #if defined(CL_VERSION_1_2)
-# define ACC_OPENCL_WAIT_EVENT(QUEUE, EVENT) clEnqueueMarkerWithWaitList(QUEUE, 1, EVENT, NULL)
+# if defined(ACC_OPENCL_EVENT_BARRIER)
+#   define ACC_OPENCL_WAIT_EVENT(QUEUE, EVENT) clEnqueueBarrierWithWaitList(QUEUE, 1, EVENT, NULL)
+# else
+#   define ACC_OPENCL_WAIT_EVENT(QUEUE, EVENT) clEnqueueMarkerWithWaitList(QUEUE, 1, EVENT, NULL)
+# endif
 #else
 # define ACC_OPENCL_WAIT_EVENT(QUEUE, EVENT) clEnqueueWaitForEvents(QUEUE, 1, EVENT)
 #endif

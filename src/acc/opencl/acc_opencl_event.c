@@ -12,7 +12,11 @@
 #include <assert.h>
 
 #if defined(CL_VERSION_1_2)
-# define ACC_OPENCL_ENQUEUE_EVENT(QUEUE, EVENT) clEnqueueMarkerWithWaitList(QUEUE, 0, NULL, EVENT)
+# if defined(ACC_OPENCL_EVENT_BARRIER)
+#   define ACC_OPENCL_ENQUEUE_EVENT(QUEUE, EVENT) clEnqueueBarrierWithWaitList(QUEUE, 0, NULL, EVENT)
+# else
+#   define ACC_OPENCL_ENQUEUE_EVENT(QUEUE, EVENT) clEnqueueMarkerWithWaitList(QUEUE, 0, NULL, EVENT)
+# endif
 #else
 # define ACC_OPENCL_ENQUEUE_EVENT(QUEUE, EVENT) clEnqueueMarker(QUEUE, EVENT)
 #endif

@@ -121,9 +121,7 @@ int acc_event_query(void* event, acc_bool_t* has_occurred)
       sizeof(cl_int), &status, NULL), "retrieve event status", result);
   }
   assert(NULL != has_occurred);
-  if (EXIT_SUCCESS == result) {
-    *has_occurred = (CL_COMPLETE != status ? 0 : 1);
-  }
+  *has_occurred = (CL_COMPLETE == status);
   ACC_OPENCL_RETURN(result);
 }
 

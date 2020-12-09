@@ -21,10 +21,6 @@
 # define ACC_OPENCL_ENQUEUE_EVENT(QUEUE, EVENT) clEnqueueMarker(QUEUE, EVENT)
 #endif
 
-#if !defined(ACC_OPENCL_EVENT_RESET) && 0
-# define ACC_OPENCL_EVENT_RESET
-#endif
-
 
 #if defined(__cplusplus)
 extern "C" {

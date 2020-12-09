@@ -463,7 +463,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
       ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_c_data, hst_test, csize, stack_stream),
         "transfer debug test", result);
 #endif
-#if defined(OPENCL_LIBSMM_SYNC)
+#if defined(OPENCL_LIBSMM_DEBUG) || defined(OPENCL_LIBSMM_SYNC)
       ACC_OPENCL_CHECK(acc_stream_sync(stack_stream), "sync stream", result);
 #endif
 #if defined(OPENCL_LIBSMM_DEBUG)

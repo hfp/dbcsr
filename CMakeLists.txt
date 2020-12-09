@@ -384,6 +384,7 @@ endif ()
 include(CompilerConfiguration)
 include(CheckCompilerSupport)
 
+# subdirectories
 add_subdirectory(src)
 
 include(CTest)
@@ -394,5 +395,7 @@ endif ()
 if (WITH_EXAMPLES)
   add_subdirectory(examples)
 endif ()
+
+add_subdirectory(docs)
 
 include(CustomTargets)

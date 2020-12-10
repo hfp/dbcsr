@@ -8,7 +8,7 @@
  *------------------------------------------------------------------------------------------------*/
 
 __attribute__((always_inline))
-inline void atomic_global_add(global volatile T* dst, T inc)
+inline void atomic_add_global(global volatile T* dst, T inc)
 {
   union { TA a; T f; } old_val, try_val, new_val = { .f = *dst };
   do {
@@ -45,6 +45,6 @@ kernel void FN(global const int *restrict param_stack,
     T r = 0;
     for (int k = 0; k < SK; ++k) r += a[SK*m+k] * b[k];
     barrier(CLK_LOCAL_MEM_FENCE);
-    atomic_global_add(&cwg[SM*n+m], r);
+    atomic_add_global(&cwg[SM*n+m], r);
   }
 }

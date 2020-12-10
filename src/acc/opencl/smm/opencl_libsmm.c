@@ -239,6 +239,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
           const int index = hst_stack[i];
           const char *const test = &hst_test[index*typesize];
           char *const gold = &hst_imat[index*typesize];
+          assert((index * typesize) < data_size);
           libxsmm_itrans(gold, typesize, m, n, m, n);
           if (0 != memcmp(gold, test, m * n * typesize)) {
             fprintf(stderr, " => ERROR\n");
@@ -475,6 +476,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
           const size_t ia = (size_t)(params[i+0] - 1) * typesize;
           const size_t ib = (size_t)(params[i+1] - 1) * typesize;
           const size_t ic = (size_t)(params[i+2] - 1) * typesize;
+          assert(ia < asize && ib < bsize && ic < csize);
           libxsmm_otrans(btrn, binp + ib, typesize, n_max, k_max, n_max, k_max);
           kernel.xmm(ainp + ia, btrn, gold + ic);
         }

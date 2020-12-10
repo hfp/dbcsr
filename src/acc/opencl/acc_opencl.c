@@ -42,12 +42,14 @@ cl_device_id acc_opencl_devices[ACC_OPENCL_DEVICES_MAXCOUNT];
 cl_context acc_opencl_context;
 
 
+#if !defined(NDEBUG)
 void acc_opencl_notify(const char* /*errinfo*/, const void* /*private_info*/, size_t /*cb*/, void* /*user_data*/);
 void acc_opencl_notify(const char* errinfo, const void* private_info, size_t cb, void* user_data)
 {
   ACC_OPENCL_UNUSED(private_info); ACC_OPENCL_UNUSED(cb); ACC_OPENCL_UNUSED(user_data);
   fprintf(stderr, "ERROR ACC/OpenCL: %s\n", errinfo);
 }
+#endif
 
 
 /** Returns the pointer to the 1st match of "b" in "a", or NULL. */
@@ -431,14 +433,19 @@ int acc_set_active_device(int device_id)
           CL_CONTEXT_INTEROP_USER_SYNC, CL_FALSE, /* TODO */
           0 /* end of properties */
         };
-        acc_opencl_context = clCreateContext(properties, 1/*num_devices*/, &active_id,
-          acc_opencl_notify, NULL/* user_data*/, &result);
+#if defined(NDEBUG)
+        void (*const notify)(const char*, const void*, size_t, void*) = NULL;
+#else
+        void (*const notify)(const char*, const void*, size_t, void*) = acc_opencl_notify;
+#endif
+        acc_opencl_context = clCreateContext(properties,
+          1/*num_devices*/, &active_id, notify, NULL/* user_data*/, &result);
         if (CL_INVALID_VALUE == result) { /* retry */
           const size_t n = sizeof(properties) / sizeof(*properties);
           assert(3 <= n);
           properties[n-3] = 0;
           acc_opencl_context = clCreateContext(0 != properties[0] ? properties : NULL,
-            1/*num_devices*/, &active_id, acc_opencl_notify, NULL/* user_data*/, &result);
+            1/*num_devices*/, &active_id, notify, NULL/* user_data*/, &result);
         }
         ACC_OPENCL_CHECK(result, "create context", result);
       }

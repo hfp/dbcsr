@@ -413,7 +413,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
         libxsmm_descriptor_blob blob;
         libxsmm_gemm_descriptor *const desc = libxsmm_gemm_descriptor_dinit(&blob,
           precision, m_max, n_max, k_max, m_max, k_max, m_max, alpha, beta,
-          LIBXSMM_GEMM_FLAG_NONE, LIBXSMM_PREFETCH_NONE);
+          LIBXSMM_GEMM_FLAG_TRANS_B, LIBXSMM_PREFETCH_NONE);
         hst_ainp = (char*)libxsmm_aligned_scratch(asize, 0/*auto-align*/);
         hst_binp = (char*)libxsmm_aligned_scratch(bsize, 0/*auto-align*/);
         hst_cinp = (char*)libxsmm_aligned_scratch(csize, 0/*auto-align*/);

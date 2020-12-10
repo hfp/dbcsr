@@ -171,7 +171,7 @@ int acc_stream_sync(void* stream)
 { /* Blocks the host-thread. */
   int result = EXIT_SUCCESS;
   assert(NULL != stream);
-#if defined(_DEBUG)
+#if defined(ACC_OPENCL_VERBOSE) && defined(_DEBUG)
   fprintf(stderr, "acc_stream_sync(%p)\n", stream);
 #endif
 #if defined(ACC_OPENCL_STREAM_FINISH)
@@ -189,7 +189,7 @@ int acc_stream_wait_event(void* stream, void* event)
 { /* Wait for an event (device-side). */
   int result = EXIT_SUCCESS;
   assert(NULL != stream && NULL != event);
-#if defined(_DEBUG)
+#if defined(ACC_OPENCL_VERBOSE) && defined(_DEBUG)
   fprintf(stderr, "acc_stream_wait_event(%p, %p)\n", stream, event);
 #endif
   ACC_OPENCL_CHECK(ACC_OPENCL_WAIT_EVENT(*ACC_OPENCL_STREAM(stream), ACC_OPENCL_EVENT(event)),

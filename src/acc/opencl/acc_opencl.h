@@ -100,6 +100,9 @@
 #if !defined(ACC_OPENCL_MEM_ASYNC) && 1
 # define ACC_OPENCL_MEM_ASYNC
 #endif
+#if !defined(ACC_OPENCL_VERBOSE) && 0
+# define ACC_OPENCL_VERBOSE
+#endif
 
 #if defined(CL_VERSION_2_0)
 # define ACC_OPENCL_COMMAND_QUEUE_PROPERTIES cl_queue_properties

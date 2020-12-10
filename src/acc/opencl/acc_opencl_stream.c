@@ -66,7 +66,7 @@ int acc_stream_create(void** stream_p, const char* name, int priority)
     if (0 <= priority) {
       ACC_OPENCL_COMMAND_QUEUE_PROPERTIES properties[] = {
         CL_QUEUE_PRIORITY_KHR, 0/*placeholder filled-in below*/,
-# if defined(ACC_OPENCL_STREAM_OOO_EXEC)
+# if defined(ACC_OPENCL_STREAM_OOOEXEC)
         CL_QUEUE_PROPERTIES, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE,
 # endif
         0 /* terminator */
@@ -79,7 +79,7 @@ int acc_stream_create(void** stream_p, const char* name, int priority)
 #endif
     {
       ACC_OPENCL_COMMAND_QUEUE_PROPERTIES properties[] = {
-#if defined(ACC_OPENCL_STREAM_OOO_EXEC)
+#if defined(ACC_OPENCL_STREAM_OOOEXEC)
         CL_QUEUE_PROPERTIES, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE,
 #endif
         0 /* terminator */
@@ -174,13 +174,8 @@ int acc_stream_sync(void* stream)
 #if defined(ACC_OPENCL_VERBOSE) && defined(_DEBUG)
   fprintf(stderr, "acc_stream_sync(%p)\n", stream);
 #endif
-#if defined(ACC_OPENCL_STREAM_FINISH)
   ACC_OPENCL_CHECK(clFinish(*ACC_OPENCL_STREAM(stream)),
     "synchronize stream", result);
-#else
-  ACC_OPENCL_CHECK(clFlush(*ACC_OPENCL_STREAM(stream)),
-    "synchronize stream", result);
-#endif
   ACC_OPENCL_RETURN(result);
 }
 
@@ -191,6 +186,9 @@ int acc_stream_wait_event(void* stream, void* event)
   assert(NULL != stream && NULL != event);
 #if defined(ACC_OPENCL_VERBOSE) && defined(_DEBUG)
   fprintf(stderr, "acc_stream_wait_event(%p, %p)\n", stream, event);
+#endif
+#if defined(ACC_OPENCL_STREAM_SYNCFLUSH)
+  ACC_OPENCL_CHECK(clFlush(*ACC_OPENCL_STREAM(stream)), "flush stream", result);
 #endif
   ACC_OPENCL_CHECK(ACC_OPENCL_WAIT_EVENT(*ACC_OPENCL_STREAM(stream), ACC_OPENCL_EVENT(event)),
     "wait for an event", result);

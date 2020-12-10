@@ -99,6 +99,9 @@ int acc_event_query(void* event, acc_bool_t* has_occurred)
   int result = EXIT_SUCCESS;
   cl_int status = CL_COMPLETE;
   if (NULL != event) {
+#if defined(ACC_OPENCL_STREAM_SYNCFLUSH)
+    ACC_OPENCL_CHECK(clFlush(*ACC_OPENCL_STREAM(stream)), "flush stream", result);
+#endif
     ACC_OPENCL_CHECK(clGetEventInfo(*ACC_OPENCL_EVENT(event), CL_EVENT_COMMAND_EXECUTION_STATUS,
       sizeof(cl_int), &status, NULL), "retrieve event status", result);
   }

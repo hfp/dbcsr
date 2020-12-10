@@ -225,15 +225,15 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
       if (EXIT_SUCCESS == result) {
         const int typesize = (dbcsr_type_real_8 == datatype ? 8
           : (dbcsr_type_real_4 == datatype ? 4 : 0/*unknown*/));
-        int i;
+        int i, j;
         fprintf(stderr, "libsmm_acc_transpose("
           "offset=%i, size=%i, type=%s, m=%i, n=%i, max=%i, stream=%p)", offset, stack_size,
           dbcsr_type_real_8 == datatype ? "f64" : (dbcsr_type_real_4 == datatype ? "f32" : "unknown"),
           m, n, max_kernel_dim, stream);
         for (i = offset; i < offset_stack_size; ++i) {
-          const size_t j = (size_t)hst_stack[i] * typesize;
-          const char *const test = hst_test + j;
-          char *const gold = hst_imat + j;
+          const int index = hst_stack[i];
+          const char *const test = &hst_test[index*typesize];
+          char *const gold = &hst_imat[index*typesize];
           libxsmm_itrans(gold, typesize, m, n, m, n);
           if (0 != memcmp(gold, test, m * n * typesize)) {
             fprintf(stderr, " => ERROR\n");
@@ -243,6 +243,14 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
             fprintf(stderr, "\n");
 # endif
             result = EXIT_FAILURE; break;
+          }
+          for (j = offset; j < i; ++j) {
+            if (index == hst_stack[j]) {
+              fprintf(stderr, " => ERROR\n");
+              result = EXIT_FAILURE;
+              i = offset_stack_size;
+              break;
+            }
           }
         }
         if (EXIT_SUCCESS == result) fprintf(stderr, " => OK\n");
@@ -465,6 +473,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
           libxsmm_otrans(btrn, binp + ib, typesize, n_max, k_max, n_max, k_max);
           kernel.xmm(ainp + ia, btrn, gold + ic);
         }
+        /* some result may be validated multiple times in case of duplicated c-indexes */
         for (i = 0; i < ((size_t)stack_size * nparams); i += nparams) {
           const size_t ic = (size_t)(params[i+2] - 1) * typesize;
           libxsmm_matdiff_info diff;

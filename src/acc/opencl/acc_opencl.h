@@ -97,7 +97,7 @@
 #if !defined(ACC_OPENCL_EVENT_BARRIER) && 0
 # define ACC_OPENCL_EVENT_BARRIER
 #endif
-#if !defined(ACC_OPENCL_MEM_ASYNC) && 1
+#if !defined(ACC_OPENCL_MEM_ASYNC) && 0
 # define ACC_OPENCL_MEM_ASYNC
 #endif
 #if !defined(ACC_OPENCL_VERBOSE) && 0

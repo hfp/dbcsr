@@ -467,6 +467,8 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
 #endif
 #if defined(OPENCL_LIBSMM_DEBUG)
       if (EXIT_SUCCESS == result) {
+        const char *const env_tol = getenv("OPENCL_LIBSMM_SMM_TOLERANCE");
+        const double tolerance = ((NULL == env_tol || '\0' == *env_tol) ? 1E-3 : atof(env_tol));
         const int *const params = host_param_stack + (4 <= nparams ? (nparams - 4) : 0);
         size_t i;
         fprintf(stderr, "libsmm_acc_process(size=%i, type=%s, m=%i, n=%i, k=%i, max=%i, stream=%p)", stack_size,
@@ -486,7 +488,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
           libxsmm_matdiff_info diff;
           libxsmm_matdiff(&diff, (libxsmm_datatype)precision, m_max, n_max,
             gold + ic, test + ic, &m_max/*ldref*/, &m_max/*ldtst*/);
-          if (0 != diff.normf_rel) {
+          if (tolerance < diff.normf_rel) {
             fprintf(stderr, " => ERROR\n");
 # if defined(_DEBUG)
             opencl_libsmm_print_matrix(stderr, "gold = ", datatype, gold + ic, m_max, n_max);

@@ -400,7 +400,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
         : (libxsmm_gemm_precision)LIBXSMM_DATATYPE_UNSUPPORTED));
       const int typesize = (dbcsr_type_real_8 == datatype ? 8
         : (dbcsr_type_real_4 == datatype ? 4 : 0/*unknown*/));
-      size_t asize, bsize, csize;
+      size_t asize, bsize, csize, i;
       libxsmm_xmmfunction kernel = { NULL };
       if (  CL_SUCCESS == clGetMemObjectInfo(*ACC_OPENCL_MEM(dev_a_data),
               CL_MEM_SIZE, sizeof(size_t), &asize, NULL)
@@ -419,7 +419,6 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
         test = (char*)libxsmm_aligned_scratch(csize, 0/*auto-align*/);
         gold = (char*)libxsmm_aligned_scratch(csize, 0/*auto-align*/);
         if (NULL != desc && NULL != ainp && NULL != binp && NULL != test && NULL != gold) {
-          char *bmat = binp, *const bend = binp + bsize;
           const int kn = k_max * n_max * typesize;
           ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_a_data, ainp, asize, stack_stream),
             "transfer debug a-data", result);
@@ -427,8 +426,8 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
             "transfer debug b-data", result);
           ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_c_data, gold, csize, stack_stream),
             "transfer debug c-data", result);
-          for (; bmat < bend; bmat += kn) {
-            libxsmm_itrans(bmat, typesize, k_max, n_max, k_max, n_max);
+          for (i = 0; i < bsize; i += kn) {
+            libxsmm_itrans(binp + i, typesize, n_max, k_max, n_max, k_max);
           }
           kernel = libxsmm_xmmdispatch(desc);
           assert(NULL != kernel.xmm);
@@ -459,7 +458,6 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
       if (EXIT_SUCCESS == result) {
         const int *const params = host_param_stack + (3 <= nparams ? (nparams - 3) : 0);
         const int mn = m_max * n_max * typesize;
-        size_t i;
         fprintf(stderr, "libsmm_acc_process(size=%i, type=%s, m=%i, n=%i, k=%i, max=%i, stream=%p)", stack_size,
           dbcsr_type_real_8 == datatype ? "f64" : (dbcsr_type_real_4 == datatype ? "f32" : "unknown"),
           m_max, n_max, k_max, max_kernel_dim, stack_stream);

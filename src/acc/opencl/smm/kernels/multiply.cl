@@ -7,6 +7,7 @@
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
 
+__attribute__((always_inline))
 inline void atomic_global_add(global volatile T* dst, T inc)
 {
   union { TA a; T f; } old_val, try_val, new_val = { .f = *dst };
@@ -32,8 +33,8 @@ kernel void FN(global const int *restrict param_stack,
   T b[SK];
 
   const int n = get_local_id(0);
-  const int mblocks = max(SM / SN/*get_local_size(0)*/, 1);
-  const int m0 = n * mblocks, m1 = m0 + mblocks;
+  const int msize = max(SM / SN/*get_local_size(0)*/, 1);
+  const int m0 = n * msize, m1 = m0 + msize;
   /* split work among WG (a[m,k] does not depend on WG-index) */
   for (int m = m0; m < m1; ++m) {
     for (int k = 0; k < SK; ++k) a[SK*m+k] = awg[SM*k+m];
@@ -43,6 +44,7 @@ kernel void FN(global const int *restrict param_stack,
   for (int m = 0; m < SM; ++m) {
     T r = 0;
     for (int k = 0; k < SK; ++k) r += a[SK*m+k] * b[k];
+    barrier(CLK_LOCAL_MEM_FENCE);
     atomic_global_add(&cwg[SM*n+m], r);
   }
 }

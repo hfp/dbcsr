@@ -231,7 +231,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
           dbcsr_type_real_8 == datatype ? "f64" : (dbcsr_type_real_4 == datatype ? "f32" : "unknown"),
           m, n, max_kernel_dim, stream);
         for (i = offset; i < offset_stack_size; ++i) {
-          const int j = hst_stack[i] * typesize;
+          const size_t j = (size_t)hst_stack[i] * typesize;
           const char *const test = hst_test + j;
           char *const gold = hst_imat + j;
           libxsmm_itrans(gold, typesize, m, n, m, n);
@@ -461,9 +461,9 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
           m_max, n_max, k_max, max_kernel_dim, stack_stream);
         for (i = 0; i < stack_size; ++i) {
           const int *const params = param_base + nparams * i;
-          const int ia = (params[0] - 1) * typesize;
-          const int ib = (params[1] - 1) * typesize;
-          const int ic = (params[2] - 1) * typesize;
+          const size_t ia = (size_t)(params[0] - 1) * typesize;
+          const size_t ib = (size_t)(params[1] - 1) * typesize;
+          const size_t ic = (size_t)(params[2] - 1) * typesize;
           const char *const test = hst_test + ic;
           libxsmm_matdiff_info diff;
           memcpy(gold, hst_cinp + ic, msize),

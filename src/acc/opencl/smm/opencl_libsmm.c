@@ -453,16 +453,15 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
 #endif
 #if defined(OPENCL_LIBSMM_DEBUG)
       if (EXIT_SUCCESS == result) {
-        const int *const param_base = host_param_stack + (3 <= nparams ? (nparams - 3) : 0);
+        const int *const params = host_param_stack + (3 <= nparams ? (nparams - 3) : 0);
         int i;
         fprintf(stderr, "libsmm_acc_process(size=%i, type=%s, m=%i, n=%i, k=%i, max=%i, stream=%p)", stack_size,
           dbcsr_type_real_8 == datatype ? "f64" : (dbcsr_type_real_4 == datatype ? "f32" : "unknown"),
           m_max, n_max, k_max, max_kernel_dim, stack_stream);
-        for (i = 0; i < stack_size; ++i) {
-          const int *const params = param_base + nparams * i;
-          const size_t ia = (size_t)(params[0] - 1) * typesize;
-          const size_t ib = (size_t)(params[1] - 1) * typesize;
-          const size_t ic = (size_t)(params[2] - 1) * typesize;
+        for (i = 0; i < (nparams * stack_size); i += nparams) {
+          const size_t ia = (size_t)(params[i+0] - 1) * typesize;
+          const size_t ib = (size_t)(params[i+1] - 1) * typesize;
+          const size_t ic = (size_t)(params[i+2] - 1) * typesize;
           const char *const test = hst_test + ic;
           libxsmm_matdiff_info diff;
           memcpy(gold, hst_cinp + ic, msize),

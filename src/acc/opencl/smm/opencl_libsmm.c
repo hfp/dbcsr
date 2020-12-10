@@ -488,7 +488,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
       libxsmm_free(hst_cinp);
       libxsmm_free(hst_test);
       libxsmm_free(gold);
-#elif !defined(NDEBUG)
+#elif defined(NDEBUG)
       ACC_OPENCL_UNUSED(host_param_stack);
       ACC_OPENCL_UNUSED(nparams);
 #endif

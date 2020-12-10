@@ -42,7 +42,12 @@ int libsmm_acc_finalize(void)
 
 acc_bool_t libsmm_acc_is_thread_safe(void)
 {
-  return 1/*true*/;
+  /* match DBCSR's threading level */
+#if defined(_OPENMP)
+  return 1;
+#else
+  return 0;
+#endif
 }
 
 

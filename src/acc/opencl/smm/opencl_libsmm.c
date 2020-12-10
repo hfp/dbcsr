@@ -236,9 +236,9 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
           dbcsr_type_real_8 == datatype ? "f64" : (dbcsr_type_real_4 == datatype ? "f32" : "unknown"),
           m, n, max_kernel_dim, stream);
         for (i = offset; i < offset_stack_size; ++i) {
-          const int index = hst_stack[i];
-          const char *const test = &hst_test[index*typesize];
-          char *const gold = &hst_imat[index*typesize];
+          const size_t index = hst_stack[i];
+          const char *const test = hst_test + index * typesize;
+          char *const gold = hst_imat + index * typesize;
           assert((index * typesize) < data_size);
           libxsmm_itrans(gold, typesize, m, n, m, n);
           if (0 != memcmp(gold, test, m * n * typesize)) {

@@ -251,7 +251,8 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
             result = EXIT_FAILURE; break;
           }
           for (j = offset; j < i; ++j) {
-            if (index == hst_stack[j]) {
+            const size_t duplicate = hst_stack[j];
+            if (index == duplicate) {
               fprintf(stderr, " => ERROR\n");
               result = EXIT_FAILURE;
               i = offset_stack_size;

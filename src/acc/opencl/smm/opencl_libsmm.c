@@ -242,7 +242,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
           const char *const orig = imat + index * typesize;
           const char *const test = omat + index * typesize;
           assert((index * typesize) < data_size);
-          memcpy(gold, imat, mn * typesize);
+          memcpy(gold, orig, mn * typesize);
           libxsmm_itrans(gold, typesize, m, n, m, n);
           if (0 != memcmp(gold, test, mn * typesize)) {
             fprintf(stderr, " => ERROR\n");

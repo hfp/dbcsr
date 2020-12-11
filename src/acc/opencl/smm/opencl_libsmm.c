@@ -76,6 +76,7 @@ static void opencl_libsmm_print_matrix(FILE* ostream, const char* label, libsmm_
 int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
   void* dev_data, libsmm_acc_data_t datatype, int m, int n, int max_kernel_dim, void* stream)
 {
+  const int mn = m * n;
   int result = EXIT_SUCCESS;
   assert((NULL != dev_trs_stack && NULL != dev_data && 0 <= offset && 0 <= stack_size) || 0 == stack_size);
   if ((
@@ -91,7 +92,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
       0
 #endif
     ) &&
-    0 < stack_size && 1 < (m * n) && m <= max_kernel_dim && n <= max_kernel_dim)
+    0 < stack_size && 1 < mn && m <= max_kernel_dim && n <= max_kernel_dim)
   {
     typedef struct config_t {
       cl_kernel kernel;
@@ -192,18 +193,21 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
       const int offset_stack_size = offset + stack_size;
       const size_t work_size = config->wgsize * offset_stack_size;
 #if defined(OPENCL_LIBSMM_DEBUG)
-      int *const hst_stack = (int*)libxsmm_aligned_scratch(sizeof(int) * offset_stack_size, 0/*auto-align*/);
-      char *hst_imat = NULL, *hst_test = NULL;
+      int *const stack = (int*)libxsmm_aligned_scratch(sizeof(int) * offset_stack_size, 0/*auto-align*/);
+      char *imat = NULL, *omat = NULL, *gold = NULL;
+      const int typesize = (dbcsr_type_real_8 == datatype ? 8
+        : (dbcsr_type_real_4 == datatype ? 4 : 0/*unknown*/));
       size_t data_size;
-      if (NULL != hst_stack && CL_SUCCESS == clGetMemObjectInfo(*ACC_OPENCL_MEM(dev_data),
+      if (NULL != stack && CL_SUCCESS == clGetMemObjectInfo(*ACC_OPENCL_MEM(dev_data),
         CL_MEM_SIZE, sizeof(size_t), &data_size, NULL))
       {
-        hst_imat = (char*)libxsmm_aligned_scratch(data_size, 0/*auto-align*/);
-        hst_test = (char*)libxsmm_aligned_scratch(data_size, 0/*auto-align*/);
-        if (NULL != hst_imat && NULL != hst_test) {
-          ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_trs_stack, hst_stack, sizeof(int) * offset_stack_size, stream),
+        imat = (char*)libxsmm_aligned_scratch(data_size, 0/*auto-align*/);
+        omat = (char*)libxsmm_aligned_scratch(data_size, 0/*auto-align*/);
+        gold = (char*)libxsmm_aligned_scratch(mn * typesize, 0/*auto-align*/);
+        if (NULL != imat && NULL != omat && NULL != gold) {
+          ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_trs_stack, stack, sizeof(int) * offset_stack_size, stream),
             "transfer debug stack", result);
-          ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_data, hst_imat, data_size, stream),
+          ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_data, imat, data_size, stream),
             "transfer debug input", result);
         }
         else result = EXIT_FAILURE;
@@ -220,7 +224,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
         config->kernel, 1/*work_dim*/, NULL, &work_size, &config->wgsize, 0, NULL, NULL),
         "launch transpose kernel", result);
 #if defined(OPENCL_LIBSMM_DEBUG)
-      ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_data, hst_test, data_size, stream),
+      ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_data, omat, data_size, stream),
         "transfer debug test", result);
 #endif
 #if defined(OPENCL_LIBSMM_DEBUG) || defined(OPENCL_LIBSMM_SYNC)
@@ -228,22 +232,22 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
 #endif
 #if defined(OPENCL_LIBSMM_DEBUG)
       if (EXIT_SUCCESS == result) {
-        const int typesize = (dbcsr_type_real_8 == datatype ? 8
-          : (dbcsr_type_real_4 == datatype ? 4 : 0/*unknown*/));
         int i, j;
         fprintf(stderr, "libsmm_acc_transpose("
           "offset=%i, size=%i, type=%s, m=%i, n=%i, max=%i, stream=%p)", offset, stack_size,
           dbcsr_type_real_8 == datatype ? "f64" : (dbcsr_type_real_4 == datatype ? "f32" : "unknown"),
           m, n, max_kernel_dim, stream);
         for (i = offset; i < offset_stack_size; ++i) {
-          const size_t index = hst_stack[i];
-          const char *const test = hst_test + index * typesize;
-          char *const gold = hst_imat + index * typesize;
+          const size_t index = stack[i];
+          const char *const orig = imat + index * typesize;
+          const char *const test = omat + index * typesize;
           assert((index * typesize) < data_size);
+          memcpy(gold, imat, mn * typesize);
           libxsmm_itrans(gold, typesize, m, n, m, n);
-          if (0 != memcmp(gold, test, m * n * typesize)) {
+          if (0 != memcmp(gold, test, mn * typesize)) {
             fprintf(stderr, " => ERROR\n");
 # if defined(_DEBUG)
+            opencl_libsmm_print_matrix(stderr, "orig = ", datatype, orig, m, n);
             opencl_libsmm_print_matrix(stderr, "gold = ", datatype, gold, n, m);
             opencl_libsmm_print_matrix(stderr, "test = ", datatype, test, n, m);
             fprintf(stderr, "\n");
@@ -251,7 +255,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
             result = EXIT_FAILURE; break;
           }
           for (j = offset; j < i; ++j) {
-            const size_t duplicate = hst_stack[j];
+            const size_t duplicate = stack[j];
             if (index == duplicate) {
               fprintf(stderr, " => ERROR\n");
               result = EXIT_FAILURE;
@@ -262,9 +266,10 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
         }
         if (EXIT_SUCCESS == result) fprintf(stderr, " => OK\n");
       }
-      libxsmm_free(hst_stack);
-      libxsmm_free(hst_imat);
-      libxsmm_free(hst_test);
+      libxsmm_free(stack);
+      libxsmm_free(imat);
+      libxsmm_free(omat);
+      libxsmm_free(gold);
 #endif
     }
   }

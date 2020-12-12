@@ -12,6 +12,13 @@
 #include "opencl_kernels.h"
 #include <assert.h>
 
+#if !defined(OPENCL_LIBSMM_DEBUG_TRANS) && defined(OPENCL_LIBSMM_DEBUG)
+# define OPENCL_LIBSMM_DEBUG_TRANS
+#endif
+#if !defined(OPENCL_LIBSMM_DEBUG_SMM) && defined(OPENCL_LIBSMM_DEBUG)
+# define OPENCL_LIBSMM_DEBUG_SMM
+#endif
+
 
 #if defined(__cplusplus)
 extern "C" {
@@ -191,7 +198,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
     assert((NULL != config && NULL != config->kernel && 0 < config->wgsize) || EXIT_SUCCESS != result);
     if (EXIT_SUCCESS == result) {
       const size_t work_size = config->wgsize * stack_size;
-#if defined(OPENCL_LIBSMM_DEBUG)
+#if defined(OPENCL_LIBSMM_DEBUG_TRANS)
       const int offset_stack_size = offset + stack_size;
       int *const stack = (int*)libxsmm_aligned_scratch(sizeof(int) * offset_stack_size, 0/*auto-align*/);
       char *imat = NULL, *omat = NULL, *gold = NULL;
@@ -223,14 +230,14 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
       ACC_OPENCL_CHECK(clEnqueueNDRangeKernel(*ACC_OPENCL_STREAM(stream),
         config->kernel, 1/*work_dim*/, NULL, &work_size, &config->wgsize, 0, NULL, NULL),
         "launch transpose kernel", result);
-#if defined(OPENCL_LIBSMM_DEBUG)
+#if defined(OPENCL_LIBSMM_DEBUG_TRANS)
       ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_data, omat, data_size, stream),
         "transfer debug test", result);
 #endif
-#if defined(OPENCL_LIBSMM_DEBUG) || defined(OPENCL_LIBSMM_SYNC)
+#if defined(OPENCL_LIBSMM_DEBUG_TRANS) || defined(OPENCL_LIBSMM_SYNC)
       ACC_OPENCL_CHECK(acc_stream_sync(stream), "sync stream", result);
 #endif
-#if defined(OPENCL_LIBSMM_DEBUG)
+#if defined(OPENCL_LIBSMM_DEBUG_TRANS)
       if (EXIT_SUCCESS == result) {
         int i, j;
         fprintf(stderr, "libsmm_acc_transpose("
@@ -413,7 +420,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
     assert((NULL != config && NULL != config->kernel) || EXIT_SUCCESS != result);
     if (EXIT_SUCCESS == result) {
       const size_t wgsize = n_max, work_size = wgsize * stack_size;
-#if defined(OPENCL_LIBSMM_DEBUG)
+#if defined(OPENCL_LIBSMM_DEBUG_SMM)
       char *ainp = NULL, *binp = NULL, *cinp = NULL, *test = NULL, *gold = NULL, *btrn = NULL;
       const libxsmm_gemm_precision precision = (dbcsr_type_real_8 == datatype
         ? LIBXSMM_GEMM_PRECISION_F64 : (dbcsr_type_real_4 == datatype ? LIBXSMM_GEMM_PRECISION_F32
@@ -464,14 +471,14 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
       ACC_OPENCL_CHECK(clEnqueueNDRangeKernel(*ACC_OPENCL_STREAM(stack_stream),
         config->kernel, 1/*work_dim*/, NULL, &work_size, &wgsize, 0, NULL, NULL),
         "launch SMM-kernel", result);
-#if defined(OPENCL_LIBSMM_DEBUG)
+#if defined(OPENCL_LIBSMM_DEBUG_SMM)
       ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_c_data, test, csize, stack_stream),
         "transfer debug test", result);
 #endif
-#if defined(OPENCL_LIBSMM_DEBUG) || defined(OPENCL_LIBSMM_SYNC)
+#if defined(OPENCL_LIBSMM_DEBUG_SMM) || defined(OPENCL_LIBSMM_SYNC)
       ACC_OPENCL_CHECK(acc_stream_sync(stack_stream), "sync stream", result);
 #endif
-#if defined(OPENCL_LIBSMM_DEBUG)
+#if defined(OPENCL_LIBSMM_DEBUG_SMM)
       if (EXIT_SUCCESS == result) {
         const char *const env_tol = getenv("OPENCL_LIBSMM_SMM_TOLERANCE");
         const double tolerance = ((NULL == env_tol || '\0' == *env_tol) ? 1E-3 : atof(env_tol));

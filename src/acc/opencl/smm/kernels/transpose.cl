@@ -28,8 +28,8 @@ kernel void FN(global const int *restrict trs_stack, int trs_offset, global T *r
       for (int n = 0; n < SN; ++n) mat[SN*m+n] = buf[SM*n+m];
     } break;
     default: if (index < SM) {
-      const int msize = max(SM / size, 1);
-      const int m0 = msize * index, m1 = m0 + msize;
+      const int msize = ((SM - 1) + size) / size;
+      const int m0 = n * msize, m1 = min(m0 + msize, SM);
       /* copy matrix elements into local buffer */
       for (int m = m0; m < m1; ++m) {
         for (int n = 0; n < SN; ++n) buf[SN*m+n] = mat[SN*m+n];

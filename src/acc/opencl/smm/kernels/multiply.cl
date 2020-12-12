@@ -33,8 +33,9 @@ kernel void FN(global const int *restrict param_stack,
   T b[SK];
 
   const int n = get_local_id(0);
-  const int msize = max(SM / SN/*get_local_size(0)*/, 1);
-  const int m0 = n * msize, m1 = m0 + msize;
+  /* assume SN == get_local_size(0) */
+  const int msize = ((SM - 1) + SN) / SN;
+  const int m0 = n * msize, m1 = min(m0 + msize, SM);
   /* split work among WG (a[m,k] does not depend on WG-index) */
   for (int m = m0; m < m1; ++m) {
     for (int k = 0; k < SK; ++k) a[SK*m+k] = awg[SM*k+m];

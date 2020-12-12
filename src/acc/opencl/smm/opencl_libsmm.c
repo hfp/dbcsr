@@ -191,7 +191,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
     assert((NULL != config && NULL != config->kernel && 0 < config->wgsize) || EXIT_SUCCESS != result);
     if (EXIT_SUCCESS == result) {
       const int offset_stack_size = offset + stack_size;
-      const size_t work_size = config->wgsize * offset_stack_size;
+      const size_t work_size = config->wgsize * stack_size;
 #if defined(OPENCL_LIBSMM_DEBUG)
       int *const stack = (int*)libxsmm_aligned_scratch(sizeof(int) * offset_stack_size, 0/*auto-align*/);
       char *imat = NULL, *omat = NULL, *gold = NULL;

@@ -16,7 +16,9 @@ DEV ?= 0
 
 CFLAGS := -fPIC \
   -Wall -Wextra -pedantic \
-  -Wno-variadic-macros -Wno-long-long \
+  -Wno-overlength-strings \
+  -Wno-variadic-macros \
+  -Wno-long-long \
   -D__OPENCL \
   $(NULL)
 

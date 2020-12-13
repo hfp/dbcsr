@@ -55,11 +55,9 @@ int libsmm_acc_init(void)
   int i;
   LIBXSMM_LOCK_ATTR_TYPE(LIBXSMM_LOCK_DEFAULT) attr;
   LIBXSMM_LOCK_ATTR_INIT(LIBXSMM_LOCK_DEFAULT, &attr);
-  assert(!(OPENCL_LIBSMM_NLOCKS_TRANS & (OPENCL_LIBSMM_NLOCKS_TRANS - 1))); /* POT */
   for (i = 0; i < OPENCL_LIBSMM_NLOCKS_TRANS; ++i) {
     LIBXSMM_LOCK_INIT(LIBXSMM_LOCK_DEFAULT, opencl_libsmm_lock_trans + i, &attr);
   }
-  assert(!(OPENCL_LIBSMM_NLOCKS_SMM & (OPENCL_LIBSMM_NLOCKS_SMM - 1))); /* POT */
   for (i = 0; i < OPENCL_LIBSMM_NLOCKS_SMM; ++i) {
     LIBXSMM_LOCK_INIT(LIBXSMM_LOCK_DEFAULT, opencl_libsmm_lock_smm + i, &attr);
   }
@@ -268,6 +266,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
       }
       else result = EXIT_FAILURE;
 #endif
+      assert(!(OPENCL_LIBSMM_NLOCKS_TRANS & (OPENCL_LIBSMM_NLOCKS_TRANS - 1))); /* POT */
       { /* OpenCL is thread-safe except for clSetKernelArg and launching such shared kernel */
         const unsigned int ilock = LIBXSMM_MOD2(hash, OPENCL_LIBSMM_NLOCKS_TRANS);
         LIBXSMM_LOCK_TYPE(LIBXSMM_LOCK_DEFAULT) *const lock = opencl_libsmm_lock_trans + ilock;
@@ -515,6 +514,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
       }
       else result = EXIT_FAILURE;
 #endif
+      assert(!(OPENCL_LIBSMM_NLOCKS_SMM & (OPENCL_LIBSMM_NLOCKS_SMM - 1))); /* POT */
       { /* OpenCL is thread-safe except for clSetKernelArg and launching such shared kernel */
         const unsigned int ilock = LIBXSMM_MOD2(hash, OPENCL_LIBSMM_NLOCKS_SMM);
         LIBXSMM_LOCK_TYPE(LIBXSMM_LOCK_DEFAULT) *const lock = opencl_libsmm_lock_smm + ilock;

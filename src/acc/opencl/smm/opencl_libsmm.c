@@ -46,22 +46,12 @@
 extern "C" {
 #endif
 
-LIBXSMM_LOCK_TYPE(LIBXSMM_LOCK_DEFAULT) opencl_libsmm_lock_trans[OPENCL_LIBSMM_NLOCKS_TRANS];
-LIBXSMM_LOCK_TYPE(LIBXSMM_LOCK_DEFAULT) opencl_libsmm_lock_smm[OPENCL_LIBSMM_NLOCKS_SMM];
+volatile LIBXSMM_ATOMIC_LOCKTYPE opencl_libsmm_lock_trans[OPENCL_LIBSMM_NLOCKS_TRANS];
+volatile LIBXSMM_ATOMIC_LOCKTYPE opencl_libsmm_lock_smm[OPENCL_LIBSMM_NLOCKS_SMM];
 
 
 int libsmm_acc_init(void)
 {
-  int i;
-  LIBXSMM_LOCK_ATTR_TYPE(LIBXSMM_LOCK_DEFAULT) attr;
-  LIBXSMM_LOCK_ATTR_INIT(LIBXSMM_LOCK_DEFAULT, &attr);
-  for (i = 0; i < OPENCL_LIBSMM_NLOCKS_TRANS; ++i) {
-    LIBXSMM_LOCK_INIT(LIBXSMM_LOCK_DEFAULT, opencl_libsmm_lock_trans + i, &attr);
-  }
-  for (i = 0; i < OPENCL_LIBSMM_NLOCKS_SMM; ++i) {
-    LIBXSMM_LOCK_INIT(LIBXSMM_LOCK_DEFAULT, opencl_libsmm_lock_smm + i, &attr);
-  }
-  LIBXSMM_LOCK_ATTR_DESTROY(LIBXSMM_LOCK_DEFAULT, &attr);
 #if !defined(__DBCSR_ACC)
   /* DBCSR may call acc_init() as well as libsmm_acc_init() since both interface are used.
    * libsmm_acc_init may privately call acc_init (as it depends on the ACC interface).
@@ -78,13 +68,6 @@ int libsmm_acc_init(void)
 
 int libsmm_acc_finalize(void)
 {
-  int i;
-  for (i = 0; i < OPENCL_LIBSMM_NLOCKS_TRANS; ++i) {
-    LIBXSMM_LOCK_DESTROY(LIBXSMM_LOCK_DEFAULT, opencl_libsmm_lock_trans + i);
-  }
-  for (i = 0; i < OPENCL_LIBSMM_NLOCKS_SMM; ++i) {
-    LIBXSMM_LOCK_DESTROY(LIBXSMM_LOCK_DEFAULT, opencl_libsmm_lock_smm + i);
-  }
   /* acc_finalize() is not called since it can be used independently  */
   return EXIT_SUCCESS;
 }
@@ -269,8 +252,8 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
       assert(!(OPENCL_LIBSMM_NLOCKS_TRANS & (OPENCL_LIBSMM_NLOCKS_TRANS - 1))); /* POT */
       { /* OpenCL is thread-safe except for clSetKernelArg and launching such shared kernel */
         const unsigned int ilock = LIBXSMM_MOD2(hash, OPENCL_LIBSMM_NLOCKS_TRANS);
-        LIBXSMM_LOCK_TYPE(LIBXSMM_LOCK_DEFAULT) *const lock = opencl_libsmm_lock_trans + ilock;
-        LIBXSMM_LOCK_ACQUIRE(LIBXSMM_LOCK_DEFAULT, lock);
+        volatile LIBXSMM_ATOMIC_LOCKTYPE *const lock = opencl_libsmm_lock_trans + ilock;
+        LIBXSMM_ATOMIC_ACQUIRE(lock, LIBXSMM_SYNC_NPAUSE, LIBXSMM_ATOMIC_RELAXED);
         ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 0, sizeof(cl_mem), ACC_OPENCL_MEM(dev_trs_stack)),
           "set batch-list argument of transpose kernel", result);
         ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 1, sizeof(int), &offset),
@@ -280,7 +263,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
         ACC_OPENCL_CHECK(clEnqueueNDRangeKernel(*ACC_OPENCL_STREAM(stream),
           config->kernel, 1/*work_dim*/, NULL, &work_size, &config->wgsize, 0, NULL, NULL),
           "launch transpose kernel", result);
-        LIBXSMM_LOCK_RELEASE(LIBXSMM_LOCK_DEFAULT, lock);
+        LIBXSMM_ATOMIC_RELEASE(lock, LIBXSMM_ATOMIC_RELAXED);
       }
 #if defined(OPENCL_LIBSMM_DEBUG_TRANS)
       ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_data, omat, data_size, stream),
@@ -517,8 +500,8 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
       assert(!(OPENCL_LIBSMM_NLOCKS_SMM & (OPENCL_LIBSMM_NLOCKS_SMM - 1))); /* POT */
       { /* OpenCL is thread-safe except for clSetKernelArg and launching such shared kernel */
         const unsigned int ilock = LIBXSMM_MOD2(hash, OPENCL_LIBSMM_NLOCKS_SMM);
-        LIBXSMM_LOCK_TYPE(LIBXSMM_LOCK_DEFAULT) *const lock = opencl_libsmm_lock_smm + ilock;
-        LIBXSMM_LOCK_ACQUIRE(LIBXSMM_LOCK_DEFAULT, lock);
+        volatile LIBXSMM_ATOMIC_LOCKTYPE *const lock = opencl_libsmm_lock_smm + ilock;
+        LIBXSMM_ATOMIC_ACQUIRE(lock, LIBXSMM_SYNC_NPAUSE, LIBXSMM_ATOMIC_RELAXED);
         ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 0, sizeof(cl_mem), ACC_OPENCL_MEM(dev_param_stack)),
           "set batch-list argument of SMM-kernel", result);
         ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 1, sizeof(cl_mem), ACC_OPENCL_MEM(dev_a_data)),
@@ -530,7 +513,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
         ACC_OPENCL_CHECK(clEnqueueNDRangeKernel(*ACC_OPENCL_STREAM(stack_stream),
           config->kernel, 1/*work_dim*/, NULL, &work_size, &wgsize, 0, NULL, NULL),
           "launch SMM-kernel", result);
-        LIBXSMM_LOCK_RELEASE(LIBXSMM_LOCK_DEFAULT, lock);
+        LIBXSMM_ATOMIC_RELEASE(lock, LIBXSMM_ATOMIC_RELAXED);
       }
 #if defined(OPENCL_LIBSMM_DEBUG_SMM)
       ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_c_data, test, csize, stack_stream),

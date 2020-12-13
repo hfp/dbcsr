@@ -12,6 +12,21 @@
 #include "opencl_kernels.h"
 #include <assert.h>
 
+#if LIBXSMM_VERSION3(1, 16, 1) <= LIBXSMM_VERSION3(LIBXSMM_VERSION_MAJOR, \
+    LIBXSMM_VERSION_MINOR, LIBXSMM_VERSION_UPDATE) && 808 <= LIBXSMM_VERSION_PATCH
+# define OPENCL_LIBSMM_REGISTER(KEY, KEY_SIZE, VALUE_SIZE, VALUE_INIT, KEY_HASH) \
+    libxsmm_xregister(KEY, KEY_SIZE, VALUE_SIZE, VALUE_INIT, KEY_HASH)
+# define OPENCL_LIBSMM_DISPATCH(KEY, KEY_SIZE, KEY_HASH) \
+    libxsmm_xdispatch(KEY, KEY_SIZE, KEY_HASH)
+#else
+# define OPENCL_LIBSMM_REGISTER(KEY, KEY_SIZE, VALUE_SIZE, VALUE_INIT, KEY_HASH) \
+    libxsmm_xregister(KEY, KEY_SIZE, VALUE_SIZE, VALUE_INIT); \
+      *(KEY_HASH) = libxsmm_hash(KEY, KEY_SIZE, 25071975/*seed*/)
+# define OPENCL_LIBSMM_DISPATCH(KEY, KEY_SIZE, KEY_HASH) \
+    libxsmm_xdispatch(KEY, KEY_SIZE); \
+      *(KEY_HASH) = libxsmm_hash(KEY, KEY_SIZE, 25071975/*seed*/)
+#endif
+
 #if !defined(OPENCL_LIBSMM_DEBUG_TRANS) && defined(OPENCL_LIBSMM_DEBUG)
 # define OPENCL_LIBSMM_DEBUG_TRANS
 #endif
@@ -110,7 +125,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
     config_t *config;
     /* homogeneous key-data (no need for prior memset) */
     key.m = m; key.n = n; /* initialize key */
-    config = (config_t*)libxsmm_xdispatch(&key, sizeof(key), &hash);
+    config = (config_t*)OPENCL_LIBSMM_DISPATCH(&key, sizeof(key), &hash);
     if (NULL == config) {
       char build_options[ACC_OPENCL_BUFFER_MAXSIZE], fname[32];
       const char *const env_options = getenv("OPENCL_LIBSMM_TRANS_BUILDOPTS");
@@ -188,7 +203,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
               new_config.wgsize = (size_t)((m <= int_wgsize || 0 == (m % int_wgsize)) ? int_wgsize : m);
             }
             if (max_wgsize < (int)new_config.wgsize) new_config.wgsize = 1;
-            config = (config_t*)libxsmm_xregister(&key, sizeof(key),
+            config = (config_t*)OPENCL_LIBSMM_REGISTER(&key, sizeof(key),
               sizeof(new_config), &new_config, &hash);
           }
         }
@@ -322,7 +337,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
     config_t *config;
     /* homogeneous key-data (no need for prior memset) */
     key.m = m_max; key.n = n_max; key.k = k_max; /* initialize key */
-    config = (config_t*)libxsmm_xdispatch(&key, sizeof(key), &hash);
+    config = (config_t*)OPENCL_LIBSMM_DISPATCH(&key, sizeof(key), &hash);
     if (NULL == config) {
       char build_options[ACC_OPENCL_BUFFER_MAXSIZE], fname[48];
       int nchar = ACC_OPENCL_SNPRINTF(fname, sizeof(fname), "xmm%ix%ix%i", m_max, n_max, k_max);
@@ -410,7 +425,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
           if (EXIT_SUCCESS == result) {
             assert(0 < max_wgsize);
             if (n_max <= max_wgsize) {
-              config = (config_t*)libxsmm_xregister(&key, sizeof(key),
+              config = (config_t*)OPENCL_LIBSMM_REGISTER(&key, sizeof(key),
                 sizeof(new_config), &new_config, &hash);
             }
             else result = EXIT_FAILURE;

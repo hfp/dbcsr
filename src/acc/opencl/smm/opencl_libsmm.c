@@ -131,11 +131,11 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
       cl_kernel kernel;
       size_t wgsize;
     } config_t;
-    struct { int m, n; } key;
+    struct { int m, n; libsmm_acc_data_t type; } key;
     unsigned int hash;
     config_t *config;
-    /* homogeneous key-data (no need for prior memset) */
-    key.m = m; key.n = n; /* initialize key */
+    memset(&key, 0, sizeof(key)); /* heterogeneous key-data */
+    key.m = m; key.n = n; key.type = datatype; /* initialize key */
     config = (config_t*)OPENCL_LIBSMM_DISPATCH(&key, sizeof(key), &hash);
     if (NULL == config) {
       char build_options[ACC_OPENCL_BUFFER_MAXSIZE], fname[32];
@@ -349,11 +349,11 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
     typedef struct config_t {
       cl_kernel kernel;
     } config_t;
-    struct { int m, n, k; } key;
+    struct { int m, n, k; libsmm_acc_data_t type; } key;
     unsigned int hash;
     config_t *config;
-    /* homogeneous key-data (no need for prior memset) */
-    key.m = m_max; key.n = n_max; key.k = k_max; /* initialize key */
+    memset(&key, 0, sizeof(key)); /* heterogeneous key-data */
+    key.m = m_max; key.n = n_max; key.k = k_max; key.type = datatype; /* initialize key */
     config = (config_t*)OPENCL_LIBSMM_DISPATCH(&key, sizeof(key), &hash);
     if (NULL == config) {
       char build_options[ACC_OPENCL_BUFFER_MAXSIZE], fname[48];

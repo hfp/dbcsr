@@ -37,9 +37,6 @@
 #endif
 #include <stdio.h>
 
-#if !defined(ACC_OPENCL_THREADLOCAL_CONTEXT)
-# define ACC_OPENCL_THREADLOCAL_CONTEXT
-#endif
 #if !defined(ACC_OPENCL_CACHELINE_NBYTES)
 # define ACC_OPENCL_CACHELINE_NBYTES 64
 #endif
@@ -85,6 +82,9 @@
 # define ACC_OPENCL_EVENT(A) ((cl_event*)(A))
 #endif
 
+#if !defined(ACC_OPENCL_THREADLOCAL_CONTEXT) && 1
+# define ACC_OPENCL_THREADLOCAL_CONTEXT
+#endif
 #if !defined(ACC_OPENCL_STREAM_PRIORITIES) && 1
 # define ACC_OPENCL_STREAM_PRIORITIES
 #endif

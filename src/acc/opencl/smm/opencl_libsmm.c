@@ -46,8 +46,8 @@
 extern "C" {
 #endif
 
-volatile LIBXSMM_ATOMIC_LOCKTYPE opencl_libsmm_lock_trans[OPENCL_LIBSMM_NLOCKS_TRANS];
-volatile LIBXSMM_ATOMIC_LOCKTYPE opencl_libsmm_lock_smm[OPENCL_LIBSMM_NLOCKS_SMM];
+volatile int opencl_libsmm_lock_trans[OPENCL_LIBSMM_NLOCKS_TRANS];
+volatile int opencl_libsmm_lock_smm[OPENCL_LIBSMM_NLOCKS_SMM];
 
 
 int libsmm_acc_init(void)
@@ -252,7 +252,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
       assert(!(OPENCL_LIBSMM_NLOCKS_TRANS & (OPENCL_LIBSMM_NLOCKS_TRANS - 1))); /* POT */
       { /* OpenCL is thread-safe except for clSetKernelArg and launching such shared kernel */
         const unsigned int ilock = LIBXSMM_MOD2(hash, OPENCL_LIBSMM_NLOCKS_TRANS);
-        volatile LIBXSMM_ATOMIC_LOCKTYPE *const lock = opencl_libsmm_lock_trans + ilock;
+        volatile int *const lock = opencl_libsmm_lock_trans + ilock;
         LIBXSMM_ATOMIC_ACQUIRE(lock, LIBXSMM_SYNC_NPAUSE, LIBXSMM_ATOMIC_RELAXED);
         ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 0, sizeof(cl_mem), ACC_OPENCL_MEM(dev_trs_stack)),
           "set batch-list argument of transpose kernel", result);
@@ -500,7 +500,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
       assert(!(OPENCL_LIBSMM_NLOCKS_SMM & (OPENCL_LIBSMM_NLOCKS_SMM - 1))); /* POT */
       { /* OpenCL is thread-safe except for clSetKernelArg and launching such shared kernel */
         const unsigned int ilock = LIBXSMM_MOD2(hash, OPENCL_LIBSMM_NLOCKS_SMM);
-        volatile LIBXSMM_ATOMIC_LOCKTYPE *const lock = opencl_libsmm_lock_smm + ilock;
+        volatile int *const lock = opencl_libsmm_lock_smm + ilock;
         LIBXSMM_ATOMIC_ACQUIRE(lock, LIBXSMM_SYNC_NPAUSE, LIBXSMM_ATOMIC_RELAXED);
         ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 0, sizeof(cl_mem), ACC_OPENCL_MEM(dev_param_stack)),
           "set batch-list argument of SMM-kernel", result);

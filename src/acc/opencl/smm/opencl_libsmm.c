@@ -15,17 +15,15 @@
 
 #if LIBXSMM_VERSION3(1, 16, 1) <= LIBXSMM_VERSION3(LIBXSMM_VERSION_MAJOR, \
     LIBXSMM_VERSION_MINOR, LIBXSMM_VERSION_UPDATE) && 808 <= LIBXSMM_VERSION_PATCH
-# define OPENCL_LIBSMM_REGISTER(KEY, KEY_SIZE, VALUE_SIZE, VALUE_INIT, KEY_HASH) \
-    libxsmm_xregister(KEY, KEY_SIZE, VALUE_SIZE, VALUE_INIT, KEY_HASH)
-# define OPENCL_LIBSMM_DISPATCH(KEY, KEY_SIZE, KEY_HASH) \
-    libxsmm_xdispatch(KEY, KEY_SIZE, KEY_HASH)
+# define OPENCL_LIBSMM_REGISTER(KEY, KEY_SIZE, VALUE_SIZE, VALUE_INIT) \
+    libxsmm_xregister(KEY, KEY_SIZE, VALUE_SIZE, VALUE_INIT, NULL/*key_hash*/)
+# define OPENCL_LIBSMM_DISPATCH(KEY, KEY_SIZE) \
+    libxsmm_xdispatch(KEY, KEY_SIZE, NULL/*key_hash*/)
 #else
-# define OPENCL_LIBSMM_REGISTER(KEY, KEY_SIZE, VALUE_SIZE, VALUE_INIT, KEY_HASH) \
-    libxsmm_xregister(KEY, KEY_SIZE, VALUE_SIZE, VALUE_INIT); \
-      *(KEY_HASH) = libxsmm_hash(KEY, KEY_SIZE, 25071975/*seed*/)
-# define OPENCL_LIBSMM_DISPATCH(KEY, KEY_SIZE, KEY_HASH) \
-    libxsmm_xdispatch(KEY, KEY_SIZE); \
-      *(KEY_HASH) = libxsmm_hash(KEY, KEY_SIZE, 25071975/*seed*/)
+# define OPENCL_LIBSMM_REGISTER(KEY, KEY_SIZE, VALUE_SIZE, VALUE_INIT) \
+    libxsmm_xregister(KEY, KEY_SIZE, VALUE_SIZE, VALUE_INIT)
+# define OPENCL_LIBSMM_DISPATCH(KEY, KEY_SIZE) \
+    libxsmm_xdispatch(KEY, KEY_SIZE)
 #endif
 
 #if !defined(OPENCL_LIBSMM_DEBUG_TRANS) && defined(OPENCL_LIBSMM_DEBUG)
@@ -132,11 +130,10 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
       size_t wgsize;
     } config_t;
     struct { int m, n; libsmm_acc_data_t type; } key;
-    unsigned int hash;
     config_t *config;
     memset(&key, 0, sizeof(key)); /* heterogeneous key-data */
     key.m = m; key.n = n; key.type = datatype; /* initialize key */
-    config = (config_t*)OPENCL_LIBSMM_DISPATCH(&key, sizeof(key), &hash);
+    config = (config_t*)OPENCL_LIBSMM_DISPATCH(&key, sizeof(key));
     if (NULL == config) {
       char build_options[ACC_OPENCL_BUFFER_MAXSIZE], fname[32];
       const char *const env_options = getenv("OPENCL_LIBSMM_TRANS_BUILDOPTS");
@@ -215,7 +212,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
             }
             if (max_wgsize < (int)new_config.wgsize) new_config.wgsize = 1;
             config = (config_t*)OPENCL_LIBSMM_REGISTER(&key, sizeof(key),
-              sizeof(new_config), &new_config, &hash);
+              sizeof(new_config), &new_config);
           }
         }
       }
@@ -251,6 +248,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
 #endif
       assert(!(OPENCL_LIBSMM_NLOCKS_TRANS & (OPENCL_LIBSMM_NLOCKS_TRANS - 1))); /* POT */
       { /* OpenCL is thread-safe except for clSetKernelArg and launching such shared kernel */
+        const unsigned int hash = libxsmm_hash(&config->kernel, sizeof(cl_kernel), 25071975/*seed*/);
         volatile int *const lock = opencl_libsmm_lock_trans + LIBXSMM_MOD2(hash, OPENCL_LIBSMM_NLOCKS_TRANS);
         LIBXSMM_ATOMIC_ACQUIRE(lock, LIBXSMM_SYNC_NPAUSE, LIBXSMM_ATOMIC_RELAXED);
         ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 0, sizeof(cl_mem), ACC_OPENCL_MEM(dev_trs_stack)),
@@ -350,11 +348,10 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
       cl_kernel kernel;
     } config_t;
     struct { int m, n, k; libsmm_acc_data_t type; } key;
-    unsigned int hash;
     config_t *config;
     memset(&key, 0, sizeof(key)); /* heterogeneous key-data */
     key.m = m_max; key.n = n_max; key.k = k_max; key.type = datatype; /* initialize key */
-    config = (config_t*)OPENCL_LIBSMM_DISPATCH(&key, sizeof(key), &hash);
+    config = (config_t*)OPENCL_LIBSMM_DISPATCH(&key, sizeof(key));
     if (NULL == config) {
       char build_options[ACC_OPENCL_BUFFER_MAXSIZE], fname[48];
       int nchar = ACC_OPENCL_SNPRINTF(fname, sizeof(fname), "xmm%ix%ix%i", m_max, n_max, k_max);
@@ -443,7 +440,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
             assert(0 < max_wgsize);
             if (n_max <= max_wgsize) {
               config = (config_t*)OPENCL_LIBSMM_REGISTER(&key, sizeof(key),
-                sizeof(new_config), &new_config, &hash);
+                sizeof(new_config), &new_config);
             }
             else result = EXIT_FAILURE;
           }
@@ -498,6 +495,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
 #endif
       assert(!(OPENCL_LIBSMM_NLOCKS_SMM & (OPENCL_LIBSMM_NLOCKS_SMM - 1))); /* POT */
       { /* OpenCL is thread-safe except for clSetKernelArg and launching such shared kernel */
+        const unsigned int hash = libxsmm_hash(&config->kernel, sizeof(cl_kernel), 25071975/*seed*/);
         volatile int *const lock = opencl_libsmm_lock_smm + LIBXSMM_MOD2(hash, OPENCL_LIBSMM_NLOCKS_SMM);
         LIBXSMM_ATOMIC_ACQUIRE(lock, LIBXSMM_SYNC_NPAUSE, LIBXSMM_ATOMIC_RELAXED);
         ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 0, sizeof(cl_mem), ACC_OPENCL_MEM(dev_param_stack)),

@@ -135,6 +135,12 @@ if (USE_OPENMP)
   find_package(OpenMP REQUIRED)
 endif ()
 
+# =================================== LIBXSMM rely on pkg-config in order to
+# link against libxsmm
+if ((USE_SMM MATCHES "libxsmm") OR USE_OPENCL)
+  pkg_check_modules(LIBXSMM IMPORTED_TARGET GLOBAL libxsmmf)
+endif ()
+
 # =================================== BLAS & LAPACK, PkgConfig
 find_package(PkgConfig)
 find_package(LAPACK REQUIRED) # needed for some of the integrated test routines,
@@ -190,9 +196,14 @@ endif ()
 if (USE_SMM MATCHES "blas")
   message("-- Using BLAS for Small Matrix Multiplication")
 elseif (USE_SMM MATCHES "libxsmm")
-  # rely on pkg-config in order to link against libxsmm
-  pkg_check_modules(LIBXSMM REQUIRED IMPORTED_TARGET GLOBAL libxsmmf)
-  message("-- Using libxsmm for Small Matrix Multiplication")
+  if (LIBXSMM_FOUND)
+    message("-- Using libxsmm for Small Matrix Multiplication")
+  else ()
+    message(
+      FATAL_ERROR
+        "LIBXSMM is not found but requested (USE_SMM). "
+        "Please install libxsmm and set PKG_CONFIG_PATH=/path/to/libxsmm/lib")
+  endif ()
 else ()
   message(FATAL_ERROR "Unknown SMM library specified")
 endif ()
@@ -200,7 +211,10 @@ endif ()
 # =================================== GPU backends
 if (USE_OPENCL)
   if (NOT LIBXSMM_FOUND)
-    message(FATAL_ERROR "LIBXSMM is not found but required for ACC/OpenCL.")
+    message(
+      FATAL_ERROR
+        "LIBXSMM is not found but it is required for the ACC/OpenCL backend. "
+        "Please install libxsmm and set PKG_CONFIG_PATH=/path/to/libxsmm/lib")
   endif ()
 
   find_package(OpenCL REQUIRED)

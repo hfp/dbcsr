@@ -208,7 +208,7 @@ endif ()
 
 if (USE_OPENCL)
   target_compile_definitions(dbcsr PRIVATE __DBCSR_ACC)
-  target_link_libraries(dbcsr PUBLIC ${OpenCL_LIBRARY})
+  target_link_libraries(dbcsr PRIVATE ${OpenCL_LIBRARY})
 
   # OpenCL backend
   set(DBCSR_ACC_SRCS ${DBCSR_OPENCL_SRCS})

@@ -230,8 +230,8 @@ int acc_init(void)
               }
             }
 #endif
-            result = acc_opencl_device_vendor(active_device, "nvidia");
-            if (EXIT_SUCCESS == result) acc_opencl_synchronous_memops = 1;
+            acc_opencl_synchronous_memops = (EXIT_SUCCESS == acc_opencl_device_vendor(
+              active_device, "nvidia"));
           }
         }
       }

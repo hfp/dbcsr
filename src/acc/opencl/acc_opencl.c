@@ -37,9 +37,7 @@
 extern "C" {
 #endif
 
-#if defined(ACC_OPENCL_MEM_ASYNC)
-int acc_opencl_synchronous_memops;
-#endif
+cl_bool acc_opencl_synchronous_memops;
 int acc_opencl_ndevices;
 cl_device_id acc_opencl_devices[ACC_OPENCL_DEVICES_MAXCOUNT];
 cl_context acc_opencl_context;
@@ -237,7 +235,9 @@ int acc_init(void)
 #endif
 #if defined(ACC_OPENCL_MEM_ASYNC)
             acc_opencl_synchronous_memops = (EXIT_SUCCESS == acc_opencl_device_vendor(
-              active_device, "nvidia"));
+              active_device, "nvidia") ? CL_TRUE : CL_FALSE);
+#else
+            acc_opencl_synchronous_memops = CL_TRUE;
 #endif
           }
         }

@@ -37,7 +37,7 @@
 extern "C" {
 #endif
 
-int acc_opencl_ndevices;
+int acc_opencl_synchronous_memops, acc_opencl_ndevices;
 cl_device_id acc_opencl_devices[ACC_OPENCL_DEVICES_MAXCOUNT];
 cl_context acc_opencl_context;
 
@@ -214,9 +214,10 @@ int acc_init(void)
           }
         }
         if (EXIT_SUCCESS == result) {
-          result = acc_set_active_device(device_id);
-#if defined(_OPENMP) && defined(ACC_OPENCL_THREADLOCAL_CONTEXT)
+          cl_device_id active_device;
+          result = acc_opencl_set_active_device(device_id, &active_device);
           if (EXIT_SUCCESS == result) {
+#if defined(_OPENMP) && defined(ACC_OPENCL_THREADLOCAL_CONTEXT)
             const cl_context context = acc_opencl_context;
 #           pragma omp parallel
             if (context != acc_opencl_context) {
@@ -228,8 +229,10 @@ int acc_init(void)
                 acc_opencl_context = NULL;
               }
             }
-          }
 #endif
+            result = acc_opencl_device_vendor(active_device, "nvidia");
+            if (EXIT_SUCCESS == result) acc_opencl_synchronous_memops = 1;
+          }
         }
       }
       else { /* mark as initialized */
@@ -413,7 +416,7 @@ int acc_opencl_device_ext(cl_device_id device, const char *const extnames[], int
 }
 
 
-int acc_set_active_device(int device_id)
+int acc_opencl_set_active_device(int device_id, cl_device_id* device)
 {
   cl_int result = (((0 <= device_id && device_id < acc_opencl_ndevices) ||
     /* allow successful completion if no device was found */
@@ -422,7 +425,7 @@ int acc_set_active_device(int device_id)
     const cl_device_id active_id = acc_opencl_devices[device_id];
     cl_device_id current_id = NULL;
     if (EXIT_SUCCESS == result) result = acc_opencl_device(NULL/*stream*/, &current_id);
-    if (active_id != current_id) {
+    if (EXIT_SUCCESS == result && active_id != current_id) {
       if (NULL != acc_opencl_context) {
         ACC_OPENCL_CHECK(clReleaseContext(acc_opencl_context),
           "release context", result);
@@ -450,8 +453,17 @@ int acc_set_active_device(int device_id)
         ACC_OPENCL_CHECK(result, "create context", result);
       }
     }
+    if (NULL != device) {
+      *device = (EXIT_SUCCESS == result ? active_id : NULL);
+    }
   }
   ACC_OPENCL_RETURN(result);
+}
+
+
+int acc_set_active_device(int device_id)
+{
+  ACC_OPENCL_RETURN(acc_opencl_set_active_device(device_id, NULL/*device*/));
 }
 
 

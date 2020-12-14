@@ -196,6 +196,8 @@
 extern "C" {
 #endif
 
+/** Runtime setting (OpenCL vendor); async memops may crash for some OpenCL implementations */
+extern int acc_opencl_synchronous_memops;
 /* non-zero if library is initialized, zero devices is signaled by nagative value */
 extern int acc_opencl_ndevices;
 /* allow a context per each OpenMP thread */
@@ -214,6 +216,8 @@ int acc_opencl_device_level(cl_device_id device,
 /** Check if given device supports the extensions. */
 int acc_opencl_device_ext(cl_device_id device,
   const char *const extnames[], int num_exts);
+/** Internal flavor of acc_set_active_device; yields cl_device_id. */
+int acc_opencl_set_active_device(int device_id, cl_device_id* device);
 /** Return memory information. */
 int acc_opencl_devmeminfo(cl_device_id device,
   size_t* mem_free, size_t* mem_total);

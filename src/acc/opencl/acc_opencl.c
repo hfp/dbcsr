@@ -37,10 +37,12 @@
 extern "C" {
 #endif
 
-int acc_opencl_synchronous_memops, acc_opencl_ndevices;
+#if defined(ACC_OPENCL_MEM_ASYNC)
+int acc_opencl_synchronous_memops;
+#endif
+int acc_opencl_ndevices;
 cl_device_id acc_opencl_devices[ACC_OPENCL_DEVICES_MAXCOUNT];
 cl_context acc_opencl_context;
-
 
 #if !defined(NDEBUG)
 void acc_opencl_notify(const char* /*errinfo*/, const void* /*private_info*/, size_t /*cb*/, void* /*user_data*/);
@@ -216,7 +218,10 @@ int acc_init(void)
         if (EXIT_SUCCESS == result) {
           cl_device_id active_device;
           result = acc_opencl_set_active_device(device_id, &active_device);
-          if (EXIT_SUCCESS == result) {
+#if (defined(_OPENMP) && defined(ACC_OPENCL_THREADLOCAL_CONTEXT)) || defined(ACC_OPENCL_MEM_ASYNC)
+          if (EXIT_SUCCESS == result)
+#endif
+          {
 #if defined(_OPENMP) && defined(ACC_OPENCL_THREADLOCAL_CONTEXT)
             const cl_context context = acc_opencl_context;
 #           pragma omp parallel
@@ -230,8 +235,10 @@ int acc_init(void)
               }
             }
 #endif
+#if defined(ACC_OPENCL_MEM_ASYNC)
             acc_opencl_synchronous_memops = (EXIT_SUCCESS == acc_opencl_device_vendor(
               active_device, "nvidia"));
+#endif
           }
         }
       }

@@ -196,14 +196,16 @@
 extern "C" {
 #endif
 
-/** Runtime setting (OpenCL vendor); async memops may crash for some OpenCL implementations */
-extern int acc_opencl_synchronous_memops;
 /* non-zero if library is initialized, zero devices is signaled by nagative value */
 extern int acc_opencl_ndevices;
 /* allow a context per each OpenMP thread */
 extern cl_context acc_opencl_context;
 #if defined(_OPENMP) && defined(ACC_OPENCL_THREADLOCAL_CONTEXT)
 # pragma omp threadprivate(acc_opencl_context)
+#endif
+#if defined(ACC_OPENCL_MEM_ASYNC)
+/** Runtime setting (OpenCL vendor); async memops may crash for some OpenCL implementations */
+extern int acc_opencl_synchronous_memops;
 #endif
 
 /** Get active device (can be thread/queue-specific). */

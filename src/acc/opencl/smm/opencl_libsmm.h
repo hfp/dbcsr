@@ -30,7 +30,7 @@
 #if !defined(OPENCL_LIBSMM_SYNC) && 0
 # define OPENCL_LIBSMM_SYNC
 #endif
-#if !defined(OPENCL_LIBSMM_F32) && !defined(__DBCSR_ACC)
+#if !defined(OPENCL_LIBSMM_F32) /*&& !defined(__DBCSR_ACC)*/
 # define OPENCL_LIBSMM_F32
 #endif
 #if !defined(OPENCL_LIBSMM_F64) && 1

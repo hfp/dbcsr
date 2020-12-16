@@ -52,8 +52,6 @@ void acc_opencl_notify(const char* errinfo, const void* private_info, size_t cb,
 #endif
 
 
-/** Returns the pointer to the 1st match of "b" in "a", or NULL. */
-const char* acc_opencl_stristr(const char* /*a*/, const char* /*b*/);
 const char* acc_opencl_stristr(const char* a, const char* b)
 {
   const char* result = NULL;
@@ -71,7 +69,10 @@ const char* acc_opencl_stristr(const char* a, const char* b)
             break;
           }
         }
-        if ('\0' == *c) break;
+        if ('\0' != *c) {
+          result = NULL;
+        }
+        else break;
       }
     } while ('\0' != *a);
   }
@@ -233,8 +234,8 @@ int acc_init(void)
 #endif
 #if defined(ACC_OPENCL_MEM_ASYNC)
           if (EXIT_SUCCESS == result) {
-            acc_opencl_options.async_memops = (EXIT_SUCCESS != acc_opencl_device_vendor(
-              active_device, "nvidia"));
+            const int confirmation = acc_opencl_device_vendor(active_device, "nvidia");
+            acc_opencl_options.async_memops = (EXIT_SUCCESS != confirmation);
           }
           else
 #endif

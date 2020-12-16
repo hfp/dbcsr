@@ -218,6 +218,8 @@ extern cl_context acc_opencl_context;
 # pragma omp threadprivate(acc_opencl_context)
 #endif
 
+/** Returns the pointer to the 1st match of "b" in "a", or NULL. */
+const char* acc_opencl_stristr(const char* /*a*/, const char* /*b*/);
 /** Get active device (can be thread/queue-specific). */
 int acc_opencl_device(void* stream, cl_device_id* device);
 /** Confirm the vendor of the given device. */

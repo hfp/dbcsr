@@ -83,14 +83,14 @@ int acc_host_mem_allocate(void** host_mem, size_t nbytes, void* stream)
       0/*offset*/, size, 0, NULL, NULL, &result);
     if (0 != address) {
       const uintptr_t aligned = ACC_OPENCL_UP2(address + size_meminfo, alignment);
-      const size_t offset = aligned - address;
       acc_opencl_meminfo_t* meminfo;
-      assert(size_meminfo <= offset);
+      assert(address + size_meminfo <= aligned);
       assert(CL_SUCCESS == result);
 #if defined(ACC_OPENCL_MEM_MAPMULTI)
+      assert(0 < aligned - address - size_meminfo);
       meminfo = (acc_opencl_meminfo_t*)clEnqueueMapBuffer(queue, buffer,
         CL_TRUE/*blocking*/, CL_MAP_READ | CL_MAP_WRITE,
-        offset - size_meminfo, size_meminfo, 0, NULL, NULL, &result);
+        aligned - address - size_meminfo, size_meminfo, 0, NULL, NULL, &result);
 #else
       meminfo = (acc_opencl_meminfo_t*)(aligned - size_meminfo);
 #endif

@@ -103,6 +103,11 @@
 #if !defined(ACC_OPENCL_VERBOSE) && 0
 # define ACC_OPENCL_VERBOSE
 #endif
+#if !defined(ACC_OPENCL_SVM) && 1
+# if defined(CL_VERSION_2_0)
+#   define ACC_OPENCL_SVM
+# endif
+#endif
 
 #if defined(CL_VERSION_2_0)
 # define ACC_OPENCL_COMMAND_QUEUE_PROPERTIES cl_queue_properties
@@ -196,8 +201,15 @@
 extern "C" {
 #endif
 
-/** Runtime setting (OpenCL vendor); async memops may crash for some OpenCL implementations */
-extern cl_bool acc_opencl_synchronous_memops;
+/** Settings depending on OpenCL vendor or standard level (discovered/setup in acc_init). */
+typedef struct acc_opencl_options_t {
+  /** Asynchronous memory operations may crash for some OpenCL implementations. */
+  cl_bool async_memops;
+  cl_bool svm_interop;
+} acc_opencl_options_t;
+
+extern acc_opencl_options_t acc_opencl_options;
+
 /* non-zero if library is initialized, zero devices is signaled by nagative value */
 extern int acc_opencl_ndevices;
 /* allow a context per each OpenMP thread */

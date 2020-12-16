@@ -69,33 +69,35 @@ int acc_host_mem_allocate(void** host_mem, size_t nbytes, void* stream)
 {
   cl_int result;
   const int alignment = acc_opencl_memalignment(nbytes);
-  const size_t size = nbytes + alignment + sizeof(acc_opencl_meminfo_t) - 1;
-  const cl_mem buffer = clCreateBuffer(acc_opencl_context, CL_MEM_ALLOC_HOST_PTR, size,
-    NULL/*host_ptr*/, &result);
+  const size_t size_meminfo = sizeof(acc_opencl_meminfo_t);
+  const size_t size = nbytes + alignment + size_meminfo - 1;
+  const cl_mem buffer = (acc_opencl_options.svm_interop
+    ? clCreateBuffer(acc_opencl_context, CL_MEM_USE_HOST_PTR, size, clSVMAlloc(
+        acc_opencl_context, CL_MEM_READ_WRITE, size, sizeof(void*)/*minimal alignment*/), &result)
+    : clCreateBuffer(acc_opencl_context, CL_MEM_ALLOC_HOST_PTR, size, NULL/*host_ptr*/, &result));
   assert(NULL != host_mem && NULL != stream);
   if (NULL != buffer) {
     const cl_command_queue queue = *ACC_OPENCL_STREAM(stream);
     const uintptr_t address = (uintptr_t)clEnqueueMapBuffer(queue, buffer,
-      acc_opencl_synchronous_memops, CL_MAP_READ | CL_MAP_WRITE,
+      !acc_opencl_options.async_memops, CL_MAP_READ | CL_MAP_WRITE,
       0/*offset*/, size, 0, NULL, NULL, &result);
     if (0 != address) {
-      const size_t offset = ACC_OPENCL_UP2(address + sizeof(acc_opencl_meminfo_t), alignment) - address;
+      const uintptr_t aligned = ACC_OPENCL_UP2(address + size_meminfo, alignment);
+      const size_t offset = aligned - address;
       acc_opencl_meminfo_t* meminfo;
-      assert(sizeof(acc_opencl_meminfo_t) <= offset);
+      assert(size_meminfo <= offset);
       assert(CL_SUCCESS == result);
 #if defined(ACC_OPENCL_MEM_MAPMULTI)
       meminfo = (acc_opencl_meminfo_t*)clEnqueueMapBuffer(queue, buffer,
         CL_TRUE/*blocking*/, CL_MAP_READ | CL_MAP_WRITE,
-        offset - sizeof(acc_opencl_meminfo_t),
-        sizeof(acc_opencl_meminfo_t),
-        0, NULL, NULL, &result);
+        offset - size_meminfo, size_meminfo, 0, NULL, NULL, &result);
 #else
-      meminfo = (acc_opencl_meminfo_t*)(address + offset - sizeof(acc_opencl_meminfo_t));
+      meminfo = (acc_opencl_meminfo_t*)(aligned - size_meminfo);
 #endif
       if (NULL != meminfo) {
         meminfo->buffer = buffer;
         meminfo->mapped = (void*)address;
-        *host_mem = (void*)(address + offset);
+        *host_mem = (void*)aligned;
       }
       else {
         ACC_OPENCL_ERROR("map buffer info", result);
@@ -134,6 +136,9 @@ int acc_host_mem_deallocate(void* host_mem, void* stream)
         0, NULL, NULL), "unmap host memory", result);
       ACC_OPENCL_CHECK(clReleaseMemObject(info.buffer),
         "release host memory buffer", result);
+      if (acc_opencl_options.svm_interop) {
+        clSVMFree(acc_opencl_context, info.mapped);
+      }
     }
   }
   ACC_OPENCL_RETURN(result);
@@ -143,8 +148,8 @@ int acc_host_mem_deallocate(void* host_mem, void* stream)
 int acc_dev_mem_allocate(void** dev_mem, size_t nbytes)
 {
   cl_int result;
-  const cl_mem buffer = clCreateBuffer(acc_opencl_context, CL_MEM_READ_WRITE, nbytes,
-    NULL/*host_ptr*/, &result);
+  const cl_mem buffer = clCreateBuffer(acc_opencl_context,
+    CL_MEM_READ_WRITE, nbytes, NULL/*host_ptr*/, &result);
   assert(NULL != dev_mem);
   if (NULL != buffer) {
 #if defined(ACC_OPENCL_MEM_NOALLOC)
@@ -206,7 +211,7 @@ int acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t nbytes, void* str
   assert((NULL != host_mem || 0 == nbytes) && (NULL != dev_mem || 0 == nbytes) && NULL != stream);
   if (NULL != host_mem && NULL != dev_mem && 0 != nbytes) {
     ACC_OPENCL_CHECK(clEnqueueWriteBuffer(*ACC_OPENCL_STREAM(stream), *ACC_OPENCL_MEM(dev_mem),
-      acc_opencl_synchronous_memops, 0/*offset*/, nbytes, host_mem, 0, NULL, NULL),
+      !acc_opencl_options.async_memops, 0/*offset*/, nbytes, host_mem, 0, NULL, NULL),
       "enqueue h2d copy", result);
   }
   ACC_OPENCL_RETURN(result);
@@ -219,7 +224,7 @@ int acc_memcpy_d2h(const void* dev_mem, void* host_mem, size_t nbytes, void* str
   assert((NULL != dev_mem || 0 == nbytes) && (NULL != host_mem || 0 == nbytes) && NULL != stream);
   if (NULL != host_mem && NULL != dev_mem && 0 != nbytes) {
     ACC_OPENCL_CHECK(clEnqueueReadBuffer(*ACC_OPENCL_STREAM(stream), *ACC_OPENCL_MEM(dev_mem),
-      acc_opencl_synchronous_memops, 0/*offset*/, nbytes, host_mem, 0, NULL, NULL),
+      !acc_opencl_options.async_memops, 0/*offset*/, nbytes, host_mem, 0, NULL, NULL),
       "enqueue d2h copy", result);
   }
   ACC_OPENCL_RETURN(result);

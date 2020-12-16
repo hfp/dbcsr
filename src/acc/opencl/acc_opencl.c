@@ -37,7 +37,7 @@
 extern "C" {
 #endif
 
-cl_bool acc_opencl_synchronous_memops;
+acc_opencl_options_t acc_opencl_options;
 int acc_opencl_ndevices;
 cl_device_id acc_opencl_devices[ACC_OPENCL_DEVICES_MAXCOUNT];
 cl_context acc_opencl_context;
@@ -216,11 +216,8 @@ int acc_init(void)
         if (EXIT_SUCCESS == result) {
           cl_device_id active_device;
           result = acc_opencl_set_active_device(device_id, &active_device);
-#if (defined(_OPENMP) && defined(ACC_OPENCL_THREADLOCAL_CONTEXT)) || defined(ACC_OPENCL_MEM_ASYNC)
-          if (EXIT_SUCCESS == result)
-#endif
-          {
 #if defined(_OPENMP) && defined(ACC_OPENCL_THREADLOCAL_CONTEXT)
+          if (EXIT_SUCCESS == result) {
             const cl_context context = acc_opencl_context;
 #           pragma omp parallel
             if (context != acc_opencl_context) {
@@ -232,14 +229,25 @@ int acc_init(void)
                 acc_opencl_context = NULL;
               }
             }
+          }
 #endif
 #if defined(ACC_OPENCL_MEM_ASYNC)
-            acc_opencl_synchronous_memops = (EXIT_SUCCESS == acc_opencl_device_vendor(
-              active_device, "nvidia") ? CL_TRUE : CL_FALSE);
-#else
-            acc_opencl_synchronous_memops = CL_TRUE;
-#endif
+          if (EXIT_SUCCESS == result) {
+            acc_opencl_options.async_memops = (EXIT_SUCCESS != acc_opencl_device_vendor(
+              active_device, "nvidia"));
           }
+          else
+#endif
+          acc_opencl_options.async_memops = CL_FALSE;
+#if defined(ACC_OPENCL_SVM)
+          if (EXIT_SUCCESS == result) {
+            int level_major = 0;
+            acc_opencl_options.svm_interop = (EXIT_SUCCESS == acc_opencl_device_level(
+              active_device, &level_major, NULL/*level_minor*/) && 2 <= level_major);
+          }
+          else
+#endif
+          acc_opencl_options.svm_interop = CL_FALSE;
         }
       }
       else { /* mark as initialized */

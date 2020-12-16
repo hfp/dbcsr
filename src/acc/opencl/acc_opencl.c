@@ -98,8 +98,8 @@ int acc_opencl_order_devices(const void* dev_a, const void* dev_b)
     if (CL_DEVICE_TYPE_GPU & type_a) {
       if (CL_DEVICE_TYPE_GPU & type_b) {
         size_t size_a, size_b;
-        ACC_OPENCL_EXPECT(EXIT_SUCCESS, acc_opencl_devmeminfo(*a, NULL, &size_a));
-        ACC_OPENCL_EXPECT(EXIT_SUCCESS, acc_opencl_devmeminfo(*b, NULL, &size_b));
+        ACC_OPENCL_EXPECT(EXIT_SUCCESS, acc_opencl_info_devmem(*a, NULL, &size_a));
+        ACC_OPENCL_EXPECT(EXIT_SUCCESS, acc_opencl_info_devmem(*b, NULL, &size_b));
         return (size_a < size_b ? 1 : (size_a != size_b ? -1 : (a < b ? -1 : 1)));
       }
       else return -1;
@@ -109,8 +109,8 @@ int acc_opencl_order_devices(const void* dev_a, const void* dev_b)
       if (CL_DEVICE_TYPE_ACCELERATOR & type_a) {
         if (CL_DEVICE_TYPE_ACCELERATOR & type_b) {
           size_t size_a, size_b;
-          ACC_OPENCL_EXPECT(EXIT_SUCCESS, acc_opencl_devmeminfo(*a, NULL, &size_a));
-          ACC_OPENCL_EXPECT(EXIT_SUCCESS, acc_opencl_devmeminfo(*b, NULL, &size_b));
+          ACC_OPENCL_EXPECT(EXIT_SUCCESS, acc_opencl_info_devmem(*a, NULL, &size_a));
+          ACC_OPENCL_EXPECT(EXIT_SUCCESS, acc_opencl_info_devmem(*b, NULL, &size_b));
           return (size_a < size_b ? 1 : (size_a != size_b ? -1 : (a < b ? -1 : 1)));
         }
         else return -1;
@@ -118,8 +118,8 @@ int acc_opencl_order_devices(const void* dev_a, const void* dev_b)
       else if (CL_DEVICE_TYPE_ACCELERATOR & type_b) return 1;
       else {
         size_t size_a, size_b;
-        ACC_OPENCL_EXPECT(EXIT_SUCCESS, acc_opencl_devmeminfo(*a, NULL, &size_a));
-        ACC_OPENCL_EXPECT(EXIT_SUCCESS, acc_opencl_devmeminfo(*b, NULL, &size_b));
+        ACC_OPENCL_EXPECT(EXIT_SUCCESS, acc_opencl_info_devmem(*a, NULL, &size_a));
+        ACC_OPENCL_EXPECT(EXIT_SUCCESS, acc_opencl_info_devmem(*b, NULL, &size_b));
         return (size_a < size_b ? 1 : (size_a != size_b ? -1 : (a < b ? -1 : 1)));
       }
     }

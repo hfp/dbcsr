@@ -234,17 +234,23 @@ int acc_init(void)
 #endif
 #if defined(ACC_OPENCL_MEM_ASYNC)
           if (EXIT_SUCCESS == result) {
-            const int confirmation = acc_opencl_device_vendor(active_device, "nvidia");
-            acc_opencl_options.async_memops = (EXIT_SUCCESS != confirmation);
+            const char *const env = getenv("ACC_OPENCL_ASYNC_MEMOPS");
+            if (NULL == env) {
+              const int confirmation = acc_opencl_device_vendor(active_device, "nvidia");
+              acc_opencl_options.async_memops = (EXIT_SUCCESS != confirmation);
+            }
+            else acc_opencl_options.async_memops = (0 != atoi(env));
           }
           else
 #endif
           acc_opencl_options.async_memops = CL_FALSE;
 #if defined(ACC_OPENCL_SVM)
           if (EXIT_SUCCESS == result) {
+            const char *const env = getenv("ACC_OPENCL_SVM");
             int level_major = 0;
-            acc_opencl_options.svm_interop = (EXIT_SUCCESS == acc_opencl_device_level(
-              active_device, &level_major, NULL/*level_minor*/) && 2 <= level_major);
+            acc_opencl_options.svm_interop = (NULL == env || 0 != atoi(env)) &&
+              (EXIT_SUCCESS == acc_opencl_device_level(active_device,
+                &level_major, NULL/*level_minor*/) && 2 <= level_major);
           }
           else
 #endif

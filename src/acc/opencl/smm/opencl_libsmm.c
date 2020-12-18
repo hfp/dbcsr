@@ -338,7 +338,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
           const char *const env_options = getenv("OPENCL_LIBSMM_SMM_BUILDOPTS");
           const char *const env_atomics = getenv("OPENCL_LIBSMM_SMM_ATOMICS");
           const char *const atomics = ((NULL == env_atomics || '\0' == *env_atomics)
-            ? (EXIT_SUCCESS != acc_opencl_device_vendor(active_device, "nvidia") ? "general" : "nv")
+            ? (EXIT_SUCCESS != acc_opencl_device_vendor(active_device, "nvidia") ? "cmpxchg" : "xchg")
             : (env_atomics));
           const char *atomic_cmpxchg = NULL, *atomic_xchg = NULL, *atomic_type = NULL, *typename = NULL;
           assert(NULL != active_device);

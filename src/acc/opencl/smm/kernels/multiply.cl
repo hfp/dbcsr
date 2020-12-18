@@ -8,7 +8,7 @@
  *------------------------------------------------------------------------------------------------*/
 
 __attribute__((always_inline))
-inline void atomic_add_global_general(global volatile T* dst, T inc)
+inline void atomic_add_global_cmpxchg(global volatile T* dst, T inc)
 {
   union { TA a; T f; } old_val, try_val, new_val = { .f = *dst };
   do {
@@ -20,7 +20,7 @@ inline void atomic_add_global_general(global volatile T* dst, T inc)
 
 
 __attribute__((always_inline))
-inline void atomic_add_global_nv(global volatile T* dst, T inc)
+inline void atomic_add_global_xchg(global volatile T* dst, T inc)
 {
   union { TA a; T f; } old_val = { .f = inc }, try_val, new_val = { .f = 0 };
   do {

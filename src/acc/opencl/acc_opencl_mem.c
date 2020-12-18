@@ -64,8 +64,8 @@ void* acc_opencl_get_hostptr(cl_mem memory)
 {
   void* result = NULL;
   assert(acc_opencl_options.svm_interop);
-  if (NULL != memory && CL_SUCCESS != clGetMemObjectInfo(result, CL_MEM_HOST_PTR, sizeof(void*), &result, NULL)) {
-    assert(NULL != result);
+  if (NULL != memory && CL_SUCCESS != clGetMemObjectInfo(memory, CL_MEM_HOST_PTR, sizeof(void*), &result, NULL)) {
+    assert(NULL == result);
   }
   return result;
 }

@@ -80,9 +80,6 @@
 #if !defined(ACC_OPENCL_STREAM_SYNCFLUSH) && 0
 # define ACC_OPENCL_STREAM_FINISH
 #endif
-#if !defined(ACC_OPENCL_STREAM_OOOEXEC) && 0
-# define ACC_OPENCL_STREAM_OOOEXEC
-#endif
 #if !defined(ACC_OPENCL_EVENT_BARRIER) && 0
 # define ACC_OPENCL_EVENT_BARRIER
 #endif

@@ -66,9 +66,6 @@ int acc_stream_create(void** stream_p, const char* name, int priority)
     if (0 <= priority) {
       ACC_OPENCL_COMMAND_QUEUE_PROPERTIES properties[] = {
         CL_QUEUE_PRIORITY_KHR, 0/*placeholder filled-in below*/,
-# if defined(ACC_OPENCL_STREAM_OOOEXEC)
-        CL_QUEUE_PROPERTIES, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE,
-# endif
         0 /* terminator */
       };
       properties[1] = (CL_QUEUE_PRIORITY_HIGH_KHR <= priority && CL_QUEUE_PRIORITY_LOW_KHR >= priority)
@@ -79,9 +76,6 @@ int acc_stream_create(void** stream_p, const char* name, int priority)
 #endif
     {
       ACC_OPENCL_COMMAND_QUEUE_PROPERTIES properties[] = {
-#if defined(ACC_OPENCL_STREAM_OOOEXEC)
-        CL_QUEUE_PROPERTIES, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE,
-#endif
         0 /* terminator */
       };
       result = acc_opencl_stream_create(&queue, name, properties);

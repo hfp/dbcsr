@@ -346,7 +346,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
             case dbcsr_type_real_8: {
               extensions = "cl_khr_fp64 cl_khr_int64_base_atomics";
               if (EXIT_SUCCESS == acc_opencl_device_ext(active_device, &extensions, 1)) {
-                atomic_prfx = "atom";
+                atomic_prfx = "atom_";
                 atomic_type = "long";
                 typename = "double";
                 fname[0] = 'd';
@@ -355,7 +355,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
             case dbcsr_type_real_4: {
               extensions = "cl_khr_global_int32_base_atomics";
               if (EXIT_SUCCESS == acc_opencl_device_ext(active_device, &extensions, 1)) {
-                atomic_prfx = "atomic";
+                atomic_prfx = "atomic_";
                 atomic_type = "int";
                 typename = "float";
                 fname[0] = 's';

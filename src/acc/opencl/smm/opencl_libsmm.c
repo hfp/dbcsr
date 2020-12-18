@@ -340,13 +340,14 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
           const char *const atomics = ((NULL == env_atomics || '\0' == *env_atomics)
             ? (EXIT_SUCCESS != acc_opencl_device_vendor(active_device, "nvidia") ? "general" : "nv")
             : (env_atomics));
-          const char *atomic_prfx = NULL, *atomic_type = NULL, *typename = NULL;
+          const char *atomic_cmpxchg = NULL, *atomic_xchg = NULL, *atomic_type = NULL, *typename = NULL;
           assert(NULL != active_device);
           switch (datatype) {
             case dbcsr_type_real_8: {
               extensions = "cl_khr_fp64 cl_khr_int64_base_atomics";
               if (EXIT_SUCCESS == acc_opencl_device_ext(active_device, &extensions, 1)) {
-                atomic_prfx = "atom_";
+                atomic_cmpxchg = "atom_cmpxchg";
+                atomic_xchg = "atom_xchg";
                 atomic_type = "long";
                 typename = "double";
                 fname[0] = 'd';
@@ -355,7 +356,8 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
             case dbcsr_type_real_4: {
               extensions = "cl_khr_global_int32_base_atomics";
               if (EXIT_SUCCESS == acc_opencl_device_ext(active_device, &extensions, 1)) {
-                atomic_prfx = "atomic_";
+                atomic_cmpxchg = "atomic_cmpxchg";
+                atomic_xchg = "atomic_xchg";
                 atomic_type = "int";
                 typename = "float";
                 fname[0] = 's';
@@ -366,10 +368,12 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
           if (NULL != typename && '\0' != *typename) {
             const char *const build_setup =
               "%s -cl-fast-relaxed-math -cl-no-signed-zeros -cl-denorms-are-zero"
-              " -DT=%s -DTA=\"%s\" -DATOMIC=%s -DIMPL=%s -DFN=%s -DSM=%i -DSN=%i -DSK=%i";
+              " -DSM=%i -DSN=%i -DSK=%i -DFN=%s -DT=%s"
+              " -DTA=\"%s\" -DCMPXCHG=%s -DXCHG=%s -DATOMIC_ADD_GLOBAL=atomic_add_global_%s";
             nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options), build_setup,
               (NULL == env_options || '\0' == *env_options) ? "" : env_options,
-              typename, atomic_type, atomic_prfx, atomics, fname, m_max, n_max, k_max);
+              m_max, n_max, k_max, fname, typename,
+              atomic_type, atomic_cmpxchg, atomic_xchg, atomics);
             if (0 >= nchar || (int)sizeof(build_options) <= nchar) result = EXIT_FAILURE;
           }
           else {

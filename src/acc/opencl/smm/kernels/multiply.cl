@@ -14,7 +14,7 @@ inline void atomic_add_global_general(global volatile T* dst, T inc)
   do {
     old_val.a = new_val.a;
     try_val.f = old_val.f + inc;
-    new_val.a = ATOMIC##cmpxchg((global volatile TA*)dst, old_val.a, try_val.a);
+    new_val.a = CMPXCHG((global volatile TA*)dst, old_val.a, try_val.a);
   } while (old_val.a != new_val.a);
 }
 
@@ -24,9 +24,9 @@ inline void atomic_add_global_nv(global volatile T* dst, T inc)
 {
   union { TA a; T f; } old_val = { .f = inc }, try_val, new_val = { .f = 0 };
   do {
-    try_val.a = ATOMIC##xchg((global volatile TA*)dst, new_val.a);
+    try_val.a = XCHG((global volatile TA*)dst, new_val.a);
     try_val.f += old_val.f;
-    old_val.a = ATOMIC##xchg((global volatile TA*)dst, try_val.a);
+    old_val.a = XCHG((global volatile TA*)dst, try_val.a);
   } while (old_val.a != new_val.a);
 }
 
@@ -58,6 +58,6 @@ kernel void FN(global const int *restrict param_stack,
     T r = 0;
     for (int k = 0; k < SK; ++k) r += a[SK*m+k] * b[k];
     barrier(CLK_LOCAL_MEM_FENCE);
-    atomic_add_global_##IMPL(&cwg[SM*n+m], r);
+    ATOMIC_ADD_GLOBAL(&cwg[SM*n+m], r);
   }
 }

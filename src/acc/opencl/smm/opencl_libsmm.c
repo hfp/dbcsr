@@ -336,24 +336,28 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
         result = acc_opencl_device(stack_stream, &active_device);
         if (EXIT_SUCCESS == result) {
           const char *const env_options = getenv("OPENCL_LIBSMM_SMM_BUILDOPTS");
-          const char *typename = NULL, *atomic_t = NULL, *atomic_f = NULL;
+          const char *const env_atomics = getenv("OPENCL_LIBSMM_SMM_ATOMICS");
+          const char *const atomics = ((NULL == env_atomics || '\0' == *env_atomics)
+            ? (EXIT_SUCCESS != acc_opencl_device_vendor(active_device, "nvidia") ? "general" : "nv")
+            : (env_atomics));
+          const char *atomic_prfx = NULL, *atomic_type = NULL, *typename = NULL;
           assert(NULL != active_device);
           switch (datatype) {
             case dbcsr_type_real_8: {
               extensions = "cl_khr_fp64 cl_khr_int64_base_atomics";
               if (EXIT_SUCCESS == acc_opencl_device_ext(active_device, &extensions, 1)) {
+                atomic_prfx = "atom";
+                atomic_type = "long";
                 typename = "double";
-                atomic_t = "long";
-                atomic_f = "atom_cmpxchg";
                 fname[0] = 'd';
               }
             } break;
             case dbcsr_type_real_4: {
               extensions = "cl_khr_global_int32_base_atomics";
               if (EXIT_SUCCESS == acc_opencl_device_ext(active_device, &extensions, 1)) {
+                atomic_prfx = "atomic";
+                atomic_type = "int";
                 typename = "float";
-                atomic_t = "int";
-                atomic_f = "atomic_cmpxchg";
                 fname[0] = 's';
               }
             } break;
@@ -362,10 +366,10 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
           if (NULL != typename && '\0' != *typename) {
             const char *const build_setup =
               "%s -cl-fast-relaxed-math -cl-no-signed-zeros -cl-denorms-are-zero"
-              " -DT=%s -DTA=\"%s\" -DFA=%s -DFN=%s -DSM=%i -DSN=%i -DSK=%i";
+              " -DT=%s -DTA=\"%s\" -DATOMIC=%s -DIMPL=%s -DFN=%s -DSM=%i -DSN=%i -DSK=%i";
             nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options), build_setup,
               (NULL == env_options || '\0' == *env_options) ? "" : env_options,
-              typename, atomic_t, atomic_f, fname, m_max, n_max, k_max);
+              typename, atomic_type, atomic_prfx, atomics, fname, m_max, n_max, k_max);
             if (0 >= nchar || (int)sizeof(build_options) <= nchar) result = EXIT_FAILURE;
           }
           else {

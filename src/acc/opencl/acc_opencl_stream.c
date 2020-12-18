@@ -132,7 +132,7 @@ int acc_stream_priority_range(int* least, int* greatest)
   int result = ((NULL != least || NULL != greatest) ? EXIT_SUCCESS : EXIT_FAILURE);
   if (NULL != acc_opencl_context) {
 #if defined(ACC_OPENCL_STREAM_PRIORITIES) && defined(CL_QUEUE_PRIORITY_KHR)
-    char buffer[ACC_OPENCL_BUFFER_MAXSIZE];
+    char buffer[ACC_OPENCL_BUFFERSIZE];
     cl_platform_id platform = NULL;
     cl_device_id active_id = NULL;
     assert(0 < acc_opencl_ndevices);
@@ -141,7 +141,7 @@ int acc_stream_priority_range(int* least, int* greatest)
       sizeof(cl_platform_id), &platform, NULL),
       "retrieve platform associated with active device", result);
     ACC_OPENCL_CHECK(clGetPlatformInfo(platform, CL_PLATFORM_EXTENSIONS,
-      ACC_OPENCL_BUFFER_MAXSIZE, buffer, NULL),
+      ACC_OPENCL_BUFFERSIZE, buffer, NULL),
       "retrieve platform extensions", result);
     if (EXIT_SUCCESS == result) {
       if (NULL != strstr(buffer, "cl_khr_priority_hints")) {

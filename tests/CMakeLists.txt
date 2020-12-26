@@ -67,7 +67,10 @@ set(DBCSR_TESTS_FTN
     dbcsr_test_csr_conversions)
 
 if (NOT USE_ACCEL STREQUAL "")
-  set(DBCSR_TESTS_C dbcsr_acc_test_c)
+  # TODO: enable dbcsr_acc_test for HIP
+  if (NOT USE_ACCEL MATCHES "hip")
+    set(DBCSR_TESTS_C dbcsr_acc_test_c)
+  endif ()
 endif ()
 
 if (NOT (CMAKE_Fortran_COMPILER_ID STREQUAL "Cray"))

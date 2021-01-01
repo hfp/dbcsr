@@ -156,7 +156,7 @@ int acc_host_mem_deallocate(void* host_mem, void* stream)
 int acc_dev_mem_allocate(void** dev_mem, size_t nbytes)
 {
   cl_int result;
-#if defined(CL_VERSION_1_2)
+#if defined(CL_VERSION_1_2) && 0
   const cl_int flags = CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS;
 #else
   const cl_int flags = CL_MEM_READ_WRITE;

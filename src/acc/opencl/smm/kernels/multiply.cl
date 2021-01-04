@@ -47,12 +47,13 @@ kernel void FN(CONSTANT const int *restrict param_stack,
 
   const int n = get_local_id(0);
   /* assume SN == get_local_size(0) */
-  const int msize = ((SM - 1) + SN) / SN;
+  const int msize = (SM + SN - 1) / SN;
   const int m0 = n * msize, m1 = min(m0 + msize, SM);
   /* split work among WG (a[m,k] does not depend on WG-index) */
-  for (int m = m0; m < m1; ++m) {
+  for (int m = m0; m < m1; ++m) { /* transpose A-matrix */
     for (int k = 0; k < SK; ++k) a[SK*m+k] = awg[SM*k+m];
   }
+  /* gather/transpose B-matrix (strided load) */
   for (int k = 0; k < SK; ++k) b[k] = bwg[SN*k+n];
   barrier(CLK_LOCAL_MEM_FENCE);
   for (int m = 0; m < SM; ++m) {

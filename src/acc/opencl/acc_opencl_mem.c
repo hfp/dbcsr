@@ -156,17 +156,12 @@ int acc_host_mem_deallocate(void* host_mem, void* stream)
 int acc_dev_mem_allocate(void** dev_mem, size_t nbytes)
 {
   cl_int result;
-#if defined(CL_VERSION_1_2) && 0
-  const cl_int flags = CL_MEM_READ_WRITE | CL_MEM_HOST_NO_ACCESS;
-#else
-  const cl_int flags = CL_MEM_READ_WRITE;
-#endif
   const cl_mem buffer = (
 #if defined(ACC_OPENCL_SVM)
     acc_opencl_options.svm_interop ? clCreateBuffer(acc_opencl_context, CL_MEM_USE_HOST_PTR, nbytes,
-      clSVMAlloc(acc_opencl_context, flags, nbytes, 0/*default alignment*/), &result) :
+      clSVMAlloc(acc_opencl_context, CL_MEM_READ_WRITE, nbytes, 0/*default alignment*/), &result) :
 #endif
-    clCreateBuffer(acc_opencl_context, flags, nbytes, NULL/*host_ptr*/, &result));
+    clCreateBuffer(acc_opencl_context, CL_MEM_READ_WRITE, nbytes, NULL/*host_ptr*/, &result));
   assert(NULL != dev_mem);
   if (NULL != buffer) {
 #if defined(ACC_OPENCL_MEM_NOALLOC)

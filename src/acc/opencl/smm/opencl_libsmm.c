@@ -55,7 +55,7 @@ int opencl_libsmm_use_cmem(cl_device_id device)
   cl_ulong size_maxalloc = 1, size_maxcmem = 0;
   ACC_OPENCL_CHECK(clGetDeviceInfo(device, CL_DEVICE_MAX_MEM_ALLOC_SIZE,
     sizeof(cl_ulong), &size_maxalloc, NULL), "retrieve maximum size of memory allocation", result);
-  ACC_OPENCL_CHECK(clGetDeviceInfo(device, CL_DEVICE_MAX_GLOBAL_BUFFER_SIZE,
+  ACC_OPENCL_CHECK(clGetDeviceInfo(device, CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE,
     sizeof(cl_ulong), &size_maxcmem, NULL), "retrieve maximum size of constant buffer", result);
   return (EXIT_SUCCESS == result ? (size_maxalloc <= size_maxcmem ? EXIT_SUCCESS : EXIT_FAILURE) : result);
 #else

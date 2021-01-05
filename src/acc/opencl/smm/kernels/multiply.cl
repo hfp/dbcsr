@@ -59,6 +59,6 @@ kernel void FN(GLOBAL const int *restrict param_stack,
   for (int m = 0; m < SM; ++m) {
     T r = 0;
     for (int k = 0; k < SK; ++k) r += a[SK*m+k] * b[k];
-    ATOMIC_ADD1_GLOBAL(&cwg[SM*n+m], r);
+    ATOMIC_ADD_GLOBAL(&cwg[SM*n+m], r);
   }
 }

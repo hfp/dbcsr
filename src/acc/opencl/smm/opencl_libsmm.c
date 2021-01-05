@@ -363,10 +363,17 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
         if (EXIT_SUCCESS == result) {
           const char *const env_options = getenv("OPENCL_LIBSMM_SMM_BUILDOPTS");
           const char *const env_atomics = getenv("OPENCL_LIBSMM_SMM_ATOMICS");
-          const char *const atomics = ((NULL == env_atomics || '\0' == *env_atomics)
-            ? (EXIT_SUCCESS != acc_opencl_device_vendor(active_device, "nvidia") ? "cmpxchg" : "xchg")
-            : (env_atomics));
-          const char *atomic_cmpxchg = NULL, *atomic_xchg = NULL, *atomic_type = NULL, *typename = NULL;
+          const char *atomics = NULL, *atomic_cmpxchg = NULL, *atomic_xchg = NULL;
+          const char *atomic_type = NULL, *typename = NULL;
+          if (NULL == env_atomics || '0' != *env_atomics) {
+            atomics = ((NULL != acc_opencl_stristr(env_atomics, "cmpxchg") ||
+              EXIT_SUCCESS != acc_opencl_device_vendor(active_device, "nvidia"))
+              ? "atomic_add1_global_cmpxchg(A,B)"
+              : "atomic_add1_global_xchg(A,B)");
+          }
+          else {
+            atomics = "*(A)+=(B)";
+          }
           assert(NULL != active_device);
           switch (datatype) {
             case dbcsr_type_real_8: {
@@ -391,18 +398,19 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
             } break;
             default: ;
           }
-          if (NULL != typename && '\0' != *typename) {
+          if (NULL != typename) {
             const char *const build_setup =
               "%s -cl-fast-relaxed-math -cl-no-signed-zeros -cl-denorms-are-zero"
               " -DGLOBAL=%s -DFN=%s -DSM=%i -DSN=%i -DSK=%i -DVM=%i -DVN=%i -DVK=%i"
               " -DT=%s -DTVM=%s%i -DTVN=%s%i -DTVK=%s%i"
               " -DTA=\"%s\" -DTAM=\"%s%i\" -DTAN=\"%s%i\" -DTAK=\"%s%i\""
               " -DCMPXCHG=%s -DXCHG=%s"
-              " -DATOMIC_ADD1_GLOBAL=atomic_add1_global_%s"
-              " -DATOMIC_ADDN_GLOBAL=atomic_addn_global_%s";
+              " -D\"ATOMIC_ADD1_GLOBAL(A,B)=%s\""
+              " -D\"ATOMIC_ADDN_GLOBAL(A,B)=%s\"";
             const int vm = LIBXSMM_LO2POT(LIBXSMM_MIN(m_max, 16));
             const int vn = LIBXSMM_LO2POT(LIBXSMM_MIN(n_max, 16));
             const int vk = LIBXSMM_LO2POT(LIBXSMM_MIN(k_max, 16));
+            assert(NULL != atomics);
             nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options), build_setup,
               (NULL == env_options || '\0' == *env_options) ? "" : env_options,
               EXIT_SUCCESS != opencl_libsmm_use_cmem(active_device) ? "global" : "constant", fname,

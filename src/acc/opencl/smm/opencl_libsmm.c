@@ -397,7 +397,9 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
               " -DGLOBAL=%s -DFN=%s -DSM=%i -DSN=%i -DSK=%i -DVM=%i -DVN=%i -DVK=%i"
               " -DT=%s -DTVM=%s%i -DTVN=%s%i -DTVK=%s%i"
               " -DTA=\"%s\" -DTAM=\"%s%i\" -DTAN=\"%s%i\" -DTAK=\"%s%i\""
-              " -DCMPXCHG=%s -DXCHG=%s -DATOMIC_ADD_GLOBAL=atomic_add_global_%s";
+              " -DCMPXCHG=%s -DXCHG=%s"
+              " -DATOMIC_ADD1_GLOBAL=atomic_add1_global_%s"
+              " -DATOMIC_ADDN_GLOBAL=atomic_addn_global_%s";
             const int vm = LIBXSMM_LO2POT(LIBXSMM_MIN(m_max, 16));
             const int vn = LIBXSMM_LO2POT(LIBXSMM_MIN(n_max, 16));
             const int vk = LIBXSMM_LO2POT(LIBXSMM_MIN(k_max, 16));

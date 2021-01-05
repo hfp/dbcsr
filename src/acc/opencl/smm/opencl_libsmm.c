@@ -170,10 +170,10 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
             default: ;
           }
           nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options), "%s"
-            " -DGLOBAL=%s -DSM=%i -DSN=%i -DFN=%s -DT=%s",
+            " -DGLOBAL=%s -DFN=%s -DSM=%i -DSN=%i -DT=%s",
             (NULL == env_options || '\0' == *env_options) ? "" : env_options,
             EXIT_SUCCESS != opencl_libsmm_use_cmem(active_device) ? "global" : "constant",
-            m, n, fname, typename);
+            fname, m, n, typename);
           if ('\0' != *typename && 0 < nchar && (int)sizeof(build_options) > nchar) {
             const char *const env_inplace = getenv("OPENCL_LIBSMM_TRANS_INPLACE");
 #if defined(OPENCL_LIBSMM_TRANS_INPLACE)
@@ -394,14 +394,19 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
           if (NULL != typename && '\0' != *typename) {
             const char *const build_setup =
               "%s -cl-fast-relaxed-math -cl-no-signed-zeros -cl-denorms-are-zero"
-              " -DGLOBAL=%s -DSM=%i -DSN=%i -DSK=%i -DVM=%i -DVN=%i -DVK=%i -DFN=%s -DT=%s"
-              " -DTA=\"%s\" -DCMPXCHG=%s -DXCHG=%s -DATOMIC_ADD_GLOBAL=atomic_add_global_%s";
-            const int vm = LIBXSMM_LO2POT(m_max), vn = LIBXSMM_LO2POT(n_max), vk = LIBXSMM_LO2POT(k_max);
+              " -DGLOBAL=%s -DFN=%s -DSM=%i -DSN=%i -DSK=%i -DVM=%i -DVN=%i -DVK=%i"
+              " -DT=%s -DTVM=%s%i -DTVN=%s%i -DTVK=%s%i"
+              " -DTA=\"%s\" -DTAM=\"%s%i\" -DTAN=\"%s%i\" -DTAK=\"%s%i\""
+              " -DCMPXCHG=%s -DXCHG=%s -DATOMIC_ADD_GLOBAL=atomic_add_global_%s";
+            const int vm = LIBXSMM_LO2POT(LIBXSMM_MIN(m_max, 16));
+            const int vn = LIBXSMM_LO2POT(LIBXSMM_MIN(n_max, 16));
+            const int vk = LIBXSMM_LO2POT(LIBXSMM_MIN(k_max, 16));
             nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options), build_setup,
               (NULL == env_options || '\0' == *env_options) ? "" : env_options,
-              EXIT_SUCCESS != opencl_libsmm_use_cmem(active_device) ? "global" : "constant",
-              m_max, n_max, k_max, LIBXSMM_MIN(vm, 16), LIBXSMM_MIN(vn, 16), LIBXSMM_MIN(vk, 16),
-              fname, typename, atomic_type, atomic_cmpxchg, atomic_xchg, atomics);
+              EXIT_SUCCESS != opencl_libsmm_use_cmem(active_device) ? "global" : "constant", fname,
+              m_max, n_max, k_max, vm, vn, vk, typename, typename, vm, typename, vn, typename, vk,
+              atomic_type, atomic_type, vm, atomic_type, vn, atomic_type, vk,
+              atomic_cmpxchg, atomic_xchg, atomics);
             if (0 < nchar && (int)sizeof(build_options) > nchar) {
               config_t new_config;
 #if defined(OPENCL_SOURCE_MULTIPLY)

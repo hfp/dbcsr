@@ -367,8 +367,8 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
           const char *atomic_type = NULL, *typename = NULL;
           const char *atomics1 = NULL, *atomicsn = NULL;
           if (NULL == env_atomics || '0' != *env_atomics) {
-            if (NULL != acc_opencl_stristr(env_atomics, "cmpxchg") ||
-              EXIT_SUCCESS != acc_opencl_device_vendor(active_device, "nvidia"))
+            if ((NULL == env_atomics && EXIT_SUCCESS != acc_opencl_device_vendor(active_device, "nvidia"))
+              || NULL != acc_opencl_stristr(env_atomics, "cmpxchg"))
             {
               atomics1 = "atomic_add1_global_cmpxchg(A,B)";
               atomicsn = "atomic_addn_global_cmpxchg(A,B)";
@@ -417,7 +417,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
             const int vm = LIBXSMM_LO2POT(LIBXSMM_MIN(m_max, 16));
             const int vn = LIBXSMM_LO2POT(LIBXSMM_MIN(n_max, 16));
             const int vk = LIBXSMM_LO2POT(LIBXSMM_MIN(k_max, 16));
-            assert(NULL != atomics1);
+            assert(NULL != atomics1 && NULL != atomicsn);
             nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options), build_setup,
               (NULL == env_options || '\0' == *env_options) ? "" : env_options,
               EXIT_SUCCESS != opencl_libsmm_use_cmem(active_device) ? "global" : "constant", fname,

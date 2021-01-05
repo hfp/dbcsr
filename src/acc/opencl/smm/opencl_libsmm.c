@@ -363,16 +363,23 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
         if (EXIT_SUCCESS == result) {
           const char *const env_options = getenv("OPENCL_LIBSMM_SMM_BUILDOPTS");
           const char *const env_atomics = getenv("OPENCL_LIBSMM_SMM_ATOMICS");
-          const char *atomics = NULL, *atomic_cmpxchg = NULL, *atomic_xchg = NULL;
+          const char *atomic_cmpxchg = NULL, *atomic_xchg = NULL;
           const char *atomic_type = NULL, *typename = NULL;
+          const char *atomics1 = NULL, *atomicsn = NULL;
           if (NULL == env_atomics || '0' != *env_atomics) {
-            atomics = ((NULL != acc_opencl_stristr(env_atomics, "cmpxchg") ||
+            if (NULL != acc_opencl_stristr(env_atomics, "cmpxchg") ||
               EXIT_SUCCESS != acc_opencl_device_vendor(active_device, "nvidia"))
-              ? "atomic_add1_global_cmpxchg(A,B)"
-              : "atomic_add1_global_xchg(A,B)");
+            {
+              atomics1 = "atomic_add1_global_cmpxchg(A,B)";
+              atomicsn = "atomic_addn_global_cmpxchg(A,B)";
+            }
+            else {
+              atomics1 = "atomic_add1_global_xchg(A,B)";
+              atomicsn = "atomic_addn_global_xchg(A,B)";
+            }
           }
           else {
-            atomics = "*(A)+=(B)";
+            atomics1 = atomicsn = "*(A)+=(B)";
           }
           assert(NULL != active_device);
           switch (datatype) {
@@ -410,13 +417,13 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
             const int vm = LIBXSMM_LO2POT(LIBXSMM_MIN(m_max, 16));
             const int vn = LIBXSMM_LO2POT(LIBXSMM_MIN(n_max, 16));
             const int vk = LIBXSMM_LO2POT(LIBXSMM_MIN(k_max, 16));
-            assert(NULL != atomics);
+            assert(NULL != atomics1);
             nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options), build_setup,
               (NULL == env_options || '\0' == *env_options) ? "" : env_options,
               EXIT_SUCCESS != opencl_libsmm_use_cmem(active_device) ? "global" : "constant", fname,
               m_max, n_max, k_max, vm, vn, vk, typename, typename, vm, typename, vn, typename, vk,
               atomic_type, atomic_type, vm, atomic_type, vn, atomic_type, vk,
-              atomic_cmpxchg, atomic_xchg, atomics, atomics);
+              atomic_cmpxchg, atomic_xchg, atomics1, atomicsn);
             if (0 < nchar && (int)sizeof(build_options) > nchar) {
               config_t new_config;
 #if defined(OPENCL_SOURCE_MULTIPLY)

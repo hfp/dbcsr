@@ -397,7 +397,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
               " -DGLOBAL=%s -DFN=%s -DSM=%i -DSN=%i -DSK=%i -DVM=%i -DVN=%i -DVK=%i"
               " -DT=%s -DTVM=%s%i -DTVN=%s%i -DTVK=%s%i"
               " -DTA=\"%s\" -DTAM=\"%s%i\" -DTAN=\"%s%i\" -DTAK=\"%s%i\""
-              " -DCMPXCHG=%s -DXCHG=%s"
+              " -DCMPXCHG=%s -DXCHG=%s -DATOMIC=%i"
               " -DATOMIC_ADD1_GLOBAL=atomic_add1_global_%s"
               " -DATOMIC_ADDN_GLOBAL=atomic_addn_global_%s";
             const int vm = LIBXSMM_LO2POT(LIBXSMM_MIN(m_max, 16));
@@ -408,7 +408,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
               EXIT_SUCCESS != opencl_libsmm_use_cmem(active_device) ? "global" : "constant", fname,
               m_max, n_max, k_max, vm, vn, vk, typename, typename, vm, typename, vn, typename, vk,
               atomic_type, atomic_type, vm, atomic_type, vn, atomic_type, vk,
-              atomic_cmpxchg, atomic_xchg, atomics);
+              atomic_cmpxchg, atomic_xchg, 1/*atomic*/, atomics, atomics);
             if (0 < nchar && (int)sizeof(build_options) > nchar) {
               config_t new_config;
 #if defined(OPENCL_SOURCE_MULTIPLY)

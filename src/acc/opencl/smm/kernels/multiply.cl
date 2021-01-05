@@ -7,6 +7,8 @@
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
 
+#if ATOMIC
+
 __attribute__((always_inline))
 inline void atomic_add1_global_cmpxchg(global volatile T* dst, T inc)
 {
@@ -30,6 +32,7 @@ inline void atomic_add1_global_xchg(global volatile T* dst, T inc)
   } while (old_val.a != new_val.a);
 }
 
+#endif
 
 __attribute__((reqd_work_group_size(SN, 1, 1)))
 kernel void FN(GLOBAL const int *restrict param_stack,
@@ -59,6 +62,10 @@ kernel void FN(GLOBAL const int *restrict param_stack,
   for (int m = 0; m < SM; ++m) {
     T r = 0;
     for (int k = 0; k < SK; ++k) r += a[SK*m+k] * b[k];
+#if ATOMIC
     ATOMIC_ADD1_GLOBAL(&cwg[SM*n+m], r);
+#else
+    cwg[SM*n+m] += r;
+#endif
   }
 }

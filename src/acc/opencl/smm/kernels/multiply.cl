@@ -41,21 +41,21 @@ kernel void FN(GLOBAL const int *restrict param_stack,
   const int ai = param_base[0] - 1, bi = param_base[1] - 1, ci = param_base[2] - 1;
   GLOBAL const T *const restrict awg = amat + ai, *const restrict bwg = bmat + bi;
   global T *const restrict cwg = cmat + ci;
-  local T a[SM][SK], b[SK][SN];
+  local T a[SM*SK], b[SK*SN];
   private T c[BM*BN];
 
-  const int i = get_local_id(0);
+  const int idx = get_local_id(0);
   const int nbm = (SM + BM - 1) / BM;
   const int nbn = (SN + BN - 1) / BN;
-  const int im = i / nbn, in = i - im * nbn;
+  const int im = idx / nbn, in = idx - im * nbn;
   const int m0 = im * BM, m1 = min(m0 + BM, SM);
   const int n0 = in * BN, n1 = min(n0 + BN, SN);
 
   for (int m = m0; m < m1; ++m) { /* transpose A-matrix */
-    for (int k = 0; k < SK; ++k) a[m][k] = awg[SM*k+m];
+    for (int k = 0; k < SK; ++k) a[SM*m+k] = awg[SM*k+m];
   }
   for (int k = 0; k < SK; ++k) { /* copy B-matrix */
-    for (int n = n0; n < n1; ++n) b[k][n] = bwg[SN*k+n];
+    for (int n = n0; n < n1; ++n) b[SN*k+n] = bwg[SN*k+n];
   }
   barrier(CLK_LOCAL_MEM_FENCE);
   for (int m = m0; m < m1; ++m) {
@@ -63,7 +63,7 @@ kernel void FN(GLOBAL const int *restrict param_stack,
       T r = 0;
       for (int k = 0; k < SK; ++k) {
         /* transpose B-matrix */
-        r = FMA(a[m][k], b[k][n], r);
+        r = FMA(a[SM*m+k], b[SN*k+n], r);
       }
       c[BN*(m-m0)+n-n0] = r;
     }

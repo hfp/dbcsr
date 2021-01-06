@@ -31,7 +31,6 @@ inline void atomic_add_global_xchg(global volatile T* dst, T inc)
 }
 
 
-__attribute__((reqd_work_group_size(SN, 1, 1)))
 kernel void FN(GLOBAL const int *restrict param_stack,
   GLOBAL const T *restrict amat, GLOBAL const T *restrict bmat,
   global T *restrict cmat)
@@ -42,23 +41,27 @@ kernel void FN(GLOBAL const int *restrict param_stack,
   const int ai = param_base[0] - 1, bi = param_base[1] - 1, ci = param_base[2] - 1;
   GLOBAL const T *const restrict awg = amat + ai, *const restrict bwg = bmat + bi;
   global T *const restrict cwg = cmat + ci;
-  local T a[SM*SK];
-  T b[SK];
+  local T a[SM*SK], b[SK*SN];
 
-  const int n = get_local_id(0);
-  /* assume SN == get_local_size(0) */
-  const int msize = (SM + SN - 1) / SN;
-  const int m0 = n * msize, m1 = min(m0 + msize, SM);
-  /* split work among WG (a[m,k] does not depend on WG-index) */
+  const int i = get_local_id(0);
+  const int nbm = (SM + BM - 1) / BM;
+  const int nbn = (SN + BN - 1) / BN;
+  const int im = i / nbn, in = i - m * nbn
+  const int m0 = im * BM, m1 = min(m0 + BM, SM);
+  const int n0 = in * BN, n1 = min(n0 + BN, SN);
+
   for (int m = m0; m < m1; ++m) { /* transpose A-matrix */
     for (int k = 0; k < SK; ++k) a[SK*m+k] = awg[SM*k+m];
   }
-  /* gather/transpose B-matrix (strided load) */
-  for (int k = 0; k < SK; ++k) b[k] = bwg[SN*k+n];
+  for (int k = 0; k < SK; ++k) { /* transpose B-matrix */
+    for (int n = n0; n < n1; ++n) b[SK*n+k] = bwg[SN*k+n];
+  }
   barrier(CLK_LOCAL_MEM_FENCE);
-  for (int m = 0; m < SM; ++m) {
-    T r = 0;
-    for (int k = 0; k < SK; ++k) r = FMA(a[SK*m+k], b[k], r);
-    ATOMIC_ADD_GLOBAL(&cwg[SM*n+m], r);
+  for (int m = m0; m < m1; ++m) {
+    for (int n = n0; n < n1; ++n) {
+      T r = 0;
+      for (int k = 0; k < SK; ++k) r = FMA(a[SK*m+k], b[SK*n+k], r);
+      ATOMIC_ADD_GLOBAL(&cwg[SM*n+m], r);
+    }
   }
 }

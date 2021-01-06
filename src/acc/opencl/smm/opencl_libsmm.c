@@ -437,9 +437,12 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                 int max_wgsize;
                 result = acc_opencl_wgsize(new_config.kernel, NULL/*preferred_multiple*/, &max_wgsize);
                 if (EXIT_SUCCESS == result) {
+                  const int nbm = (m_max + bm - 1) / bm;
+                  const int nbn = (n_max + bn - 1) / bn;
+                  const int wgsize = nbm * nbn;
                   assert(0 < max_wgsize);
-                  if (n_max <= max_wgsize) {
-                    new_config.wgsize = (size_t)n_max;
+                  if (wgsize <= max_wgsize) {
+                    new_config.wgsize = (size_t)wgsize;
                     config = (config_t*)OPENCL_LIBSMM_REGISTER(&key, sizeof(key),
                       sizeof(new_config), &new_config);
                   }

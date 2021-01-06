@@ -36,26 +36,36 @@ kernel void FN(GLOBAL const int *restrict param_stack,
   global T *restrict cmat)
 {
   const int gid = get_group_id(0);
+  const int idx = get_local_id(0);
+  const int nbn = (SN + BN - 1) / BN;
+
   GLOBAL const int *const restrict param_base = param_stack + gid * 3;
   /* indexes given by param_stack are one-based */
-  const int ai = param_base[0] - 1, bi = param_base[1] - 1, ci = param_base[2] - 1;
-  GLOBAL const T *const restrict awg = amat + ai, *const restrict bwg = bmat + bi;
-  global T *const restrict cwg = cmat + ci;
+  const int ai = param_base[0] - 1;
+  const int bi = param_base[1] - 1;
+  const int ci = param_base[2] - 1;
+
   local T a[SM*SK], b[SK*SN];
   T c[BM*BN] = { 0 };
 
-  const int idx = get_local_id(0);
-  const int nbn = (SN + BN - 1) / BN;
   const int im = idx / nbn, in = idx - im * nbn;
   const int m0 = im * BM, m1 = min(m0 + BM, SM);
   const int n0 = in * BN, n1 = min(n0 + BN, SN);
 
-  for (int m = m0; m < m1; ++m) { /* transpose A-matrix */
-    for (int k = 0; k < SK; ++k) a[SM*m+k] = awg[SM*k+m];
+  { /* transpose A-matrix into local buffer */
+    GLOBAL const T *const restrict awg = amat + ai;
+    for (int m = m0; m < m1; ++m) {
+      for (int k = 0; k < SK; ++k) a[SM*m+k] = awg[SM*k+m];
+    }
   }
-  for (int k = 0; k < SK; ++k) { /* copy B-matrix */
-    for (int n = n0; n < n1; ++n) b[SN*k+n] = bwg[SN*k+n];
+
+  { /* copy B-matrix into local buffer */
+    GLOBAL const T *const restrict bwg = bmat + bi;
+    for (int k = 0; k < SK; ++k) {
+      for (int n = n0; n < n1; ++n) b[SN*k+n] = bwg[SN*k+n];
+    }
   }
+
   barrier(CLK_LOCAL_MEM_FENCE);
   for (int m = m0; m < m1; ++m) {
     for (int n = n0; n < n1; ++n) {
@@ -65,9 +75,13 @@ kernel void FN(GLOBAL const int *restrict param_stack,
       }
     }
   }
-  for (int m = m0; m < m1; ++m) {
-    for (int n = n0; n < n1; ++n) {
-      ATOMIC_ADD_GLOBAL(&cwg[SM*n+m], c[BN*(m-m0)+n-n0]);
+
+  { /* copy private tile back to global memory */
+    global T *const restrict cwg = cmat + ci;
+    for (int m = m0; m < m1; ++m) {
+      for (int n = n0; n < n1; ++n) {
+        ATOMIC_ADD_GLOBAL(&cwg[SM*n+m], c[BN*(m-m0)+n-n0]);
+      }
     }
   }
 }

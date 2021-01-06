@@ -63,7 +63,7 @@ kernel void FN(GLOBAL const int *restrict param_stack,
       T *const restrict r = c + BN * (m-m0) + n-n0;
       *r = 0;
       for (int k = 0; k < SK; ++k) { /* transpose B-matrix */
-        *r = FMA(a[SM*m+k], b[SN*k+n], *r);
+        *r = FMA(a[SK*m+k], b[SN*k+n], *r);
       }
     }
   }

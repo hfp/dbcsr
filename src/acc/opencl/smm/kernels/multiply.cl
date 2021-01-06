@@ -57,26 +57,8 @@ kernel void FN(GLOBAL const int *restrict param_stack,
   for (int k = 0; k < SK; ++k) b[k] = bwg[SN*k+n];
   barrier(CLK_LOCAL_MEM_FENCE);
   for (int m = 0; m < SM; ++m) {
-#if 1
-    TK r = 0;
-    for (int k = 0; k < SK; k += VK) { /* explicitly vectorized */
-      r = FMA(*(local const TK *restrict)(a + SK*m+k),
-              *(const TK *restrict)(b + k), r);
-    }
-    /* scalar remainder of above loop */
-    for (int k = VK; k < SK; ++k) r.s0 = FMA(a[SK*m+k], b[k], r.s0);
-    /* final reduction of r-vector */
-    /*for (int k = 1; k < VK; ++k) r.s0 += ((const T *restrict)&r)[k];*/
-    /*ATOMIC_ADD_GLOBAL(&cwg[SM*n+m], r.s0);*/
-    ATOMIC_ADD_GLOBAL(&cwg[SM*n+m],
-      r.s0 + r.s1 + r.s2 + r.s3 +
-      r.s4 + r.s5 + r.s6 + r.s7 +
-      r.s8 + r.s9 + r.sa + r.sb +
-      r.sc + r.sd + r.se + r.sf);
-#else
     T r = 0;
     for (int k = 0; k < SK; ++k) r = FMA(a[SK*m+k], b[k], r);
     ATOMIC_ADD_GLOBAL(&cwg[SM*n+m], r);
-#endif
   }
 }

@@ -406,17 +406,15 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
           if (NULL != typename) {
             const char *const build_setup =
               "%s -cl-fast-relaxed-math -cl-no-signed-zeros -cl-denorms-are-zero"
-              " -DGLOBAL=%s -DFN=%s -DSM=%i -DSN=%i -DSK=%i -DVM=%i -DVN=%i -DVK=%i"
-              " -DT=%s -DTM=%s%i -DTN=%s%i -DTK=%s%i -DTA=\"%s\" -DFMA=fma"
-              " -DCMPXCHG=%s -DXCHG=%s -D\"ATOMIC_ADD_GLOBAL(A,B)=%s\"";
-            const int vm = LIBXSMM_LO2POT(LIBXSMM_MIN(m_max, 16));
-            const int vn = LIBXSMM_LO2POT(LIBXSMM_MIN(n_max, 16));
-            const int vk = LIBXSMM_LO2POT(LIBXSMM_MIN(k_max, 16));
+              " -DGLOBAL=%s -DFN=%s -DSM=%i -DSN=%i -DSK=%i -DBM=%i -DBN=%i"
+              " -DT=%s -DTA=\"%s\" -DFMA=fma -DCMPXCHG=%s -DXCHG=%s"
+              " -D\"ATOMIC_ADD_GLOBAL(A,B)=%s\"";
+            const int bm = LIBXSMM_MIN(4, m_max), bn = LIBXSMM_MIN(4, n_max);
             assert(NULL != atomics);
             nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options), build_setup,
               (NULL == env_options || '\0' == *env_options) ? "" : env_options,
-              EXIT_SUCCESS != opencl_libsmm_use_cmem(active_device) ? "global" : "constant", fname,
-              m_max, n_max, k_max, vm, vn, vk, typename, typename, vm, typename, vn, typename, vk,
+              EXIT_SUCCESS != opencl_libsmm_use_cmem(active_device) ? "global" : "constant",
+              fname, m_max, n_max, k_max, bm, bn, typename,
               atomic_type, atomic_cmpxchg, atomic_xchg, atomics);
             if (0 < nchar && (int)sizeof(build_options) > nchar) {
               config_t new_config;

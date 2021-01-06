@@ -366,24 +366,8 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
         cl_device_id active_device;
         result = acc_opencl_device(stream, &active_device);
         if (EXIT_SUCCESS == result) {
-          const char *const env_options = getenv("OPENCL_LIBSMM_SMM_BUILDOPTS");
-          const char *const env_atomics = getenv("OPENCL_LIBSMM_SMM_ATOMICS");
           const char *atomic_cmpxchg = NULL, *atomic_xchg = NULL;
           const char *atomic_type = NULL, *typename = NULL;
-          const char *atomics = NULL;
-          if (NULL == env_atomics || '0' != *env_atomics) {
-            if ((NULL == env_atomics && EXIT_SUCCESS != acc_opencl_device_vendor(active_device, "nvidia"))
-              || NULL != acc_opencl_stristr(env_atomics, "cmpxchg"))
-            {
-              atomics = "atomic_add_global_cmpxchg(A,B)";
-            }
-            else {
-              atomics = "atomic_add_global_xchg(A,B)";
-            }
-          }
-          else {
-            atomics = "*(A)+=(B)";
-          }
           assert(NULL != active_device);
           switch (datatype) {
             case dbcsr_type_real_8: {
@@ -409,12 +393,33 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
             default: ;
           }
           if (NULL != typename) {
+            const char *const env_options = getenv("OPENCL_LIBSMM_SMM_BUILDOPTS");
+            const char *const env_blockm = getenv("OPENCL_LIBSMM_SMM_BLOCK_M");
+            const char *const env_blockn = getenv("OPENCL_LIBSMM_SMM_BLOCK_N");
+            const int bm = LIBXSMM_MIN((NULL == env_blockm || '\0' == *env_blockm)
+              ? 4/*TODO*/ : atoi(env_blockm), m_max);
+            const int bn = LIBXSMM_MIN((NULL == env_blockn || '\0' == *env_blockn)
+              ? 4/*TODO*/ : atoi(env_blockn), n_max);
             const char *const build_setup =
               "%s -cl-fast-relaxed-math -cl-no-signed-zeros -cl-denorms-are-zero"
               " -DGLOBAL=%s -DFN=%s -DSM=%i -DSN=%i -DSK=%i -DBM=%i -DBN=%i"
               " -DT=%s -DTA=\"%s\" -DFMA=fma -DCMPXCHG=%s -DXCHG=%s"
               " -D\"ATOMIC_ADD_GLOBAL(A,B)=%s\"";
-            const int bm = LIBXSMM_MIN(4, m_max), bn = LIBXSMM_MIN(4, n_max);
+            const char *const env_atomics = getenv("OPENCL_LIBSMM_SMM_ATOMICS");
+            const char *atomics = NULL;
+            if (NULL == env_atomics || '0' != *env_atomics) {
+              if ((NULL == env_atomics && EXIT_SUCCESS != acc_opencl_device_vendor(active_device, "nvidia"))
+                || NULL != acc_opencl_stristr(env_atomics, "cmpxchg"))
+              {
+                atomics = "atomic_add_global_cmpxchg(A,B)";
+              }
+              else {
+                atomics = "atomic_add_global_xchg(A,B)";
+              }
+            }
+            else {
+              atomics = "*(A)+=(B)";
+            }
             assert(NULL != atomics);
             nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options), build_setup,
               (NULL == env_options || '\0' == *env_options) ? "" : env_options,

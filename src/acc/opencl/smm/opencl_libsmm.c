@@ -407,7 +407,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
             const char *const build_setup =
               "%s -cl-fast-relaxed-math -cl-no-signed-zeros -cl-denorms-are-zero"
               " -DGLOBAL=%s -DFN=%s -DSM=%i -DSN=%i -DSK=%i -DVM=%i -DVN=%i -DVK=%i"
-              " -DT=%s -DTM=%s%i -DTN=%s%i -DTK=%s%i -DTA=\"%s\" -DFMA=mad"
+              " -DT=%s -DTM=%s%i -DTN=%s%i -DTK=%s%i -DTA=\"%s\" -DFMA=fma"
               " -DCMPXCHG=%s -DXCHG=%s -D\"ATOMIC_ADD_GLOBAL(A,B)=%s\"";
             const int vm = LIBXSMM_LO2POT(LIBXSMM_MIN(m_max, 16));
             const int vn = LIBXSMM_LO2POT(LIBXSMM_MIN(n_max, 16));

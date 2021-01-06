@@ -46,7 +46,7 @@ kernel void FN(GLOBAL const int *restrict param_stack,
   const int i = get_local_id(0);
   const int nbm = (SM + BM - 1) / BM;
   const int nbn = (SN + BN - 1) / BN;
-  const int im = i / nbn, in = i - m * nbn
+  const int im = i / nbn, in = i - im * nbn;
   const int m0 = im * BM, m1 = min(m0 + BM, SM);
   const int n0 = in * BN, n1 = min(n0 + BN, SN);
 

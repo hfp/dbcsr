@@ -397,9 +397,9 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
             const char *const env_blockm = getenv("OPENCL_LIBSMM_SMM_BLOCK_M");
             const char *const env_blockn = getenv("OPENCL_LIBSMM_SMM_BLOCK_N");
             const int bm = LIBXSMM_MIN((NULL == env_blockm || '\0' == *env_blockm)
-              ? 4/*TODO*/ : atoi(env_blockm), m_max);
+              ? 1/*TODO*/ : atoi(env_blockm), m_max);
             const int bn = LIBXSMM_MIN((NULL == env_blockn || '\0' == *env_blockn)
-              ? 4/*TODO*/ : atoi(env_blockn), n_max);
+              ? n_max/*TODO*/ : atoi(env_blockn), n_max);
             const char *const build_setup =
               "%s -cl-fast-relaxed-math -cl-no-signed-zeros -cl-denorms-are-zero"
               " -DGLOBAL=%s -DFN=%s -DSM=%i -DSN=%i -DSK=%i -DBM=%i -DBN=%i"

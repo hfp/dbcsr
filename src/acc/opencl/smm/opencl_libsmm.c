@@ -347,6 +347,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
   {
     typedef struct config_t {
       cl_kernel kernel;
+      size_t wgsize;
     } config_t;
     struct { int m, n, k; libsmm_acc_data_t type; } key;
     config_t *config;
@@ -429,6 +430,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                 if (EXIT_SUCCESS == result) {
                   assert(0 < max_wgsize);
                   if (n_max <= max_wgsize) {
+                    new_config.wgsize = n_max;
                     config = (config_t*)OPENCL_LIBSMM_REGISTER(&key, sizeof(key),
                       sizeof(new_config), &new_config);
                   }
@@ -450,9 +452,9 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
         result = EXIT_FAILURE;
       }
     }
-    assert((NULL != config && NULL != config->kernel) || EXIT_SUCCESS != result);
+    assert((NULL != config && NULL != config->kernel && 0 < config->wgsize) || EXIT_SUCCESS != result);
     if (EXIT_SUCCESS == result) {
-      const size_t wgsize = n_max, work_size = wgsize * stack_size;
+      const size_t work_size = config->wgsize * stack_size;
 #if defined(OPENCL_LIBSMM_DEBUG_SMM)
       char *ainp = NULL, *binp = NULL, *cinp = NULL, *test = NULL, *gold = NULL, *btrn = NULL;
       const libxsmm_gemm_precision precision = (dbcsr_type_real_8 == datatype
@@ -507,7 +509,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
         ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 3, sizeof(cl_mem), ACC_OPENCL_MEM(dev_c_data)),
           "set C-matrix argument of SMM-kernel", result);
         ACC_OPENCL_CHECK(clEnqueueNDRangeKernel(*ACC_OPENCL_STREAM(stream),
-          config->kernel, 1/*work_dim*/, NULL, &work_size, &wgsize, 0, NULL, NULL),
+          config->kernel, 1/*work_dim*/, NULL, &work_size, &config->wgsize, 0, NULL, NULL),
           "launch SMM-kernel", result);
         LIBXSMM_ATOMIC_RELEASE(lock, LIBXSMM_ATOMIC_RELAXED);
       }

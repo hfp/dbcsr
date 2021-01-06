@@ -42,7 +42,7 @@ kernel void FN(GLOBAL const int *restrict param_stack,
   GLOBAL const T *const restrict awg = amat + ai, *const restrict bwg = bmat + bi;
   global T *const restrict cwg = cmat + ci;
   local T a[SM*SK], b[SK*SN];
-  private T c[BM*BN];
+  T c[BM*BN];
 
   const int idx = get_local_id(0);
   const int nbm = (SM + BM - 1) / BM;
@@ -60,12 +60,11 @@ kernel void FN(GLOBAL const int *restrict param_stack,
   barrier(CLK_LOCAL_MEM_FENCE);
   for (int m = m0; m < m1; ++m) {
     for (int n = n0; n < n1; ++n) {
-      T r = 0;
-      for (int k = 0; k < SK; ++k) {
-        /* transpose B-matrix */
-        r = FMA(a[SM*m+k], b[SN*k+n], r);
+      T *const restrict r = c + BN * (m-m0) + n-n0;
+      *r = 0;
+      for (int k = 0; k < SK; ++k) { /* transpose B-matrix */
+        *r = FMA(a[SM*m+k], b[SN*k+n], *r);
       }
-      c[BN*(m-m0)+n-n0] = r;
     }
   }
   for (int m = m0; m < m1; ++m) {

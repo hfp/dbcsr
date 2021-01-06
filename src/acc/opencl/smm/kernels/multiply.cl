@@ -50,18 +50,20 @@ kernel void FN(GLOBAL const int *restrict param_stack,
   const int m0 = im * BM, m1 = min(m0 + BM, SM);
   const int n0 = in * BN, n1 = min(n0 + BN, SN);
 
-  for (int m = m0; m < m1; ++m) { /* transpose A-matrix */
-    for (int k = 0; k < SK; ++k) a[SK*m+k] = awg[SM*k+m];
+  for (int m = m0; m < m1; ++m) { /* copy A-matrix */
+    for (int k = 0; k < SK; ++k) a[SK*m+k] = awg[SK*m+k];
   }
-  for (int k = 0; k < SK; ++k) { /* transpose B-matrix */
-    for (int n = n0; n < n1; ++n) b[SK*n+k] = bwg[SN*k+n];
+  for (int k = 0; k < SK; ++k) { /* copy B-matrix */
+    for (int n = n0; n < n1; ++n) b[SN*k+n] = bwg[SN*k+n];
   }
   barrier(CLK_LOCAL_MEM_FENCE);
   for (int m = m0; m < m1; ++m) {
     for (int n = n0; n < n1; ++n) {
       T r = 0;
-      for (int k = 0; k < SK; ++k) r = FMA(a[SK*m+k], b[SK*n+k], r);
-      ATOMIC_ADD_GLOBAL(&cwg[SM*n+m], r);
+      for (int k = 0; k < SK; ++k) {
+        r = FMA(a[SK*m+k], b[SK*n+k], r);
+      }
+      ATOMIC_ADD_GLOBAL(&cwg[SN*m+n], r);
     }
   }
 }

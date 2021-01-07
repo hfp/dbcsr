@@ -447,7 +447,10 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                     config = (config_t*)OPENCL_LIBSMM_REGISTER(&key, sizeof(key),
                       sizeof(new_config), &new_config);
                   }
-                  else result = EXIT_FAILURE;
+                  else {
+                    result = EXIT_FAILURE;
+                    ACC_OPENCL_ERROR("insufficient resources for requested tile-size", result);
+                  }
                 }
               }
             }

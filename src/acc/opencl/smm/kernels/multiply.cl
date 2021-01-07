@@ -39,23 +39,29 @@ kernel void FN(GLOBAL const int *restrict param_stack,
   global T *restrict cmat)
 {
   const int gid = get_group_id(0), idx = get_local_id(0);
-  GLOBAL const int *const restrict param_base = param_stack + gid * 3;
+  GLOBAL const int *const restrict params = param_stack + gid * 3;
   /* indexes given by param_stack are one-based */
-  const int ai = param_base[0] - 1;
-  const int bi = param_base[1] - 1;
-  const int ci = param_base[2] - 1;
+  const int ai = params[0] - 1, bi = params[1] - 1, ci = params[2] - 1;
+  global T *const restrict cwg = cmat + ci;
+  local T a[SM*SK];
+
+#if (1 != BM) || (SN != BN)
   const int im = idx / NBN;
   const int m0 = im * BM, m1 = min(m0 + BM, SM);
-#if (1 != BM) || (SN != BN)
   const int n0 = (idx - im * NBN) * BN;
   const int n1 = min(n0 + BN, SN);
-  T c[BM*BN] = { 0 };
   local T b[SK*SN];
+# if (1 < BS)
+  T c[BM*BN] = { 0 };
+# endif
 #else
+  const int m0 = idx * BM, m1 = min(m0 + BM, SM);
   const int n = idx;
-  T c[SM] = { 0 }, b[SK];
+  T b[SK];
+# if (1 < BS)
+  T c[SM] = { 0 }
+# endif
 #endif
-  local T a[SM*SK];
 
   { /* transpose A-matrix into local buffer */
     GLOBAL const T *const restrict awg = amat + ai;
@@ -79,31 +85,40 @@ kernel void FN(GLOBAL const int *restrict param_stack,
     barrier(CLK_LOCAL_MEM_FENCE);
 #if (1 != BM) || (SN != BN)
     for (int m = m0; m < m1; ++m) for (int n = n0; n < n1; ++n) {
+# if (1 < BS)
       T *const restrict r = c + BN * (m-m0) + n-n0;
-      for (int k = 0; k < SK; ++k) { /* transpose B-matrix */
-        *r = FMA(a[SK*m+k], b[SN*k+n], *r);
-      }
+      for (int k = 0; k < SK; ++k) *r = FMA(a[SK*m+k], b[SN*k+n], *r);
+# else
+      T r = 0;
+      for (int k = 0; k < SK; ++k) r = FMA(a[SK*m+k], b[SN*k+n], r);
+      ATOMIC_ADD_GLOBAL(&cwg[SM*n+m], r);
+# endif
     }
 #else
     for (int m = 0; m < SM; ++m) {
+# if (1 < BS)
       T *const restrict r = c + m;
-      for (int k = 0; k < SK; ++k) {
-        *r = FMA(a[SK*m+k], b[k], *r);
-      }
+      for (int k = 0; k < SK; ++k) *r = FMA(a[SK*m+k], b[k], *r);
+# else
+      T r = 0;
+      for (int k = 0; k < SK; ++k) r = FMA(a[SK*m+k], b[k], r);
+      ATOMIC_ADD_GLOBAL(&cwg[SM*n+m], r);
+# endif
     }
 #endif
   }
 
+#if (1 < BS)
   { /* copy private tile to global memory */
-    global T *const restrict cwg = cmat + ci;
-#if (1 != BM) || (SN != BN)
+# if (1 != BM) || (SN != BN)
     for (int m = m0; m < m1; ++m) for (int n = n0; n < n1; ++n) {
       ATOMIC_ADD_GLOBAL(&cwg[SM*n+m], c[BN*(m-m0)+n-n0]);
     }
-#else
+# else
     for (int m = 0; m < SM; ++m) {
       ATOMIC_ADD_GLOBAL(&cwg[SM*n+m], c[m]);
     }
-#endif
+# endif
   }
+#endif
 }

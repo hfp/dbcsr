@@ -420,7 +420,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                 const char *const env_options = getenv("OPENCL_LIBSMM_SMM_BUILDOPTS");
                 const char *const build_setup =
                   "%s -cl-fast-relaxed-math -cl-no-signed-zeros -cl-denorms-are-zero"
-                  " -DGLOBAL=%s -DFN=%s -DSM=%i -DSN=%i -DSK=%i -DBM=%i -DBN=%i"
+                  " -DGLOBAL=%s -DFN=%s -DSM=%i -DSN=%i -DSK=%i -DBM=%i -DBN=%i -DBS=1"
                   " -DT=%s -DTA=\"%s\" -DFMA=fma -DCMPXCHG=%s -DXCHG=%s"
                   " -D\"ATOMIC_ADD_GLOBAL(A,B)=%s\"";
                 const char *const env_atomics = getenv("OPENCL_LIBSMM_SMM_ATOMICS");

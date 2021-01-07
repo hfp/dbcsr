@@ -203,7 +203,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
 #endif
               if (EXIT_SUCCESS == result) {
                 int max_wgsize;
-                result = acc_opencl_wgsize(new_config.kernel, NULL/*preferred_multiple*/, &max_wgsize);
+                result = acc_opencl_wgsize(new_config.kernel, &max_wgsize, NULL/*preferred_multiple*/);
                 if (EXIT_SUCCESS == result) {
                   assert(0 < max_wgsize);
                   if (wgsize <= max_wgsize) {
@@ -436,7 +436,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
 #endif
               if (EXIT_SUCCESS == result) {
                 int max_wgsize;
-                result = acc_opencl_wgsize(new_config.kernel, NULL/*preferred_multiple*/, &max_wgsize);
+                result = acc_opencl_wgsize(new_config.kernel, &max_wgsize, NULL/*preferred_multiple*/);
                 if (EXIT_SUCCESS == result) {
                   const int nbm = (m_max + bm - 1) / bm;
                   const int nbn = (n_max + bn - 1) / bn;

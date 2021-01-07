@@ -407,6 +407,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
               " -D\"ATOMIC_ADD_GLOBAL(A,B)=%s\"";
             const char *const env_atomics = getenv("OPENCL_LIBSMM_SMM_ATOMICS");
             const char *atomics = NULL;
+            assert(0 < bm && 0 < bn);
             if (NULL == env_atomics || '0' != *env_atomics) {
               if ((NULL == env_atomics && EXIT_SUCCESS != acc_opencl_device_vendor(active_device, "nvidia"))
                 || NULL != acc_opencl_stristr(env_atomics, "cmpxchg"))

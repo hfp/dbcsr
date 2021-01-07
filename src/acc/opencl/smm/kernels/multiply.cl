@@ -51,12 +51,12 @@ kernel void FN(GLOBAL const int *restrict param_stack,
 #if (1 != NBN)
   const int n0 = (idx - im * NBN) * BN;
   const int n1 = min(n0 + BN, SN);
+  T c[BM*BN] = { 0 };
   local T b[SK*SN];
 #else
   const int n = idx;
-  T b[SK];
+  T c[SM] = { 0 }, b[SK];
 #endif
-  T c[BM*BN] = { 0 };
   local T a[SM*SK];
 
   { /* transpose A-matrix into local buffer */

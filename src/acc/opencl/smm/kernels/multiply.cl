@@ -38,9 +38,7 @@ kernel void FN(GLOBAL const int *restrict param_stack,
   GLOBAL const T *restrict amat, GLOBAL const T *restrict bmat,
   global T *restrict cmat)
 {
-  const int gid = get_group_id(0);
-  const int idx = get_local_id(0);
-
+  const int gid = get_group_id(0), idx = get_local_id(0);
   GLOBAL const int *const restrict param_base = param_stack + gid * 3;
   /* indexes given by param_stack are one-based */
   const int ai = param_base[0] - 1;
@@ -48,7 +46,7 @@ kernel void FN(GLOBAL const int *restrict param_stack,
   const int ci = param_base[2] - 1;
   const int im = idx / NBN;
   const int m0 = im * BM, m1 = min(m0 + BM, SM);
-#if (1 != NBN)
+#if (1 != BM) || (SN != BN)
   const int n0 = (idx - im * NBN) * BN;
   const int n1 = min(n0 + BN, SN);
   T c[BM*BN] = { 0 };
@@ -69,7 +67,7 @@ kernel void FN(GLOBAL const int *restrict param_stack,
   { /* copy B-matrix into local buffer */
     GLOBAL const T *const restrict bwg = bmat + bi;
     for (int k = 0; k < SK; ++k) {
-#if (1 != NBN)
+#if (1 != BM) || (SN != BN)
       for (int n = n0; n < n1; ++n) b[SN*k+n] = bwg[SN*k+n];
 #else
       b[k] = bwg[SN*k+n];
@@ -79,7 +77,7 @@ kernel void FN(GLOBAL const int *restrict param_stack,
 
   { /* calculate private result-tile */
     barrier(CLK_LOCAL_MEM_FENCE);
-#if (1 != NBN)
+#if (1 != BM) || (SN != BN)
     for (int m = m0; m < m1; ++m) for (int n = n0; n < n1; ++n) {
       T *const restrict r = c + BN * (m-m0) + n-n0;
       for (int k = 0; k < SK; ++k) { /* transpose B-matrix */
@@ -98,7 +96,7 @@ kernel void FN(GLOBAL const int *restrict param_stack,
 
   { /* copy private tile to global memory */
     global T *const restrict cwg = cmat + ci;
-#if (1 != NBN)
+#if (1 != BM) || (SN != BN)
     for (int m = m0; m < m1; ++m) for (int n = n0; n < n1; ++n) {
       ATOMIC_ADD_GLOBAL(&cwg[SM*n+m], c[BN*(m-m0)+n-n0]);
     }

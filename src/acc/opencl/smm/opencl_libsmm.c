@@ -449,7 +449,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                   }
                   else {
                     result = EXIT_FAILURE;
-                    ACC_OPENCL_ERROR("insufficient resources for requested tile-size", result);
+                    ACC_OPENCL_ERROR("tile-size causes too large WG-size", result);
                   }
                 }
               }

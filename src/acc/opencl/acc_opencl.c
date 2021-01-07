@@ -489,15 +489,16 @@ int acc_set_active_device(int device_id)
 }
 
 
-int acc_opencl_wgsize(cl_kernel kernel, int* max_value, int* preferred_multiple)
+int acc_opencl_wgsize(cl_device_id device, cl_kernel kernel,
+  int* max_value, int* preferred_multiple)
 {
-  cl_device_id active_id = NULL;
-  int result = acc_opencl_device(NULL/*stream*/, &active_id);
-  assert(NULL != preferred_multiple || NULL != max_value);
+  int result = (NULL != device && (NULL != preferred_multiple
+                                || NULL != max_value))
+    ? EXIT_SUCCESS : EXIT_FAILURE;
   if (NULL != kernel) { /* kernel-specific */
     if (NULL != max_value) {
       size_t value = 0;
-      ACC_OPENCL_CHECK(clGetKernelWorkGroupInfo(kernel, active_id,
+      ACC_OPENCL_CHECK(clGetKernelWorkGroupInfo(kernel, device,
         CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), &value, NULL),
         "query maximum WG-size of kernel", result);
       assert(value <= INT_MAX);
@@ -505,7 +506,7 @@ int acc_opencl_wgsize(cl_kernel kernel, int* max_value, int* preferred_multiple)
     }
     if (NULL != preferred_multiple) {
       size_t value = 0;
-      ACC_OPENCL_CHECK(clGetKernelWorkGroupInfo(kernel, active_id,
+      ACC_OPENCL_CHECK(clGetKernelWorkGroupInfo(kernel, device,
         CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE,
         sizeof(size_t), &value, NULL),
         "query preferred multiple of WG-size of kernel", result);
@@ -516,7 +517,7 @@ int acc_opencl_wgsize(cl_kernel kernel, int* max_value, int* preferred_multiple)
   else { /* device-specific */
     if (NULL != max_value) {
       size_t value = 0;
-      ACC_OPENCL_CHECK(clGetDeviceInfo(active_id,
+      ACC_OPENCL_CHECK(clGetDeviceInfo(device,
         CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(size_t), &value, NULL),
         "query maximum WG-size of device", result);
       assert(value <= INT_MAX);
@@ -525,7 +526,7 @@ int acc_opencl_wgsize(cl_kernel kernel, int* max_value, int* preferred_multiple)
     if (NULL != preferred_multiple) {
 #if defined(CL_VERSION_3_0)
       size_t value = 0;
-      ACC_OPENCL_CHECK(clGetDeviceInfo(active_id,
+      ACC_OPENCL_CHECK(clGetDeviceInfo(device,
         CL_DEVICE_PREFERRED_WORK_GROUP_SIZE_MULTIPLE,
         sizeof(size_t), &value, NULL),
         "query preferred multiple of WG-size of device", result);

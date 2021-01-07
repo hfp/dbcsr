@@ -69,7 +69,6 @@ kernel void FN(GLOBAL const int *restrict param_stack,
       for (int k = 0; k < SK; ++k) a[SK*m+k] = awg[SM*k+m];
     }
   }
-
   { /* copy B-matrix into local buffer */
     GLOBAL const T *const restrict bwg = bmat + bi;
     for (int k = 0; k < SK; ++k) {
@@ -80,9 +79,9 @@ kernel void FN(GLOBAL const int *restrict param_stack,
 #endif
     }
   }
+  barrier(CLK_LOCAL_MEM_FENCE);
 
   { /* calculate private result-tile */
-    barrier(CLK_LOCAL_MEM_FENCE);
 #if (1 != BM) || (SN != BN)
     for (int m = m0; m < m1; ++m) for (int n = n0; n < n1; ++n) {
 # if (1 < BS)

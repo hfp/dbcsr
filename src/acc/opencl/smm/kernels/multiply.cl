@@ -47,6 +47,9 @@ kernel void FN(GLOBAL const int *restrict param_stack,
 {
   const int gid = get_group_id(0), idx = get_local_id(0) / BS;
   GLOBAL const int *const restrict params = param_stack + (3 * BS) * gid;
+  /* indexes given by param_stack are one-based */
+  int a0 = params[0] - 1, b0 = params[1] - 1, c0 = params[2] - 1;
+  global T *restrict cwg = cmat + c0;
 
   local T a[SM*SK];
 #if (1 != BM) || (SN != BN)
@@ -63,10 +66,6 @@ kernel void FN(GLOBAL const int *restrict param_stack,
 
   /* intra-kernel mini-batch of SMMs */
   for (int i = 0; i < BS; ++i) {
-    /* indexes given by param_stack are one-based */
-    const int ai = params[i+0] - 1, bi = params[i+1] - 1, ci = params[i+2] - 1;
-    global T *const restrict cwg = cmat + ci;
-
 #if (1 != BM) || (SN != BN)
     const int im = idx / NBN;
     const int m0 = im * BM, m1 = min(m0 + BM, SM);
@@ -76,15 +75,28 @@ kernel void FN(GLOBAL const int *restrict param_stack,
     const int m0 = idx * BM, m1 = min(m0 + BM, SM);
     const int n = idx;
 #endif
+    int a1, b1, c1;
 
-    { /* transpose A-matrix into local buffer */
-      GLOBAL const T *const restrict awg = amat + ai;
+    if (i < (BS - 1)) {
+      a1 = params[3*i+3] - 1;
+      b1 = params[3*i+4] - 1;
+      c1 = params[3*i+5] - 1;
+    }
+    else {
+      a1 = b1 = c1 = -1;
+    }
+
+    if (a0 != a1 || 0 == i) { /* transpose A-matrix into local buffer */
+      GLOBAL const T *const restrict awg = amat + a0;
       for (int m = m0; m < m1; ++m) {
         for (int k = 0; k < SK; ++k) a[SK*m+k] = awg[SM*k+m];
       }
+      /* next iteration */
+      a0 = a1;
     }
-    { /* copy B-matrix into local buffer */
-       GLOBAL const T *const restrict bwg = bmat + bi;
+
+    if (b0 != b1 || 0 == i) { /* copy B-matrix into local buffer */
+      GLOBAL const T *const restrict bwg = bmat + b0;
       for (int k = 0; k < SK; ++k) {
 #if (1 != BM) || (SN != BN)
         for (int n = n0; n < n1; ++n) b[SN*k+n] = bwg[SN*k+n];
@@ -92,10 +104,12 @@ kernel void FN(GLOBAL const int *restrict param_stack,
         b[k] = bwg[SN*k+n];
 #endif
       }
+      /* next iteration */
+      b0 = b1;
     }
-    barrier(CLK_LOCAL_MEM_FENCE);
 
     { /* calculate private result-tile */
+      barrier(CLK_LOCAL_MEM_FENCE);
 #if (1 != BM) || (SN != BN)
       for (int m = m0; m < m1; ++m) for (int n = n0; n < n1; ++n) {
 # if (1 < BS)
@@ -122,7 +136,7 @@ kernel void FN(GLOBAL const int *restrict param_stack,
     }
 
 #if (1 < BS)
-    { /* copy private tile to global memory */
+    if (c0 != c1) { /* copy private tile to global memory */
 # if (1 != BM) || (SN != BN)
       for (int m = m0; m < m1; ++m) for (int n = n0; n < n1; ++n) {
         ATOMIC_ADD_GLOBAL(&cwg[SM*n+m], c[BN*(m-m0)+n-n0]);
@@ -132,6 +146,9 @@ kernel void FN(GLOBAL const int *restrict param_stack,
         ATOMIC_ADD_GLOBAL(&cwg[SM*n+m], c[m]);
       }
 # endif
+      /* next iteration */
+      cwg = cmat + c1;
+      c0 = c1;
     }
 #endif
   }

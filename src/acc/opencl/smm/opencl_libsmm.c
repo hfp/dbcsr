@@ -404,24 +404,17 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
               const char *const env_blockn = getenv("OPENCL_LIBSMM_SMM_BLOCK_N");
               /* TODO: load parameters from file (auto-tuned) */
               const int batchsize = ((NULL == env_batchsize || '\0' == *env_batchsize)
-                ? 0/*auto*/ : atoi(env_batchsize));
+                ? 16/*TODO*/ : atoi(env_batchsize));
               const int blockm = ((NULL == env_blockm || '\0' == *env_blockm)
                 ? 1/*TODO*/ : atoi(env_blockm));
               const int blockn = ((NULL == env_blockn || '\0' == *env_blockn)
                 ? n_max/*TODO*/ : atoi(env_blockn));
               bm = LIBXSMM_CLMP(blockm, 1, m_max);
               bn = LIBXSMM_CLMP(blockn, 1, n_max);
+              bs = LIBXSMM_MAX(batchsize, 1);
               nbm = (m_max + bm - 1) / bm;
               nbn = (n_max + bn - 1) / bn;
-              if (0 == batchsize) { /* blocksize takes precedence */
-                wgsize = nbm * nbn;
-                bs = LIBXSMM_MAX(max_wgsize / wgsize, 1);
-                wgsize *= bs;
-              }
-              else { /* batchsize takes precedence */
-                bs = LIBXSMM_CLMP(batchsize, 1, max_wgsize);
-                wgsize = bs * nbm * nbn;
-              }
+              wgsize = nbm * nbn;
               assert(1 <= bs && 0 < wgsize && 0 < max_wgsize);
               /* limit WG-size to device's maximum WG-size */
               while (max_wgsize < wgsize && (bm < m_max || bn < n_max)) {
@@ -431,7 +424,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                 else if (bm < m_max) {
                   ++bm; nbm = (m_max + bm - 1) / bm;
                 }
-                wgsize = bs * nbm * nbn;
+                wgsize = nbm * nbn;
               }
               if (wgsize <= max_wgsize) { /* SMMs can be potentially handled by device */
                 const char *const env_options = getenv("OPENCL_LIBSMM_SMM_BUILDOPTS");
@@ -506,8 +499,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
     }
     assert(EXIT_SUCCESS != result || /* otherwise config must be valid */
       (NULL != config && NULL != config->kernel
-        && 0 < config->wgsize && 1 <= config->batchsize
-        && 0 == (config->wgsize % config->batchsize)));
+        && 0 < config->wgsize && 1 <= config->batchsize));
     if (EXIT_SUCCESS == result) {
       /* adjust overall stacksize according to intra-kernel batchsize */
       const size_t work_size = ((stack_size + config->batchsize - 1) / config->batchsize) * config->wgsize;

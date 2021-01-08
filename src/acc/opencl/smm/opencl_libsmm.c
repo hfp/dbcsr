@@ -353,6 +353,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
     typedef struct config_t {
       cl_kernel kernel;
       size_t wgsize;
+      int batchsize;
     } config_t;
     struct { int m, n, k; libsmm_acc_data_t type; } key;
     config_t *config;
@@ -481,6 +482,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                   /* check planned WG-size against kernel-specific WG-size */
                   if (wgsize <= max_wgsize) {
                     new_config.wgsize = (size_t)wgsize;
+                    new_config.batchsize = bs;
                     config = (config_t*)OPENCL_LIBSMM_REGISTER(&key, sizeof(key),
                       sizeof(new_config), &new_config);
                   }
@@ -502,9 +504,11 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
         result = EXIT_FAILURE;
       }
     }
-    assert((NULL != config && NULL != config->kernel && 0 < config->wgsize) || EXIT_SUCCESS != result);
+    assert(EXIT_SUCCESS != result || /* otherwise config must be valid */
+      (NULL != config && NULL != config->kernel && 0 < config->wgsize && 1 <= config->batchsize));
     if (EXIT_SUCCESS == result) {
-      const size_t work_size = config->wgsize * stack_size;
+      /* adjust overall stacksize according to intra-kernel batchsize */
+      const size_t work_size = ((stack_size + bs - 1) / bs) * config->wgsize;
 #if defined(OPENCL_LIBSMM_DEBUG_SMM)
       char *ainp = NULL, *binp = NULL, *cinp = NULL, *test = NULL, *gold = NULL, *btrn = NULL;
       const libxsmm_gemm_precision precision = (dbcsr_type_real_8 == datatype

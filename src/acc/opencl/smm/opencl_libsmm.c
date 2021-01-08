@@ -505,7 +505,9 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
       }
     }
     assert(EXIT_SUCCESS != result || /* otherwise config must be valid */
-      (NULL != config && NULL != config->kernel && 0 < config->wgsize && 1 <= config->batchsize));
+      (NULL != config && NULL != config->kernel
+        && 0 < config->wgsize && 1 <= config->batchsize
+        && 0 == (config->wgsize % config->batchsize)));
     if (EXIT_SUCCESS == result) {
       /* adjust overall stacksize according to intra-kernel batchsize */
       const size_t work_size = ((stack_size + config->batchsize - 1) / config->batchsize) * config->wgsize;

@@ -59,6 +59,7 @@ int opencl_libsmm_use_cmem(cl_device_id device)
     sizeof(cl_ulong), &size_maxcmem, NULL), "retrieve maximum size of constant buffer", result);
   return (EXIT_SUCCESS == result ? (size_maxalloc <= size_maxcmem ? EXIT_SUCCESS : EXIT_FAILURE) : result);
 #else
+  ACC_OPENCL_UNUSED(device);
   return EXIT_FAILURE;
 #endif
 }

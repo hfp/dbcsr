@@ -35,9 +35,13 @@ inline void atomic_add_global_xchg(global volatile T* dst, T inc)
 }
 
 
-kernel void FN(int stack_size, GLOBAL const int *restrict param_stack,
+kernel void FN(global T *restrict cmat,
   GLOBAL const T *restrict amat, GLOBAL const T *restrict bmat,
-  global T *restrict cmat)
+#if (1 < BS)
+  GLOBAL const int *restrict param_stack, int stack_size)
+#else
+  GLOBAL const int *restrict param_stack)
+#endif
 {
   const int gid = get_group_id(0), idx = get_local_id(0);
   GLOBAL const int *const restrict params = param_stack + gid * (3 * BS);

@@ -140,11 +140,14 @@ kernel void FN(int stack_size, GLOBAL const int *restrict param_stack,
     if (c0 != c1) { /* copy private tile to global memory */
 # if (1 != BM) || (SN != BN)
       for (int m = m0; m < m1; ++m) for (int n = n0; n < n1; ++n) {
-        ATOMIC_ADD_GLOBAL(&cwg[SM*n+m], c[BN*(m-m0)+n-n0]);
+        T *const restrict r = c + BN * (m-m0) + n-n0;
+        ATOMIC_ADD_GLOBAL(&cwg[SM*n+m], *r);
+        *r = 0; /* reset */
       }
 # else
       for (int m = 0; m < SM; ++m) {
         ATOMIC_ADD_GLOBAL(&cwg[SM*n+m], c[m]);
+        c[m] = 0; /* reset */
       }
 # endif
       /* next iteration */

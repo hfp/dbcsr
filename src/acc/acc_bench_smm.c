@@ -47,7 +47,7 @@
 static void print(FILE* ostream, const char* label, const ELEM_TYPE* mat, int m, int n);
 #endif
 
-static void init(int seed, ELEM_TYPE* dst, int m, int n);
+static void init(int seed, ELEM_TYPE* dst, int m, int n, double scale);
 /* for comparison, adopt artificial stack-setup from other DBCSR/ACC benchmarks */
 static void init_stack(int* stack, int stack_size,
   int mn, int mk, int kn, int nc, int na, int nb);
@@ -81,6 +81,7 @@ int main(int argc, char* argv[])
   ELEM_TYPE *amat_hst = NULL, *bmat_hst = NULL, *cmat_hst = NULL;
   ELEM_TYPE *amat_dev = NULL, *bmat_dev = NULL, *cmat_dev = NULL;
   int result = EXIT_SUCCESS, ndevices = 0, r, i;
+  const double scale = 1.0 / nc;
   void *stream = NULL;
 #if defined(USE_LIBXSMM)
   libxsmm_timer_tickint start;
@@ -116,10 +117,10 @@ int main(int argc, char* argv[])
   CHECK(acc_stream_sync(stream), &result); /* ensure host-data is allocated */
   /* initialize matrices */
   for (i = 0; i < na; ++i) {
-    init(i/*seed*/ + 42, &amat_hst[i*mk], m, k);
+    init(i/*seed*/ + 42, &amat_hst[i*mk], m, k, scale);
   }
   for (i = 0; i < nb; ++i) {
-    init(i/*seed*/ + 24, &bmat_hst[i*kn], k, n);
+    init(i/*seed*/ + 24, &bmat_hst[i*kn], k, n, scale);
     trans_hst[i] = i * kn;
   }
   init_stack(stack_hst, stack_size, mn, mk, kn, nc, na, nb);
@@ -272,12 +273,13 @@ int main(int argc, char* argv[])
 }
 
 
-static void init(int seed, ELEM_TYPE* dst, int m, int n) {
+static void init(int seed, ELEM_TYPE* dst, int m, int n, double scale) {
+  const double seed1 = scale * seed + scale;
   int i, j;
   for (i = 0; i < n; ++i) {
     for (j = 0; j < m; ++j) {
       const int k = i * m + j;
-      dst[k] = (ELEM_TYPE)((seed + 1) * (k + 1));
+      dst[k] = (ELEM_TYPE)(seed1 * (k + 1));
     }
   }
 }

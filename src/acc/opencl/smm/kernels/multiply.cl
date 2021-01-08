@@ -40,7 +40,7 @@ kernel void FN(int stack_size, GLOBAL const int *restrict param_stack,
   global T *restrict cmat)
 {
   const int gid = get_group_id(0), idx = get_local_id(0);
-  GLOBAL const int *const restrict params = param_stack + (3 * BS) * gid;
+  GLOBAL const int *const restrict params = param_stack + gid * (3 * BS);
   /* indexes given by param_stack are one-based */
   int a0 = params[0] - 1, b0 = params[1] - 1, c0 = params[2] - 1;
   global T *restrict cwg = cmat + c0;

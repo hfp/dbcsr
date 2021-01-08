@@ -508,7 +508,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
       (NULL != config && NULL != config->kernel && 0 < config->wgsize && 1 <= config->batchsize));
     if (EXIT_SUCCESS == result) {
       /* adjust overall stacksize according to intra-kernel batchsize */
-      const size_t work_size = ((stack_size + bs - 1) / bs) * config->wgsize;
+      const size_t work_size = ((stack_size + config->batchsize - 1) / config->batchsize) * config->wgsize;
 #if defined(OPENCL_LIBSMM_DEBUG_SMM)
       char *ainp = NULL, *binp = NULL, *cinp = NULL, *test = NULL, *gold = NULL, *btrn = NULL;
       const libxsmm_gemm_precision precision = (dbcsr_type_real_8 == datatype

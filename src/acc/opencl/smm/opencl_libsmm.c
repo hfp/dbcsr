@@ -394,13 +394,16 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
             default: ;
           }
           if (NULL != typename) {
-            int max_wgsize, bm, bn, nbm, nbn, wgsize;
+            int max_wgsize, wgsize, bs, bm, bn, nbm, nbn;
             result = acc_opencl_wgsize(active_device, NULL/*device-specific*/,
               &max_wgsize, NULL/*preferred_multiple*/);
             if (EXIT_SUCCESS == result) {
+              const char *const env_batchsize = getenv("OPENCL_LIBSMM_SMM_BATCHSIZE");
               const char *const env_blockm = getenv("OPENCL_LIBSMM_SMM_BLOCK_M");
               const char *const env_blockn = getenv("OPENCL_LIBSMM_SMM_BLOCK_N");
-              /* TODO: load block-size from parameter file (auto-tuned) */
+              /* TODO: load parameters from file (auto-tuned) */
+              const int batchsize = ((NULL == env_batchsize || '\0' == *env_batchsize)
+                ? 0/*auto*/ : atoi(env_batchsize));
               const int blockm = ((NULL == env_blockm || '\0' == *env_blockm)
                 ? 1/*TODO*/ : atoi(env_blockm));
               const int blockn = ((NULL == env_blockn || '\0' == *env_blockn)
@@ -409,14 +412,25 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
               bn = LIBXSMM_CLMP(blockn, 1, n_max);
               nbm = (m_max + bm - 1) / bm;
               nbn = (n_max + bn - 1) / bn;
-              wgsize = nbm * nbn;
-              assert(0 < wgsize && 0 < max_wgsize);
+              if (0 == batchsize) { /* blocksize takes precedence */
+                wgsize = nbm * nbn;
+                bs = (max_wgsize + wgsize - 1) / wgsize;
+                wgsize *= bs;
+              }
+              else { /* batchsize takes precedence */
+                bs = LIBXSMM_CLMP(batchsize, 1, max_wgsize);
+                wgsize = bs * nbm * nbn;
+              }
+              assert(1 <= bs && 0 < wgsize && 0 < max_wgsize);
               /* limit WG-size to device's maximum WG-size */
               while (max_wgsize < wgsize && (bm < m_max || bn < n_max)) {
-                if (bn < n_max) ++bn; else if (bm < m_max) ++bm;
-                nbm = (m_max + bm - 1) / bm;
-                nbn = (n_max + bn - 1) / bn;
-                wgsize = nbm * nbn;
+                if (bn < n_max) {
+                  ++bn; nbn = (n_max + bn - 1) / bn;
+                }
+                else if (bm < m_max) {
+                  ++bm; nbm = (m_max + bm - 1) / bm;
+                }
+                wgsize = bs * nbm * nbn;
               }
               if (wgsize <= max_wgsize) { /* SMMs can be potentially handled by device */
                 const char *const env_options = getenv("OPENCL_LIBSMM_SMM_BUILDOPTS");
@@ -435,15 +449,15 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                 else {
                   atomics = "*(A)+=(B)";
                 }
-                assert(0 < bm && 0 < bn && NULL != atomics);
+                assert(1 <= bs && 0 < bm && 0 < bn && NULL != atomics);
                 nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options),
                   "%s -cl-fast-relaxed-math -cl-no-signed-zeros -cl-denorms-are-zero"
-                  " -DGLOBAL=%s -DFN=%s -DSM=%i -DSN=%i -DSK=%i -DBM=%i -DBN=%i -DBS=1"
+                  " -DGLOBAL=%s -DFN=%s -DSM=%i -DSN=%i -DSK=%i -DBM=%i -DBN=%i -DBS=%i"
                   " -DT=%s -DTA=\"%s\" -DFMA=fma -DCMPXCHG=%s -DXCHG=%s"
                   " -D\"ATOMIC_ADD_GLOBAL(A,B)=%s\"",
                   (NULL == env_options || '\0' == *env_options) ? "" : env_options,
                   EXIT_SUCCESS != opencl_libsmm_use_cmem(active_device) ? "global" : "constant",
-                  fname, m_max, n_max, k_max, bm, bn, typename,
+                  fname, m_max, n_max, k_max, bm, bn, bs, typename,
                   atomic_type, atomic_cmpxchg, atomic_xchg, atomics);
                 if (0 >= nchar || (int)sizeof(build_options) <= nchar) result = EXIT_FAILURE;
               }

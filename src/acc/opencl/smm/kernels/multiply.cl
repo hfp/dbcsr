@@ -7,7 +7,14 @@
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
 
+/* number of M-blocks */
+#define NBM ((SM + BM - 1) / BM)
+/* number of N-blocks */
 #define NBN ((SN + BN - 1) / BN)
+/* number of blocks (tiles) */
+#define NTL (NBM * NBN)
+/* size of workgroup (WG) */
+#define SWG (NTL * BS)
 
 
 __attribute__((always_inline))

@@ -41,11 +41,12 @@ inline void atomic_add_global_xchg(global volatile T* dst, T inc)
 }
 
 
-kernel void FN(GLOBAL const int *restrict param_stack,
+kernel void FN(int stack_size, GLOBAL const int *restrict param_stack,
   GLOBAL const T *restrict amat, GLOBAL const T *restrict bmat,
   global T *restrict cmat)
 {
   const int gid = get_group_id(0), idx = get_local_id(0) / BS;
+  const int batchsize = min(BS, stack_size - BS * gid);
   GLOBAL const int *const restrict params = param_stack + (3 * BS) * gid;
   /* indexes given by param_stack are one-based */
   int a0 = params[0] - 1, b0 = params[1] - 1, c0 = params[2] - 1;
@@ -65,7 +66,7 @@ kernel void FN(GLOBAL const int *restrict param_stack,
 #endif
 
   /* intra-kernel mini-batch of SMMs */
-  for (int i = 0; i < BS; ++i) {
+  for (int i = 0; i < batchsize; ++i) {
 #if (1 != BM) || (SN != BN)
     const int im = idx / NBN;
     const int m0 = im * BM, m1 = min(m0 + BM, SM);
@@ -77,7 +78,7 @@ kernel void FN(GLOBAL const int *restrict param_stack,
 #endif
     int a1, b1, c1;
 
-    if (i < (BS - 1)) {
+    if (i < (batchsize - 1)) {
       a1 = params[3*i+3] - 1;
       b1 = params[3*i+4] - 1;
       c1 = params[3*i+5] - 1;

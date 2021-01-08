@@ -7,14 +7,8 @@
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
 
-/* number of M-blocks */
-#define NBM ((SM + BM - 1) / BM)
 /* number of N-blocks */
 #define NBN ((SN + BN - 1) / BN)
-/* number of blocks (tiles) */
-#define NTL (NBM * NBN)
-/* size of workgroup (WG) */
-#define SWG (NTL * BS)
 
 
 __attribute__((always_inline))
@@ -45,8 +39,7 @@ kernel void FN(int stack_size, GLOBAL const int *restrict param_stack,
   GLOBAL const T *restrict amat, GLOBAL const T *restrict bmat,
   global T *restrict cmat)
 {
-  const int gid = get_group_id(0), idx = get_local_id(0) / BS;
-  const int batchsize = min(BS, stack_size - BS * gid);
+  const int gid = get_group_id(0), idx = get_local_id(0);
   GLOBAL const int *const restrict params = param_stack + (3 * BS) * gid;
   /* indexes given by param_stack are one-based */
   int a0 = params[0] - 1, b0 = params[1] - 1, c0 = params[2] - 1;
@@ -66,7 +59,11 @@ kernel void FN(int stack_size, GLOBAL const int *restrict param_stack,
 #endif
 
   /* intra-kernel mini-batch of SMMs */
-  for (int i = 0; i < batchsize; ++i) {
+#if (1 < BS)
+  const int batchsize = min(BS, stack_size - BS * gid);
+  for (int i = 0; i < batchsize; ++i)
+#endif
+  {
 #if (1 != BM) || (SN != BN)
     const int im = idx / NBN;
     const int m0 = im * BM, m1 = min(m0 + BM, SM);
@@ -76,8 +73,8 @@ kernel void FN(int stack_size, GLOBAL const int *restrict param_stack,
     const int m0 = idx * BM, m1 = min(m0 + BM, SM);
     const int n = idx;
 #endif
+#if (1 < BS)
     int a1, b1, c1;
-
     if (i < (batchsize - 1)) {
       a1 = params[3*i+3] - 1;
       b1 = params[3*i+4] - 1;
@@ -86,17 +83,26 @@ kernel void FN(int stack_size, GLOBAL const int *restrict param_stack,
     else {
       a1 = b1 = c1 = -1;
     }
+#endif
 
-    if (a0 != a1 || 0 == i) { /* transpose A-matrix into local buffer */
+#if (1 < BS)
+    if (a0 != a1 || 0 == i)
+#endif
+    { /* transpose A-matrix into local buffer */
       GLOBAL const T *const restrict awg = amat + a0;
       for (int m = m0; m < m1; ++m) {
         for (int k = 0; k < SK; ++k) a[SK*m+k] = awg[SM*k+m];
       }
+#if (1 < BS)
       /* next iteration */
       a0 = a1;
+#endif
     }
 
-    if (b0 != b1 || 0 == i) { /* copy B-matrix into local buffer */
+#if (1 < BS)
+    if (b0 != b1 || 0 == i)
+#endif
+    { /* copy B-matrix into local buffer */
       GLOBAL const T *const restrict bwg = bmat + b0;
       for (int k = 0; k < SK; ++k) {
 #if (1 != BM) || (SN != BN)
@@ -105,8 +111,10 @@ kernel void FN(int stack_size, GLOBAL const int *restrict param_stack,
         b[k] = bwg[SN*k+n];
 #endif
       }
+#if (1 < BS)
       /* next iteration */
       b0 = b1;
+#endif
     }
 
     { /* calculate private result-tile */

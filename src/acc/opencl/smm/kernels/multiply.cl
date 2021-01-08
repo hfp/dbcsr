@@ -66,7 +66,7 @@ kernel void FN(GLOBAL const int *restrict param_stack,
   const int n = idx;
   T b[SK];
 # if (1 < BS)
-  T c[SM] = { 0 }
+  T c[SM] = { 0 };
 # endif
 #endif
 

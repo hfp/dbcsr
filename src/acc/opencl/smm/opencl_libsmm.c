@@ -414,7 +414,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
               nbn = (n_max + bn - 1) / bn;
               if (0 == batchsize) { /* blocksize takes precedence */
                 wgsize = nbm * nbn;
-                bs = (max_wgsize + wgsize - 1) / wgsize;
+                bs = LIBXSMM_MAX(max_wgsize / wgsize, 1);
                 wgsize *= bs;
               }
               else { /* batchsize takes precedence */

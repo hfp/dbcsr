@@ -77,6 +77,7 @@ kernel void FN(global T *restrict cmat,
     const int m0 = idx * BM, m1 = min(m0 + BM, SM);
     const int n = idx;
 #endif
+
 #if (1 < BS)
     int a1, b1, c1;
     if (i < (batchsize - 1)) {
@@ -90,7 +91,7 @@ kernel void FN(global T *restrict cmat,
 #endif
 
 #if (1 < BS)
-    if (a0 != a1 || 0 == i)
+    /*if (a0 != a1 || 0 == i)*/
 #endif
     { /* transpose A-matrix into local buffer */
       GLOBAL const T *const restrict awg = amat + a0;
@@ -98,15 +99,14 @@ kernel void FN(global T *restrict cmat,
         for (int k = 0; k < SK; ++k) a[SK*m+k] = awg[SM*k+m];
       }
 #if (1 < BS)
-      /* next iteration */
-      a0 = a1;
+      a0 = a1; /* next iteration */
 #endif
     }
 
-#if (1 < BS)
-    if (b0 != b1 || 0 == i)
+#if (1 < BS) && (1 == BM) && (SN == BN)
+    /*if (b0 != b1 || 0 == i)*/
 #endif
-    { /* copy B-matrix into local buffer */
+    { /* copy B-matrix into local or private buffer */
       GLOBAL const T *const restrict bwg = bmat + b0;
       for (int k = 0; k < SK; ++k) {
 #if (1 != BM) || (SN != BN)
@@ -116,8 +116,7 @@ kernel void FN(global T *restrict cmat,
 #endif
       }
 #if (1 < BS)
-      /* next iteration */
-      b0 = b1;
+      b0 = b1; /* next iteration */
 #endif
     }
 
@@ -166,6 +165,7 @@ kernel void FN(global T *restrict cmat,
       cwg = cmat + c1;
       c0 = c1;
     }
+    barrier(CLK_LOCAL_MEM_FENCE);
 #endif
   }
 }

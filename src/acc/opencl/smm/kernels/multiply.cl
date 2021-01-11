@@ -90,9 +90,6 @@ kernel void FN(global T *restrict cmat,
     }
 #endif
 
-#if (1 < BS)
-    /*if (a0 != a1 || 0 == i)*/
-#endif
     { /* transpose A-matrix into local buffer */
       GLOBAL const T *const restrict awg = amat + a0;
       for (int m = m0; m < m1; ++m) {
@@ -103,9 +100,6 @@ kernel void FN(global T *restrict cmat,
 #endif
     }
 
-#if (1 < BS) && (1 == BM) && (SN == BN)
-    /*if (b0 != b1 || 0 == i)*/
-#endif
     { /* copy B-matrix into local or private buffer */
       GLOBAL const T *const restrict bwg = bmat + b0;
       for (int k = 0; k < SK; ++k) {

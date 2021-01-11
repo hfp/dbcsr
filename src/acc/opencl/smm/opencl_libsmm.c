@@ -603,9 +603,9 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
           if (tolerance < diff.normf_rel) {
 # if  LIBXSMM_VERSION3(1, 16, 1) <= LIBXSMM_VERSION3(LIBXSMM_VERSION_MAJOR, \
       LIBXSMM_VERSION_MINOR, LIBXSMM_VERSION_UPDATE) && 1014 <= LIBXSMM_VERSION_PATCH
-            fprintf(stderr, " => ERROR diff=%g (%g != %g)\n", diff.normf_rel, diff.v_ref, diff.v_tst);
+            fprintf(stderr, " => ERROR diff=%g (%g != %g)\n", diff.linf_abs, diff.v_ref, diff.v_tst);
 # else
-            fprintf(stderr, " => ERROR diff=%g\n", diff.normf_rel);
+            fprintf(stderr, " => ERROR diff=%g\n", diff.linf_abs);
 # endif
 # if defined(_DEBUG)
             opencl_libsmm_print_matrix(stderr, "gold = ", datatype, gold + ic, m_max, n_max);

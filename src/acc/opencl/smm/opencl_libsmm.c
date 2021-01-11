@@ -66,7 +66,7 @@ int opencl_libsmm_use_cmem(cl_device_id device)
 
 
 #if defined(OPENCL_LIBSMM_DEBUG) && defined(_DEBUG)
-static void opencl_libsmm_print_matrix(FILE* ostream, const char* label, libsmm_acc_data_t type, const void* mat, int m, int n)
+void opencl_libsmm_print_matrix(FILE* ostream, const char* label, libsmm_acc_data_t type, const void* mat, int m, int n)
 {
   int i, j;
   const char *const s = (NULL != label ? label : "");

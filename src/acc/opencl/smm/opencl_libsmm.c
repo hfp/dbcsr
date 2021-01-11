@@ -601,7 +601,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
           libxsmm_matdiff(&diff, (libxsmm_datatype)precision, m_max, n_max,
             gold + ic, test + ic, &m_max/*ldref*/, &m_max/*ldtst*/);
           if (tolerance < diff.normf_rel) {
-            fprintf(stderr, " => ERROR\n");
+            fprintf(stderr, " => ERROR (%g < %g)\n", tolerance, diff.normf_rel);
 # if defined(_DEBUG)
             opencl_libsmm_print_matrix(stderr, "gold = ", datatype, gold + ic, m_max, n_max);
             opencl_libsmm_print_matrix(stderr, "test = ", datatype, test + ic, m_max, n_max);

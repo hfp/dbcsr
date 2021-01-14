@@ -56,7 +56,7 @@ class SmmTuner(MeasurementInterface):
         """
         cfg = desired_result.configuration.data
         run_cmd = (
-            "OMP_PROC_BIND=TRUE"
+            "OMP_PROC_BIND=TRUE CHECK=" + str(self.args.check) +
             " OPENCL_LIBSMM_SMM_BATCHSIZE=" + str(cfg["BS"]) +
             " OPENCL_LIBSMM_SMM_BLOCK_M=" + str(cfg["BM"]) +
             " OPENCL_LIBSMM_SMM_BLOCK_N=" + str(cfg["BN"]) +
@@ -67,7 +67,7 @@ class SmmTuner(MeasurementInterface):
         run_result = self.call_program(run_cmd)
         if (0 == run_result["returncode"]):
             match = re.search(
-                "^device::\\s+([0-9]+(\\.[0-9]*)*)",
+                "^device:\\s+([0-9]+(\\.[0-9]*)*)",
                 str(run_result["stdout"]))
             assert(match is not None)
             mseconds = float(match.group(1))
@@ -99,7 +99,7 @@ if __name__ == "__main__":
         dest="n", help="Shape of SMM-kernel (N)")
     argparser.add_argument(
         "-k", "--shape-k", type=int, default=23, nargs='?',
-        dest="n", help="Shape of SMM-kernel (K)")
+        dest="k", help="Shape of SMM-kernel (K)")
     argparser.add_argument(
         "-bm", "--initial-bm", type=int, default=0, nargs='?',
         dest="bm", help="Initial block/tile size (BM)")
@@ -112,4 +112,7 @@ if __name__ == "__main__":
     argparser.add_argument(
         "-mb", "--max-bs", type=int, default=128, nargs='?',
         dest="mb", help="Maximum (mini-)batch size (BS)")
+    argparser.add_argument(
+        "-v", "--check", type=float, default=0, nargs='?',
+        dest="check", help="Validate kernel (epsilon)")
     SmmTuner.main(argparser.parse_args())

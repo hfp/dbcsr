@@ -93,14 +93,14 @@ class SmmTuner(MeasurementInterface):
 if __name__ == "__main__":
     argparser = opentuner.default_argparser()
     argparser.add_argument(
-        "-m", "--shape-m", type=int, default=23, nargs='?',
-        dest="m", help="Shape of SMM-kernel (M)")
+        "m", type=int, default=23, nargs='?',
+        help="Shape of SMM-kernel (M)")
     argparser.add_argument(
-        "-n", "--shape-n", type=int, default=23, nargs='?',
-        dest="n", help="Shape of SMM-kernel (N)")
+        "n", type=int, default=23, nargs='?',
+        help="Shape of SMM-kernel (N)")
     argparser.add_argument(
-        "-k", "--shape-k", type=int, default=23, nargs='?',
-        dest="k", help="Shape of SMM-kernel (K)")
+        "k", type=int, default=23, nargs='?',
+        help="Shape of SMM-kernel (K)")
     argparser.add_argument(
         "-bm", "--initial-bm", type=int, default=0, nargs='?',
         dest="bm", help="Initial block/tile size (BM)")

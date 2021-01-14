@@ -39,7 +39,9 @@ class SmmTuner(MeasurementInterface):
 
     def seed_configurations(self):
         if 0 == self.args.bm or 0 == self.args.bn:
-            return []
+            return [{"BM": max(self.args.m, 1),
+                     "BN": 1,
+                     "BS": 1}]
         else:
             return [{"BM": max(self.args.bm, 1),
                      "BN": max(self.args.bn, 1),

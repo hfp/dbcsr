@@ -56,14 +56,22 @@ static void init_stack(int* stack, int stack_size,
 
 int main(int argc, char* argv[])
 {
-  const int nrepeat = (1 < argc ? atoi(argv[1]) : 5);
-  const int stack_size = (2 < argc ? atoi(argv[2]) : 30000);
-  const int m = (3 < argc ? atoi(argv[3]) : 23);
-  const int n = (4 < argc ? atoi(argv[4]) : m);
-  const int k = (5 < argc ? atoi(argv[5]) : m);
-  const int nc = (6 < argc ? MIN(atoi(argv[6]), stack_size) : MAX(stack_size / 16, 1));
-  const int na = (7 < argc ? atoi(argv[7]) : (10 * nc));
-  const int nb = (8 < argc ? atoi(argv[8]) : (10 * nc));
+  const int inr = (1 < argc ? atoi(argv[1]) : 0);
+  const int iss = (2 < argc ? atoi(argv[2]) : 0);
+  const int ism = (3 < argc ? atoi(argv[3]) : 0);
+  const int isn = (4 < argc ? atoi(argv[4]) : 0);
+  const int isk = (5 < argc ? atoi(argv[5]) : 0);
+  const int inc = (6 < argc ? atoi(argv[6]) : 0);
+  const int ina = (7 < argc ? atoi(argv[7]) : 0);
+  const int inb = (8 < argc ? atoi(argv[8]) : 0);
+  const int nrepeat = (0 < inr ? inr : 5);
+  const int stack_size = (0 < iss ? iss : 30000);
+  const int m = (0 < ism ? ism : 23);
+  const int n = (0 < isn ? isn : m);
+  const int k = (0 < isk ? isk : m);
+  const int nc = (0 < inc ? MIN(inc, stack_size) : MAX(stack_size / 16, 1));
+  const int na = (0 < ina ? ina : (10 * nc));
+  const int nb = (0 < inb ? inb : (10 * nc));
 #if defined(ALIGNMENT) && (0 < ALIGNMENT)
   const int ma = (int)ROUNDUP2(sizeof(ELEM_TYPE) * m, ALIGNMENT);
   const int ka = (int)ROUNDUP2(sizeof(ELEM_TYPE) * k, ALIGNMENT);

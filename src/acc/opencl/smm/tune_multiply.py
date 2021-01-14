@@ -14,8 +14,8 @@
 #
 import opentuner
 from opentuner import ConfigurationManipulator
-from opentuner import IntegerParameter
 from opentuner import MeasurementInterface
+from opentuner import IntegerParameter
 from opentuner import Result
 import json
 import time
@@ -28,7 +28,6 @@ class SmmTuner(MeasurementInterface):
         Define the search space by creating a
         ConfigurationManipulator
         """
-        self.args.no_dups = False  # mute potential warning about duplicated configs
         param_bm = IntegerParameter("BM", 1, max(min(self.args.bm, self.args.m), 1))
         param_bn = IntegerParameter("BN", 1, max(min(self.args.bn, self.args.n), 1))
         param_bs = IntegerParameter("BS", 1, max(self.args.mb, 1))

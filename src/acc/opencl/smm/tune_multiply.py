@@ -68,17 +68,17 @@ class SmmTuner(MeasurementInterface):
         run_result = self.call_program(run_cmd)
         if (0 == run_result["returncode"]):
             match = re.search(
-                "device:\\s+([0-9]+(\\.[0-9]*)*)",
+                "device:\\s+([0-9]+(\\.[0-9]*)*) ms\\s+([0-9]+(\\.[0-9]*)*)",
                 str(run_result["stdout"]))
             assert(match is not None)
             mseconds = float(match.group(1))
-            assert(0 < mseconds)
-            frequency = 1000.0 / mseconds
-            kernelreq = (float(cfg["BS"] * cfg["BM"] * cfg["BN"])
-                         / (max(self.args.mb, 1) *
-                            max(self.args.m, 1) *
-                            max(self.args.n, 1)))
-            return Result(time=mseconds, accuracy=frequency, size=kernelreq)
+            gflops = float(match.group(2))
+            kernelreq = round((100.0 * cfg["BS"] * cfg["BM"] * cfg["BN"])
+                              / (max(self.args.mb, 1) *
+                                 max(self.args.m, 1) *
+                                 max(self.args.n, 1)))
+            # gflops are reported as "accuracy" (console output)
+            return Result(time=mseconds, accuracy=gflops, size=kernelreq)
 
     def save_final_config(self, configuration):
         """called at the end of tuning"""

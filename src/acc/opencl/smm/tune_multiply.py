@@ -74,7 +74,10 @@ class SmmTuner(MeasurementInterface):
             mseconds = float(match.group(1))
             assert(0 < mseconds)
             frequency = 1000.0 / mseconds
-            kernelreq = cfg["BS"] * cfg["BM"] * cfg["BN"]
+            kernelreq = (float(cfg["BS"] * cfg["BM"] * cfg["BN"])
+                         / (max(self.args.mb, 1) *
+                            max(self.args.m, 1) *
+                            max(self.args.n, 1)))
             return Result(time=mseconds, accuracy=frequency, size=kernelreq)
 
     def save_final_config(self, configuration):

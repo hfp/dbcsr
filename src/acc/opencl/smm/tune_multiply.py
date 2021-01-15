@@ -28,13 +28,13 @@ class SmmTuner(MeasurementInterface):
         Define the search space by creating a
         ConfigurationManipulator
         """
-        param_bm = IntegerParameter("BM", 1, max(min(self.args.bm, self.args.m), 1))
-        param_bn = IntegerParameter("BN", 1, max(min(self.args.bn, self.args.n), 1))
         param_bs = IntegerParameter("BS", 1, max(self.args.mb, 1))
+        param_bm = IntegerParameter("BM", 1, max(self.args.m, 1))
+        param_bn = IntegerParameter("BN", 1, max(self.args.n, 1))
         manipulator = ConfigurationManipulator()
+        manipulator.add_parameter(param_bs)
         manipulator.add_parameter(param_bm)
         manipulator.add_parameter(param_bn)
-        manipulator.add_parameter(param_bs)
         return manipulator
 
     def seed_configurations(self):

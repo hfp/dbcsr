@@ -86,7 +86,7 @@ class SmmTuner(MeasurementInterface):
                 str(run_result["stdout"]))
             assert(match is not None)
             mseconds = float(match.group(1))
-            gflops = float(match.group(2))
+            gflops = float(match.group(3))
             kernelreq = round((100.0 * cfg["BS"] * cfg["BM"] * cfg["BN"])
                               / (self.args.mb *
                                  self.args.m *

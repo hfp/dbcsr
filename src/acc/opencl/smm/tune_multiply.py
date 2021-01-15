@@ -19,6 +19,7 @@ from opentuner import IntegerParameter
 from opentuner import Result
 import json
 import time
+import sys
 import re
 
 
@@ -28,24 +29,37 @@ class SmmTuner(MeasurementInterface):
         Define the search space by creating a
         ConfigurationManipulator
         """
-        param_bs = IntegerParameter("BS", 1, max(self.args.mb, 1))
-        param_bm = IntegerParameter("BM", 1, max(self.args.m, 1))
-        param_bn = IntegerParameter("BN", 1, max(self.args.n, 1))
+        self.exepath = "../.."
+        self.exename = "acc_bench_smm"
+        run_result = self.call_program(self.exepath + "/" + self.exename + " 1 1 1")
+        if (0 == run_result["returncode"]):
+            match = re.search("element type:\\s+(\\w+)", str(run_result["stdout"]))
+        if (match is not None):
+            self.elemtype = match.group(1)
+        else:
+            sys.tracebacklimit = 0
+            raise RuntimeError("Execution failed for \"" +
+                               self.exepath + "/" +
+                               self.exename + "\"!")
+        # sanitize input arguments
+        self.args.m = max(self.args.m, 1)
+        self.args.n = [max(self.args.n, 1), self.args.m][0 == self.args.n]
+        self.args.k = [max(self.args.k, 1), self.args.m][0 == self.args.k]
+        self.args.mb = max(self.args.mb, 1)
+        self.args.bs = max(min(self.args.bs, self.args.mb), 1)
+        self.args.bm = [max(self.args.bm, 1), self.args.m][0 == self.args.bm]
+        self.args.bn = [max(self.args.bn, 1), 1][0 == self.args.bn]
+        # setup tunable parameters
         manipulator = ConfigurationManipulator()
-        manipulator.add_parameter(param_bs)
-        manipulator.add_parameter(param_bm)
-        manipulator.add_parameter(param_bn)
+        manipulator.add_parameter(IntegerParameter("BS", 1, self.args.mb))
+        manipulator.add_parameter(IntegerParameter("BM", 1, self.args.m))
+        manipulator.add_parameter(IntegerParameter("BN", 1, self.args.n))
         return manipulator
 
     def seed_configurations(self):
-        if 0 == self.args.bm or 0 == self.args.bn:
-            return [{"BM": max(self.args.m, 1),
-                     "BN": 1,
-                     "BS": 1}]
-        else:
-            return [{"BM": max(self.args.bm, 1),
-                     "BN": max(self.args.bn, 1),
-                     "BS": max(min(self.args.bs, self.args.mb), 1)}]
+        return [{"BS": self.args.bs,
+                 "BM": self.args.bm,
+                 "BN": self.args.bn}]
 
     def objective(self):
         return opentuner.search.objective.MaximizeAccuracyMinimizeSize()
@@ -61,9 +75,9 @@ class SmmTuner(MeasurementInterface):
             " OPENCL_LIBSMM_SMM_BATCHSIZE=" + str(cfg["BS"]) +
             " OPENCL_LIBSMM_SMM_BLOCK_M=" + str(cfg["BM"]) +
             " OPENCL_LIBSMM_SMM_BLOCK_N=" + str(cfg["BN"]) +
-            " ../../acc_bench_smm 0 0" +
-            " " + str(max(self.args.m, 1)) +
-            " " + str(max(self.args.n, 1)) +
+            " " + self.exepath + "/" + self.exename + " 0 0" +
+            " " + str(self.args.m) +
+            " " + str(self.args.n) +
             " " + str(max(self.args.k, 1)))
         run_result = self.call_program(run_cmd)
         if (0 == run_result["returncode"]):
@@ -74,18 +88,16 @@ class SmmTuner(MeasurementInterface):
             mseconds = float(match.group(1))
             gflops = float(match.group(2))
             kernelreq = round((100.0 * cfg["BS"] * cfg["BM"] * cfg["BN"])
-                              / (max(self.args.mb, 1) *
-                                 max(self.args.m, 1) *
-                                 max(self.args.n, 1)))
+                              / (self.args.mb *
+                                 self.args.m *
+                                 self.args.n))
             # gflops are reported as "accuracy" (console output)
             return Result(time=mseconds, accuracy=gflops, size=kernelreq)
 
     def save_final_config(self, configuration):
         """called at the end of tuning"""
-        filename = ("tune_multiply-" +
-                    str(max(self.args.m, 1)) + "x" +
-                    str(max(self.args.n, 1)) + "x" +
-                    str(max(self.args.k, 1)) +
+        filename = ("tune_multiply-" + self.elemtype +
+                    str(self.args.m) + "x" + str(self.args.n) + "x" + str(self.args.k) +
                     time.strftime("-%Y%m%d-%H%M%S") + ".json")
         print("Optimal block size written to " + filename + ": ", configuration.data)
         # self.manipulator().save_to_file(configuration.data, filename)
@@ -99,10 +111,10 @@ if __name__ == "__main__":
         "m", type=int, default=23, nargs='?',
         help="Shape of SMM-kernel (M)")
     argparser.add_argument(
-        "n", type=int, default=23, nargs='?',
+        "n", type=int, default=0, nargs='?',
         help="Shape of SMM-kernel (N)")
     argparser.add_argument(
-        "k", type=int, default=23, nargs='?',
+        "k", type=int, default=0, nargs='?',
         help="Shape of SMM-kernel (K)")
     argparser.add_argument(
         "-bm", "--initial-bm", type=int, default=0, nargs='?',

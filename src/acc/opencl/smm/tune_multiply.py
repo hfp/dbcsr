@@ -87,10 +87,8 @@ class SmmTuner(MeasurementInterface):
             assert(match is not None)
             mseconds = float(match.group(1))
             gflops = float(match.group(3))
-            kernelreq = round((100.0 * cfg["BS"] * cfg["BM"] * cfg["BN"])
-                              / (self.args.mb *
-                                 self.args.m *
-                                 self.args.n))
+            kernelreq = round((100.0 * cfg["BM"] * cfg["BN"])
+                              / (self.args.m * self.args.n))
             # gflops are reported as "accuracy" (console output)
             return Result(time=mseconds, accuracy=gflops, size=kernelreq)
 

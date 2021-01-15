@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
   const int inc = (6 < argc ? atoi(argv[6]) : 0);
   const int ina = (7 < argc ? atoi(argv[7]) : 0);
   const int inb = (8 < argc ? atoi(argv[8]) : 0);
-  const int nrepeat = (0 < inr ? inr : 5);
+  const int nrepeat = (0 < inr ? inr : 3);
   const int stack_size = (0 < iss ? iss : 30000);
   const int m = (0 < ism ? ism : 23);
   const int n = (0 < isn ? isn : m);

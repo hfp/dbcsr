@@ -34,12 +34,12 @@ class SmmTuner(MeasurementInterface):
         run_result = self.call_program(self.exepath + "/" + self.exename + " 1 1 1")
         if 0 == run_result["returncode"]:
             match = re.search("element type:\\s+(\\w+)", str(run_result["stdout"]))
-        if match is not None:
+        if match is not None and match.group(1):
             self.elemtype = match.group(1)
         else:
             sys.tracebacklimit = 0
             raise RuntimeError(
-                'Execution failed for "' + self.exepath + "/" + self.exename + '"!'
+                'Setup failed for "' + self.exepath + "/" + self.exename + '"!'
             )
         # sanitize input arguments
         self.args.m = max(self.args.m, 1)
@@ -95,7 +95,7 @@ class SmmTuner(MeasurementInterface):
                 "device:\\s+([0-9]+(\\.[0-9]*)*) ms\\s+([0-9]+(\\.[0-9]*)*)",
                 str(run_result["stdout"]),
             )
-            assert match is not None
+        if match is not None and match.group(1) and match.group(3):
             mseconds = float(match.group(1))
             gflops = float(match.group(3))
             kernelreq = round(
@@ -103,6 +103,17 @@ class SmmTuner(MeasurementInterface):
             )
             # gflops are reported as "accuracy" (console output)
             return Result(time=mseconds, accuracy=gflops, size=kernelreq)
+        else:
+            sys.tracebacklimit = 0
+            raise RuntimeError(
+                "Experiment failed for BSxBMxBN={"
+                + str(cfg["BS"])
+                + ","
+                + str(cfg["BM"])
+                + ","
+                + str(cfg["BN"])
+                + "}!"
+            )
 
     def save_final_config(self, configuration):
         """called at the end of tuning"""

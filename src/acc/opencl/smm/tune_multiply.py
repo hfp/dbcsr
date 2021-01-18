@@ -147,10 +147,13 @@ class SmmTuner(MeasurementInterface):
                 json.dump(configuration.data, ofile)
                 ofile.write("\n")  # append newline at EOF
             # merge all JSONs into a single CSV file
+            filename = "tune_multiply.csv"
+            jsonall = jsoncsv = 0
             merged = dict()
             for ifilename in glob.glob("*.json"):
                 with open(ifilename, "r") as ifile:
                     data = json.load(ifile)
+                    jsonall = jsonall + 1
                     try:
                         key = (data["TYPE"], data["M"], data["N"], data["K"])
                         gflops = data["GFLOPS"]
@@ -158,14 +161,24 @@ class SmmTuner(MeasurementInterface):
                             value = (gflops, data["BS"], data["BM"], data["BN"])
                             merged[key] = value
                     except KeyError:
+                        print("Ignored " + ifilename + " when merging CSV file")
                         pass
             if bool(merged):
-                with open("tune_multiply.csv", "w") as ofile:
+                with open(filename, "w") as ofile:
                     ofile.write("TYPE,M,N,K,GFLOPS,BS,BM,BN\n")
                     for key, value in merged.items():
                         strkey = ",".join([str(k) for k in key])
                         strval = ",".join([str(v) for v in value])
                         ofile.write(strkey + "," + strval + "\n")
+                        jsoncsv = jsoncsv + 1
+            print(
+                "Merged "
+                + str(jsoncsv)
+                + " of "
+                + str(jsonall)
+                + " JSONs into "
+                + filename
+            )
 
 
 if __name__ == "__main__":

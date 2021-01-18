@@ -40,7 +40,7 @@ class SmmTuner(MeasurementInterface):
         else:
             sys.tracebacklimit = 0
             raise RuntimeError(
-                'Setup failed for "' + self.exepath + "/" + self.exename + '"!'
+                "Setup failed for " + self.exepath + "/" + self.exename + "!"
             )
         # sanitize input arguments
         self.args.m = max(self.args.m, 1)
@@ -128,8 +128,19 @@ class SmmTuner(MeasurementInterface):
                 + "gflops.json"
             )
             print(
-                "Optimal block size written to " + filename + ": ", configuration.data
+                "Result achieving "
+                + str(self.gflops)
+                + " GFLOPS/s ("
+                + self.elemtype
+                + ") was written to "
+                + filename
             )
+            # extend result for easier reuse later
+            configuration.data["GFLOPS"] = self.gflops
+            configuration.data["TYPE"] = self.elemtype
+            configuration.data["M"] = self.args.m
+            configuration.data["N"] = self.args.n
+            configuration.data["K"] = self.args.k
             # self.manipulator().save_to_file(configuration.data, filename)
             with open(filename, "w") as fd:
                 json.dump(configuration.data, fd)

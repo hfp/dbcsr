@@ -18,6 +18,7 @@ from opentuner import MeasurementInterface
 from opentuner import IntegerParameter
 from opentuner import Result
 import json
+import glob
 import sys
 import re
 
@@ -142,9 +143,29 @@ class SmmTuner(MeasurementInterface):
             configuration.data["N"] = self.args.n
             configuration.data["K"] = self.args.k
             # self.manipulator().save_to_file(configuration.data, filename)
-            with open(filename, "w") as fd:
-                json.dump(configuration.data, fd)
-                fd.write("\n")  # append newline at EOF
+            with open(filename, "w") as ofile:
+                json.dump(configuration.data, ofile)
+                ofile.write("\n")  # append newline at EOF
+            # merge all JSONs into a single CSV file
+            merged = dict()
+            for ifilename in glob.glob("*.json"):
+                with open(ifilename, "r") as ifile:
+                    data = json.load(ifile)
+                    try:
+                        key = (data["TYPE"], data["M"], data["N"], data["K"])
+                        gflops = data["GFLOPS"]
+                        if (key not in merged) or (merged[key][0] < gflops):
+                            value = (gflops, data["BS"], data["BM"], data["BN"])
+                            merged[key] = value
+                    except KeyError:
+                        pass
+            if bool(merged):
+                with open("tune_multiply.csv", "w") as ofile:
+                    ofile.write("TYPE,M,N,K,GFLOPS,BS,BM,BN\n")
+                    for key, value in merged.items():
+                        strkey = ",".join([str(k) for k in key])
+                        strval = ",".join([str(v) for v in value])
+                        ofile.write(strkey + "," + strval + "\n")
 
 
 if __name__ == "__main__":

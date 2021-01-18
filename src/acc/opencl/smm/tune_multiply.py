@@ -107,7 +107,7 @@ class SmmTuner(MeasurementInterface):
             )
             # gflops are reported as "accuracy" (console output)
             return Result(time=mseconds, accuracy=gflops, size=kernelreq)
-        else:  # return an non-competitive/bad result in case of an error
+        else:  # return non-competitive/bad result in case of an error
             return Result(time=float("inf"), accuracy=0.0, size=100.0)
 
     def save_final_config(self, configuration):

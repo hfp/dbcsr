@@ -18,7 +18,6 @@ from opentuner import MeasurementInterface
 from opentuner import IntegerParameter
 from opentuner import Result
 import json
-import time
 import sys
 import re
 
@@ -51,6 +50,7 @@ class SmmTuner(MeasurementInterface):
         self.args.bs = max(min(self.args.bs, self.args.mb), 1)
         self.args.bm = [max(self.args.bm, 1), self.args.m][0 == self.args.bm]
         self.args.bn = [max(self.args.bn, 1), 1][0 == self.args.bn]
+        self.gflops = 0
         # setup tunable parameters
         manipulator = ConfigurationManipulator()
         manipulator.add_parameter(IntegerParameter("BS", 1, self.args.mb))
@@ -101,33 +101,38 @@ class SmmTuner(MeasurementInterface):
             match = None
         if (match is not None) and match.group(1) and match.group(3):
             mseconds = float(match.group(1))
-            gflops = float(match.group(3))
+            self.gflops = float(match.group(3))
             kernelreq = round(
                 (100.0 * cfg["BM"] * cfg["BN"]) / (self.args.m * self.args.n)
             )
             # gflops are reported as "accuracy" (console output)
-            return Result(time=mseconds, accuracy=gflops, size=kernelreq)
+            return Result(time=mseconds, accuracy=self.gflops, size=kernelreq)
         else:  # return non-competitive/bad result in case of an error
             return Result(time=float("inf"), accuracy=0.0, size=100.0)
 
     def save_final_config(self, configuration):
         """called at the end of tuning"""
-        filename = (
-            "tune_multiply-"
-            + self.elemtype
-            + "-"
-            + str(self.args.m)
-            + "x"
-            + str(self.args.n)
-            + "x"
-            + str(self.args.k)
-            + time.strftime("-%Y%m%d-%H%M%S")
-            + ".json"
-        )
-        print("Optimal block size written to " + filename + ": ", configuration.data)
-        # self.manipulator().save_to_file(configuration.data, filename)
-        with open(filename, "w") as fd:
-            json.dump(configuration.data, fd)
+        if 0 < self.gflops:
+            filename = (
+                "tune_multiply-"
+                + self.elemtype
+                + "-"
+                + str(self.args.m)
+                + "x"
+                + str(self.args.n)
+                + "x"
+                + str(self.args.k)
+                + "-"
+                + str(round(self.gflops))
+                + "gflops.json"
+            )
+            print(
+                "Optimal block size written to " + filename + ": ", configuration.data
+            )
+            # self.manipulator().save_to_file(configuration.data, filename)
+            with open(filename, "w") as fd:
+                json.dump(configuration.data, fd)
+                fd.write("\n")  # append newline at EOF
 
 
 if __name__ == "__main__":

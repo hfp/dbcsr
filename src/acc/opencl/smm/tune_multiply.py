@@ -101,12 +101,13 @@ class SmmTuner(MeasurementInterface):
             match = None
         if (match is not None) and match.group(1) and match.group(3):
             mseconds = float(match.group(1))
-            self.gflops = float(match.group(3))
+            gflops = float(match.group(3))
+            self.gflops = max(self.gflops, gflops)
             kernelreq = round(
                 (100.0 * cfg["BM"] * cfg["BN"]) / (self.args.m * self.args.n)
             )
             # gflops are reported as "accuracy" (console output)
-            return Result(time=mseconds, accuracy=self.gflops, size=kernelreq)
+            return Result(time=mseconds, accuracy=gflops, size=kernelreq)
         else:  # return non-competitive/bad result in case of an error
             return Result(time=float("inf"), accuracy=0.0, size=100.0)
 

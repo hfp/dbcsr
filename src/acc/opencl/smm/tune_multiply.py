@@ -115,7 +115,7 @@ class SmmTuner(MeasurementInterface):
     def save_final_config(self, configuration):
         """called at the end of tuning"""
         if 0 < self.gflops:
-            filename = (
+            ofilename = (
                 "tune_multiply-"
                 + self.elemtype
                 + "-"
@@ -134,7 +134,7 @@ class SmmTuner(MeasurementInterface):
                 + " GFLOPS/s ("
                 + self.elemtype
                 + ") was written to "
-                + filename
+                + ofilename
             )
             # extend result for easier reuse later
             configuration.data["GFLOPS"] = self.gflops
@@ -142,43 +142,48 @@ class SmmTuner(MeasurementInterface):
             configuration.data["M"] = self.args.m
             configuration.data["N"] = self.args.n
             configuration.data["K"] = self.args.k
-            # self.manipulator().save_to_file(configuration.data, filename)
-            with open(filename, "w") as ofile:
+            # self.manipulator().save_to_file(configuration.data, ofilename)
+            with open(ofilename, "w") as ofile:
                 json.dump(configuration.data, ofile)
                 ofile.write("\n")  # append newline at EOF
             # merge all JSONs into a single CSV file
-            filename = "tune_multiply.csv"
-            jsonall = jsoncsv = 0
+            filenames = glob.glob("*.json")
+            ofilename = "tune_multiply.csv"
             merged = dict()
-            for ifilename in glob.glob("*.json"):
+            for ifilename in filenames:
                 with open(ifilename, "r") as ifile:
                     data = json.load(ifile)
-                    jsonall = jsonall + 1
                     try:
                         key = (data["TYPE"], data["M"], data["N"], data["K"])
-                        gflops = data["GFLOPS"]
-                        if (key not in merged) or (merged[key][0] < gflops):
-                            value = (gflops, data["BS"], data["BM"], data["BN"])
+                        value = (data["GFLOPS"], data["BS"], data["BM"], data["BN"])
+                        if (key not in merged) or (merged[key][0] < value[0]):
                             merged[key] = value
+                        else:
+                            print(
+                                "Superfluous "
+                                + ifilename
+                                + " ignored when merging CSV file"
+                            )
                     except KeyError:
-                        print("Ignored " + ifilename + " when merging CSV file")
+                        print(
+                            "Malformed " + ifilename + " ignored when merging CSV file"
+                        )
                         pass
             if bool(merged):
-                with open(filename, "w") as ofile:
+                with open(ofilename, "w") as ofile:
                     ofile.write("TYPE,M,N,K,GFLOPS,BS,BM,BN\n")
                     for key, value in merged.items():
                         strkey = ",".join([str(k) for k in key])
                         strval = ",".join([str(v) for v in value])
                         ofile.write(strkey + "," + strval + "\n")
-                        jsoncsv = jsoncsv + 1
-            print(
-                "Merged "
-                + str(jsoncsv)
-                + " of "
-                + str(jsonall)
-                + " JSONs into "
-                + filename
-            )
+                print(
+                    "Merged "
+                    + str(len(merged))
+                    + " of "
+                    + str(len(filenames))
+                    + " JSONs into "
+                    + ofilename
+                )
 
 
 if __name__ == "__main__":

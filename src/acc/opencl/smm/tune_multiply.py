@@ -155,10 +155,19 @@ class SmmTuner(MeasurementInterface):
                     data = json.load(ifile)
                     try:
                         key = (data["TYPE"], data["M"], data["N"], data["K"])
-                        value = (data["GFLOPS"], data["BS"], data["BM"], data["BN"])
-                        if (key not in merged) or (merged[key][0] < value[0]):
+                        value = (
+                            data["GFLOPS"],
+                            data["BS"],
+                            data["BM"],
+                            data["BN"],
+                            ifilename,
+                        )
+                        if key not in merged:
                             merged[key] = value
                         else:
+                            if merged[key][0] < value[0]:
+                                ifilename = merged[key][-1]
+                                merged[key] = value
                             print(
                                 "Superfluous "
                                 + ifilename
@@ -171,11 +180,16 @@ class SmmTuner(MeasurementInterface):
                         pass
             if bool(merged):
                 with open(ofilename, "w") as ofile:
-                    ofile.write("TYPE,M,N,K,GFLOPS,BS,BM,BN\n")
-                    for key, value in merged.items():
-                        strkey = ",".join([str(k) for k in key])
-                        strval = ",".join([str(v) for v in value])
-                        ofile.write(strkey + "," + strval + "\n")
+                    ofile.write(  # CSV header line
+                        self.args.csvsep.join(
+                            ["TYPE", "M", "N", "K", "GFLOPS", "BS", "BM", "BN"]
+                        )
+                        + "\n"
+                    )
+                    for key, value in merged.items():  # CSV data lines
+                        strkey = self.args.csvsep.join([str(k) for k in key])
+                        strval = self.args.csvsep.join([str(v) for v in value[:-1]])
+                        ofile.write(strkey + self.args.csvsep + strval + "\n")
                 print(
                     "Merged "
                     + str(len(merged))
@@ -232,6 +246,15 @@ if __name__ == "__main__":
         nargs="?",
         dest="mb",
         help="Maximum (mini-)batch size (BS)",
+    )
+    argparser.add_argument(
+        "-s",
+        "--csv-separator",
+        type=(lambda c: c if isinstance(c, str) and 1 == len(c) else False),
+        default=";",
+        nargs="?",
+        dest="csvsep",
+        help="Separator used in CSV-file",
     )
     argparser.add_argument(
         "-v",

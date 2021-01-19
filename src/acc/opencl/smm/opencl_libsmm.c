@@ -88,17 +88,32 @@ void opencl_libsmm_print_matrix(FILE* ostream, const char* label, libsmm_acc_dat
 
 int libsmm_acc_init(void)
 {
+  int result;
 #if !defined(__DBCSR_ACC)
-  /* DBCSR may call acc_init() as well as libsmm_acc_init() since both interface are used.
-   * libsmm_acc_init may privately call acc_init (as it depends on the ACC interface).
-   * The implementation of acc_init() should be safe against "over initialization".
-   * However, DBCSR only calls acc_init() and expects an implicit libsmm_acc_init().
+  /* DBCSR shall call acc_init as well as libsmm_acc_init (since both interfaces are used).
+   * Also, libsmm_acc_init may privately call acc_init (as it depends on the ACC interface).
+   * The implementation of acc_init should hence be safe against "over initialization".
+   * However, DBCSR only calls acc_init (and expects an implicit libsmm_acc_init).
    */
-  ACC_OPENCL_RETURN(acc_init());
+  result = acc_init();
 #else
   /* avoid recursion */
-  return EXIT_SUCCESS;
+  result = EXIT_SUCCESS;
 #endif
+#if 0
+  if (EXIT_SUCCESS == result) {
+    opencl_libsmm_smm_t *config, new_config;
+    opencl_libsmm_smmkey_t key;
+    /* zeroing new_config once (tuned parameters are setup below) */
+    LIBXSMM_MEMZERO127(&new_config);
+    /* potentially heterogeneous key-data */
+    LIBXSMM_MEMZERO127(&key);
+    {
+      OPENCL_LIBSMM_REGISTER(&key, sizeof(key), sizeof(new_config), &new_config);
+    }
+  }
+#endif
+  ACC_OPENCL_RETURN(result);
 }
 
 
@@ -143,8 +158,8 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
   {
     opencl_libsmm_trans_t* config;
     opencl_libsmm_transkey_t key;
-    LIBXSMM_MEMZERO127(&key); /* heterogeneous key-data */
-    key.m = m; key.n = n; key.type = datatype; /* initialize key */
+    LIBXSMM_MEMZERO127(&key); /* potentially heterogeneous key-data */
+    key.type = datatype; key.m = m; key.n = n; /* initialize key */
     config = (opencl_libsmm_trans_t*)OPENCL_LIBSMM_DISPATCH(&key, sizeof(key));
     if (NULL == config) {
       char build_options[ACC_OPENCL_BUFFERSIZE], fname[32];
@@ -191,11 +206,12 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
 #endif
             if (EXIT_SUCCESS == result) {
               opencl_libsmm_trans_t new_config;
-#if defined(OPENCL_SOURCE_TRANSPOSE) && defined(OPENCL_SOURCE_TRANSPOSE_INPLACE)
+#if defined(OPENCL_LIBSMM_SOURCE_TRANSPOSE) && defined(OPENCL_LIBSMM_SOURCE_TRANSPOSE_INPLACE)
               result = acc_opencl_kernel(
-                inplace ? OPENCL_SOURCE_TRANSPOSE_INPLACE : OPENCL_SOURCE_TRANSPOSE,
+                inplace ? OPENCL_LIBSMM_SOURCE_TRANSPOSE_INPLACE : OPENCL_LIBSMM_SOURCE_TRANSPOSE,
                 build_options, fname, &new_config.kernel);
 #else
+              ACC_OPENCL_UNUSED(inplace);
               result = EXIT_FAILURE;
 #endif
               if (EXIT_SUCCESS == result) {
@@ -349,8 +365,8 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
   {
     opencl_libsmm_smm_t* config;
     opencl_libsmm_smmkey_t key;
-    LIBXSMM_MEMZERO127(&key); /* heterogeneous key-data */
-    key.m = m_max; key.n = n_max; key.k = k_max; key.type = datatype; /* initialize key */
+    LIBXSMM_MEMZERO127(&key); /* potentially heterogeneous key-data */
+    key.type = datatype; key.m = m_max; key.n = n_max; key.k = k_max; /* initialize key */
     config = (opencl_libsmm_smm_t*)OPENCL_LIBSMM_DISPATCH(&key, sizeof(key));
     if (NULL == config || NULL == config->kernel) {
       char build_options[ACC_OPENCL_BUFFERSIZE], fname[48];
@@ -454,8 +470,8 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
             }
             if (EXIT_SUCCESS == result) {
               opencl_libsmm_smm_t new_config;
-#if defined(OPENCL_SOURCE_MULTIPLY)
-              result = acc_opencl_kernel(OPENCL_SOURCE_MULTIPLY, build_options, fname, &new_config.kernel);
+#if defined(OPENCL_LIBSMM_SOURCE_MULTIPLY)
+              result = acc_opencl_kernel(OPENCL_LIBSMM_SOURCE_MULTIPLY, build_options, fname, &new_config.kernel);
 #else
               result = EXIT_FAILURE;
 #endif

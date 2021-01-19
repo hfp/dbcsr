@@ -141,15 +141,11 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
     ) &&
     0 < stack_size && 1 < mn && m <= max_kernel_dim && n <= max_kernel_dim)
   {
-    typedef struct config_t {
-      cl_kernel kernel;
-      size_t wgsize;
-    } config_t;
-    struct { int m, n; libsmm_acc_data_t type; } key;
-    config_t *config;
-    memset(&key, 0, sizeof(key)); /* heterogeneous key-data */
+    opencl_libsmm_trans_t* config;
+    opencl_libsmm_transkey_t key;
+    LIBXSMM_MEMZERO127(&key); /* heterogeneous key-data */
     key.m = m; key.n = n; key.type = datatype; /* initialize key */
-    config = (config_t*)OPENCL_LIBSMM_DISPATCH(&key, sizeof(key));
+    config = (opencl_libsmm_trans_t*)OPENCL_LIBSMM_DISPATCH(&key, sizeof(key));
     if (NULL == config) {
       char build_options[ACC_OPENCL_BUFFERSIZE], fname[32];
       int nchar = ACC_OPENCL_SNPRINTF(fname, sizeof(fname), "xtrans%ix%i", m, n);
@@ -194,7 +190,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
               : ('0' != *env_inplace));
 #endif
             if (EXIT_SUCCESS == result) {
-              config_t new_config;
+              opencl_libsmm_trans_t new_config;
 #if defined(OPENCL_SOURCE_TRANSPOSE) && defined(OPENCL_SOURCE_TRANSPOSE_INPLACE)
               result = acc_opencl_kernel(
                 inplace ? OPENCL_SOURCE_TRANSPOSE_INPLACE : OPENCL_SOURCE_TRANSPOSE,
@@ -210,7 +206,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
                   assert(0 < max_wgsize);
                   if (wgsize <= max_wgsize) {
                     new_config.wgsize = (size_t)wgsize;
-                    config = (config_t*)OPENCL_LIBSMM_REGISTER(&key, sizeof(key),
+                    config = (opencl_libsmm_trans_t*)OPENCL_LIBSMM_REGISTER(&key, sizeof(key),
                       sizeof(new_config), &new_config);
                   }
                   else result = EXIT_FAILURE;
@@ -351,17 +347,12 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
     0 < n_max && n_max <= max_kernel_dim &&
     0 < k_max && k_max <= max_kernel_dim)
   {
-    typedef struct config_t {
-      cl_kernel kernel;
-      size_t wgsize;
-      int batchsize;
-    } config_t;
-    struct { int m, n, k; libsmm_acc_data_t type; } key;
-    config_t *config;
-    memset(&key, 0, sizeof(key)); /* heterogeneous key-data */
+    opencl_libsmm_smm_t* config;
+    opencl_libsmm_smmkey_t key;
+    LIBXSMM_MEMZERO127(&key); /* heterogeneous key-data */
     key.m = m_max; key.n = n_max; key.k = k_max; key.type = datatype; /* initialize key */
-    config = (config_t*)OPENCL_LIBSMM_DISPATCH(&key, sizeof(key));
-    if (NULL == config) {
+    config = (opencl_libsmm_smm_t*)OPENCL_LIBSMM_DISPATCH(&key, sizeof(key));
+    if (NULL == config || NULL == config->kernel) {
       char build_options[ACC_OPENCL_BUFFERSIZE], fname[48];
       int nchar = ACC_OPENCL_SNPRINTF(fname, sizeof(fname), "xmm%ix%ix%i", m_max, n_max, k_max);
       const char* extensions = NULL;
@@ -405,11 +396,11 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
               const char *const env_blockn = getenv("OPENCL_LIBSMM_SMM_BLOCK_N");
               /* TODO: load parameters from file (auto-tuned) */
               const int batchsize = ((NULL == env_batchsize || '\0' == *env_batchsize)
-                ? 32/*TODO*/ : atoi(env_batchsize));
+                ? (NULL == config ? 32/*default*/ : config->bs) : atoi(env_batchsize));
               const int blockm = ((NULL == env_blockm || '\0' == *env_blockm)
-                ? m_max/*TODO*/ : atoi(env_blockm));
+                ? (NULL == config ? m_max/*default*/ : config->bm) : atoi(env_blockm));
               const int blockn = ((NULL == env_blockn || '\0' == *env_blockn)
-                ? 1/*TODO*/ : atoi(env_blockn));
+                ? (NULL == config ? 1/*default*/ : config->bm) : atoi(env_blockn));
               bm = LIBXSMM_CLMP(blockm, 1, m_max);
               bn = LIBXSMM_CLMP(blockn, 1, n_max);
               bs = LIBXSMM_MAX(batchsize, 1);
@@ -462,7 +453,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
               }
             }
             if (EXIT_SUCCESS == result) {
-              config_t new_config;
+              opencl_libsmm_smm_t new_config;
 #if defined(OPENCL_SOURCE_MULTIPLY)
               result = acc_opencl_kernel(OPENCL_SOURCE_MULTIPLY, build_options, fname, &new_config.kernel);
 #else
@@ -476,8 +467,10 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                   /* check planned WG-size against kernel-specific WG-size */
                   if (wgsize <= max_wgsize) {
                     new_config.wgsize = (size_t)wgsize;
-                    new_config.batchsize = bs;
-                    config = (config_t*)OPENCL_LIBSMM_REGISTER(&key, sizeof(key),
+                    new_config.bs = bs;
+                    new_config.bm = bm;
+                    new_config.bn = bn;
+                    config = (opencl_libsmm_smm_t*)OPENCL_LIBSMM_REGISTER(&key, sizeof(key),
                       sizeof(new_config), &new_config);
                   }
                   else {
@@ -497,14 +490,18 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
       else {
         result = EXIT_FAILURE;
       }
+      /* remove configuration from registry to avoid infinitely retrying code generation */
+      if (EXIT_SUCCESS != result && NULL != config) {
+        libxsmm_xrelease(&key, sizeof(key));
+      }
     }
     assert(EXIT_SUCCESS != result || /* otherwise config must be valid */
       (NULL != config && NULL != config->kernel
-        && 1 <= config->batchsize
+        && 1 <= config->bs && 0 < config->bm && 0 < config->bn
         && 0 < config->wgsize));
     if (EXIT_SUCCESS == result) {
       /* adjust overall stacksize according to intra-kernel batchsize */
-      const size_t work_size = ((stack_size + config->batchsize - 1) / config->batchsize) * config->wgsize;
+      const size_t work_size = ((stack_size + config->bs - 1) / config->bs) * config->wgsize;
 #if defined(OPENCL_LIBSMM_DEBUG_SMM)
       char *ainp = NULL, *binp = NULL, *cinp = NULL, *test = NULL, *gold = NULL, *btrn = NULL;
       const libxsmm_gemm_precision precision = (dbcsr_type_real_8 == datatype
@@ -558,7 +555,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
           "set B-matrix argument of SMM-kernel", result);
         ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 3, sizeof(cl_mem), ACC_OPENCL_MEM(dev_param_stack)),
           "set batch-list argument of SMM-kernel", result);
-        if (1 < config->batchsize) {
+        if (1 < config->bs) {
           ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 4, sizeof(int), &stack_size),
             "set stacksize argument of SMM-kernel", result);
         }

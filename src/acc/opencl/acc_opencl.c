@@ -265,10 +265,10 @@ int acc_init(void)
       acc_opencl_ndevices = -1;
     }
 #if defined(__DBCSR_ACC)
-    /* DBCSR may call acc_init() as well as libsmm_acc_init() since both interface are used.
-     * libsmm_acc_init may privately call acc_init (as it depends on the ACC interface).
-     * The implementation of acc_init() should be safe against "over initialization".
-     * However, DBCSR only calls acc_init() and expects an implicit libsmm_acc_init().
+    /* DBCSR shall call acc_init as well as libsmm_acc_init (since both interfaces are used).
+     * Also, libsmm_acc_init may privately call acc_init (as it depends on the ACC interface).
+     * The implementation of acc_init should hence be safe against "over initialization".
+     * However, DBCSR only calls acc_init (and expects an implicit libsmm_acc_init).
      */
     if (EXIT_SUCCESS == result) {
       result = libsmm_acc_init();

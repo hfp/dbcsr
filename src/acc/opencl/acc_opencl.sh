@@ -32,8 +32,8 @@ if [ "${BASENAME}" ] && [ "${SED}" ] && [ "${RM}" ]; then
     NFILES_CSV=0
     for IFILE in $@; do
       if [ "${IFILE}" != "${OFILE}" ]; then
-        if [ -e ${IFILE} ]; then
-          if [ "${IFILE##*.}" = "cl" ]; then
+        if [ "${IFILE##*.}" = "cl" ]; then
+          if [ -e ${IFILE} ]; then
             BNAME=$(${BASENAME} "${IFILE}" .cl)
             VNAME=opencl_libsmm_source_${BNAME}
             MNAME=$(echo ${VNAME} | tr '[:lower:]' '[:upper:]')
@@ -53,7 +53,14 @@ if [ "${BASENAME}" ] && [ "${SED}" ] && [ "${RM}" ]; then
               >>${OFILE}
             echo ";" >>${OFILE}
             NFILES_OCL=$((NFILES_OCL+1))
-          elif [ "${IFILE##*.}" = "csv" ]; then
+          else
+            >&2 echo "ERROR: ${IFILE} does not exist!"
+            rm -f ${OFILE}
+            exit 1
+          fi
+        elif [ "${IFILE##*.}" = "csv" ]; then
+          # non-existence does not trigger an error
+          if [ -e ${IFILE} ]; then
             VNAME=opencl_libsmm_params_smm
             MNAME=$(echo ${VNAME} | tr '[:lower:]' '[:upper:]')
             echo "#define ${MNAME} ${VNAME}" >>${OFILE}
@@ -61,13 +68,9 @@ if [ "${BASENAME}" ] && [ "${SED}" ] && [ "${RM}" ]; then
             ${SED} 's/^/  "/;s/$/\\n"/;1d' ${IFILE} >>${OFILE}
             echo ";" >>${OFILE}
             NFILES_CSV=$((NFILES_CSV+1))
-          else
-            >&2 echo "ERROR: ${IFILE} is not an OpenCL or CSV file!"
-            rm -f ${OFILE}
-            exit 1
           fi
         else
-          >&2 echo "ERROR: ${IFILE} does not exist!"
+          >&2 echo "ERROR: ${IFILE} is not an OpenCL or CSV file!"
           rm -f ${OFILE}
           exit 1
         fi

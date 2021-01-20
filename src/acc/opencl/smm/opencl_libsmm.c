@@ -12,6 +12,9 @@
 #include "opencl_kernels.h"
 #include <libxsmm_sync.h>
 #include <assert.h>
+#if defined(_OPENMP)
+# include <omp.h>
+#endif
 
 #if LIBXSMM_VERSION3(1, 16, 1) <= LIBXSMM_VERSION3(LIBXSMM_VERSION_MAJOR, \
     LIBXSMM_VERSION_MINOR, LIBXSMM_VERSION_UPDATE) && 808 <= LIBXSMM_VERSION_PATCH
@@ -88,39 +91,63 @@ void opencl_libsmm_print_matrix(FILE* ostream, const char* label, libsmm_acc_dat
 
 int libsmm_acc_init(void)
 {
-  int result;
+#if defined(_OPENMP)
+  /* initialization/finalization is not meant to be thread-safe */
+  int result = (0 == omp_in_parallel() ? EXIT_SUCCESS : EXIT_FAILURE);
+#else
+  int result = EXIT_SUCCESS;
+#endif
 #if !defined(__DBCSR_ACC)
   /* DBCSR shall call acc_init as well as libsmm_acc_init (since both interfaces are used).
    * Also, libsmm_acc_init may privately call acc_init (as it depends on the ACC interface).
    * The implementation of acc_init should hence be safe against "over initialization".
    * However, DBCSR only calls acc_init (and expects an implicit libsmm_acc_init).
    */
-  result = acc_init();
-#else
-  /* avoid recursion */
-  result = EXIT_SUCCESS;
-#endif
-#if 0
   if (EXIT_SUCCESS == result) {
-    opencl_libsmm_smm_t *config, new_config;
-    opencl_libsmm_smmkey_t key;
-    /* zeroing new_config once (tuned parameters are setup below) */
-    LIBXSMM_MEMZERO127(&new_config);
-    /* potentially heterogeneous key-data */
-    LIBXSMM_MEMZERO127(&key);
-    {
-      OPENCL_LIBSMM_REGISTER(&key, sizeof(key), sizeof(new_config), &new_config);
-    }
+    result = acc_init();
   }
 #endif
+  if (EXIT_SUCCESS == result) {
+    char buffer[ACC_OPENCL_BUFFERSIZE];
+    const char *const env_params = getenv("OPENCL_LIBSMM_SMM_PARAMS");
+    opencl_libsmm_smm_t config;
+    opencl_libsmm_smmkey_t key;
+    /* zeroing config once (tuned parameters are setup below) */
+    LIBXSMM_MEMZERO127(&config);
+    /* potentially heterogeneous key-data */
+    LIBXSMM_MEMZERO127(&key);
+    if (NULL == env_params || '0' != *env_params) {
+      if (NULL != env_params && '\0' != *env_params) {
+        FILE *const file = fopen(env_params, "r");
+        while (NULL != fgets(buffer, ACC_OPENCL_BUFFERSIZE, file)) {
+          printf("DEBUG: %s\n", buffer);
+        }
+      }
+#if defined(OPENCL_LIBSMM_PARAMS_SMM) && 0
+      else {
+        const char* end = strchr(OPENCL_LIBSMM_PARAMS_SMM, '\n');
+        {
+          const int nchar = ACC_OPENCL_SNPRINTF(buffer, ACC_OPENCL_BUFFERSIZE, "%s", path);
+          OPENCL_LIBSMM_REGISTER(&key, sizeof(key), sizeof(config), &config);
+        }
+      }
+#endif
+    }
+  }
   ACC_OPENCL_RETURN(result);
 }
 
 
 int libsmm_acc_finalize(void)
 {
-  /* acc_finalize() is not called since it can be used independently  */
-  return EXIT_SUCCESS;
+#if defined(_OPENMP)
+  /* initialization/finalization is not meant to be thread-safe */
+  int result = (0 == omp_in_parallel() ? EXIT_SUCCESS : EXIT_FAILURE);
+#else
+  int result = EXIT_SUCCESS;
+#endif
+  /* acc_finalize() is not called since it can be used independently */
+  return result;
 }
 
 
@@ -482,12 +509,18 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                   assert(0 < wgsize && 0 < max_wgsize);
                   /* check planned WG-size against kernel-specific WG-size */
                   if (wgsize <= max_wgsize) {
-                    new_config.wgsize = (size_t)wgsize;
-                    new_config.bs = bs;
-                    new_config.bm = bm;
-                    new_config.bn = bn;
-                    config = (opencl_libsmm_smm_t*)OPENCL_LIBSMM_REGISTER(&key, sizeof(key),
-                      sizeof(new_config), &new_config);
+                    if (NULL == config) {
+                      config = (opencl_libsmm_smm_t*)OPENCL_LIBSMM_REGISTER(
+                        &key, sizeof(key), sizeof(new_config), &new_config);
+                    }
+                    if (NULL != config) {
+                      config->wgsize = (size_t)wgsize;
+                      config->bs = bs; config->bm = bm; config->bn = bn;
+                      config->kernel = new_config.kernel;
+                    }
+                    else { /* failed to register config */
+                      result = EXIT_FAILURE;
+                    }
                   }
                   else {
                     result = EXIT_FAILURE;

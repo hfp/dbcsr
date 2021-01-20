@@ -33,11 +33,12 @@ class SmmTuner(MeasurementInterface):
         self.exename = "acc_bench_smm"
         run_result = self.call_program(self.exepath + "/" + self.exename + " 1 1 1")
         if 0 == run_result["returncode"]:
-            match = re.search("element type:\\s+(\\w+)", str(run_result["stdout"]))
+            match = re.search("element type:\\s+(\\w+)\\s+\([0-9]+\)", str(run_result["stdout"]))
         else:
             match = None
         if (match is not None) and match.group(1):
-            self.elemtype = match.group(1)
+            self.typename = match.group(1)
+            self.typeid = match.group(2)
         else:
             sys.tracebacklimit = 0
             raise RuntimeError(
@@ -117,7 +118,7 @@ class SmmTuner(MeasurementInterface):
         if 0 < self.gflops:
             ofilename = (
                 "tune_multiply-"
-                + self.elemtype
+                + self.typename
                 + "-"
                 + str(self.args.m)
                 + "x"
@@ -132,13 +133,13 @@ class SmmTuner(MeasurementInterface):
                 "Result achieving "
                 + str(self.gflops)
                 + " GFLOPS/s ("
-                + self.elemtype
+                + self.typename
                 + ") was written to "
                 + ofilename
             )
             # extend result for easier reuse later
             configuration.data["GFLOPS"] = self.gflops
-            configuration.data["TYPE"] = self.elemtype
+            configuration.data["TYPEID"] = self.typeid
             configuration.data["M"] = self.args.m
             configuration.data["N"] = self.args.n
             configuration.data["K"] = self.args.k
@@ -154,7 +155,7 @@ class SmmTuner(MeasurementInterface):
                     with open(ifilename, "r") as ifile:
                         data = json.load(ifile)
                         try:
-                            key = (data["TYPE"], data["M"], data["N"], data["K"])
+                            key = (data["TYPEID"], data["M"], data["N"], data["K"])
                             value = (
                                 data["GFLOPS"],
                                 data["BS"],
@@ -184,7 +185,7 @@ class SmmTuner(MeasurementInterface):
                     with open(self.args.csvfile, "w") as ofile:
                         ofile.write(  # CSV header line
                             self.args.csvsep.join(
-                                ["TYPE", "M", "N", "K", "GFLOPS", "BS", "BM", "BN"]
+                                ["TYPEID", "M", "N", "K", "GFLOPS", "BS", "BM", "BN"]
                             )
                             + "\n"
                         )

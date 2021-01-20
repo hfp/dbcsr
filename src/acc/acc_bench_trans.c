@@ -99,7 +99,7 @@ int main(int argc, char* argv[])
     CHECK(acc_finalize(), NULL);
     return result;
   }
-  printf("element type: %s (%i)\n", DBCSR_STRINGIFY(ELEM_TYPE), DBCSR_TYPE(T));
+  printf("element type: %s (%i)\n", DBCSR_STRINGIFY(ELEM_TYPE), DBCSR_TYPE(ELEM_TYPE));
 #if defined(PRIORITY)
   CHECK(acc_stream_priority_range(&priomin, &priomax), &result);
   CHECK(acc_stream_create(&stream, "stream", (priomin + priomax) / 2), &result);

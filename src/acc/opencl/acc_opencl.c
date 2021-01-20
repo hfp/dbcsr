@@ -129,7 +129,8 @@ int acc_opencl_order_devices(const void* dev_a, const void* dev_b)
 
 int acc_init(void)
 {
-#if defined(_OPENMP) && defined(ACC_OPENCL_THREADLOCAL_CONTEXT)
+#if defined(_OPENMP)
+  /* initialization/finalization is not meant to be thread-safe */
   int result = (0 == omp_in_parallel() ? EXIT_SUCCESS : EXIT_FAILURE);
 #else
   int result = EXIT_SUCCESS;
@@ -281,7 +282,8 @@ int acc_init(void)
 
 int acc_finalize(void)
 {
-#if defined(_OPENMP) && defined(ACC_OPENCL_THREADLOCAL_CONTEXT)
+#if defined(_OPENMP)
+  /* initialization/finalization is not meant to be thread-safe */
   int result = (0 == omp_in_parallel() ? EXIT_SUCCESS : EXIT_FAILURE);
 #else
   int result = EXIT_SUCCESS;

@@ -119,8 +119,20 @@ int libsmm_acc_init(void)
     if (NULL == env_params || '0' != *env_params) {
       if (NULL != env_params && '\0' != *env_params) {
         FILE *const file = fopen(env_params, "r");
+        int nlines = 0; /* used to skip CSV header line*/
         while (NULL != fgets(buffer, ACC_OPENCL_BUFFERSIZE, file)) {
-          printf("DEBUG: %s\n", buffer);
+          if (0 < nlines) {
+            const char* s = strtok(buffer, OPENCL_LIBSMM_PARAMS_DELIMS);
+            printf("DEBUG: ");
+            for (; NULL != s; s = strtok(NULL, OPENCL_LIBSMM_PARAMS_DELIMS)) {
+              int v;
+              if (1 == sscanf(s, "%i", &v)) {
+                printf("%i ", v);
+              }
+            }
+            printf("\n");
+          }
+          ++nlines;
         }
       }
 #if defined(OPENCL_LIBSMM_PARAMS_SMM) && 0

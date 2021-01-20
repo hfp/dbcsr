@@ -96,7 +96,7 @@ int opencl_libsmm_read_params(char* parambuf,
   int consumed = 0, t = 0, i;
   assert(NULL != key && NULL != value);
   for (; NULL != s; s = strtok(NULL, OPENCL_LIBSMM_PARAMS_DELIMS), ++t) {
-    switch (i) {
+    switch (t) {
       case 0: if (1 == sscanf(s, "%i", &i)) {
         key->type = (libsmm_acc_data_t)i; ++consumed;
       } break;
@@ -173,7 +173,7 @@ int libsmm_acc_init(void)
       else {
         const char* line = OPENCL_LIBSMM_PARAMS_SMM, *next;
         do {
-          next = strchr(OPENCL_LIBSMM_PARAMS_SMM, '\n');
+          next = strchr(line, '\n');
           if (NULL != next && next < (line + ACC_OPENCL_BUFFERSIZE)) {
             const int len = next - line;
             memcpy(buffer, line, len); buffer[len] = '\0';
@@ -183,7 +183,7 @@ int libsmm_acc_init(void)
             {
               result = EXIT_FAILURE; break;
             }
-            line = next + 1;
+            line = ++next;
           }
         } while (NULL != next);
       }

@@ -499,7 +499,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
               const int blockm = ((NULL == env_blockm || '\0' == *env_blockm)
                 ? (NULL == config ? m_max/*default*/ : config->bm) : atoi(env_blockm));
               const int blockn = ((NULL == env_blockn || '\0' == *env_blockn)
-                ? (NULL == config ? 1/*default*/ : config->bm) : atoi(env_blockn));
+                ? (NULL == config ? 1/*default*/ : config->bn) : atoi(env_blockn));
               bm = LIBXSMM_CLMP(blockm, 1, m_max);
               bn = LIBXSMM_CLMP(blockn, 1, n_max);
               bs = LIBXSMM_MAX(batchsize, 1);

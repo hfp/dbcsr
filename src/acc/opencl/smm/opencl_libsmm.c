@@ -89,6 +89,41 @@ void opencl_libsmm_print_matrix(FILE* ostream, const char* label, libsmm_acc_dat
 #endif
 
 
+int opencl_libsmm_read_params(char* parambuf,
+  opencl_libsmm_smmkey_t* key, opencl_libsmm_smm_t* value)
+{
+  const char* s = strtok(parambuf, OPENCL_LIBSMM_PARAMS_DELIMS);
+  int consumed = 0, t = 0, i;
+  assert(NULL != key && NULL != value);
+  for (; NULL != s; s = strtok(NULL, OPENCL_LIBSMM_PARAMS_DELIMS), ++t) {
+    switch (i) {
+      case 0: if (1 == sscanf(s, "%i", &i)) {
+        key->type = (libsmm_acc_data_t)i; ++consumed;
+      } break;
+      case 1: if (1 == sscanf(s, "%i", &i)) {
+        key->m = i; ++consumed;
+      } break;
+      case 2: if (1 == sscanf(s, "%i", &i)) {
+        key->n = i; ++consumed;
+      } break;
+      case 3: if (1 == sscanf(s, "%i", &i)) {
+        key->k = i; ++consumed;
+      } break;
+      case 5: if (1 == sscanf(s, "%i", &i)) {
+        value->bs = i; ++consumed;
+      } break;
+      case 6: if (1 == sscanf(s, "%i", &i)) {
+        value->bm = i; ++consumed;
+      } break;
+      case 7: if (1 == sscanf(s, "%i", &i)) {
+        value->bn = i; ++consumed;
+      } break;
+    }
+  }
+  return (7 == consumed ? EXIT_SUCCESS : EXIT_FAILURE);
+}
+
+
 int libsmm_acc_init(void)
 {
 #if defined(_OPENMP)
@@ -119,29 +154,38 @@ int libsmm_acc_init(void)
     if (NULL == env_params || '0' != *env_params) {
       if (NULL != env_params && '\0' != *env_params) {
         FILE *const file = fopen(env_params, "r");
-        int nlines = 0; /* used to skip CSV header line*/
-        while (NULL != fgets(buffer, ACC_OPENCL_BUFFERSIZE, file)) {
-          if (0 < nlines) {
-            const char* s = strtok(buffer, OPENCL_LIBSMM_PARAMS_DELIMS);
-            printf("DEBUG: ");
-            for (; NULL != s; s = strtok(NULL, OPENCL_LIBSMM_PARAMS_DELIMS)) {
-              int v;
-              if (1 == sscanf(s, "%i", &v)) {
-                printf("%i ", v);
-              }
-            }
-            printf("\n");
+        /* consume first line and skip CSV header line */
+        if (NULL == file || NULL == fgets(buffer, ACC_OPENCL_BUFFERSIZE, file)) {
+          result = EXIT_FAILURE;
+        }
+        while (EXIT_SUCCESS == result &&
+          NULL != fgets(buffer, ACC_OPENCL_BUFFERSIZE, file))
+        {
+          result = opencl_libsmm_read_params(buffer, &key, &config);
+          if (EXIT_SUCCESS == result &&
+            NULL == OPENCL_LIBSMM_REGISTER(&key, sizeof(key), sizeof(config), &config))
+          {
+            result = EXIT_FAILURE;
           }
-          ++nlines;
         }
       }
-#if defined(OPENCL_LIBSMM_PARAMS_SMM) && 0
+#if defined(OPENCL_LIBSMM_PARAMS_SMM)
       else {
-        const char* end = strchr(OPENCL_LIBSMM_PARAMS_SMM, '\n');
-        {
-          const int nchar = ACC_OPENCL_SNPRINTF(buffer, ACC_OPENCL_BUFFERSIZE, "%s", path);
-          OPENCL_LIBSMM_REGISTER(&key, sizeof(key), sizeof(config), &config);
-        }
+        const char* line = OPENCL_LIBSMM_PARAMS_SMM, *next;
+        do {
+          next = strchr(OPENCL_LIBSMM_PARAMS_SMM, '\n');
+          if (NULL != next && next < (line + ACC_OPENCL_BUFFERSIZE)) {
+            const int len = next - line;
+            memcpy(buffer, line, len); buffer[len] = '\0';
+            result = opencl_libsmm_read_params(buffer, &key, &config);
+            if (EXIT_SUCCESS == result &&
+              NULL == OPENCL_LIBSMM_REGISTER(&key, sizeof(key), sizeof(config), &config))
+            {
+              result = EXIT_FAILURE; break;
+            }
+            line = next + 1;
+          }
+        } while (NULL != next);
       }
 #endif
     }

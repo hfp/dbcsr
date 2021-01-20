@@ -86,6 +86,8 @@ int main(int argc, char* argv[])
   assert(m <= (mn / n) && 0 == (mn % n));
   printf("%s%s%i %i %i %i\n", 0 < argc ? argv[0] : "", 0 < argc ? " " : "", nrepeat, stack_size, m, n);
   CHECK(acc_init(), &result);
+  /* libsmm_acc_init() should imply acc_init() */
+  CHECK(libsmm_acc_init(), &result);
   CHECK(acc_get_ndevices(&ndevices), &result);
   if (0 < ndevices) {
 #if defined(_DEBUG)

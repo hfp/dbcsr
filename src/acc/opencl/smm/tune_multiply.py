@@ -33,7 +33,9 @@ class SmmTuner(MeasurementInterface):
         self.exename = "acc_bench_smm"
         run_result = self.call_program(self.exepath + "/" + self.exename + " 1 1 1")
         if 0 == run_result["returncode"]:
-            match = re.search("typename \(id=([0-9]+)\):\\s+(\\w+)", str(run_result["stdout"]))
+            match = re.search(
+                "typename \\(id=([0-9]+)\\):\\s+(\\w+)", str(run_result["stdout"])
+            )
         else:
             match = None
         if (match is not None) and match.group(1) and match.group(2):

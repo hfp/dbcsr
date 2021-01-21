@@ -98,7 +98,7 @@ if [ "${SED}" ] && [ "${WC}" ] && [ "${RM}" ]; then
       TRIPLET=$(echo "${MNK}" | ${SED} "s/_/ /g")
       # avoid mixing database of previous results into new session
       ${RM} -rf "${HERE}/opentuner.db"
-      echo "${HERE}/tune_multiply.py ${TRIPLET} --no-dups ${LIMIT}"
+      "${HERE}/tune_multiply.py" "${TRIPLET}" --no-dups "${LIMIT}"
     fi
     N=$((N+1))
   done

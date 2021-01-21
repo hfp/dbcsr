@@ -96,6 +96,7 @@ if [ "${SED}" ] && [ "${LS}" ] && [ "${RM}" ] && [ "${WC}" ]; then
   fi
   SLEEP=$(command -v sleep)
   if [ "${DELAY}" ] && [ "${SLEEP}" ]; then
+    echo
     echo "Tuning will start in ${DELAY} seconds. Hit CTRL-C to abort."
     ${SLEEP} ${DELAY}
   fi

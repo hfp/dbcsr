@@ -10,8 +10,9 @@
 
 HERE=$(cd "$(dirname "$0")" && pwd -P)
 SED=$(command -v gsed)
-WC=$(command -v wc)
+LS=$(command -v ls)
 RM=$(command -v rm)
+WC=$(command -v wc)
 DELAY=12
 
 # GNU sed is desired (macOS)
@@ -61,7 +62,7 @@ if [ "0" != "$((NPARTS<PART))" ]; then
   exit 1
 fi
 
-if [ "${SED}" ] && [ "${WC}" ] && [ "${RM}" ]; then
+if [ "${SED}" ] && [ "${LS}" ] && [ "${RM}" ] && [ "${WC}" ]; then
   echo "Usage: $0 [seconds-per-kernel [num-parts [part [triplet-spec]]]]"
   echo "       num-parts and part (one-based), e.g., 12 3"
   echo "         for this session being the 3rd of 12 sessions"
@@ -82,10 +83,16 @@ if [ "${SED}" ] && [ "${WC}" ] && [ "${RM}" ]; then
     echo "Session ${PART} of ${NPARTS} part(s). The problem is over-decomposed!"
   fi
   if [ "${LIMIT}" ]; then
-    echo "Tuning ${PARTSIZE} kernels in this session will approx. take $(((LIMIT*PARTSIZE+3600-1)/3600)) hours."
+    HRS=$((LIMIT*PARTSIZE/3600))
+    MNS=$(((LIMIT*PARTSIZE-HRS*3600+59)/60))
+    echo "Tuning ${PARTSIZE} kernels in this session will take about ${HRS}h${MNS}m."
     LIMIT="--stop-after=${LIMIT}"
   else
     echo "Tuning ${PARTSIZE} kernels will take an unknown time (no limit given)."
+  fi
+  NJSONS=$(${LS} -1 ./*.json 2>/dev/null | ${WC} -l)
+  if [ "0" != "${NJSONS}" ]; then
+    echo "There are already ${NJSONS} (unrelated?) JSON-files found."
   fi
   SLEEP=$(command -v sleep)
   if [ "${DELAY}" ] && [ "${SLEEP}" ]; then
@@ -98,7 +105,7 @@ if [ "${SED}" ] && [ "${WC}" ] && [ "${RM}" ]; then
       TRIPLET=$(echo "${MNK}" | ${SED} "s/_/ /g")
       # avoid mixing database of previous results into new session
       ${RM} -rf "${HERE}/opentuner.db"
-      "${HERE}/tune_multiply.py" "${TRIPLET}" --no-dups "${LIMIT}"
+      eval "${HERE}/tune_multiply.py ${TRIPLET} --no-dups ${LIMIT}"
     fi
     N=$((N+1))
   done

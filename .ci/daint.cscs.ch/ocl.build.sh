@@ -22,6 +22,7 @@ module list
 git clone https://github.com/hfp/libxsmm.git
 cd libxsmm
 git checkout 283207ab1cef052232e9a9c761bc6edfab9df290
+make -j
 export PKG_CONFIG_PATH=${HOME}/libxsmm/lib
 cd ..
 

@@ -118,7 +118,9 @@ int main(int argc, char* argv[])
 #if defined(_DEBUG)
     fprintf(stderr, "Error: no device found!\n");
 #endif
+#if !defined(__CUDA)
     CHECK(libsmm_acc_finalize(), NULL);
+#endif
     CHECK(acc_finalize(), NULL);
     return result;
   }
@@ -285,7 +287,9 @@ int main(int argc, char* argv[])
   CHECK(acc_dev_mem_deallocate(bmat_dev), NULL);
   CHECK(acc_dev_mem_deallocate(cmat_dev), NULL);
   CHECK(acc_stream_destroy(stream), NULL);
+#if !defined(__CUDA)
   CHECK(libsmm_acc_finalize(), NULL);
+#endif
   CHECK(acc_finalize(), NULL);
   if (EXIT_SUCCESS != result) {
     fprintf(stderr, "FAILED\n");

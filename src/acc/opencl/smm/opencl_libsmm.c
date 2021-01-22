@@ -264,15 +264,18 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
         cl_device_id active_device;
         result = acc_opencl_device(stream, &active_device);
         if (EXIT_SUCCESS == result) {
-          const char *const env_wgsize = getenv("OPENCL_LIBSMM_TRANS_WGSIZE");
           const char *const env_options = getenv("OPENCL_LIBSMM_TRANS_BUILDOPTS");
           const char *const env_inplace = getenv("OPENCL_LIBSMM_TRANS_INPLACE");
+          const char *const env_blockm = getenv("OPENCL_LIBSMM_TRANS_BLOCK_M");
           const int inplace = ((m == n) && ((NULL == env_inplace || '\0' == *env_inplace)
 #if defined(OPENCL_LIBSMM_TRANS_INPLACE)
             ? 1 : ('0' != *env_inplace)));
 #else
             ? 0 : ('0' != *env_inplace)));
 #endif
+          const int blockm = ((NULL == env_blockm || '\0' == *env_blockm)
+            ? m/*TODO*/ : atoi(env_blockm));
+          const int bm = LIBXSMM_CLMP(blockm, 1, m);
           const char* typename = "";
           int wgsize;
           switch (datatype) {
@@ -286,13 +289,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
             } break;
             default: ;
           }
-          if (NULL == env_wgsize || '\0' == *env_wgsize) {
-            wgsize = m;
-          }
-          else {
-            wgsize = atoi(env_wgsize);
-            wgsize = ((m <= wgsize || 0 == (m % wgsize)) ? wgsize : m);
-          }
+          wgsize = ((m == bm || 0 == (m % bm)) ? bm : m);
           nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options), "%s"
             " -DGLOBAL=%s -DINPLACE=%i -DFN=%s -DSM=%i -DSN=%i -DSWG=%i -DT=%s",
             (NULL == env_options || '\0' == *env_options) ? "" : env_options,

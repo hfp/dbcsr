@@ -13,11 +13,12 @@ kernel void FN(GLOBAL const int *restrict trs_stack, int trs_offset, global T *r
   const int offset = trs_stack[trs_offset+get_group_id(0)];
   /* matrix according to the index (transpose-stack) */
   global T *const restrict mat = matrix + offset;
-  /* local memory buffer */
+  const int index = get_local_id(0);
 #if (SM != SN) || (0 == INPLACE)
+  /* local memory buffer */
   local T buf[SM*SN];
 #endif
-  const int index = get_local_id(0);
+
 #if (SWG == SM)
   const int m = index;
 # if (SM != SN) || (0 == INPLACE)

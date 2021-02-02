@@ -69,7 +69,10 @@ class SmmTuner(MeasurementInterface):
         return [{"BS": self.args.bs, "BM": self.args.bm, "BN": self.args.bn}]
 
     def objective(self):
-        return opentuner.search.objective.MaximizeAccuracyMinimizeSize()
+        if not self.args.primary:
+            return opentuner.search.objective.MaximizeAccuracyMinimizeSize()
+        else:
+            return opentuner.search.objective.MaximizeAccuracy()
 
     def run(self, desired_result, input, limit):
         """
@@ -299,5 +302,13 @@ if __name__ == "__main__":
         nargs="?",
         dest="check",
         help="Validate kernel (epsilon)",
+    )
+    argparser.add_argument(
+        "-p",
+        "--primary-objective",
+        action="store_true",
+        default=False,
+        dest="primary",
+        help="Primary objective only",
     )
     SmmTuner.main(argparser.parse_args())

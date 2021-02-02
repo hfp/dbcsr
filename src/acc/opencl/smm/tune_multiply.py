@@ -226,7 +226,7 @@ class SmmTuner(MeasurementInterface):
             + "-kernel was interrupted."
         )
         self.save_final_config(self.config)
-        exit(0)
+        exit(1)
 
 
 if __name__ == "__main__":

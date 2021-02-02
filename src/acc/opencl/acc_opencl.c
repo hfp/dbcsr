@@ -177,7 +177,6 @@ int acc_init(void)
       if (device_id < acc_opencl_ndevices) {
         if (NULL != env_device_vendor && '\0' != *env_device_vendor) {
           for (i = 0; i < (cl_uint)acc_opencl_ndevices;) {
-            buffer[0] = '\0';
             if (CL_SUCCESS == clGetDeviceInfo(acc_opencl_devices[i],
               CL_DEVICE_VENDOR, ACC_OPENCL_BUFFERSIZE, buffer, NULL))
             {
@@ -216,7 +215,9 @@ int acc_init(void)
           }
         }
         if (EXIT_SUCCESS == result) {
+          const char *const env_verbose = getenv("ACC_OPENCL_DEBUG");
           cl_device_id active_device;
+          acc_opencl_options.verbosity = (NULL == env_verbose ? 0 : atoi(env_verbose));
           result = acc_opencl_set_active_device(device_id, &active_device);
 #if defined(_OPENMP) && defined(ACC_OPENCL_THREADLOCAL_CONTEXT)
           if (EXIT_SUCCESS == result) {
@@ -375,7 +376,6 @@ int acc_opencl_device_vendor(cl_device_id device, const char* vendor)
   char buffer[ACC_OPENCL_BUFFERSIZE];
   int result = EXIT_SUCCESS;
   assert(NULL != device && NULL != vendor);
-  buffer[0] = '\0';
   ACC_OPENCL_CHECK(clGetDeviceInfo(device,
     CL_DEVICE_VENDOR, ACC_OPENCL_BUFFERSIZE, buffer, NULL),
     "retrieve device vendor", result);
@@ -477,8 +477,20 @@ int acc_opencl_set_active_device(int device_id, cl_device_id* device)
         ACC_OPENCL_CHECK(result, "create context", result);
       }
     }
-    if (NULL != device) {
-      *device = (EXIT_SUCCESS == result ? active_id : NULL);
+    if (EXIT_SUCCESS == result) {
+      if (NULL != device) *device = active_id;
+      if (0 != acc_opencl_options.verbosity) {
+        char buffer[ACC_OPENCL_BUFFERSIZE];
+        if (CL_SUCCESS == clGetDeviceInfo(active_id,
+          CL_DEVICE_NAME, ACC_OPENCL_BUFFERSIZE, buffer, NULL))
+        {
+          fprintf(stderr, "INFO ACC/OpenCL: device%i=\"%s\" id=%p\n",
+            device_id, buffer, (const void*)active_id);
+        }
+      }
+    }
+    else {
+      if (NULL != device) *device = NULL;
     }
   }
   ACC_OPENCL_RETURN(result);
@@ -546,7 +558,7 @@ int acc_opencl_wgsize(cl_device_id device, cl_kernel kernel,
 int acc_opencl_kernel(const char* source, const char* build_options,
   const char* kernel_name, cl_kernel* kernel)
 {
-  char buffer[ACC_OPENCL_BUFFERSIZE] = "\0";
+  char buffer[ACC_OPENCL_BUFFERSIZE] = "";
   cl_int result;
   assert(NULL != kernel);
   if (NULL != acc_opencl_context) {

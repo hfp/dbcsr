@@ -111,7 +111,7 @@ class SmmTuner(MeasurementInterface):
             gflops = float(match.group(3))
             if self.gflops < gflops:
                 # keep best configuration in case of an early exit
-                self.config = config
+                self.config = desired_result.configuration.data
                 self.gflops = gflops
             kernelreq = round(
                 (100.0 * config["BM"] * config["BN"]) / (self.args.m * self.args.n)

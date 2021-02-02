@@ -111,7 +111,7 @@ class SmmTuner(MeasurementInterface):
             gflops = float(match.group(3))
             if self.gflops < gflops:
                 # keep best configuration in case of an early exit
-                self.config = desired_result.configuration.data
+                self.config = desired_result.configuration
                 self.gflops = gflops
             kernelreq = round(
                 (100.0 * config["BM"] * config["BN"]) / (self.args.m * self.args.n)
@@ -212,15 +212,15 @@ class SmmTuner(MeasurementInterface):
                     )
 
     def handle_sigint(self, signum, frame):
-        """called at SIGINT or CTRL-C"""
+        """handles SIGINT or CTRL-C"""
         print(
-            "Warning: exiting early from tuning "
+            "\nWARNING: tuning "
             + str(self.args.m)
             + "x"
             + str(self.args.n)
             + "x"
             + str(self.args.k)
-            + "-kernel."
+            + "-kernel was interrupted."
         )
         self.save_final_config(self.config)
         exit(0)

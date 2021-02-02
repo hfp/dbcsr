@@ -215,7 +215,7 @@ int acc_init(void)
           }
         }
         if (EXIT_SUCCESS == result) {
-          const char *const env_verbose = getenv("ACC_OPENCL_DEBUG");
+          const char *const env_verbose = getenv("ACC_OPENCL_VERBOSE");
           cl_device_id active_device;
           acc_opencl_options.verbosity = (NULL == env_verbose ? 0 : atoi(env_verbose));
           result = acc_opencl_set_active_device(device_id, &active_device);

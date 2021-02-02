@@ -17,6 +17,7 @@ from opentuner import ConfigurationManipulator
 from opentuner import MeasurementInterface
 from opentuner import IntegerParameter
 from opentuner import Result
+from signal import signal, SIGINT
 import json
 import glob
 import sys
@@ -60,6 +61,8 @@ class SmmTuner(MeasurementInterface):
         manipulator.add_parameter(IntegerParameter("BS", 1, self.args.mb))
         manipulator.add_parameter(IntegerParameter("BM", 1, self.args.m))
         manipulator.add_parameter(IntegerParameter("BN", 1, self.args.n))
+        # register signal handler (CTRL-C)
+        signal(SIGINT, self.handle_sigint)
         return manipulator
 
     def seed_configurations(self):
@@ -203,6 +206,20 @@ class SmmTuner(MeasurementInterface):
                         + " JSONs into "
                         + self.args.csvfile
                     )
+
+    def handle_sigint(self, signum, frame):
+        """called at SIGINT or CTRL-C"""
+        print(
+            "Warning: exiting early from tuning "
+            + str(self.args.m)
+            + "x"
+            + str(self.args.n)
+            + "x"
+            + str(self.args.k)
+            + "-kernel."
+        )
+        self.save_final_config(self.configuration)
+        exit(0)
 
 
 if __name__ == "__main__":

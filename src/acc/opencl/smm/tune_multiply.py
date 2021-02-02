@@ -76,16 +76,16 @@ class SmmTuner(MeasurementInterface):
         Compile and run a given configuration then
         return performance
         """
-        cfg = desired_result.configuration.data
+        config = desired_result.configuration.data
         run_cmd = (
             "OMP_PROC_BIND=TRUE CHECK="
             + str(self.args.check)
             + " OPENCL_LIBSMM_SMM_BATCHSIZE="
-            + str(cfg["BS"])
+            + str(config["BS"])
             + " OPENCL_LIBSMM_SMM_BLOCK_M="
-            + str(cfg["BM"])
+            + str(config["BM"])
             + " OPENCL_LIBSMM_SMM_BLOCK_N="
-            + str(cfg["BN"])
+            + str(config["BN"])
             + " "
             + self.exepath
             + "/"
@@ -109,9 +109,12 @@ class SmmTuner(MeasurementInterface):
         if (match is not None) and match.group(1) and match.group(3):
             mseconds = float(match.group(1))
             gflops = float(match.group(3))
-            self.gflops = max(self.gflops, gflops)
+            if self.gflops < gflops:
+                # keep best configuration in case of an early exit
+                self.config = config
+                self.gflops = gflops
             kernelreq = round(
-                (100.0 * cfg["BM"] * cfg["BN"]) / (self.args.m * self.args.n)
+                (100.0 * config["BM"] * config["BN"]) / (self.args.m * self.args.n)
             )
             # gflops are reported as "accuracy" (console output)
             return Result(time=mseconds, accuracy=gflops, size=kernelreq)
@@ -143,14 +146,15 @@ class SmmTuner(MeasurementInterface):
                 + ofilename
             )
             # extend result for easier reuse later
-            configuration.data["GFLOPS"] = self.gflops
-            configuration.data["TYPEID"] = self.typeid
-            configuration.data["M"] = self.args.m
-            configuration.data["N"] = self.args.n
-            configuration.data["K"] = self.args.k
-            # self.manipulator().save_to_file(configuration.data, ofilename)
+            config = configuration.data
+            config["GFLOPS"] = self.gflops
+            config["TYPEID"] = self.typeid
+            config["M"] = self.args.m
+            config["N"] = self.args.n
+            config["K"] = self.args.k
+            # self.manipulator().save_to_file(config, ofilename)
             with open(ofilename, "w") as ofile:
-                json.dump(configuration.data, ofile)
+                json.dump(config, ofile)
                 ofile.write("\n")  # append newline at EOF
             # merge all JSONs into a single CSV file
             if self.args.csvfile:
@@ -218,7 +222,7 @@ class SmmTuner(MeasurementInterface):
             + str(self.args.k)
             + "-kernel."
         )
-        self.save_final_config(self.configuration)
+        self.save_final_config(self.config)
         exit(0)
 
 

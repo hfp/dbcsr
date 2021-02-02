@@ -182,7 +182,7 @@ class SmmTuner(MeasurementInterface):
                                     ifilename = merged[key][-1]
                                     merged[key] = value
                                 print(
-                                    "Superfluous "
+                                    "Worse result "
                                     + ifilename
                                     + " ignored when merging CSV file"
                                 )

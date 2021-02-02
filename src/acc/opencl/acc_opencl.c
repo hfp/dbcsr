@@ -484,8 +484,8 @@ int acc_opencl_set_active_device(int device_id, cl_device_id* device)
         if (CL_SUCCESS == clGetDeviceInfo(active_id,
           CL_DEVICE_NAME, ACC_OPENCL_BUFFERSIZE, buffer, NULL))
         {
-          fprintf(stderr, "INFO ACC/OpenCL: device%i=\"%s\"\n",
-            device_id, buffer);
+          fprintf(stderr, "INFO ACC/OpenCL: device%i=\"%s\" found=%i\n",
+            device_id, buffer, acc_opencl_ndevices);
         }
       }
     }

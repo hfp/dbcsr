@@ -252,6 +252,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
     ) &&
     0 < stack_size && 1 < mn && m <= max_kernel_dim && n <= max_kernel_dim)
   {
+    const libxsmm_timer_tickint start = libxsmm_timer_tick();
     opencl_libsmm_trans_t* config;
     opencl_libsmm_transkey_t key;
     LIBXSMM_MEMZERO127(&key); /* potentially heterogeneous key-data */
@@ -314,6 +315,11 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
                   new_config.wgsize = (size_t)wgsize;
                   config = (opencl_libsmm_trans_t*)OPENCL_LIBSMM_REGISTER(&key, sizeof(key),
                     sizeof(new_config), &new_config);
+                  if (1 < acc_opencl_options.verbosity || 0 > acc_opencl_options.verbosity) {
+                    const double duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
+                    fprintf(stderr, "INFO ACC/OpenCL: %ix%i transpose-kernel generated in %.1f ms\n",
+                      m, n, 1000.0 * duration);
+                  }
                 }
                 else result = EXIT_FAILURE;
               }
@@ -584,7 +590,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                       config->kernel = new_config.kernel;
                       if (1 < acc_opencl_options.verbosity || 0 > acc_opencl_options.verbosity) {
                         const double duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
-                        fprintf(stderr, "INFO ACC/OpenCL: %s%ix%ix%i-kernel generated in %.1f ms\n",
+                        fprintf(stderr, "INFO ACC/OpenCL: %s%ix%ix%i SMM-kernel generated in %.1f ms\n",
                           default_params ? "" : "tuned ", m_max, n_max, k_max, 1000.0 * duration);
                       }
                     }

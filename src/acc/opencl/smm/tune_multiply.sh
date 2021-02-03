@@ -109,15 +109,16 @@ if [ "${SED}" ] && [ "${LS}" ] && [ "${RM}" ] && [ "${WC}" ]; then
       # avoid mixing database of previous results into new session
       ${RM} -rf "${HERE}/opentuner.db"
       eval "${HERE}/tune_multiply.py ${TRIPLET} --no-dups ${LIMIT}"
+      RESULT=$?
       # environment var. CONTINUE allows to proceed with next kernel
       # even if tune_multiply.py returned non-zero exit code
-      if [[ ("0" != "$?") && \
+      if [[ ("0" != "${RESULT}") && \
             ("${CONTINUE}" = "" \
           || "${CONTINUE}" = "0" \
-          || "${CONTINUE}" = "yes" \
-          || "${CONTINUE}" = "true") ]];
+          || "${CONTINUE}" = "no" \
+          || "${CONTINUE}" = "false") ]];
       then
-        exit 1
+        exit ${RESULT}
       fi
     fi
     N=$((N+1))

@@ -452,6 +452,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
     0 < n_max && n_max <= max_kernel_dim &&
     0 < k_max && k_max <= max_kernel_dim)
   {
+    const libxsmm_timer_tickint start = libxsmm_timer_tick();
     opencl_libsmm_smm_t* config;
     opencl_libsmm_smmkey_t key;
     LIBXSMM_MEMZERO127(&key); /* potentially heterogeneous key-data */
@@ -572,7 +573,8 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                   assert(0 < wgsize && 0 < max_wgsize);
                   /* check planned WG-size against kernel-specific WG-size */
                   if (wgsize <= max_wgsize) {
-                    if (NULL == config) {
+                    const int default_params = (NULL == config ? 1 : 0);
+                    if (default_params) {
                       config = (opencl_libsmm_smm_t*)OPENCL_LIBSMM_REGISTER(
                         &key, sizeof(key), sizeof(new_config), &new_config);
                     }
@@ -580,6 +582,11 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                       config->wgsize = (size_t)wgsize;
                       config->bs = bs; config->bm = bm; config->bn = bn;
                       config->kernel = new_config.kernel;
+                      if (1 < acc_opencl_options.verbosity || 0 > acc_opencl_options.verbosity) {
+                        const double duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
+                        fprintf(stderr, "INFO ACC/OpenCL: %s%ix%ix%i-kernel generated in %.1f ms\n",
+                          default_params ? "" : "tuned ", m_max, n_max, k_max, 1000.0 * duration);
+                      }
                     }
                     else { /* failed to register config */
                       result = EXIT_FAILURE;

@@ -590,8 +590,8 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                       config->kernel = new_config.kernel;
                       if (1 < acc_opencl_options.verbosity || 0 > acc_opencl_options.verbosity) {
                         const double duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
-                        fprintf(stderr, "INFO ACC/OpenCL: %s%ix%ix%i SMM-kernel generated in %.1f ms\n",
-                          default_params ? "" : "tuned ", m_max, n_max, k_max, 1000.0 * duration);
+                        fprintf(stderr, "INFO ACC/OpenCL: %ix%ix%i %sSMM-kernel generated in %.1f ms\n",
+                          m_max, n_max, k_max, default_params ? "" : "tuned ", 1000.0 * duration);
                       }
                     }
                     else { /* failed to register config */

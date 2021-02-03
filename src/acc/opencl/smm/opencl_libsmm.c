@@ -128,8 +128,12 @@ int opencl_libsmm_read_params(char* parambuf,
 int libsmm_acc_init(void)
 {
 #if defined(_OPENMP)
-    /* initialization/finalization is not meant to be thread-safe */
-  int result = (0 == omp_in_parallel() ? EXIT_SUCCESS : EXIT_FAILURE);
+  /* initialization/finalization is not meant to be thread-safe */
+  int result = ((0 == omp_in_parallel()
+# if /*WORKAROUND*/defined(__DBCSR_ACC)
+    || 0/*master*/ == omp_get_thread_num()
+# endif
+    ) ? EXIT_SUCCESS : EXIT_FAILURE);
 #else
   int result = EXIT_SUCCESS;
 #endif
@@ -204,9 +208,13 @@ int libsmm_acc_finalize(void)
    * However, libsmm_acc_finalize is indirectly called (acc_finalize) inside of a
    * parallel region (not just the master thread).
    */
-#if defined(_OPENMP) && /*WORKAROUND*/!defined(__DBCSR_ACC)
+#if defined(_OPENMP)
   /* initialization/finalization is not meant to be thread-safe */
-  int result = (0 == omp_in_parallel() ? EXIT_SUCCESS : EXIT_FAILURE);
+  int result = ((0 == omp_in_parallel()
+# if /*WORKAROUND*/defined(__DBCSR_ACC)
+    || 0/*master*/ == omp_get_thread_num()
+# endif
+    ) ? EXIT_SUCCESS : EXIT_FAILURE);
 #else
   int result = EXIT_SUCCESS;
 #endif

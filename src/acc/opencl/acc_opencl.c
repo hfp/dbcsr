@@ -131,7 +131,11 @@ int acc_init(void)
 {
 #if defined(_OPENMP)
   /* initialization/finalization is not meant to be thread-safe */
-  int result = (0 == omp_in_parallel() ? EXIT_SUCCESS : EXIT_FAILURE);
+  int result = ((0 == omp_in_parallel()
+# if /*WORKAROUND*/defined(__DBCSR_ACC)
+    || 0/*master*/ == omp_get_thread_num()
+# endif
+    ) ? EXIT_SUCCESS : EXIT_FAILURE);
 #else
   int result = EXIT_SUCCESS;
 #endif
@@ -285,7 +289,11 @@ int acc_finalize(void)
 {
 #if defined(_OPENMP)
   /* initialization/finalization is not meant to be thread-safe */
-  int result = (0 == omp_in_parallel() ? EXIT_SUCCESS : EXIT_FAILURE);
+  int result = ((0 == omp_in_parallel()
+# if /*WORKAROUND*/defined(__DBCSR_ACC)
+    || 0/*master*/ == omp_get_thread_num()
+# endif
+    ) ? EXIT_SUCCESS : EXIT_FAILURE);
 #else
   int result = EXIT_SUCCESS;
 #endif
@@ -326,7 +334,6 @@ void acc_clear_errors(void)
 int acc_get_ndevices(int* ndevices)
 {
   int result;
-
 #if defined(__DBCSR_ACC)
   /* DBCSR calls acc_get_ndevices before calling acc_init(). */
   result = acc_init();

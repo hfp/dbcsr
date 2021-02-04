@@ -115,9 +115,7 @@ int main(int argc, char* argv[])
 #endif
   }
   else {
-#if defined(_DEBUG)
-    fprintf(stderr, "Error: no device found!\n");
-#endif
+    fprintf(stderr, "No ACC-device found!\n");
 #if !defined(__CUDA)
     CHECK(libsmm_acc_finalize(), NULL);
 #endif

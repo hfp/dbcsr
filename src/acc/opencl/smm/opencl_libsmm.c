@@ -507,6 +507,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
             default: ;
           }
           if (NULL != typename) {
+            const int nonvcl = (EXIT_SUCCESS != c_dbcsr_acc_opencl_device_vendor(active_device, "nvidia"));
             int max_wgsize, wgsize, bs, bm, bn, nbm, nbn;
             result = c_dbcsr_acc_opencl_wgsize(active_device, NULL/*device-specific*/,
               &max_wgsize, NULL/*preferred_multiple*/);
@@ -539,7 +540,6 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                 wgsize = nbm * nbn;
               }
               if (wgsize <= max_wgsize) { /* SMMs can be potentially handled by device */
-                const int nonvcl = (EXIT_SUCCESS != c_dbcsr_acc_opencl_device_vendor(active_device, "nvidia"));
                 const char *const env_options = getenv("OPENCL_LIBSMM_SMM_BUILDOPTS");
                 const char *const env_atomics = getenv("OPENCL_LIBSMM_SMM_ATOMICS");
                 const char *atomics = NULL;
@@ -575,10 +575,9 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
               opencl_libsmm_smm_t new_config;
 #if defined(OPENCL_LIBSMM_SOURCE_MULTIPLY)
               result = c_dbcsr_acc_opencl_kernel(
-                (nonvcl ? (OPENCL_LIBSMM_SOURCE_MULTIPLY)
-                          /* only "disable" should be accepted */
-                        : ("#pragma OPENCL EXTENSION all: enable"
-                           OPENCL_LIBSMM_SOURCE_MULTIPLY)),
+                nonvcl  ? (OPENCL_LIBSMM_SOURCE_MULTIPLY)
+                        : ("#pragma OPENCL EXTENSION all: enable\n"
+                           OPENCL_LIBSMM_STRING_MULTIPLY),
                 build_options, fname, &new_config.kernel);
 #else
               result = EXIT_FAILURE;

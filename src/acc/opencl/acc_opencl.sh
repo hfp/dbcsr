@@ -39,7 +39,7 @@ if [ "${BASENAME}" ] && [ "${SED}" ] && [ "${RM}" ]; then
             MNAME=$(echo "${VNAME}" | tr '[:lower:]' '[:upper:]')
             echo "#define ${MNAME} ${VNAME}" >>"${OFILE}"
             echo "const char ${VNAME}[] =" >>"${OFILE}"
-            printf '  \"#pragma OPENCL EXTENSION all: enable\\n\"\n' >>"${OFILE}"
+            #printf '  \"#pragma OPENCL EXTENSION all: enable\\n\"\n' >>"${OFILE}"
             if [ "${CPP}" ] && \
                [ "$(${CPP} -dD -P -fpreprocessed "${IFILE}" 2>/dev/null >/dev/null && echo "OK")" ];
             then

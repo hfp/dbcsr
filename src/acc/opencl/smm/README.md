@@ -61,17 +61,17 @@ cd src/acc/opencl/smm
 pip install -r requirements.txt
 ```
 
-The OpenTuner script supports several command line arguments (`tune_multiply.py --help`); defaults are reasonable with `--stop-after` of interest for adjustment, e.g., `--stop-after=300` to finish in five minutes (without limit, OpenTuner decides when the process is finished). A single kernel can be selected by M, N, and K parameters (GEMM), e.g., `M=15`, `N=5`, and `K=7`:
+The OpenTuner script supports several command line arguments (`tune_multiply.py --help`). For example, `--stop-after=300` can be interest to finish in five minutes (without a limit, OpenTuner decides when the auto-tuning process is finished). A single kernel can be selected by M, N, and K parameters (GEMM), e.g., `M=15`, `N=5`, and `K=7`:
 
 ```bash
-./tune_multiply.py 13 5 7
+./tune_multiply.py 13 5 7 --no-dups
 ```
 
 **NOTE**: If multiple different kernels are tuned using `tune_multiply.py`, it is advisible to delete the `opentuner.db` directory prior to a new kernel otherwise auto-tuning is potentially (mis-)guided by information which was collected for a different kernel (`tune_multiply.sh` does this automatically).
 
 The OpenTuner script implements multiple objectives ("cost"), primarily "accuracy" (maximized) and a secondary objective "size" (minimized). The former represents the achieved performance (GFLOPS/s) while the latter represents an artificial kernel requirement (just to prefer one parameter set over another in case of similar performance). The console output looks like:
 
-```
+```text
 [    15s]    INFO opentuner.search.plugin.DisplayPlugin: tests=8, best {'BS': 32, 'BM': 6, 'BN': 1}, cost accuracy=28.80000000, size=1.0, found by UniformGreedyMutation
 [    27s]    INFO opentuner.search.plugin.DisplayPlugin: tests=19, best {'BS': 48, 'BM': 8, 'BN': 1}, cost accuracy=32.20000000, size=1.0, found by UniformGreedyMutation
 [    40s]    INFO opentuner.search.plugin.DisplayPlugin: tests=31, best {'BS': 48, 'BM': 8, 'BN': 1}, cost accuracy=32.20000000, size=1.0, found by UniformGreedyMutation

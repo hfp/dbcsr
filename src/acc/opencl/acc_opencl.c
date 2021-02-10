@@ -170,27 +170,28 @@ int c_dbcsr_acc_init(void)
         ACC_OPENCL_CHECK(clGetDeviceIDs(platforms[i], type, ndevices, devices, NULL),
           "retrieve device ids", result);
         if (EXIT_SUCCESS == result) {
-          const int n = (c_dbcsr_acc_opencl_ndevices + ndevices) < ACC_OPENCL_DEVICES_MAXCOUNT
-            ? (int)ndevices : (ACC_OPENCL_DEVICES_MAXCOUNT - c_dbcsr_acc_opencl_ndevices);
-          if (NULL == env_device_split || '0' == *env_device_split) {
-            memcpy(c_dbcsr_acc_opencl_devices + c_dbcsr_acc_opencl_ndevices,
-              devices, sizeof(cl_device_id) * n);
-            c_dbcsr_acc_opencl_ndevices += n;
-          }
-          else { /* create subdevices */
-            const cl_device_partition_property properties[] = {
-              CL_DEVICE_PARTITION_BY_AFFINITY_DOMAIN, CL_DEVICE_AFFINITY_DOMAIN_NUMA, /*terminator*/0
-            };
-            int j = 0;
-            for (; j < n; ++j) {
-              ACC_OPENCL_CHECK(clCreateSubDevices(devices[j], properties, 0, NULL, &ndevices),
-                "query number of subdevices", result);
-              ndevices = (c_dbcsr_acc_opencl_ndevices + ndevices) < ACC_OPENCL_DEVICES_MAXCOUNT
+          const cl_device_partition_property properties[] = {
+            CL_DEVICE_PARTITION_BY_AFFINITY_DOMAIN, CL_DEVICE_AFFINITY_DOMAIN_NUMA, /*terminator*/0
+          };
+          cl_uint j = 0;
+          for (; j < ndevices; ++j) {
+            if ( (NULL == env_device_split || '0' == *env_device_split)
+              || (c_dbcsr_acc_opencl_ndevices + 1) == ACC_OPENCL_DEVICES_MAXCOUNT
+              || (CL_SUCCESS != clCreateSubDevices(devices[j], properties, 0, NULL, &ndevices)))
+            {
+              c_dbcsr_acc_opencl_devices[c_dbcsr_acc_opencl_ndevices] = devices[j];
+              ++c_dbcsr_acc_opencl_ndevices;
+            }
+            else { /* create subdevices */
+              const cl_uint n = (c_dbcsr_acc_opencl_ndevices + ndevices) <= ACC_OPENCL_DEVICES_MAXCOUNT
                 ? ndevices : (ACC_OPENCL_DEVICES_MAXCOUNT - (cl_uint)c_dbcsr_acc_opencl_ndevices);
-              ACC_OPENCL_CHECK(clCreateSubDevices(devices[j], properties, ndevices,
+              ACC_OPENCL_CHECK(clCreateSubDevices(devices[j], properties, n,
                 c_dbcsr_acc_opencl_devices + c_dbcsr_acc_opencl_ndevices, NULL),
                 "split device into subdevices", result);
-              if (EXIT_SUCCESS == result) c_dbcsr_acc_opencl_ndevices += ndevices;
+              if (EXIT_SUCCESS == result) {
+                c_dbcsr_acc_opencl_ndevices += n;
+              }
+              else break;
             }
           }
         } /*else break;*/

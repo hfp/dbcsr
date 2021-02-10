@@ -116,7 +116,7 @@ To tune multiple kernels in a convenient fashion, a triplet specification can be
 
 Triplets are used to conveniently describe multiple kernels. A triplet specification consists of comma-separated groups of M,N,K-extents, i.e., matrix shapes according to GEMM. For example:
 
-```
+```text
 4 10 15, 6 7 8, 23
 ```
 

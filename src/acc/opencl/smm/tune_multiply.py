@@ -163,6 +163,12 @@ class SmmTuner(MeasurementInterface):
             if self.args.csvfile:
                 filenames = glob.glob("*.json")
                 merged = dict()
+                if not filenames and glob.glob(self.args.csvfile):
+                    print(
+                        "WARNING: no JSON file found but (unrelated?) "
+                        + self.args.csvfile
+                        + " exists!"
+                    )
                 for ifilename in filenames:
                     with open(ifilename, "r") as ifile:
                         data = json.load(ifile)

@@ -140,14 +140,6 @@ class SmmTuner(MeasurementInterface):
                 + str(round(self.gflops))
                 + "gflops.json"
             )
-            print(
-                "Result achieving "
-                + str(self.gflops)
-                + " GFLOPS/s ("
-                + self.typename
-                + ") was written to "
-                + ofilename
-            )
             # extend result for easier reuse later
             config = configuration.data
             config["GFLOPS"] = self.gflops
@@ -166,6 +158,14 @@ class SmmTuner(MeasurementInterface):
             with open(ofilename, "w") as ofile:
                 json.dump(config, ofile)
                 ofile.write("\n")  # append newline at EOF
+                print(
+                    "Result achieving "
+                    + str(self.gflops)
+                    + " GFLOPS/s ("
+                    + self.typename
+                    + ") was written to "
+                    + ofilename
+                )
                 if ofilename not in filenames:
                     filenames.append(ofilename)
             # merge all JSONs into a single CSV file

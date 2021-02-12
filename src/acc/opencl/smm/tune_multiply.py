@@ -31,7 +31,7 @@ class SmmTuner(MeasurementInterface):
         ConfigurationManipulator
         """
         if self.args.merge:
-            self.save_final_config(glob.glob("*.json"))
+            self.merge_into_csv(glob.glob("*.json"))
             exit(0)
         self.exepath = "../.."
         self.exename = "acc_bench_smm"

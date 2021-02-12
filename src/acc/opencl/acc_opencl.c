@@ -80,7 +80,11 @@ const char* c_dbcsr_acc_opencl_stristr(const char* a, const char* b)
 }
 
 
-/* comparator used with qsort; stabilized by tail condition (a < b ? -1 : 1) */
+/**
+ * Comparator used with qsort; stabilized by tail condition (a < b ? -1 : 1).
+ * Brings GPUs in front and further order by memory capacity.
+ * TODO: order by compute capacity.
+ */
 int c_dbcsr_acc_opencl_order_devices(const void* /*dev_a*/, const void* /*dev_b*/);
 int c_dbcsr_acc_opencl_order_devices(const void* dev_a, const void* dev_b)
 {
@@ -241,8 +245,9 @@ int c_dbcsr_acc_init(void)
                 device_id = (int)i;
                 break;
               }
+              /* TODO: further judge for homegeneous set of GPUs (e.g., prune iGPU) */
               else if (CL_DEVICE_TYPE_ALL == type && CL_DEVICE_TYPE_GPU == itype) {
-                /* prune number of devices to only capture GPUs */
+                /* prune number of devices to capture GPUs only */
                 c_dbcsr_acc_opencl_ndevices = i + 1;
                 break;
               }

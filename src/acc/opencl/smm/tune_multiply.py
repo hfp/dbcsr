@@ -224,7 +224,7 @@ class SmmTuner(MeasurementInterface):
                 )
                 if ofilename not in filenames:
                     filenames.append(ofilename)
-                    self.save_final_config(filenames)
+                    self.merge_into_csv(filenames)
 
     def handle_sigint(self, signum, frame):
         """handles SIGINT or CTRL-C"""

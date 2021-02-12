@@ -357,7 +357,9 @@ int c_dbcsr_acc_finalize(void)
     for (i = 0; i < ACC_OPENCL_DEVICES_MAXCOUNT; ++i) {
       const cl_device_id device_id = c_dbcsr_acc_opencl_devices[i];
       if (NULL != device_id) {
-        clReleaseDevice(device_id);
+#if defined(CL_VERSION_1_2)
+        ACC_OPENCL_CHECK(clReleaseDevice(device_id), "release device", result);
+#endif
         /* c_dbcsr_acc_opencl_set_active_device scans for non-NULL devices */
         c_dbcsr_acc_opencl_devices[i] = NULL;
       }

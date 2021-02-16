@@ -101,8 +101,8 @@ int c_dbcsr_acc_opencl_order_devices(const void* dev_a, const void* dev_b)
   else {
     if (CL_DEVICE_TYPE_GPU & type_a) {
       if (CL_DEVICE_TYPE_GPU & type_b) {
-        size_t size_a, size_b, local_a, local_b;
         int unified_a, unified_b;
+        size_t size_a, size_b;
         ACC_OPENCL_EXPECT(EXIT_SUCCESS, c_dbcsr_acc_opencl_info_devmem(*a, NULL, &size_a, NULL, &unified_a));
         ACC_OPENCL_EXPECT(EXIT_SUCCESS, c_dbcsr_acc_opencl_info_devmem(*b, NULL, &size_b, NULL, &unified_b));
         if ((0 == unified_a && 0 == unified_b) || (0 != unified_a && 0 != unified_b)) {

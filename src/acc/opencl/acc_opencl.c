@@ -171,7 +171,12 @@ int c_dbcsr_acc_init(void)
       if (NULL != env_device_type && '\0' != *env_device_type) {
         if (NULL != c_dbcsr_acc_opencl_stristr(env_device_type, "gpu")) type = CL_DEVICE_TYPE_GPU;
         else if (NULL != c_dbcsr_acc_opencl_stristr(env_device_type, "cpu")) type = CL_DEVICE_TYPE_CPU;
-        else type = CL_DEVICE_TYPE_ACCELERATOR;
+        else if (NULL != c_dbcsr_acc_opencl_stristr(env_device_type, "acc")
+              || NULL != c_dbcsr_acc_opencl_stristr(env_device_type, "other"))
+        {
+          type = CL_DEVICE_TYPE_ACCELERATOR;
+        }
+        else type = CL_DEVICE_TYPE_ALL;
       }
       c_dbcsr_acc_opencl_ndevices = 0;
       for (i = 0; i < nplatforms; ++i) {
@@ -260,9 +265,11 @@ int c_dbcsr_acc_init(void)
                 break;
               }
               /* prune number of devices to capture GPUs only */
-              else if (CL_DEVICE_TYPE_ALL == type && CL_DEVICE_TYPE_GPU == itype && device_id <= (int)i) {
+              else if (CL_DEVICE_TYPE_ALL == type && NULL == env_device_type
+                && CL_DEVICE_TYPE_GPU == itype && device_id <= (int)i)
+              {
                 result = clGetDeviceInfo(c_dbcsr_acc_opencl_devices[i],
-                    CL_DEVICE_NAME, ACC_OPENCL_BUFFERSIZE, buffer, NULL);
+                  CL_DEVICE_NAME, ACC_OPENCL_BUFFERSIZE, buffer, NULL);
                 if (CL_SUCCESS == result /* prune for homogeneous set of GPUs */
                   && 0 != strncmp(buffer, tmp, ACC_OPENCL_BUFFERSIZE))
                 {

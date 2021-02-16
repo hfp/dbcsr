@@ -102,12 +102,14 @@ int c_dbcsr_acc_opencl_order_devices(const void* dev_a, const void* dev_b)
     if (CL_DEVICE_TYPE_GPU & type_a) {
       if (CL_DEVICE_TYPE_GPU & type_b) {
         size_t size_a, size_b, local_a, local_b;
-        ACC_OPENCL_EXPECT(EXIT_SUCCESS, c_dbcsr_acc_opencl_info_devmem(*a, NULL, &size_a, &local_a));
-        ACC_OPENCL_EXPECT(EXIT_SUCCESS, c_dbcsr_acc_opencl_info_devmem(*b, NULL, &size_b, &local_b));
-        if ((0 == local_a && 0 == local_b) || (0 != local_a && 0 != local_b)) {
+        int unified_a, unified_b;
+        ACC_OPENCL_EXPECT(EXIT_SUCCESS, c_dbcsr_acc_opencl_info_devmem(*a, NULL, &size_a, NULL, &unified_a));
+        ACC_OPENCL_EXPECT(EXIT_SUCCESS, c_dbcsr_acc_opencl_info_devmem(*b, NULL, &size_b, NULL, &unified_b));
+        if ((0 == unified_a && 0 == unified_b) || (0 != unified_a && 0 != unified_b)) {
           return (size_a < size_b ? 1 : (size_a != size_b ? -1 : (a < b ? -1 : 1)));
         }
-        else if (0 != local_b) return 1;
+        /* discrete GPU goes in front */
+        else if (0 == unified_b) return 1;
         else return -1;
       }
       else return -1;
@@ -117,8 +119,8 @@ int c_dbcsr_acc_opencl_order_devices(const void* dev_a, const void* dev_b)
       if (CL_DEVICE_TYPE_ACCELERATOR & type_a) {
         if (CL_DEVICE_TYPE_ACCELERATOR & type_b) {
           size_t size_a, size_b;
-          ACC_OPENCL_EXPECT(EXIT_SUCCESS, c_dbcsr_acc_opencl_info_devmem(*a, NULL, &size_a, NULL));
-          ACC_OPENCL_EXPECT(EXIT_SUCCESS, c_dbcsr_acc_opencl_info_devmem(*b, NULL, &size_b, NULL));
+          ACC_OPENCL_EXPECT(EXIT_SUCCESS, c_dbcsr_acc_opencl_info_devmem(*a, NULL, &size_a, NULL, NULL));
+          ACC_OPENCL_EXPECT(EXIT_SUCCESS, c_dbcsr_acc_opencl_info_devmem(*b, NULL, &size_b, NULL, NULL));
           return (size_a < size_b ? 1 : (size_a != size_b ? -1 : (a < b ? -1 : 1)));
         }
         else return -1;
@@ -126,8 +128,8 @@ int c_dbcsr_acc_opencl_order_devices(const void* dev_a, const void* dev_b)
       else if (CL_DEVICE_TYPE_ACCELERATOR & type_b) return 1;
       else {
         size_t size_a, size_b;
-        ACC_OPENCL_EXPECT(EXIT_SUCCESS, c_dbcsr_acc_opencl_info_devmem(*a, NULL, &size_a, NULL));
-        ACC_OPENCL_EXPECT(EXIT_SUCCESS, c_dbcsr_acc_opencl_info_devmem(*b, NULL, &size_b, NULL));
+        ACC_OPENCL_EXPECT(EXIT_SUCCESS, c_dbcsr_acc_opencl_info_devmem(*a, NULL, &size_a, NULL, NULL));
+        ACC_OPENCL_EXPECT(EXIT_SUCCESS, c_dbcsr_acc_opencl_info_devmem(*b, NULL, &size_b, NULL, NULL));
         return (size_a < size_b ? 1 : (size_a != size_b ? -1 : (a < b ? -1 : 1)));
       }
     }

@@ -480,16 +480,13 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
         cl_device_id active_device;
         result = c_dbcsr_acc_opencl_device(stream, &active_device);
         if (EXIT_SUCCESS == result) {
-          const char *atomic_cmpxchg = NULL, *atomic_xchg = NULL;
-          const char *atomic_type = NULL, *typename = NULL;
+          const char *typename = NULL, *atomic_ops = NULL;
           assert(NULL != active_device);
           switch (datatype) {
             case dbcsr_type_real_8: {
               extensions = "cl_khr_fp64 cl_khr_int64_base_atomics";
               if (EXIT_SUCCESS == c_dbcsr_acc_opencl_device_ext(active_device, &extensions, 1)) {
-                atomic_cmpxchg = "atom_cmpxchg";
-                atomic_xchg = "atom_xchg";
-                atomic_type = "long";
+                atomic_ops = "-DTA=long -DCMPXCHG=atom_cmpxchg -DXCHG=atom_xchg";
                 typename = "double";
                 fname[0] = 'd';
               }
@@ -497,9 +494,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
             case dbcsr_type_real_4: {
               extensions = "cl_khr_global_int32_base_atomics";
               if (EXIT_SUCCESS == c_dbcsr_acc_opencl_device_ext(active_device, &extensions, 1)) {
-                atomic_cmpxchg = "atomic_cmpxchg";
-                atomic_xchg = "atomic_xchg";
-                atomic_type = "int";
+                atomic_ops = "-DTA=int -DCMPXCHG=atomic_cmpxchg -DXCHG=atomic_xchg";
                 typename = "float";
                 fname[0] = 's';
               }
@@ -507,7 +502,8 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
             default: ;
           }
           if (NULL != typename) {
-            const int nonvcl = (EXIT_SUCCESS != c_dbcsr_acc_opencl_device_vendor(active_device, "nvidia"));
+            const int cl_intel = (EXIT_SUCCESS == c_dbcsr_acc_opencl_device_vendor(active_device, "intel"));
+            const int cl_nonv = (cl_intel || EXIT_SUCCESS != c_dbcsr_acc_opencl_device_vendor(active_device, "nvidia"));
             int max_wgsize, wgsize, bs, bm, bn, nbm, nbn;
             result = c_dbcsr_acc_opencl_wgsize(active_device, NULL/*device-specific*/,
               &max_wgsize, NULL/*preferred_multiple*/);
@@ -542,28 +538,38 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
               if (wgsize <= max_wgsize) { /* SMMs can be potentially handled by device */
                 const char *const env_options = getenv("OPENCL_LIBSMM_SMM_BUILDOPTS");
                 const char *const env_atomics = getenv("OPENCL_LIBSMM_SMM_ATOMICS");
-                const char *atomics = NULL;
+                const char *atomic_expr = NULL;
                 if (NULL == env_atomics || '0' != *env_atomics) {
-                  if ((NULL == env_atomics && nonvcl) || NULL != c_dbcsr_acc_opencl_stristr(env_atomics, "cmpxchg")) {
-                    atomics = "atomic_add_global_cmpxchg(A,B)";
+                  if (NULL == env_atomics) {
+                    if (cl_intel) {
+                      atomic_ops = "-Dcl_intel_global_float_atomics";
+                      atomic_expr = "atomic_add(A,B)";
+                    }
+                    else if (cl_nonv) {
+                      atomic_expr = "atomic_add_global_cmpxchg(A,B)";
+                    }
+                    else {
+                      atomic_expr = "atomic_add_global_xchg(A,B)";
+                    }
+                  }
+                  else if (NULL != c_dbcsr_acc_opencl_stristr(env_atomics, "cmpxchg")) {
+                    atomic_expr = "atomic_add_global_cmpxchg(A,B)";
                   }
                   else {
-                    atomics = "atomic_add_global_xchg(A,B)";
+                    atomic_expr = "atomic_add_global_xchg(A,B)";
                   }
                 }
                 else {
-                  atomics = "*(A)+=(B)";
+                  atomic_expr = "*(A)+=(B)";
                 }
-                assert(1 <= bs && 0 < bm && 0 < bn && NULL != atomics);
+                assert(1 <= bs && 0 < bm && 0 < bn && NULL != atomic_expr);
                 nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options),
-                  "%s -cl-fast-relaxed-math -cl-no-signed-zeros -cl-denorms-are-zero"
-                  " -DGLOBAL=%s -DFN=%s -DSM=%i -DSN=%i -DSK=%i -DBM=%i -DBN=%i -DBS=%i"
-                  " -DT=%s -DTA=%s -DFMA=fma -DCMPXCHG=%s -DXCHG=%s"
-                  " -D\"ATOMIC_ADD_GLOBAL(A,B)=%s\"",
+                  "%s -cl-fast-relaxed-math -cl-no-signed-zeros -cl-denorms-are-zero -DFMA=fma"
+                  " -DGLOBAL=%s -DFN=%s -DSM=%i -DSN=%i -DSK=%i -DBM=%i -DBN=%i -DBS=%i -DT=%s"
+                  " %s -D\"ATOMIC_ADD_GLOBAL(A,B)=%s\"",
                   (NULL == env_options || '\0' == *env_options) ? "" : env_options,
                   EXIT_SUCCESS != opencl_libsmm_use_cmem(active_device) ? "global" : "constant",
-                  fname, m_max, n_max, k_max, bm, bn, bs, typename,
-                  atomic_type, atomic_cmpxchg, atomic_xchg, atomics);
+                  fname, m_max, n_max, k_max, bm, bn, bs, typename, atomic_ops, atomic_expr);
                 if (0 >= nchar || (int)sizeof(build_options) <= nchar) result = EXIT_FAILURE;
               }
               else {
@@ -575,9 +581,12 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
               opencl_libsmm_smm_t new_config;
 #if defined(OPENCL_LIBSMM_SOURCE_MULTIPLY)
               result = c_dbcsr_acc_opencl_kernel(
-                nonvcl  ? (OPENCL_LIBSMM_SOURCE_MULTIPLY)
-                        : ("#pragma OPENCL EXTENSION all: enable\n"
-                           OPENCL_LIBSMM_STRING_MULTIPLY),
+                cl_intel  ? ("#pragma OPENCL EXTENSION cl_intel_global_float_atomics: enable\n"
+                             OPENCL_LIBSMM_STRING_MULTIPLY)
+                          : (/*non-Intel device*/
+                  cl_nonv ? (OPENCL_LIBSMM_SOURCE_MULTIPLY)
+                          : ("#pragma OPENCL EXTENSION all: enable\n"
+                             OPENCL_LIBSMM_STRING_MULTIPLY)),
                 build_options, fname, &new_config.kernel);
 #else
               result = EXIT_FAILURE;

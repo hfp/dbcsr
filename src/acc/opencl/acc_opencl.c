@@ -473,12 +473,12 @@ int c_dbcsr_acc_opencl_device_name(cl_device_id device, const char* name)
 {
   char buffer[ACC_OPENCL_BUFFERSIZE];
   int result = EXIT_SUCCESS;
-  assert(NULL != device && NULL != vendor);
+  assert(NULL != device && NULL != name);
   ACC_OPENCL_CHECK(clGetDeviceInfo(device, CL_DEVICE_NAME,
     ACC_OPENCL_BUFFERSIZE, buffer, NULL),
     "retrieve device name", result);
   if (EXIT_SUCCESS == result) {
-    return (NULL != c_dbcsr_acc_opencl_stristr(buffer, vendor)
+    return (NULL != c_dbcsr_acc_opencl_stristr(buffer, name)
       ? EXIT_SUCCESS
       : EXIT_FAILURE);
   }

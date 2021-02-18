@@ -226,6 +226,8 @@ const char* c_dbcsr_acc_opencl_stristr(const char* a, const char* b);
 int c_dbcsr_acc_opencl_device(void* stream, cl_device_id* device);
 /** Confirm the vendor of the given device. */
 int c_dbcsr_acc_opencl_device_vendor(cl_device_id device, const char* vendor);
+/** Confirm the name of the given device. */
+int c_dbcsr_acc_opencl_device_name(cl_device_id device, const char* name);
 /** Return the OpenCL support level for the given device. */
 int c_dbcsr_acc_opencl_device_level(cl_device_id device,
   int* level_major, int* level_minor);

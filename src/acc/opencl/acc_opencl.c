@@ -469,6 +469,23 @@ int c_dbcsr_acc_opencl_device_vendor(cl_device_id device, const char* vendor)
 }
 
 
+int c_dbcsr_acc_opencl_device_name(cl_device_id device, const char* name)
+{
+  char buffer[ACC_OPENCL_BUFFERSIZE];
+  int result = EXIT_SUCCESS;
+  assert(NULL != device && NULL != vendor);
+  ACC_OPENCL_CHECK(clGetDeviceInfo(device, CL_DEVICE_NAME,
+    ACC_OPENCL_BUFFERSIZE, buffer, NULL),
+    "retrieve device name", result);
+  if (EXIT_SUCCESS == result) {
+    return (NULL != c_dbcsr_acc_opencl_stristr(buffer, vendor)
+      ? EXIT_SUCCESS
+      : EXIT_FAILURE);
+  }
+  else ACC_OPENCL_RETURN(result);
+}
+
+
 int c_dbcsr_acc_opencl_device_level(cl_device_id device, int* level_major, int* level_minor)
 {
   char buffer[ACC_OPENCL_BUFFERSIZE];

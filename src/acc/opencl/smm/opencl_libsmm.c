@@ -315,8 +315,8 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
 #endif
             if (EXIT_SUCCESS == result) {
               int max_wgsize;
-              result = c_dbcsr_acc_opencl_wgsize(active_device, new_config.kernel,
-                &max_wgsize, NULL/*preferred_multiple*/);
+              result = c_dbcsr_acc_opencl_wgsize(active_device,
+                new_config.kernel, &max_wgsize, NULL/*prefmult*/);
               if (EXIT_SUCCESS == result) {
                 assert(0 < max_wgsize);
                 if (wgsize <= max_wgsize) {
@@ -502,11 +502,15 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
             default: ;
           }
           if (NULL != typename) {
+            int unified = 0;
             const int cl_intel = (EXIT_SUCCESS == c_dbcsr_acc_opencl_device_vendor(active_device, "intel"));
             const int cl_nonv = (cl_intel || EXIT_SUCCESS != c_dbcsr_acc_opencl_device_vendor(active_device, "nvidia"));
             int max_wgsize, wgsize, bs, bm, bn, nbm, nbn;
-            result = c_dbcsr_acc_opencl_wgsize(active_device, NULL/*device-specific*/,
-              &max_wgsize, NULL/*preferred_multiple*/);
+            result = c_dbcsr_acc_opencl_info_devmem(active_device, NULL, NULL, NULL, &unified);
+            if (EXIT_SUCCESS == result) {
+              result = c_dbcsr_acc_opencl_wgsize(active_device,
+                NULL/*device-specific*/, &max_wgsize, NULL/*prefmult*/);
+            }
             if (EXIT_SUCCESS == result) {
               const char *const env_batchsize = getenv("OPENCL_LIBSMM_SMM_BATCHSIZE");
               const char *const env_blockm = getenv("OPENCL_LIBSMM_SMM_BLOCK_M");
@@ -541,7 +545,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                 const char *atomic_expr = NULL;
                 if (NULL == env_atomics || '0' != *env_atomics) {
                   if (NULL == env_atomics) {
-                    if (cl_intel) {
+                    if (cl_intel && 0 == unified) {
                       atomic_ops = "-Dcl_intel_global_float_atomics";
                       atomic_expr = "atomic_add(A,B)";
                     }
@@ -581,19 +585,21 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
               opencl_libsmm_smm_t new_config;
 #if defined(OPENCL_LIBSMM_SOURCE_MULTIPLY)
               result = c_dbcsr_acc_opencl_kernel(
-                cl_intel  ? ("#pragma OPENCL EXTENSION cl_intel_global_float_atomics: enable\n"
-                             OPENCL_LIBSMM_STRING_MULTIPLY)
-                          : (/*non-Intel device*/
-                  cl_nonv ? (OPENCL_LIBSMM_SOURCE_MULTIPLY)
-                          : ("#pragma OPENCL EXTENSION all: enable\n"
-                             OPENCL_LIBSMM_STRING_MULTIPLY)),
+                cl_intel && 0 == unified
+                  ? ("#pragma OPENCL EXTENSION cl_intel_global_float_atomics: enable\n"
+                     OPENCL_LIBSMM_STRING_MULTIPLY)
+                  : (/*non-Intel device*/
+                cl_nonv
+                  ? (OPENCL_LIBSMM_SOURCE_MULTIPLY)
+                  : ("#pragma OPENCL EXTENSION all: enable\n"
+                     OPENCL_LIBSMM_STRING_MULTIPLY)),
                 build_options, fname, &new_config.kernel);
 #else
               result = EXIT_FAILURE;
 #endif
               if (EXIT_SUCCESS == result) {
-                result = c_dbcsr_acc_opencl_wgsize(active_device, new_config.kernel,
-                  &max_wgsize, NULL/*preferred_multiple*/);
+                result = c_dbcsr_acc_opencl_wgsize(active_device,
+                  new_config.kernel, &max_wgsize, NULL/*prefmult*/);
                 if (EXIT_SUCCESS == result) {
                   assert(0 < wgsize && 0 < max_wgsize);
                   /* check planned WG-size against kernel-specific WG-size */

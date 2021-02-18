@@ -357,7 +357,7 @@ int c_dbcsr_acc_opencl_info_devmem(cl_device_id device,
     }
   }
   result = (size_free <= size_total ? EXIT_SUCCESS : EXIT_FAILURE);
-  assert(NULL != mem_local || NULL != mem_total || NULL != mem_free);
+  assert(NULL != mem_local || NULL != mem_total || NULL != mem_free || NULL != mem_unified);
   if (NULL != mem_unified) *mem_unified = unified;
   if (NULL != mem_local) *mem_local = size_local;
   if (NULL != mem_total) *mem_total = size_total;

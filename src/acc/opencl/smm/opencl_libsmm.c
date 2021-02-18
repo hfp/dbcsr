@@ -504,6 +504,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
           if (NULL != typename) {
             int unified = 0;
             const int cl_intel = (EXIT_SUCCESS == c_dbcsr_acc_opencl_device_vendor(active_device, "intel"));
+            const int cl_intel_0x4905 = (cl_intel && EXIT_SUCCESS == c_dbcsr_acc_opencl_device_name(active_device, "0x4905"));
             const int cl_nonv = (cl_intel || EXIT_SUCCESS != c_dbcsr_acc_opencl_device_vendor(active_device, "nvidia"));
             int max_wgsize, wgsize, bs, bm, bn, nbm, nbn;
             result = c_dbcsr_acc_opencl_info_devmem(active_device, NULL, NULL, NULL, &unified);
@@ -545,7 +546,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                 const char *atomic_expr = NULL;
                 if (NULL == env_atomics || '0' != *env_atomics) {
                   if (NULL == env_atomics) {
-                    if (cl_intel && 0 == unified && dbcsr_type_real_4 == datatype) {
+                    if (cl_intel_0x4905 && 0 == unified && dbcsr_type_real_4 == datatype) {
                       atomic_ops = "-Dcl_intel_global_float_atomics";
                       atomic_expr = "atomic_add(A,B)";
                     }
@@ -585,7 +586,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
               opencl_libsmm_smm_t new_config;
 #if defined(OPENCL_LIBSMM_SOURCE_MULTIPLY)
               result = c_dbcsr_acc_opencl_kernel(
-                (cl_intel && 0 == unified && dbcsr_type_real_4 == datatype)
+                (cl_intel_0x4905 && 0 == unified && dbcsr_type_real_4 == datatype)
                   ? ("#pragma OPENCL EXTENSION cl_intel_global_float_atomics: enable\n"
                      OPENCL_LIBSMM_STRING_MULTIPLY)
                   : (/*non-Intel device*/

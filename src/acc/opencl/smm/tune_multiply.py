@@ -161,7 +161,10 @@ class SmmTuner(MeasurementInterface):
                     for key, value in merged.items():  # CSV data lines
                         strkey = self.args.csvsep.join([str(k) for k in key])
                         strval = self.args.csvsep.join([str(v) for v in value[:-1]])
-                        ofile.write(strkey, self.args.csvsep, strval, "\n")
+                        ofile.write(strkey)
+                        ofile.write(self.args.csvsep)
+                        ofile.write(strval)
+                        ofile.write("\n")
                 print(
                     "Merged {} of {} JSONs into {}".format(
                         len(merged), len(filenames), self.args.csvfile

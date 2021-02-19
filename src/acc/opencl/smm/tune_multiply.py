@@ -132,31 +132,31 @@ class SmmTuner(MeasurementInterface):
         if self.args.csvfile:
             merged = dict()
             for ifilename in filenames:
-                with open(ifilename, "r") as ifile:
-                    try:
+                try:
+                    data = dict()
+                    with open(ifilename, "r") as ifile:
                         data = json.load(ifile)
-                        key = (int(data["TYPEID"]), data["M"], data["N"], data["K"])
-                        value = (
-                            data["GFLOPS"],
-                            data["BS"],
-                            data["BM"],
-                            data["BN"],
-                            ifilename,
-                        )
-                        if key not in merged:
+                    key = (int(data["TYPEID"]), data["M"], data["N"], data["K"])
+                    value = (
+                        data["GFLOPS"],
+                        data["BS"],
+                        data["BM"],
+                        data["BN"],
+                        ifilename,
+                    )
+                    if key not in merged:
+                        merged[key] = value
+                    else:
+                        if merged[key][0] < value[0]:
+                            ifilename = merged[key][-1]
                             merged[key] = value
-                        else:
-                            if merged[key][0] < value[0]:
-                                ifilename = merged[key][-1]
-                                merged[key] = value
-                            print(
-                                "Worse result "
-                                + ifilename
-                                + " ignored when merging CSV-file"
-                            )
-                    except (json.JSONDecodeError, KeyError):
-                        print("Failed to merge " + ifilename + " into CSV-file")
-                        pass
+                        print(
+                            "Worse result "
+                            + ifilename
+                            + " ignored when merging CSV-file"
+                        )
+                except (json.JSONDecodeError, KeyError):
+                    print("Failed to merge " + ifilename + " into CSV-file")
             if bool(merged):
                 with open(self.args.csvfile, "w") as ofile:
                     ofile.write(  # CSV header line
@@ -212,18 +212,17 @@ class SmmTuner(MeasurementInterface):
             with open(ofilename, "w") as ofile:
                 json.dump(config, ofile)
                 ofile.write("\n")  # append newline at EOF
-                ofile.close()
-                print(
-                    "Result achieving "
-                    + str(self.gflops)
-                    + " GFLOPS/s ("
-                    + self.typename
-                    + ") was written to "
-                    + ofilename
-                )
-                if ofilename not in filenames:
-                    filenames.append(ofilename)
-                    self.merge_into_csv(filenames)
+            print(
+                "Result achieving "
+                + str(self.gflops)
+                + " GFLOPS/s ("
+                + self.typename
+                + ") was written to "
+                + ofilename
+            )
+            if ofilename not in filenames:
+                filenames.append(ofilename)
+                self.merge_into_csv(filenames)
 
     def handle_sigint(self, signum, frame):
         """handles SIGINT or CTRL-C"""

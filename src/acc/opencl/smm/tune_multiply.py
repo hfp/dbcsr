@@ -35,7 +35,7 @@ class SmmTuner(MeasurementInterface):
             exit(0)
         self.exepath = "../.."
         self.exename = "acc_bench_smm"
-        run_result = self.call_program(self.exepath + "/" + self.exename + " 1 1 1")
+        run_result = self.call_program("{}/{} 1 1 1".format(self.exepath, self.exename))
         if 0 == run_result["returncode"]:
             match = re.search(
                 "typename \\(id=([0-9]+)\\):\\s+(\\w+)", str(run_result["stdout"])
@@ -48,7 +48,7 @@ class SmmTuner(MeasurementInterface):
         else:
             sys.tracebacklimit = 0
             raise RuntimeError(
-                "Setup failed for " + self.exepath + "/" + self.exename + "!"
+                "Setup failed for {}/{}!".format(self.exepath, self.exename)
             )
         # sanitize input arguments
         self.args.m = max(self.args.m, 1)
@@ -83,26 +83,20 @@ class SmmTuner(MeasurementInterface):
         return performance
         """
         config = desired_result.configuration.data
-        run_cmd = (
-            "OMP_PROC_BIND=TRUE CHECK="
-            + str(self.args.check)
-            + " OPENCL_LIBSMM_SMM_BATCHSIZE="
-            + str(config["BS"])
-            + " OPENCL_LIBSMM_SMM_BLOCK_M="
-            + str(config["BM"])
-            + " OPENCL_LIBSMM_SMM_BLOCK_N="
-            + str(config["BN"])
-            + " "
-            + self.exepath
-            + "/"
-            + self.exename
-            + " 0 0"
-            + " "
-            + str(self.args.m)
-            + " "
-            + str(self.args.n)
-            + " "
-            + str(self.args.k)
+        run_cmd = "{} CHECK={} {}={} {}={} {}={} {}/{} 0 0 {} {} {}".format(
+            "OMP_PROC_BIND=TRUE",
+            self.args.check,
+            "OPENCL_LIBSMM_SMM_BATCHSIZE",
+            config["BS"],
+            "OPENCL_LIBSMM_SMM_BLOCK_M",
+            config["BM"],
+            "OPENCL_LIBSMM_SMM_BLOCK_N",
+            config["BN"],
+            self.exepath,
+            self.exename,
+            self.args.m,
+            self.args.n,
+            self.args.k,
         )
         run_result = self.call_program(run_cmd)
         if 0 == run_result["returncode"]:
@@ -151,48 +145,34 @@ class SmmTuner(MeasurementInterface):
                             ifilename = merged[key][-1]
                             merged[key] = value
                         print(
-                            "Worse result "
-                            + ifilename
-                            + " ignored when merging CSV-file"
+                            "Worse result {} ignored when merging CSV-file".format(
+                                ifilename
+                            )
                         )
                 except (json.JSONDecodeError, KeyError):
-                    print("Failed to merge " + ifilename + " into CSV-file")
+                    print("Failed to merge {}  into CSV-file".format(ifilename))
             if bool(merged):
                 with open(self.args.csvfile, "w") as ofile:
                     ofile.write(  # CSV header line
                         self.args.csvsep.join(
-                            ["TYPEID", "M", "N", "K", "GFLOPS", "BS", "BM", "BN"]
+                            ["TYPEID", "M", "N", "K", "GFLOPS", "BS", "BM", "BN\n"]
                         )
-                        + "\n"
                     )
                     for key, value in merged.items():  # CSV data lines
                         strkey = self.args.csvsep.join([str(k) for k in key])
                         strval = self.args.csvsep.join([str(v) for v in value[:-1]])
-                        ofile.write(strkey + self.args.csvsep + strval + "\n")
+                        ofile.write(strkey, self.args.csvsep, strval, "\n")
                 print(
-                    "Merged "
-                    + str(len(merged))
-                    + " of "
-                    + str(len(filenames))
-                    + " JSONs into "
-                    + self.args.csvfile
+                    "Merged {} of {} JSONs into {}".format(
+                        len(merged), len(filenames), self.args.csvfile
+                    )
                 )
 
     def save_final_config(self, configuration):
         """called at the end of tuning"""
         if 0 < self.gflops:
-            ofilename = (
-                "tune_multiply-"
-                + self.typename
-                + "-"
-                + str(self.args.m)
-                + "x"
-                + str(self.args.n)
-                + "x"
-                + str(self.args.k)
-                + "-"
-                + str(round(self.gflops))
-                + "gflops.json"
+            ofilename = "tune_multiply-{}-{}x{}x{}-{}gflops.json".format(
+                self.typename, self.args.m, self.args.n, self.args.k, round(self.gflops)
             )
             # extend result for easier reuse later
             config = configuration.data
@@ -204,21 +184,18 @@ class SmmTuner(MeasurementInterface):
             filenames = glob.glob("*.json")
             if not filenames and glob.glob(self.args.csvfile):
                 print(
-                    "WARNING: no JSON file found but (unrelated?) "
-                    + self.args.csvfile
-                    + " exists!"
+                    "WARNING: no JSON file found but (unrelated?) {} exists!".format(
+                        self.args.csvfile
+                    )
                 )
             # self.manipulator().save_to_file(config, ofilename)
             with open(ofilename, "w") as ofile:
                 json.dump(config, ofile)
                 ofile.write("\n")  # append newline at EOF
             print(
-                "Result achieving "
-                + str(self.gflops)
-                + " GFLOPS/s ("
-                + self.typename
-                + ") was written to "
-                + ofilename
+                "Result achieving {} GFLOPS/s ({}) was written to {}".format(
+                    self.gflops, self.typename, ofilename
+                )
             )
             if ofilename not in filenames:
                 filenames.append(ofilename)
@@ -227,13 +204,9 @@ class SmmTuner(MeasurementInterface):
     def handle_sigint(self, signum, frame):
         """handles SIGINT or CTRL-C"""
         print(
-            "\nWARNING: tuning "
-            + str(self.args.m)
-            + "x"
-            + str(self.args.n)
-            + "x"
-            + str(self.args.k)
-            + "-kernel was interrupted."
+            "\nWARNING: tuning {}x{}x{}-kernel was interrupted.".format(
+                self.args.m, self.args.n, self.args.k
+            )
         )
         self.save_final_config(self.config)
         exit(1)

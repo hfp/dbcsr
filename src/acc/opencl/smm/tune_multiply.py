@@ -145,12 +145,12 @@ class SmmTuner(MeasurementInterface):
                             ifilename = merged[key][-1]
                             merged[key] = value
                         print(
-                            "Worse result {} ignored when merging CSV-file".format(
+                            "Worse result {} ignored when merging CSV-file.".format(
                                 ifilename
                             )
                         )
                 except (json.JSONDecodeError, KeyError):
-                    print("Failed to merge {}  into CSV-file".format(ifilename))
+                    print("Failed to merge {} into CSV-file.".format(ifilename))
             if bool(merged):
                 with open(self.args.csvfile, "w") as ofile:
                     ofile.write(  # CSV header line
@@ -166,7 +166,7 @@ class SmmTuner(MeasurementInterface):
                         ofile.write(strval)
                         ofile.write("\n")
                 print(
-                    "Merged {} of {} JSONs into {}".format(
+                    "Merged {} of {} JSONs into {}.".format(
                         len(merged), len(filenames), self.args.csvfile
                     )
                 )
@@ -196,7 +196,7 @@ class SmmTuner(MeasurementInterface):
                 json.dump(config, ofile)
                 ofile.write("\n")  # append newline at EOF
             print(
-                "Result achieving {} GFLOPS/s ({}) was written to {}".format(
+                "Result achieving {} GFLOPS/s ({}) was written to {}.".format(
                     self.gflops, self.typename, ofilename
                 )
             )

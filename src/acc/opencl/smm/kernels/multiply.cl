@@ -14,6 +14,7 @@
 /* size of workgroup (WG) */
 #define SWG (NBM * NBN)
 
+
 #if !defined(cl_intel_global_float_atomics)
 
 __attribute__((always_inline))
@@ -27,7 +28,6 @@ inline void atomic_add_global_cmpxchg(global volatile T* dst, T inc)
   } while (old_val.a != new_val.a);
 }
 
-
 __attribute__((always_inline))
 inline void atomic_add_global_xchg(global volatile T* dst, T inc)
 {
@@ -40,6 +40,7 @@ inline void atomic_add_global_xchg(global volatile T* dst, T inc)
 }
 
 #endif
+
 
 kernel void FN(global T *restrict cmat,
   GLOBAL const T *restrict amat, GLOBAL const T *restrict bmat,
@@ -55,7 +56,7 @@ kernel void FN(global T *restrict cmat,
   int a0 = params[0] - 1, b0 = params[1] - 1, c0 = params[2] - 1;
   global T *restrict cwg = cmat + c0;
 
-  local T a[SM][SK];
+  local T a[SM*SK];
   T am[SK], bn[SK];
 #if (SWG != SN)
   local T b[SK][SN];
@@ -100,7 +101,7 @@ kernel void FN(global T *restrict cmat,
     { /* transpose A-matrix into local buffer */
       GLOBAL const T *const restrict awg = amat + a0;
       for (int m = m0; m < m1; ++m) {
-        for (int k = 0; k < SK; ++k) a[m][k] = awg[SM*k+m];
+        for (int k = 0; k < SK; ++k) a[SK*m+k] = awg[SM*k+m];
       }
 #if (1 < BS)
       a0 = a1; /* next iteration */
@@ -125,7 +126,7 @@ kernel void FN(global T *restrict cmat,
       barrier(CLK_LOCAL_MEM_FENCE);
 #if (SWG != SN)
       for (int m = m0; m < m1; ++m) {
-        for (int k = 0; k < SK; ++k) am[k] = a[m][k];
+        for (int k = 0; k < SK; ++k) am[k] = a[SK*m+k];
         for (int n = n0; n < n1; ++n) {
           T r = 0;
           for (int k = 0; k < SK; ++k) bn[k] = b[k][n];
@@ -140,7 +141,7 @@ kernel void FN(global T *restrict cmat,
 #else
       for (int m = 0; m < SM; ++m) {
         T r = 0;
-        for (int k = 0; k < SK; ++k) am[k] = a[m][k];
+        for (int k = 0; k < SK; ++k) am[k] = a[SK*m+k];
         for (int k = 0; k < SK; ++k) r = FMA(am[k], bn[k], r);
 # if (1 < BS)
         c[m] += r;

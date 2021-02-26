@@ -344,7 +344,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
     }
     assert((NULL != config && NULL != config->kernel && 0 < config->wgsize) || EXIT_SUCCESS != result);
     if (EXIT_SUCCESS == result) {
-      cl_event event, *const perf_event = ((0 <= c_dbcsr_acc_opencl_options.verbosity && 3 > c_dbcsr_acc_opencl_options.verbosity) ? &event : NULL);
+      cl_event event, *const perf_event = ((0 <= c_dbcsr_acc_opencl_options.verbosity && 3 > c_dbcsr_acc_opencl_options.verbosity) ? NULL : &event);
       const size_t work_size = config->wgsize * stack_size;
 #if defined(OPENCL_LIBSMM_DEBUG_TRANS)
       const int offset_stack_size = offset + stack_size;
@@ -664,7 +664,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
         && 1 <= config->bs && 0 < config->bm && 0 < config->bn
         && 0 < config->wgsize));
     if (EXIT_SUCCESS == result) {
-      cl_event event, *const perf_event = ((0 <= c_dbcsr_acc_opencl_options.verbosity && 3 > c_dbcsr_acc_opencl_options.verbosity) ? &event : NULL);
+      cl_event event, *const perf_event = ((0 <= c_dbcsr_acc_opencl_options.verbosity && 3 > c_dbcsr_acc_opencl_options.verbosity) ? NULL : &event);
       /* adjust overall stacksize according to intra-kernel batchsize */
       const size_t work_size = ((stack_size + config->bs - 1) / config->bs) * config->wgsize;
 #if defined(OPENCL_LIBSMM_DEBUG_SMM)

@@ -43,25 +43,25 @@ extern "C" {
 
 /** Type for querying transpose kernel/configuration. */
 typedef struct opencl_libsmm_transkey_t {
-  libsmm_acc_data_t type;
+  libsmm_acc_data_t type; /* must be the 1st member */
   int m, n;
 } opencl_libsmm_transkey_t;
 
 /** Type for transpose kernel/configuration. */
 typedef struct opencl_libsmm_trans_t {
-  cl_kernel kernel;
+  cl_kernel kernel; /* must be the 1st member */
   size_t wgsize;
 } opencl_libsmm_trans_t;
 
 /** Type for querying SMM-kernel/configuration. */
 typedef struct opencl_libsmm_smmkey_t {
-  libsmm_acc_data_t type;
+  libsmm_acc_data_t type; /* must be the 1st member */
   int m, n, k;
 } opencl_libsmm_smmkey_t;
 
 /** Type for SMM-kernel/configuration. */
 typedef struct opencl_libsmm_smm_t {
-  cl_kernel kernel;
+  cl_kernel kernel; /* must be the 1st member */
   size_t wgsize;
   /* tuned parameters for SMM-kernels */
   int bs, bm, bn;

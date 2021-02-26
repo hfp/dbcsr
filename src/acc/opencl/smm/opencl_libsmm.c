@@ -218,9 +218,19 @@ int libsmm_acc_finalize(void)
 #else
   int result = EXIT_SUCCESS;
 #endif
-#if 0
+#if LIBXSMM_VERSION3(1, 16, 1) <= LIBXSMM_VERSION3(LIBXSMM_VERSION_MAJOR, \
+    LIBXSMM_VERSION_MINOR, LIBXSMM_VERSION_UPDATE) && 1158 <= LIBXSMM_VERSION_PATCH
   /* multiple calls to libsmm_acc_finalize are not considered as an error */
   if (0 == LIBXSMM_ATOMIC_SUB_FETCH(&opencl_libsmm_initialized, 1, LIBXSMM_ATOMIC_RELAXED)) {
+    const void* regkey = NULL;
+    const void* regentry = libxsmm_get_registry_begin(LIBXSMM_KERNEL_KIND_USER, &regkey);
+    for (; NULL != regentry; regentry = libxsmm_get_registry_next(regentry, &regkey)) {
+      /* opencl_libsmm_trans_t/opencl_libsmm_smm_t carry cl_kernel as 1st data member */
+      const cl_kernel kernel = *(const cl_kernel*)regentry;
+      if (NULL != kernel) {
+        ACC_OPENCL_CHECK(clReleaseKernel(kernel), "release kernel", result);
+      }
+    }
   }
 #endif
   /* acc_finalize is not called since it can be used independently */

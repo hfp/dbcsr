@@ -388,7 +388,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
       ACC_OPENCL_CHECK(c_dbcsr_acc_memcpy_d2h(dev_data, omat, data_size, stream),
         "transfer debug test", result);
 #endif
-#if defined(OPENCL_LIBSMM_DEBUG_TRANS) || defined(OPENCL_LIBSMM_SYNC)
+#if defined(OPENCL_LIBSMM_DEBUG_TRANS)
       ACC_OPENCL_CHECK(c_dbcsr_acc_stream_sync(stream), "sync stream", result);
 #endif
 #if defined(OPENCL_LIBSMM_DEBUG_TRANS)
@@ -719,7 +719,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
       ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_c_data, test, csize, stream),
         "transfer debug test", result);
 #endif
-#if defined(OPENCL_LIBSMM_DEBUG_SMM) || defined(OPENCL_LIBSMM_SYNC)
+#if defined(OPENCL_LIBSMM_DEBUG_SMM)
       ACC_OPENCL_CHECK(acc_stream_sync(stream), "sync stream", result);
 #endif
 #if defined(OPENCL_LIBSMM_DEBUG_SMM)

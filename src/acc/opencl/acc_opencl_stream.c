@@ -22,11 +22,7 @@
 #endif
 
 #if defined(CL_VERSION_1_2)
-# if defined(ACC_OPENCL_EVENT_BARRIER)
-#   define ACC_OPENCL_WAIT_EVENT(QUEUE, EVENT) clEnqueueBarrierWithWaitList(QUEUE, 1, EVENT, NULL)
-# else
-#   define ACC_OPENCL_WAIT_EVENT(QUEUE, EVENT) clEnqueueMarkerWithWaitList(QUEUE, 1, EVENT, NULL)
-# endif
+# define ACC_OPENCL_WAIT_EVENT(QUEUE, EVENT) clEnqueueMarkerWithWaitList(QUEUE, 1, EVENT, NULL)
 #else
 # define ACC_OPENCL_WAIT_EVENT(QUEUE, EVENT) clEnqueueWaitForEvents(QUEUE, 1, EVENT)
 #endif
@@ -165,9 +161,6 @@ int c_dbcsr_acc_stream_sync(void* stream)
 { /* Blocks the host-thread. */
   int result = EXIT_SUCCESS;
   assert(NULL != stream);
-#if defined(ACC_OPENCL_DEBUG) && defined(_DEBUG)
-  fprintf(stderr, "c_dbcsr_acc_stream_sync(%p)\n", stream);
-#endif
   ACC_OPENCL_CHECK(clFinish(*ACC_OPENCL_STREAM(stream)),
     "synchronize stream", result);
   ACC_OPENCL_RETURN(result);
@@ -178,12 +171,6 @@ int c_dbcsr_acc_stream_wait_event(void* stream, void* event)
 { /* Wait for an event (device-side). */
   int result = EXIT_SUCCESS;
   assert(NULL != stream && NULL != event);
-#if defined(ACC_OPENCL_DEBUG) && defined(_DEBUG)
-  fprintf(stderr, "c_dbcsr_acc_stream_wait_event(%p, %p)\n", stream, event);
-#endif
-#if defined(ACC_OPENCL_STREAM_SYNCFLUSH)
-  ACC_OPENCL_CHECK(clFlush(*ACC_OPENCL_STREAM(stream)), "flush stream", result);
-#endif
   ACC_OPENCL_CHECK(ACC_OPENCL_WAIT_EVENT(*ACC_OPENCL_STREAM(stream), ACC_OPENCL_EVENT(event)),
     "wait for an event", result);
   ACC_OPENCL_RETURN(result);

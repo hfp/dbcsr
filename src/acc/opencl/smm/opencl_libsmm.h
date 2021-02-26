@@ -27,9 +27,6 @@
 #if !defined(OPENCL_LIBSMM_DEBUG) && 0
 # define OPENCL_LIBSMM_DEBUG
 #endif
-#if !defined(OPENCL_LIBSMM_SYNC) && 0
-# define OPENCL_LIBSMM_SYNC
-#endif
 #if !defined(OPENCL_LIBSMM_CMEM) && 1
 # define OPENCL_LIBSMM_CMEM
 #endif

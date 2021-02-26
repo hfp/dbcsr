@@ -323,7 +323,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
                   new_config.wgsize = (size_t)wgsize;
                   config = (opencl_libsmm_trans_t*)OPENCL_LIBSMM_REGISTER(&key, sizeof(key),
                     sizeof(new_config), &new_config);
-                  if (1 < c_dbcsr_acc_opencl_options.verbosity || 0 > c_dbcsr_acc_opencl_options.verbosity) {
+                  if (2 <= c_dbcsr_acc_opencl_options.verbosity || 0 > c_dbcsr_acc_opencl_options.verbosity) {
                     const double duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
                     fprintf(stderr, "INFO ACC/OpenCL: %ix%i transpose-kernel generated in %.1f ms\n",
                       m, n, 1000.0 * duration);
@@ -344,6 +344,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
     }
     assert((NULL != config && NULL != config->kernel && 0 < config->wgsize) || EXIT_SUCCESS != result);
     if (EXIT_SUCCESS == result) {
+      cl_event event, *const perf_event = ((0 <= c_dbcsr_acc_opencl_options.verbosity && 3 > c_dbcsr_acc_opencl_options.verbosity) ? &event : NULL);
       const size_t work_size = config->wgsize * stack_size;
 #if defined(OPENCL_LIBSMM_DEBUG_TRANS)
       const int offset_stack_size = offset + stack_size;
@@ -380,9 +381,21 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
         ACC_OPENCL_CHECK(clSetKernelArg(config->kernel, 2, sizeof(cl_mem), ACC_OPENCL_MEM(dev_data)),
           "set matrix-data argument of transpose kernel", result);
         ACC_OPENCL_CHECK(clEnqueueNDRangeKernel(*ACC_OPENCL_STREAM(stream),
-          config->kernel, 1/*work_dim*/, NULL, &work_size, &config->wgsize, 0, NULL, NULL),
+          config->kernel, 1/*work_dim*/, NULL, &work_size, &config->wgsize, 0, NULL, perf_event),
           "launch transpose kernel", result);
         LIBXSMM_ATOMIC_RELEASE(lock, LIBXSMM_ATOMIC_RELAXED);
+      }
+      if (NULL != perf_event) {
+        cl_ulong begin, end;
+        clWaitForEvents(1, perf_event);
+        ACC_OPENCL_CHECK(clGetEventProfilingInfo(*perf_event, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &begin, NULL),
+          "query kernel start time", result);
+        ACC_OPENCL_CHECK(clGetEventProfilingInfo(*perf_event, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &end, NULL),
+          "query kernel end time", result);
+        if (EXIT_SUCCESS == result) {
+          fprintf(stderr, "INFO ACC/OpenCL: %ix%i transpose-kernel executed in %.1f ms\n",
+            m, n, 1e-6 * LIBXSMM_DELTA(begin, end));
+        }
       }
 #if defined(OPENCL_LIBSMM_DEBUG_TRANS)
       ACC_OPENCL_CHECK(c_dbcsr_acc_memcpy_d2h(dev_data, omat, data_size, stream),
@@ -614,7 +627,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                       config->wgsize = (size_t)wgsize;
                       config->bs = bs; config->bm = bm; config->bn = bn;
                       config->kernel = new_config.kernel;
-                      if (1 < c_dbcsr_acc_opencl_options.verbosity || 0 > c_dbcsr_acc_opencl_options.verbosity) {
+                      if (2 <= c_dbcsr_acc_opencl_options.verbosity || 0 > c_dbcsr_acc_opencl_options.verbosity) {
                         const double duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
                         fprintf(stderr, "INFO ACC/OpenCL: %ix%ix%i %sSMM-kernel generated in %.1f ms\n",
                           m_max, n_max, k_max, default_params ? "" : "tuned ", 1000.0 * duration);
@@ -651,6 +664,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
         && 1 <= config->bs && 0 < config->bm && 0 < config->bn
         && 0 < config->wgsize));
     if (EXIT_SUCCESS == result) {
+      cl_event event, *const perf_event = ((0 <= c_dbcsr_acc_opencl_options.verbosity && 3 > c_dbcsr_acc_opencl_options.verbosity) ? &event : NULL);
       /* adjust overall stacksize according to intra-kernel batchsize */
       const size_t work_size = ((stack_size + config->bs - 1) / config->bs) * config->wgsize;
 #if defined(OPENCL_LIBSMM_DEBUG_SMM)
@@ -711,9 +725,21 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
             "set stacksize argument of SMM-kernel", result);
         }
         ACC_OPENCL_CHECK(clEnqueueNDRangeKernel(*ACC_OPENCL_STREAM(stream),
-          config->kernel, 1/*work_dim*/, NULL, &work_size, &config->wgsize, 0, NULL, NULL),
+          config->kernel, 1/*work_dim*/, NULL, &work_size, &config->wgsize, 0, NULL, perf_event),
           "launch SMM-kernel", result);
         LIBXSMM_ATOMIC_RELEASE(lock, LIBXSMM_ATOMIC_RELAXED);
+      }
+      if (NULL != perf_event) {
+        cl_ulong begin, end;
+        clWaitForEvents(1, perf_event);
+        ACC_OPENCL_CHECK(clGetEventProfilingInfo(*perf_event, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &begin, NULL),
+          "query kernel start time", result);
+        ACC_OPENCL_CHECK(clGetEventProfilingInfo(*perf_event, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &end, NULL),
+          "query kernel end time", result);
+        if (EXIT_SUCCESS == result) {
+          fprintf(stderr, "INFO ACC/OpenCL: %ix%ix%i SMM-kernel executed in %.1f ms\n",
+            m_max, n_max, k_max, 1e-6 * LIBXSMM_DELTA(begin, end));
+        }
       }
 #if defined(OPENCL_LIBSMM_DEBUG_SMM)
       ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_c_data, test, csize, stream),

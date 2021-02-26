@@ -17,8 +17,8 @@
     clCreateCommandQueueWithProperties(CTX, DEV, PROPS, RESULT)
 #else
 # define ACC_OPENCL_CREATE_COMMAND_QUEUE(CTX, DEV, PROPS, RESULT) \
-    clCreateCommandQueue(CTX, DEV, /* avoid warning about unused argument */ \
-      (cl_command_queue_properties)(0 & (NULL != (PROPS) ? (((cl_int*)(PROPS))[0]) : 0)), RESULT)
+    clCreateCommandQueue(CTX, DEV, (cl_command_queue_properties) \
+      (NULL != (PROPS) ? ((PROPS)[1]) : 0), RESULT)
 #endif
 
 #if defined(CL_VERSION_1_2)
@@ -55,27 +55,26 @@ int c_dbcsr_acc_stream_create(void** stream_p, const char* name, int priority)
 {
   cl_int result = EXIT_SUCCESS;
   if (NULL != c_dbcsr_acc_opencl_context) {
+    ACC_OPENCL_COMMAND_QUEUE_PROPERTIES properties[8] = {
+      CL_QUEUE_PROPERTIES, 0/*placeholder*/,
+      0 /* terminator */
+    };
     cl_command_queue queue = NULL;
 #if !defined(ACC_OPENCL_STREAM_PRIORITIES) || !defined(CL_QUEUE_PRIORITY_KHR)
     ACC_OPENCL_UNUSED(priority);
 #else
     if (0 <= priority) {
-      ACC_OPENCL_COMMAND_QUEUE_PROPERTIES properties[] = {
-        CL_QUEUE_PRIORITY_KHR, 0/*placeholder filled-in below*/,
-        0 /* terminator */
-      };
-      properties[1] = (CL_QUEUE_PRIORITY_HIGH_KHR <= priority && CL_QUEUE_PRIORITY_LOW_KHR >= priority)
-        ? priority : ((CL_QUEUE_PRIORITY_HIGH_KHR + CL_QUEUE_PRIORITY_LOW_KHR) / 2);
-      result = c_dbcsr_acc_opencl_stream_create(&queue, name, properties);
+      properties[2] = CL_QUEUE_PRIORITY_KHR;
+      properties[3] = ((  CL_QUEUE_PRIORITY_HIGH_KHR <= priority
+                        && CL_QUEUE_PRIORITY_LOW_KHR >= priority)
+        ? priority : CL_QUEUE_PRIORITY_MED_KHR);
+      properties[4] = 0; /* terminator */
     }
-    else
 #endif
-    {
-      ACC_OPENCL_COMMAND_QUEUE_PROPERTIES properties[] = {
-        0 /* terminator */
-      };
-      result = c_dbcsr_acc_opencl_stream_create(&queue, name, properties);
+    if (3 <= c_dbcsr_acc_opencl_options.verbosity || 0 > c_dbcsr_acc_opencl_options.verbosity) {
+      properties[1] = CL_QUEUE_PROFILING_ENABLE;
     }
+    result = c_dbcsr_acc_opencl_stream_create(&queue, name, properties);
     assert(NULL != stream_p);
     if (EXIT_SUCCESS == result) {
       assert(NULL != queue);

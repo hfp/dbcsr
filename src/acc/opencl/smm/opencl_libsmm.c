@@ -439,7 +439,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
           ACC_OPENCL_CHECK(clGetEventProfilingInfo(*perf_event, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &end, NULL),
             "query kernel end time", result);
           if (EXIT_SUCCESS == result) {
-            membw = ((double)stack_size * (typesize * m * n) * (1ULL << 30)) / LIBXSMM_DELTA(begin, end);
+            membw = ((double)stack_size * (typesize * m * n) * (1ULL << 30) * 1E-9) / LIBXSMM_DELTA(begin, end);
 #if LIBXSMM_VERSION3(1, 16, 1) <= LIBXSMM_VERSION3(LIBXSMM_VERSION_MAJOR, \
     LIBXSMM_VERSION_MINOR, LIBXSMM_VERSION_UPDATE) && 1159 <= LIBXSMM_VERSION_PATCH
             libxsmm_kahan_sum(log(membw), &config->membw_sumlog, &config->membw_err);

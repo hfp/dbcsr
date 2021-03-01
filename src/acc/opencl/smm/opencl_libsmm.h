@@ -41,30 +41,36 @@
 extern "C" {
 #endif
 
-/** Type for querying transpose kernel/configuration. */
+/** Type for querying transpose kernel configuration. */
 typedef struct opencl_libsmm_transkey_t {
-  libsmm_acc_data_t type; /* must be the 1st member */
+  libsmm_acc_data_t type; /* must be the 1st data member */
   int m, n;
 } opencl_libsmm_transkey_t;
 
-/** Type for transpose kernel/configuration. */
+/** Type for transpose kernel configuration. */
 typedef struct opencl_libsmm_trans_t {
-  cl_kernel kernel; /* must be the 1st member */
+  cl_kernel kernel; /* must be the 1st data member */
   size_t wgsize;
+  /* ACC_OPENCL_VERBOSE: perf. counters */
+  double membw_sumlog, membw_err;
+  size_t nexec;
 } opencl_libsmm_trans_t;
 
-/** Type for querying SMM-kernel/configuration. */
+/** Type for querying SMM-kernel configuration. */
 typedef struct opencl_libsmm_smmkey_t {
-  libsmm_acc_data_t type; /* must be the 1st member */
+  libsmm_acc_data_t type; /* must be the 1st data member */
   int m, n, k;
 } opencl_libsmm_smmkey_t;
 
-/** Type for SMM-kernel/configuration. */
+/** Type for SMM-kernel configuration. */
 typedef struct opencl_libsmm_smm_t {
-  cl_kernel kernel; /* must be the 1st member */
+  cl_kernel kernel; /* must be the 1st data member */
   size_t wgsize;
-  /* tuned parameters for SMM-kernels */
+  /* parameters (either pretuned or determined) */
   int bs, bm, bn;
+  /* ACC_OPENCL_VERBOSE: perf. counters */
+  double gflops_sumlog, gflops_err;
+  size_t nexec;
 } opencl_libsmm_smm_t;
 
 /** If buffers are hinted for non-concurrent writes aka "OpenCL constant". */

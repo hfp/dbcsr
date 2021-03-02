@@ -51,7 +51,7 @@
 #endif
 
 /* can depend on OpenCL implementation */
-#if !defined(ACC_OPENCL_MEM_NOALLOC) && 0
+#if !defined(ACC_OPENCL_MEM_NOALLOC) && 1
 # define ACC_OPENCL_MEM_NOALLOC
 # define ACC_OPENCL_MEM(A) ((cl_mem*)&(A))
 #else

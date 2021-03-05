@@ -511,12 +511,13 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
   int m_max, int n_max, int k_max, int max_kernel_dim, c_dbcsr_acc_bool_t def_mnk, void* stream, void* c_stream)
 {
   int result = EXIT_SUCCESS;
+  const int mnk = m_max * n_max * k_max;
   ACC_OPENCL_UNUSED(c_stream); /* TODO */
   assert(0 == stack_size || (NULL != host_param_stack && NULL != dev_param_stack
     && NULL != dev_a_data && NULL != dev_b_data && NULL != dev_c_data));
   assert(0 < nparams && 0 < max_kernel_dim && NULL != stream);
   assert(0 <= stack_size && 0 <= m_max && 0 <= n_max && 0 <= k_max);
-  if ((
+  if (0 < stack_size && (
 #if defined(OPENCL_LIBSMM_F64)
       dbcsr_type_real_8 == datatype
 #else
@@ -528,11 +529,14 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
 #else
       0
 #endif
-    ) &&
-    0 < stack_size && def_mnk/*homogeneous*/ &&
-    0 < m_max && m_max <= max_kernel_dim &&
-    0 < n_max && n_max <= max_kernel_dim &&
-    0 < k_max && k_max <= max_kernel_dim)
+    )
+    && 1 <= mnk
+#if 1
+    && mnk <= (max_kernel_dim * max_kernel_dim * max_kernel_dim)
+#else
+    && m_max <= max_kernel_dim && n_max <= max_kernel_dim && k_max <= max_kernel_dim
+#endif
+    && def_mnk/*homogeneous*/)
   {
     const libxsmm_timer_tickint start = libxsmm_timer_tick();
     opencl_libsmm_smm_t* config;

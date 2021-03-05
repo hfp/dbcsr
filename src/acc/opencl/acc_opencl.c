@@ -302,25 +302,23 @@ int c_dbcsr_acc_init(void)
           }
 #endif
           if (EXIT_SUCCESS == result) {
+            const int cl_nonv = (EXIT_SUCCESS != c_dbcsr_acc_opencl_device_vendor(active_device, "nvidia"));
             const char *const env = getenv("ACC_OPENCL_ASYNC_MEMOPS");
-            if (NULL == env) {
-              const int confirmation = c_dbcsr_acc_opencl_device_vendor(active_device, "nvidia");
-              c_dbcsr_acc_opencl_options.async_memops = (EXIT_SUCCESS != confirmation);
-            }
-            else c_dbcsr_acc_opencl_options.async_memops = (0 != atoi(env));
-          }
-          else c_dbcsr_acc_opencl_options.async_memops = CL_FALSE;
+            c_dbcsr_acc_opencl_options.async_memops = (NULL == env ? cl_nonv : (0 != atoi(env)));
+            c_dbcsr_acc_opencl_options.record_event = (cl_nonv
+              ? c_dbcsr_acc_opencl_enqueue_marker /* validation errors -> barrier */
+              : c_dbcsr_acc_opencl_enqueue_barrier);
 #if defined(ACC_OPENCL_SVM)
-          if (EXIT_SUCCESS == result) {
-            const char *const env = getenv("ACC_OPENCL_SVM");
-            int level_major = 0;
-            c_dbcsr_acc_opencl_options.svm_interop = (NULL == env || 0 != atoi(env)) &&
-              (EXIT_SUCCESS == c_dbcsr_acc_opencl_device_level(active_device,
-                &level_major, NULL/*level_minor*/) && 2 <= level_major);
-          }
-          else
+            { const char *const env = getenv("ACC_OPENCL_SVM");
+              int level_major = 0;
+              c_dbcsr_acc_opencl_options.svm_interop = (NULL == env || 0 != atoi(env)) &&
+                (EXIT_SUCCESS == c_dbcsr_acc_opencl_device_level(active_device,
+                  &level_major, NULL/*level_minor*/) && 2 <= level_major);
+            }
+#else
+            c_dbcsr_acc_opencl_options.svm_interop = CL_FALSE;
 #endif
-          c_dbcsr_acc_opencl_options.svm_interop = CL_FALSE;
+          }
         }
       }
       else { /* mark as initialized */

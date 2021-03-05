@@ -329,10 +329,10 @@ int c_dbcsr_acc_init(void)
       c_dbcsr_acc_opencl_ndevices = -1;
     }
 #if defined(__DBCSR_ACC)
-    /* DBCSR shall call acc_init as well as libsmm_acc_init (since both interfaces are used).
-     * Also, libsmm_acc_init may privately call acc_init (as it depends on the ACC interface).
-     * The implementation of acc_init should hence be safe against "over initialization".
-     * However, DBCSR only calls acc_init (and expects an implicit libsmm_acc_init).
+    /* DBCSR shall call c_dbcsr_acc_init as well as libsmm_acc_init (since both interfaces are used).
+     * Also, libsmm_acc_init may privately call c_dbcsr_acc_init (as it depends on the ACC interface).
+     * The implementation of c_dbcsr_acc_init should hence be safe against "over initialization".
+     * However, DBCSR only calls c_dbcsr_acc_init (and expects an implicit libsmm_acc_init).
      */
     if (EXIT_SUCCESS == result) {
       result = libsmm_acc_init();
@@ -371,10 +371,10 @@ int c_dbcsr_acc_finalize(void)
       "release context", result);
     c_dbcsr_acc_opencl_context = NULL;
 #if defined(__DBCSR_ACC)
-    /* DBCSR may call acc_init() as well as libsmm_acc_init() since both interface are used.
-     * libsmm_acc_init may privately call acc_init (as it depends on the ACC interface).
-     * The implementation of acc_init() should be safe against "over initialization".
-     * However, DBCSR only calls acc_init() and expects an implicit libsmm_acc_init().
+    /* DBCSR may call c_dbcsr_acc_init as well as libsmm_acc_init() since both interface are used.
+     * libsmm_acc_init may privately call c_dbcsr_acc_init (as it depends on the ACC interface).
+     * The implementation of c_dbcsr_acc_init should be safe against "over initialization".
+     * However, DBCSR only calls c_dbcsr_acc_init and expects an implicit libsmm_acc_init().
      */
     if (EXIT_SUCCESS == result) {
       result = libsmm_acc_finalize();
@@ -404,7 +404,7 @@ int c_dbcsr_acc_get_ndevices(int* ndevices)
 {
   int result;
 #if defined(__DBCSR_ACC)
-  /* DBCSR calls acc_get_ndevices before calling acc_init(). */
+  /* DBCSR calls c_dbcsr_acc_get_ndevices before calling c_dbcsr_acc_init. */
   result = c_dbcsr_acc_init();
   if (EXIT_SUCCESS == result)
 #endif

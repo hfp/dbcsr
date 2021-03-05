@@ -149,10 +149,10 @@ int libsmm_acc_init(void)
   /* multiple calls to libsmm_acc_init are not considered as an error */
   if (1 == LIBXSMM_ATOMIC_ADD_FETCH(&opencl_libsmm_initialized, 1, LIBXSMM_ATOMIC_RELAXED)) {
 #if !defined(__DBCSR_ACC)
-    /* DBCSR shall call acc_init as well as libsmm_acc_init (since both interfaces are used).
-     * Also, libsmm_acc_init may privately call acc_init (as it depends on the ACC interface).
-     * The implementation of acc_init should hence be safe against "over initialization".
-     * However, DBCSR only calls acc_init (and expects an implicit libsmm_acc_init).
+    /* DBCSR shall call c_dbcsr_acc_init as well as libsmm_acc_init (since both interfaces are used).
+     * Also, libsmm_acc_init may privately call c_dbcsr_acc_init (as it depends on the ACC interface).
+     * The implementation of c_dbcsr_acc_init should hence be safe against "over initialization".
+     * However, DBCSR only calls c_dbcsr_acc_init (and expects an implicit libsmm_acc_init).
      */
     if (EXIT_SUCCESS == result) {
       result = c_dbcsr_acc_init();
@@ -214,8 +214,8 @@ int libsmm_acc_init(void)
 int libsmm_acc_finalize(void)
 {
   /* Routine libsmm_acc_init is called in master thread inside of parallel region
-   * However, libsmm_acc_finalize is indirectly called (acc_finalize) inside of a
-   * parallel region (not just the master thread).
+   * However, libsmm_acc_finalize is indirectly called (c_dbcsr_acc_finalize)
+   * inside of a parallel region (not just the master thread).
    */
 #if defined(_OPENMP)
   /* initialization/finalization is not meant to be thread-safe */
@@ -267,12 +267,12 @@ int libsmm_acc_finalize(void)
     }
   }
 #endif
-  /* acc_finalize is not called since it can be used independently */
+  /* c_dbcsr_acc_finalize is not called since it can be used independently */
   return result;
 }
 
 
-acc_bool_t libsmm_acc_is_thread_safe(void)
+c_dbcsr_acc_bool_t libsmm_acc_is_thread_safe(void)
 {
   /* match DBCSR's threading level */
 #if defined(_OPENMP)
@@ -509,7 +509,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
 
 int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, int stack_size,
   int nparams, libsmm_acc_data_t datatype, const void* dev_a_data, const void* dev_b_data, void* dev_c_data,
-  int m_max, int n_max, int k_max, int max_kernel_dim, acc_bool_t def_mnk, void* stream, void* c_stream)
+  int m_max, int n_max, int k_max, int max_kernel_dim, c_dbcsr_acc_bool_t def_mnk, void* stream, void* c_stream)
 {
   int result = EXIT_SUCCESS;
   ACC_OPENCL_UNUSED(c_stream); /* TODO */
@@ -753,11 +753,11 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
         gold = (char*)libxsmm_aligned_scratch(csize, 0/*auto-align*/);
         btrn = (char*)libxsmm_aligned_scratch(k_max * n_max * typesize, 0/*auto-align*/);
         if (NULL != desc && NULL != ainp && NULL != binp && NULL != test && NULL != gold && NULL != btrn) {
-          ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_a_data, ainp, asize, stream),
+          ACC_OPENCL_CHECK(c_dbcsr_acc_memcpy_d2h(dev_a_data, ainp, asize, stream),
             "transfer debug a-data", result);
-          ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_b_data, binp, bsize, stream),
+          ACC_OPENCL_CHECK(c_dbcsr_acc_memcpy_d2h(dev_b_data, binp, bsize, stream),
             "transfer debug b-data", result);
-          ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_c_data, gold, csize, stream),
+          ACC_OPENCL_CHECK(c_dbcsr_acc_memcpy_d2h(dev_c_data, gold, csize, stream),
             "transfer debug c-data", result);
           kernel = libxsmm_xmmdispatch(desc);
           assert(NULL != kernel.xmm);
@@ -810,11 +810,11 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
         LIBXSMM_ATOMIC_RELEASE(lock, LIBXSMM_ATOMIC_RELAXED);
       }
 #if defined(OPENCL_LIBSMM_DEBUG_SMM)
-      ACC_OPENCL_CHECK(acc_memcpy_d2h(dev_c_data, test, csize, stream),
+      ACC_OPENCL_CHECK(c_dbcsr_acc_memcpy_d2h(dev_c_data, test, csize, stream),
         "transfer debug test", result);
 #endif
 #if defined(OPENCL_LIBSMM_DEBUG_SMM)
-      ACC_OPENCL_CHECK(acc_stream_sync(stream), "sync stream", result);
+      ACC_OPENCL_CHECK(c_dbcsr_acc_stream_sync(stream), "sync stream", result);
 #endif
 #if defined(OPENCL_LIBSMM_DEBUG_SMM)
       if (EXIT_SUCCESS == result) {

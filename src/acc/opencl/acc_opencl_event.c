@@ -25,7 +25,7 @@ int c_dbcsr_acc_event_create(void** event_p)
     cl_int status = CL_COMPLETE;
     assert(CL_SUCCESS == result);
     /* an empty event (unrecorded) has no work to wait for; hence it is
-     * considered occurred and acc_event_synchronize must not block
+     * considered occurred and c_dbcsr_acc_event_synchronize must not block
      */
     if (CL_SUCCESS == clSetUserEventStatus(event, status)) {
 #if defined(ACC_OPENCL_EVENT_NOALLOC)
@@ -112,7 +112,7 @@ int c_dbcsr_acc_event_record(void* event, void* stream)
 }
 
 
-int c_dbcsr_acc_event_query(void* event, acc_bool_t* has_occurred)
+int c_dbcsr_acc_event_query(void* event, c_dbcsr_acc_bool_t* has_occurred)
 {
   int result = EXIT_SUCCESS;
   cl_int status = CL_COMPLETE;

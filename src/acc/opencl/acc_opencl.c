@@ -430,15 +430,8 @@ int c_dbcsr_acc_opencl_device(void* stream, cl_device_id* device)
       sizeof(cl_device_id), device, NULL), "retrieve device from queue", result);
   }
   else if (NULL != c_dbcsr_acc_opencl_context) {
-#if !defined(NDEBUG)
-    size_t n = sizeof(cl_device_id);
-    ACC_OPENCL_CHECK(clGetContextInfo(c_dbcsr_acc_opencl_context, CL_CONTEXT_DEVICES,
-      sizeof(cl_device_id), device, &n), "retrieve id of active device", result);
-#else
     ACC_OPENCL_CHECK(clGetContextInfo(c_dbcsr_acc_opencl_context, CL_CONTEXT_DEVICES,
       sizeof(cl_device_id), device, NULL), "retrieve id of active device", result);
-#endif
-    assert(EXIT_SUCCESS != result || sizeof(cl_device_id) == n/*single-device context*/);
   }
   else {
     *device = NULL;
@@ -543,12 +536,14 @@ int c_dbcsr_acc_opencl_set_active_device(int device_id, cl_device_id* device)
       ? c_dbcsr_acc_opencl_device(NULL/*stream*/, &current_id)
       : EXIT_FAILURE;
     if (EXIT_SUCCESS == result && active_id != current_id) {
+      const cl_context context = c_dbcsr_acc_opencl_context;
       cl_platform_id platform = NULL;
       ACC_OPENCL_CHECK(clGetDeviceInfo(active_id, CL_DEVICE_PLATFORM,
         sizeof(cl_platform_id), &platform, NULL),
         "query device platform", result);
-      if (NULL != c_dbcsr_acc_opencl_context) {
-        ACC_OPENCL_CHECK(clReleaseContext(c_dbcsr_acc_opencl_context),
+      if (NULL != context) {
+        c_dbcsr_acc_opencl_context = NULL;
+        ACC_OPENCL_CHECK(clReleaseContext(context),
           "release context", result);
       }
       if (EXIT_SUCCESS == result) {
@@ -559,18 +554,13 @@ int c_dbcsr_acc_opencl_set_active_device(int device_id, cl_device_id* device)
 #endif
         cl_context_properties properties[] = {
           CL_CONTEXT_PLATFORM, 0/*placeholder*/,
-          /* insert other properties in front of below property */
-          CL_CONTEXT_INTEROP_USER_SYNC, CL_FALSE, /* TODO */
           0 /* end of properties */
         };
         properties[1] = (long)platform;
         c_dbcsr_acc_opencl_context = clCreateContext(properties,
           1/*num_devices*/, &active_id, notify, NULL/* user_data*/, &result);
         if (CL_INVALID_VALUE == result) { /* retry */
-          const size_t n = sizeof(properties) / sizeof(*properties);
-          assert(3 <= n);
-          properties[n-3] = 0;
-          c_dbcsr_acc_opencl_context = clCreateContext(0 != properties[0] ? properties : NULL,
+          c_dbcsr_acc_opencl_context = clCreateContext(NULL/*properties*/,
             1/*num_devices*/, &active_id, notify, NULL/* user_data*/, &result);
         }
         if (EXIT_SUCCESS == result) {

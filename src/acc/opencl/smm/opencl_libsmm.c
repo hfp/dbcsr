@@ -56,6 +56,8 @@
 extern "C" {
 #endif
 
+volatile int opencl_libsmm_lock_trans[OPENCL_LIBSMM_NLOCKS_TRANS];
+volatile int opencl_libsmm_lock_smm[OPENCL_LIBSMM_NLOCKS_SMM];
 int opencl_libsmm_initialized;
 
 
@@ -416,7 +418,6 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
 #endif
       assert(!(OPENCL_LIBSMM_NLOCKS_TRANS & (OPENCL_LIBSMM_NLOCKS_TRANS - 1))); /* POT */
       { /* OpenCL is thread-safe except for clSetKernelArg and launching such shared kernel */
-        static volatile int opencl_libsmm_lock_trans[OPENCL_LIBSMM_NLOCKS_TRANS];
         const unsigned int hash = libxsmm_hash(&config->kernel, sizeof(cl_kernel), 25071975/*seed*/);
         volatile int *const lock = opencl_libsmm_lock_trans + LIBXSMM_MOD2(hash, OPENCL_LIBSMM_NLOCKS_TRANS);
         LIBXSMM_ATOMIC_ACQUIRE(lock, LIBXSMM_SYNC_NPAUSE, LIBXSMM_ATOMIC_RELAXED);
@@ -771,7 +772,6 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
 #endif
       assert(!(OPENCL_LIBSMM_NLOCKS_SMM & (OPENCL_LIBSMM_NLOCKS_SMM - 1))); /* POT */
       { /* OpenCL is thread-safe except for clSetKernelArg and launching such shared kernel */
-        static volatile int opencl_libsmm_lock_smm[OPENCL_LIBSMM_NLOCKS_SMM];
         const unsigned int hash = libxsmm_hash(&config->kernel, sizeof(cl_kernel), 25071975/*seed*/);
         volatile int *const lock = opencl_libsmm_lock_smm + LIBXSMM_MOD2(hash, OPENCL_LIBSMM_NLOCKS_SMM);
         LIBXSMM_ATOMIC_ACQUIRE(lock, LIBXSMM_SYNC_NPAUSE, LIBXSMM_ATOMIC_RELAXED);

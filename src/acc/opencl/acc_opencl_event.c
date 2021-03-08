@@ -106,8 +106,8 @@ int c_dbcsr_acc_opencl_enqueue_marker(void* event, void* stream)
 int c_dbcsr_acc_event_record(void* event, void* stream)
 {
   int result = EXIT_SUCCESS;
-  assert(NULL != c_dbcsr_acc_opencl_options.record_event);
-  result = c_dbcsr_acc_opencl_options.record_event(event, stream);
+  assert(NULL != c_dbcsr_acc_opencl_config.record_event);
+  result = c_dbcsr_acc_opencl_config.record_event(event, stream);
   ACC_OPENCL_RETURN(result);
 }
 

@@ -37,7 +37,7 @@
 extern "C" {
 #endif
 
-c_dbcsr_acc_opencl_options_t c_dbcsr_acc_opencl_options;
+c_dbcsr_acc_opencl_config_t c_dbcsr_acc_opencl_config;
 int c_dbcsr_acc_opencl_ndevices;
 cl_device_id c_dbcsr_acc_opencl_devices[ACC_OPENCL_DEVICES_MAXCOUNT];
 cl_context c_dbcsr_acc_opencl_context;
@@ -284,7 +284,7 @@ int c_dbcsr_acc_init(void)
         if (EXIT_SUCCESS == result) {
           const char *const env_verbose = getenv("ACC_OPENCL_VERBOSE");
           cl_device_id active_device;
-          c_dbcsr_acc_opencl_options.verbosity = (NULL == env_verbose ? 0 : atoi(env_verbose));
+          c_dbcsr_acc_opencl_config.verbosity = (NULL == env_verbose ? 0 : atoi(env_verbose));
           result = c_dbcsr_acc_opencl_set_active_device(device_id, &active_device);
 #if defined(_OPENMP) && defined(ACC_OPENCL_THREADLOCAL_CONTEXT)
           if (EXIT_SUCCESS == result) {
@@ -304,19 +304,19 @@ int c_dbcsr_acc_init(void)
           if (EXIT_SUCCESS == result) {
             const int cl_nonv = (EXIT_SUCCESS != c_dbcsr_acc_opencl_device_vendor(active_device, "nvidia"));
             const char *const env = getenv("ACC_OPENCL_ASYNC_MEMOPS");
-            c_dbcsr_acc_opencl_options.async_memops = (NULL == env ? cl_nonv : (0 != atoi(env)));
-            c_dbcsr_acc_opencl_options.record_event = (cl_nonv
+            c_dbcsr_acc_opencl_config.async_memops = (NULL == env ? cl_nonv : (0 != atoi(env)));
+            c_dbcsr_acc_opencl_config.record_event = (cl_nonv
               ? c_dbcsr_acc_opencl_enqueue_marker /* validation errors -> barrier */
               : c_dbcsr_acc_opencl_enqueue_barrier);
 #if defined(ACC_OPENCL_SVM)
             { const char *const env = getenv("ACC_OPENCL_SVM");
               int level_major = 0;
-              c_dbcsr_acc_opencl_options.svm_interop = (NULL == env || 0 != atoi(env)) &&
+              c_dbcsr_acc_opencl_config.svm_interop = (NULL == env || 0 != atoi(env)) &&
                 (EXIT_SUCCESS == c_dbcsr_acc_opencl_device_level(active_device,
                   &level_major, NULL/*level_minor*/) && 2 <= level_major);
             }
 #else
-            c_dbcsr_acc_opencl_options.svm_interop = CL_FALSE;
+            c_dbcsr_acc_opencl_config.svm_interop = CL_FALSE;
 #endif
           }
         }
@@ -564,7 +564,7 @@ int c_dbcsr_acc_opencl_set_active_device(int device_id, cl_device_id* device)
             1/*num_devices*/, &active_id, notify, NULL/* user_data*/, &result);
         }
         if (EXIT_SUCCESS == result) {
-          if (0 != c_dbcsr_acc_opencl_options.verbosity) {
+          if (0 != c_dbcsr_acc_opencl_config.verbosity) {
             char buffer[ACC_OPENCL_BUFFERSIZE];
             if (CL_SUCCESS == clGetDeviceInfo(active_id, CL_DEVICE_NAME,
               ACC_OPENCL_BUFFERSIZE, buffer, NULL))

@@ -177,7 +177,7 @@ extern "C" {
 #endif
 
 /** Settings depending on OpenCL vendor or standard level (discovered/setup in c_dbcsr_acc_init). */
-typedef struct c_dbcsr_acc_opencl_options_t {
+typedef struct c_dbcsr_acc_opencl_config_t {
   int (*record_event)(void* /*event*/, void* /*stream*/);
   /** Asynchronous memory operations (may crash for some OpenCL implementations). */
   cl_bool async_memops;
@@ -185,9 +185,9 @@ typedef struct c_dbcsr_acc_opencl_options_t {
   cl_bool svm_interop;
   /** Runtime verbosity (output on stderr). */
   cl_int verbosity;
-} c_dbcsr_acc_opencl_options_t;
+} c_dbcsr_acc_opencl_config_t;
 
-extern c_dbcsr_acc_opencl_options_t c_dbcsr_acc_opencl_options;
+extern c_dbcsr_acc_opencl_config_t c_dbcsr_acc_opencl_config;
 
 /* non-zero if library is initialized, zero devices is signaled by nagative value */
 extern int c_dbcsr_acc_opencl_ndevices;
@@ -235,9 +235,9 @@ int c_dbcsr_acc_opencl_kernel(const char* source, const char* build_options,
 /** Create command queue (stream). */
 int c_dbcsr_acc_opencl_stream_create(cl_command_queue* stream_p, const char* name,
   const ACC_OPENCL_COMMAND_QUEUE_PROPERTIES* properties);
-/** Enqueue barrier (see c_dbcsr_acc_opencl_options.record_event). */
+/** Enqueue barrier (see c_dbcsr_acc_opencl_config.record_event). */
 int c_dbcsr_acc_opencl_enqueue_barrier(void* event, void* stream);
-/** Enqueue marker (see c_dbcsr_acc_opencl_options.record_event). */
+/** Enqueue marker (see c_dbcsr_acc_opencl_config.record_event). */
 int c_dbcsr_acc_opencl_enqueue_marker(void* event, void* stream);
 
 #if defined(__cplusplus)

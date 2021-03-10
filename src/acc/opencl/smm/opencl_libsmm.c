@@ -635,15 +635,12 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                   else {
                     const char* extension[] = { "cl_khr_int64_base_atomics" };
                     const int cmpxchg = (NULL != c_dbcsr_acc_opencl_stristr(env_atomics, "cmpxchg"));
-                    const int len = (int)strlen(env_atomics);
-                    assert(0 < len);
                     atomic_expr = cmpxchg ? "atomic_add_global_cmpxchg(A,B)" : "atomic_add_global_xchg(A,B)";
-                    if ('2' == env_atomics[len-1] && dbcsr_type_real_4 == datatype && 1 < bs && n_max == wgsize
+                    if (cmpxchg && 1 < bs && n_max == wgsize
+                      && dbcsr_type_real_4 == datatype && '2' == env_atomics[strlen(env_atomics)-1]
                       && EXIT_SUCCESS == c_dbcsr_acc_opencl_device_ext(active_device, extension, 1))
                     {
-                      atomic_expr2 = cmpxchg
-                        ? "-D\"ATOMIC_ADD2_GLOBAL(A,B)=atomic_add_global_cmpxchg2(A,B)\""
-                        : "-D\"ATOMIC_ADD2_GLOBAL(A,B)=atomic_add_global_xchg2(A,B)\"";
+                      atomic_expr2 = "-D\"ATOMIC_ADD2_GLOBAL(A,B)=atomic_add_global_cmpxchg2(A,B)\"";
                     }
                   }
                 }

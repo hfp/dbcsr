@@ -50,17 +50,6 @@ inline void atomic_add_global_xchg(global volatile T* dst, T inc)
   } while (old_val.a != new_val.a);
 }
 
-__attribute__((always_inline))
-inline void atomic_add_global_xchg2(global volatile float2* dst, float2 inc)
-{
-  union { float2 f; long a; } old_val = { .f = inc }, try_val, new_val = { .f = 0 };
-  do {
-    try_val.a = atom_xchg((global volatile long*)dst, new_val.a);
-    try_val.f += old_val.f;
-    old_val.a = atom_xchg((global volatile long*)dst, try_val.a);
-  } while (old_val.a != new_val.a);
-}
-
 #endif
 
 

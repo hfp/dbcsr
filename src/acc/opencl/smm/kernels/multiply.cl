@@ -20,7 +20,7 @@
 __attribute__((always_inline))
 inline void atomic_add_global_cmpxchg(global volatile T* dst, T inc)
 {
-  union { TA a; T f; } old_val, try_val, new_val = { .f = *dst };
+  union { T f; TA a; } old_val, try_val, new_val = { .f = *dst };
   do {
     old_val.a = new_val.a;
     try_val.f = old_val.f + inc;
@@ -29,13 +29,35 @@ inline void atomic_add_global_cmpxchg(global volatile T* dst, T inc)
 }
 
 __attribute__((always_inline))
+inline void atomic_add_global_cmpxchg2(global volatile float2* dst, float2 inc)
+{
+  union { float2 f; long a; } old_val, try_val, new_val = { .f = *dst };
+  do {
+    old_val.a = new_val.a;
+    try_val.f = old_val.f + inc;
+    new_val.a = atom_cmpxchg((global volatile long*)dst, old_val.a, try_val.a);
+  } while (old_val.a != new_val.a);
+}
+
+__attribute__((always_inline))
 inline void atomic_add_global_xchg(global volatile T* dst, T inc)
 {
-  union { TA a; T f; } old_val = { .f = inc }, try_val, new_val = { .f = 0 };
+  union { T f; TA a; } old_val = { .f = inc }, try_val, new_val = { .f = 0 };
   do {
     try_val.a = XCHG((global volatile TA*)dst, new_val.a);
     try_val.f += old_val.f;
     old_val.a = XCHG((global volatile TA*)dst, try_val.a);
+  } while (old_val.a != new_val.a);
+}
+
+__attribute__((always_inline))
+inline void atomic_add_global_xchg2(global volatile float2* dst, float2 inc)
+{
+  union { float2 f; long a; } old_val = { .f = inc }, try_val, new_val = { .f = 0 };
+  do {
+    try_val.a = atom_xchg((global volatile long*)dst, new_val.a);
+    try_val.f += old_val.f;
+    old_val.a = atom_xchg((global volatile long*)dst, try_val.a);
   } while (old_val.a != new_val.a);
 }
 
@@ -163,7 +185,14 @@ kernel void FN(global T *restrict cmat,
         }
       }
 # else
-      for (int m = 0; m < SM; ++m) {
+      int m = 0;
+#   if defined(ATOMIC_ADD2_GLOBAL)
+      for (; m < (SM - 1); m += 2) {
+        ATOMIC_ADD2_GLOBAL((global volatile float2*)(cwg + SM * n + m), *(const float2*)(c + m));
+        c[m] = c[m+1] = 0; /* reset */
+      }
+#   endif
+      for (; m < SM; ++m) {
         ATOMIC_ADD_GLOBAL(&cwg[SM*n+m], c[m]);
         c[m] = 0; /* reset */
       }

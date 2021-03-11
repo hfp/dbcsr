@@ -174,17 +174,14 @@ kernel void FN(global T *restrict cmat,
         }
       }
 # else
-      int m = 0;
 #   if defined(ATOMIC_ADD2_GLOBAL)
-      for (; m < (SM - 1); m += 2) {
+      for (int m = 0; m < SM; m += 2) {
         ATOMIC_ADD2_GLOBAL((global volatile float2*)(cwg + SM * n + m), *(const float2*)(c + m));
-        c[m] = c[m+1] = 0; /* reset */
       }
+#   else
+      for (int m = 0; m < SM; ++m) ATOMIC_ADD_GLOBAL(&cwg[SM*n+m], c[m]);
 #   endif
-      for (; m < SM; ++m) {
-        ATOMIC_ADD_GLOBAL(&cwg[SM*n+m], c[m]);
-        c[m] = 0; /* reset */
-      }
+      for (int m = 0; m < SM; ++m) c[m] = 0; /* reset */
 # endif
       /* next iteration */
       cwg = cmat + c1;

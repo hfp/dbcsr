@@ -637,6 +637,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                     const int cmpxchg = (NULL != c_dbcsr_acc_opencl_stristr(env_atomics, "cmpxchg"));
                     atomic_expr = cmpxchg ? "atomic_add_global_cmpxchg(A,B)" : "atomic_add_global_xchg(A,B)";
                     if (cmpxchg && 1 < bs && n_max == wgsize
+                      && 0 == (n_max & 1) /* remainder handling produces wrong result */
                       && dbcsr_type_real_4 == datatype && '2' == env_atomics[strlen(env_atomics)-1]
                       && EXIT_SUCCESS == c_dbcsr_acc_opencl_device_ext(active_device, extension, 1))
                     {

@@ -620,30 +620,34 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                 const char *const env_atomics = getenv("OPENCL_LIBSMM_SMM_ATOMICS");
                 const char *atomic_expr = NULL, *atomic_expr2 = NULL;
                 if (NULL == env_atomics || '0' != *env_atomics) {
+                  const char* extension[] = { "cl_khr_int64_base_atomics" };
                   if (NULL == env_atomics || '\0' == *env_atomics) {
                     if (cl_intel && !cl_intel_0x4905 && 0 == unified && dbcsr_type_real_4 == datatype) {
                       atomic_ops = "-Dcl_intel_global_float_atomics";
                       atomic_expr = "atomic_add(A,B)";
                     }
                     else if (cl_nonv) {
+                      if (1 < bs && n_max == wgsize && dbcsr_type_real_4 == datatype
+                        && 0 == (n_max & 1) /* remainder handling produces wrong result */
+                        && EXIT_SUCCESS == c_dbcsr_acc_opencl_device_ext(active_device, extension, 1))
+                      {
+                        atomic_expr2 = "-D\"ATOMIC_ADD2_GLOBAL(A,B)=atomic_add_global_cmpxchg2(A,B)\"";
+                      }
                       atomic_expr = "atomic_add_global_cmpxchg(A,B)";
                     }
-                    else {
-                      atomic_expr = "atomic_add_global_xchg(A,B)";
-                    }
+                    else atomic_expr = "atomic_add_global_xchg(A,B)";
                   }
-                  else {
-                    const char* extension[] = { "cl_khr_int64_base_atomics" };
-                    const int cmpxchg = (NULL != c_dbcsr_acc_opencl_stristr(env_atomics, "cmpxchg"));
-                    atomic_expr = cmpxchg ? "atomic_add_global_cmpxchg(A,B)" : "atomic_add_global_xchg(A,B)";
-                    if (cmpxchg && 1 < bs && n_max == wgsize
+                  else if (NULL != c_dbcsr_acc_opencl_stristr(env_atomics, "cmpxchg")) {
+                    if (1 < bs && n_max == wgsize && dbcsr_type_real_4 == datatype
                       && 0 == (n_max & 1) /* remainder handling produces wrong result */
-                      && dbcsr_type_real_4 == datatype && '2' == env_atomics[strlen(env_atomics)-1]
+                      && '2' == env_atomics[strlen(env_atomics)-1]
                       && EXIT_SUCCESS == c_dbcsr_acc_opencl_device_ext(active_device, extension, 1))
                     {
                       atomic_expr2 = "-D\"ATOMIC_ADD2_GLOBAL(A,B)=atomic_add_global_cmpxchg2(A,B)\"";
                     }
+                    atomic_expr = "atomic_add_global_cmpxchg(A,B)";
                   }
+                  else atomic_expr = "atomic_add_global_xchg(A,B)";
                 }
                 else {
                   atomic_expr = "*(A)+=(B)";

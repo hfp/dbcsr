@@ -32,7 +32,7 @@ def main(out_fn, project_name, mod_format, mode, archive_ext, src_dir, src_files
 
     for fn in src_files:
         if not fn.startswith("/"):
-            error("Path of source-file not absolut: " + fn)
+            error("Path of source-file not absolute: " + fn)
 
     src_basenames = [basename(fn).rsplit(".", 1)[0] for fn in src_files]
     for bfn in src_basenames:
@@ -205,7 +205,7 @@ def parse_file(parsed_files, fn, src_dir):
     content_lower = content.lower()
 
     # all files are parsed for cpp includes
-    incls = re_incl_cpp.findall(content)  # CPP includes (case-sensitiv)
+    incls = re_incl_cpp.findall(content)  # CPP includes (case-sensitive)
 
     mods = []
     uses = []
@@ -215,14 +215,14 @@ def parse_file(parsed_files, fn, src_dir):
         mods += re_module.findall(content_lower)
         prog = True if re_program.search(content_lower) is not None else False
         uses += re_use.findall(content_lower)
-        incls += re_incl_fypp.findall(content)  # Fypp includes (case-sensitiv)
+        incls += re_incl_fypp.findall(content)  # Fypp includes (case-sensitive)
         incl_fort_iter = re_incl_fort.finditer(content_lower)  # fortran includes
         incls += [content[m.start(1) : m.end(1)] for m in incl_fort_iter]
 
     if fn[-2:] == ".c" or fn[-3:] == ".cu":
         prog = (
             True if re_main.search(content) is not None else False
-        )  # C is case-sensitiv
+        )  # C is case-sensitive
 
     # exclude included files from outside the source tree
     def incl_fn(i):

@@ -188,14 +188,14 @@ ifneq ($(ACC),)
   # if compiling with nvcc
   ifneq (,$(findstring nvcc,$(ACC)))
     # All *.cpp files belong to the accelerator backend common between CUDA/HIP
-    OBJ_SRC_FILES += $(shell cd $(SRCDIR); find . ! -name "acc_cuda.cpp" ! -name "acc_hip.cpp" ! -name "hipblas.cpp" -name "*.cpp")
+    OBJ_SRC_FILES += $(shell cd $(SRCDIR); find . -type f ! -name "acc_cuda.cpp" ! -name "acc_hip.cpp" ! -name "hipblas.cpp" -name "*.cpp")
     OBJ_SRC_FILES += $(LIBSMM_ACC_DIR)/../cuda/acc_cuda.cpp
     # Exclude autotuning files
-    OBJ_SRC_FILES += $(shell cd $(SRCDIR);  find . ! -name "tune_*_exe*_part*.cu" ! -name "tune_*_exe*_main*.cu"  -name "*.cu")
+    OBJ_SRC_FILES += $(shell cd $(SRCDIR); find . -type f ! -name "tune_*_exe*_part*.cu" ! -name "tune_*_exe*_main*.cu"  -name "*.cu")
   # if compiling with hipcc
   else ifneq (,$(findstring hipcc,$(ACC)))
     # All *.cpp files belong to the accelerator backend common between CUDA/HIP
-    OBJ_SRC_FILES += $(shell cd $(SRCDIR); find . ! -name "acc_cuda.cpp" ! -name "acc_hip.cpp" ! -name "hipblas.cpp" -name "*.cpp")
+    OBJ_SRC_FILES += $(shell cd $(SRCDIR); find . -type f ! -name "acc_cuda.cpp" ! -name "acc_hip.cpp" ! -name "hipblas.cpp" -name "*.cpp")
     OBJ_SRC_FILES += $(LIBSMM_ACC_DIR)/../hip/acc_hip.cpp
     OBJ_SRC_FILES += $(LIBSMM_ACC_DIR)/../hipblaswrap/hipblas.cpp
   # OpenCL backend: OBJ_SRC_FILES already includes all *.c files
@@ -330,7 +330,7 @@ OPENCL_KERNELS := $(wildcard $(LIBSMM_ACC_ABS_DIR)/../opencl/smm/kernels/*.cl)
 OPENCL_KRNLGEN := $(LIBSMM_ACC_ABS_DIR)/../opencl/acc_opencl.sh
 $(LIBSMM_ACC_ABS_DIR)/../opencl/smm/opencl_kernels.h: $(OPENCL_KRNLGEN) $(OPENCL_KERNELS)
 	$(OPENCL_KRNLGEN) $(OPENCL_KERNELS) $(LIBSMM_ACC_ABS_DIR)/../opencl/smm/tune_multiply.csv $@
-opencl_libsmm.o: $(LIBSMM_ACC_ABS_DIR)/../opencl/smm/opencl_kernels.h
+opencl_libsmm.o: opencl_libsmm.c $(LIBSMM_ACC_ABS_DIR)/../opencl/smm/opencl_kernels.h
 endif
 
 $(LIBDIR)/%:

@@ -145,7 +145,7 @@ kernel void FN(global T *restrict cmat,
 # if (1 < BS)
           c[m-m0][n-n0] += r;
 # else
-          ATOMIC_ADD_GLOBAL(&cwg[SM*n+m], r);
+          if (0 != r) ATOMIC_ADD_GLOBAL(&cwg[SM*n+m], r);
 # endif
         }
       }
@@ -157,7 +157,7 @@ kernel void FN(global T *restrict cmat,
 # if (1 < BS)
         c[m] += r;
 # else
-        ATOMIC_ADD_GLOBAL(&cwg[SM*n+m], r);
+        if (0 != r) ATOMIC_ADD_GLOBAL(&cwg[SM*n+m], r);
 # endif
       }
 #endif
@@ -168,7 +168,7 @@ kernel void FN(global T *restrict cmat,
 # if (SWG != SN)
       for (int m = 0; m < BM; ++m) for (int n = 0; n < BN; ++n) {
         const int gm = m + m0, gn = n + n0;
-        if (gm < SM && gn < SN) {
+        if (gm < SM && gn < SN && 0 != c[m][n]) {
           ATOMIC_ADD_GLOBAL(&cwg[SM*gn+gm], c[m][n]);
           c[m][n] = 0; /* reset */
         }
@@ -176,13 +176,18 @@ kernel void FN(global T *restrict cmat,
 # else
 #   if defined(ATOMIC_ADD2_GLOBAL)
       for (int m = 0; m < SM; m += 2) {
-        ATOMIC_ADD2_GLOBAL((global volatile float2*)(cwg + SM * n + m), *(const float2*)(c + m));
-        c[m] = c[m+1] = 0; /* reset */
+        float2 *const restrict r = (float2*)(c + m);
+        if (0 != r) {
+          ATOMIC_ADD2_GLOBAL((global volatile float2*)(cwg + SM * n + m), *r);
+          *r = 0; /* reset */
+        }
       }
 #   else
       for (int m = 0; m < SM; ++m) {
-        ATOMIC_ADD_GLOBAL(&cwg[SM*n+m], c[m]);
-        c[m] = 0; /* reset */
+        if (0 != c[m]) {
+          ATOMIC_ADD_GLOBAL(&cwg[SM*n+m], c[m]);
+          c[m] = 0; /* reset */
+        }
       }
 #   endif
 # endif

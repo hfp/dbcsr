@@ -29,17 +29,6 @@ inline void atomic_add_global_cmpxchg(global volatile T* dst, T inc)
 }
 
 __attribute__((always_inline))
-inline void atomic_add_global_cmpxchg2(global volatile float2* dst, float2 inc)
-{
-  union { float2 f; long a; } old_val, try_val, new_val = { .f = *dst };
-  do {
-    old_val.a = new_val.a;
-    try_val.f = old_val.f + inc;
-    new_val.a = atom_cmpxchg((global volatile long*)dst, old_val.a, try_val.a);
-  } while (old_val.a != new_val.a);
-}
-
-__attribute__((always_inline))
 inline void atomic_add_global_xchg(global volatile T* dst, T inc)
 {
   union { T f; TA a; } old_val = { .f = inc }, try_val, new_val = { .f = 0 };
@@ -49,6 +38,19 @@ inline void atomic_add_global_xchg(global volatile T* dst, T inc)
     old_val.a = XCHG((global volatile TA*)dst, try_val.a);
   } while (old_val.a != new_val.a);
 }
+
+#if defined(ATOMIC_ADD2_GLOBAL)
+__attribute__((always_inline))
+inline void atomic_add_global_cmpxchg2(global volatile float2* dst, float2 inc)
+{
+  union { float2 f; long a; } old_val, try_val, new_val = { .f = *dst };
+  do {
+    old_val.a = new_val.a;
+    try_val.f = old_val.f + inc;
+    new_val.a = atom_cmpxchg((global volatile long*)dst, old_val.a, try_val.a);
+  } while (old_val.a != new_val.a);
+}
+#endif
 
 #endif
 

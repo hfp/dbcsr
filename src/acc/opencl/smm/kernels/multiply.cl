@@ -70,13 +70,14 @@ kernel void FN(global T *restrict cmat,
   global T *restrict cwg = cmat + c0;
 
   local T a[SM][SK];
-  T am[SK], bn[SK];
+  T am[SK];
 #if (SWG != SN)
-  local T b[SK][SN];
+  T b[SK][BN];
 # if (1 < BS)
   T c[BM][BN] = {{ 0 }};
 # endif
 #else
+  T bn[SK];
 # if (1 < BS)
   T c[SM] = { 0 };
 # endif
@@ -121,11 +122,14 @@ kernel void FN(global T *restrict cmat,
 #endif
     }
 
-    { /* copy B-matrix into local or private buffer */
+#if (1 < BS)
+    if (b0 != b1)
+#endif
+    { /* copy B-matrix into private buffer */
       GLOBAL const T *const restrict bwg = bmat + b0;
       for (int k = 0; k < SK; ++k) {
 #if (SWG != SN)
-        for (int n = n0; n < n1; ++n) b[k][n] = bwg[SN*k+n];
+        for (int n = n0; n < n1; ++n) b[k][n-n0] = bwg[SN*k+n];
 #else
         bn[k] = bwg[SN*k+n];
 #endif
@@ -142,8 +146,7 @@ kernel void FN(global T *restrict cmat,
         for (int k = 0; k < SK; ++k) am[k] = a[m][k];
         for (int n = n0; n < n1; ++n) {
           T r = 0;
-          for (int k = 0; k < SK; ++k) bn[k] = b[k][n];
-          for (int k = 0; k < SK; ++k) r = FMA(am[k], bn[k], r);
+          for (int k = 0; k < SK; ++k) r = FMA(am[k], b[k][n-n0], r);
 # if (1 < BS)
           c[m-m0][n-n0] += r;
 # else

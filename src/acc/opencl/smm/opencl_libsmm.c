@@ -333,7 +333,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
             ? m/*TODO*/ : atoi(env_blockm));
           const int bm = LIBXSMM_CLMP(blockm, 1, m);
           const char* typename = "";
-          int wgsize, max_wgsize;
+          int wgsize = 0, max_wgsize;
           result = c_dbcsr_acc_opencl_wgsize(active_device,
             NULL/*kernel*/, &max_wgsize, NULL/*prefmult*/);
           if (EXIT_SUCCESS == result) {

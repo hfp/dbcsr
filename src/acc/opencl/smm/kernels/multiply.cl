@@ -66,7 +66,7 @@ kernel void FN(global T *restrict cmat,
   const int gid = get_group_id(0), idx = get_local_id(0);
   GLOBAL const int *const restrict params = param_stack + gid * (3 * BS);
   /* indexes given by param_stack are one-based */
-  int a0 = params[0] - 1, b0 = params[1] - 1, c0 = params[2] - 1;
+  int a1 = -1, b1 = -1, c0 = params[2] - 1;
   global T *restrict cwg = cmat + c0;
 
   local T a[SM][SK];
@@ -99,17 +99,9 @@ kernel void FN(global T *restrict cmat,
     const int m0 = idx * bm, m1 = min(m0 + bm, SM);
     const int n = idx;
 #endif
-
 #if (1 < BS)
-    int a1, b1, c1;
-    if (i < (batchsize - 1)) {
-      a1 = params[3*i+3] - 1;
-      b1 = params[3*i+4] - 1;
-      c1 = params[3*i+5] - 1;
-    }
-    else {
-      a1 = b1 = c1 = -1;
-    }
+    const int a0 = params[3*i+0] - 1, b0 = params[3*i+1] - 1;
+    const int c1 = (i < (batchsize - 1) ? (params[3*i+5] - 1) : -1);
 #endif
 
     { /* transpose A-matrix into local buffer */
@@ -118,7 +110,7 @@ kernel void FN(global T *restrict cmat,
         for (int k = 0; k < SK; ++k) a[m][k] = awg[SM*k+m];
       }
 #if (1 < BS)
-      a0 = a1; /* next iteration */
+      a1 = a0;
 #endif
     }
 
@@ -135,7 +127,7 @@ kernel void FN(global T *restrict cmat,
 #endif
       }
 #if (1 < BS)
-      b0 = b1; /* next iteration */
+      b1 = b0;
 #endif
     }
 

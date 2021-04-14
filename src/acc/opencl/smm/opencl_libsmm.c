@@ -408,16 +408,21 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
         : (dbcsr_type_real_4 == datatype ? 4 : 0/*unknown*/));
 # if defined(OPENCL_LIBSMM_DEBUG_TRANS)
       const int offset_stack_size = offset + stack_size;
-      int *const stack = (int*)libxsmm_aligned_scratch(sizeof(int) * offset_stack_size, 0/*auto-align*/);
-      char *imat = NULL, *omat = NULL, *gold = NULL;
+      char *scratch = NULL, *imat = NULL, *omat = NULL, *gold = NULL;
+      int *stack = NULL;
       size_t data_size;
-      if (NULL != stack && CL_SUCCESS == clGetMemObjectInfo(*ACC_OPENCL_MEM(dev_data),
+      if (CL_SUCCESS == clGetMemObjectInfo(*ACC_OPENCL_MEM(dev_data),
         CL_MEM_SIZE, sizeof(size_t), &data_size, NULL))
       {
-        imat = (char*)libxsmm_aligned_scratch(data_size, 0/*auto-align*/);
-        omat = (char*)libxsmm_aligned_scratch(data_size, 0/*auto-align*/);
-        gold = (char*)libxsmm_aligned_scratch(mn * typesize, 0/*auto-align*/);
-        if (NULL != imat && NULL != omat && NULL != gold) {
+        const size_t scratch_size = (sizeof(int) * offset_stack_size)/*stack*/
+          + data_size/*imat*/ + data_size/*omat*/ + (mn * typesize)/*gold*/
+          + 3 * (LIBXSMM_ALIGNMENT - 1)/*alignments*/;
+        scratch = (char*)libxsmm_aligned_scratch(scratch_size, LIBXSMM_ALIGNMENT);
+        if (NULL != scratch) {
+          stack = (int*)scratch;
+          imat = (char*)LIBXSMM_UP2((uintptr_t)stack + sizeof(int) * offset_stack_size, LIBXSMM_ALIGNMENT);
+          omat = (char*)LIBXSMM_UP2((uintptr_t)imat + data_size, LIBXSMM_ALIGNMENT);
+          gold = (char*)LIBXSMM_UP2((uintptr_t)omat + data_size, LIBXSMM_ALIGNMENT);
           ACC_OPENCL_CHECK(c_dbcsr_acc_memcpy_d2h(dev_trs_stack, stack, sizeof(int) * offset_stack_size, stream),
             "transfer debug stack", result);
           ACC_OPENCL_CHECK(c_dbcsr_acc_memcpy_d2h(dev_data, imat, data_size, stream),
@@ -507,10 +512,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
         }
         if (EXIT_SUCCESS == result) fprintf(stderr, " => OK\n");
       }
-      libxsmm_free(stack);
-      libxsmm_free(imat);
-      libxsmm_free(omat);
-      libxsmm_free(gold);
+      libxsmm_free(scratch);
 # endif
     }
   }

@@ -408,7 +408,8 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
         : (dbcsr_type_real_4 == datatype ? 4 : 0/*unknown*/));
 # if defined(OPENCL_LIBSMM_DEBUG_TRANS)
       const int offset_stack_size = offset + stack_size;
-      char *scratch = NULL, *imat = NULL, *omat = NULL, *gold = NULL;
+      char *imat = NULL, *omat = NULL, *gold = NULL;
+      void *scratch = NULL;
       int *stack = NULL;
       size_t data_size;
       if (CL_SUCCESS == clGetMemObjectInfo(*ACC_OPENCL_MEM(dev_data),
@@ -417,7 +418,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
         const size_t scratch_size = (sizeof(int) * offset_stack_size)/*stack*/
           + data_size/*imat*/ + data_size/*omat*/ + (mn * typesize)/*gold*/
           + 3 * (LIBXSMM_ALIGNMENT - 1)/*alignments*/;
-        scratch = (char*)libxsmm_aligned_scratch(scratch_size, LIBXSMM_ALIGNMENT);
+        scratch = libxsmm_aligned_scratch(scratch_size, LIBXSMM_ALIGNMENT);
         if (NULL != scratch) {
           stack = (int*)scratch;
           imat = (char*)LIBXSMM_UP2((uintptr_t)stack + sizeof(int) * offset_stack_size, LIBXSMM_ALIGNMENT);
@@ -755,13 +756,14 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
       /* adjust overall stacksize according to intra-kernel batchsize */
       const size_t work_size = ((stack_size + config->bs - 1) / config->bs) * config->wgsize;
 # if defined(OPENCL_LIBSMM_DEBUG_SMM)
-      char *ainp = NULL, *binp = NULL, *cinp = NULL, *test = NULL, *gold = NULL, *btrn = NULL;
+      char *ainp = NULL, *binp = NULL, *test = NULL, *gold = NULL, *btrn = NULL;
       const libxsmm_gemm_precision precision = (dbcsr_type_real_8 == datatype
         ? LIBXSMM_GEMM_PRECISION_F64 : (dbcsr_type_real_4 == datatype ? LIBXSMM_GEMM_PRECISION_F32
         : (libxsmm_gemm_precision)LIBXSMM_DATATYPE_UNSUPPORTED));
       const int typesize = (dbcsr_type_real_8 == datatype ? 8
         : (dbcsr_type_real_4 == datatype ? 4 : 0/*unknown*/));
       size_t asize, bsize, csize;
+      void* scratch = NULL;
       libxsmm_xmmfunction kernel = { NULL };
       if (  CL_SUCCESS == clGetMemObjectInfo(*ACC_OPENCL_MEM(dev_a_data),
               CL_MEM_SIZE, sizeof(size_t), &asize, NULL)
@@ -775,12 +777,14 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
         libxsmm_gemm_descriptor *const desc = libxsmm_gemm_descriptor_dinit(&blob,
           precision, m_max, n_max, k_max, m_max, k_max, m_max, alpha, beta,
           LIBXSMM_GEMM_FLAG_NONE, LIBXSMM_PREFETCH_NONE);
-        ainp = (char*)libxsmm_aligned_scratch(asize, 0/*auto-align*/);
-        binp = (char*)libxsmm_aligned_scratch(bsize, 0/*auto-align*/);
-        test = (char*)libxsmm_aligned_scratch(csize, 0/*auto-align*/);
-        gold = (char*)libxsmm_aligned_scratch(csize, 0/*auto-align*/);
-        btrn = (char*)libxsmm_aligned_scratch(k_max * n_max * typesize, 0/*auto-align*/);
-        if (NULL != desc && NULL != ainp && NULL != binp && NULL != test && NULL != gold && NULL != btrn) {
+        scratch = libxsmm_aligned_scratch(asize + bsize + csize + csize + k_max * n_max * typesize
+          + 4 * (LIBXSMM_ALIGNMENT - 1)/*alignments*/, LIBXSMM_ALIGNMENT);
+        if (NULL != desc && NULL != scratch) {
+          ainp = (char*)scratch;
+          binp = (char*)LIBXSMM_UP2((uintptr_t)ainp + asize, LIBXSMM_ALIGNMENT);
+          test = (char*)LIBXSMM_UP2((uintptr_t)binp + bsize, LIBXSMM_ALIGNMENT);
+          gold = (char*)LIBXSMM_UP2((uintptr_t)test + csize, LIBXSMM_ALIGNMENT);
+          btrn = (char*)LIBXSMM_UP2((uintptr_t)gold + csize, LIBXSMM_ALIGNMENT);
           ACC_OPENCL_CHECK(c_dbcsr_acc_memcpy_d2h(dev_a_data, ainp, asize, stream),
             "transfer debug a-data", result);
           ACC_OPENCL_CHECK(c_dbcsr_acc_memcpy_d2h(dev_b_data, binp, bsize, stream),
@@ -884,12 +888,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
         }
         if (EXIT_SUCCESS == result) fprintf(stderr, " => OK\n");
       }
-      libxsmm_free(ainp);
-      libxsmm_free(binp);
-      libxsmm_free(cinp);
-      libxsmm_free(test);
-      libxsmm_free(gold);
-      libxsmm_free(btrn);
+      libxsmm_free(scratch);
 # elif defined(NDEBUG)
       ACC_OPENCL_UNUSED(host_param_stack);
       ACC_OPENCL_UNUSED(nparams);

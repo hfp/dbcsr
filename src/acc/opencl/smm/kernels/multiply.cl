@@ -66,7 +66,10 @@ kernel void FN(global T *restrict cmat,
   const int gid = get_group_id(0), idx = get_local_id(0);
   GLOBAL const int *const restrict params = param_stack + gid * (3 * BS);
   /* indexes given by param_stack are one-based */
-  int a1 = -1, b1 = -1, c0 = params[2] - 1;
+  int c0 = params[2] - 1;
+#if (1 < BS)
+  int a1 = -1, b1 = -1;
+#endif
   global T *restrict cwg = cmat + c0;
 
   local T a[SM][SK];

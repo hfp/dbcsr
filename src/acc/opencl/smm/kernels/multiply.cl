@@ -100,8 +100,10 @@ kernel void FN(global T *restrict cmat,
     const int n = idx;
 #endif
 #if (1 < BS)
-    const int a0 = params[3*i+0] - 1, b0 = params[3*i+1] - 1;
     const int c1 = (i < (batchsize - 1) ? (params[3*i+5] - 1) : -1);
+    const int a0 = params[3*i+0] - 1, b0 = params[3*i+1] - 1;
+#else
+    const int a0 = params[0] - 1, b0 = params[1] - 1;
 #endif
 
     { /* transpose A-matrix into local buffer */

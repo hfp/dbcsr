@@ -679,7 +679,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                       atomic_expr = "atomic_add(A,B)";
                     }
                     else if (cl_nonv) {
-                      if (1 < bs && n_max == wgsize && dbcsr_type_real_4 == datatype
+                      if (1 < bs && 2 <= m_max && n_max == wgsize && dbcsr_type_real_4 == datatype
                         && 0 == (n_max & 1) /* remainder handling produces wrong result */
                         && EXIT_SUCCESS == c_dbcsr_acc_opencl_device_ext(active_device, extension, 1))
                       {
@@ -690,7 +690,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                     else atomic_expr = "atomic_add_global_xchg(A,B)";
                   }
                   else if (NULL != c_dbcsr_acc_opencl_stristr(env_atomics, "cmpxchg")) {
-                    if (1 < bs && n_max == wgsize && dbcsr_type_real_4 == datatype
+                    if (1 < bs && 2 <= m_max && n_max == wgsize && dbcsr_type_real_4 == datatype
                       && 0 == (n_max & 1) /* remainder handling produces wrong result */
                       && '2' == env_atomics[strlen(env_atomics)-1]
                       && EXIT_SUCCESS == c_dbcsr_acc_opencl_device_ext(active_device, extension, 1))

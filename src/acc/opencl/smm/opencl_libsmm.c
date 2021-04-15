@@ -29,7 +29,8 @@
     libxsmm_xdispatch(KEY, KEY_SIZE)
 #endif
 
-#if !defined(OPENCL_LIBSMM_DEBUG_TRANS) && defined(OPENCL_LIBSMM_DEBUG)
+#if !defined(OPENCL_LIBSMM_DEBUG_TRANS) && defined(OPENCL_LIBSMM_DEBUG) \
+  && (1 < OPENCL_LIBSMM_DEBUG || 0 > OPENCL_LIBSMM_DEBUG)
 # define OPENCL_LIBSMM_DEBUG_TRANS
 #endif
 #if !defined(OPENCL_LIBSMM_DEBUG_SMM) && defined(OPENCL_LIBSMM_DEBUG)

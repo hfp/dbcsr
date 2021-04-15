@@ -36,6 +36,9 @@
 #if !defined(OPENCL_LIBSMM_DEBUG_SMM) && defined(OPENCL_LIBSMM_DEBUG)
 # define OPENCL_LIBSMM_DEBUG_SMM
 #endif
+#if !defined(OPENCL_LIBSMM_DEBUG_EXIT) && defined(OPENCL_LIBSMM_DEBUG) && 1
+# define OPENCL_LIBSMM_DEBUG_EXIT
+#endif
 #if !defined(OPENCL_LIBSMM_KERNELNAME_MAXSIZE)
 # define OPENCL_LIBSMM_KERNELNAME_MAXSIZE 48
 #endif
@@ -518,15 +521,23 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
             opencl_libsmm_print_matrix(stderr, "test = ", datatype, test, n, m);
             fprintf(stderr, "\n");
 #   endif
+#   if defined(OPENCL_LIBSMM_DEBUG_EXIT)
+            exit(EXIT_FAILURE);
+#   else
             result = EXIT_FAILURE; break;
+#   endif
           }
           for (j = offset; j < i; ++j) {
             const size_t duplicate = stack[j];
             if (index == duplicate) {
               fprintf(stderr, " => ERROR\n");
-              result = EXIT_FAILURE;
+#   if defined(OPENCL_LIBSMM_DEBUG_EXIT)
+              exit(EXIT_FAILURE);
+#   else
               i = offset_stack_size;
+              result = EXIT_FAILURE;
               break;
+#   endif
             }
           }
         }
@@ -906,18 +917,23 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                 dbcsr_type_real_8 == datatype ? "f64" : (dbcsr_type_real_4 == datatype ? "f32" : "unknown"),
                 m_max, n_max, k_max, max_kernel_dim, stream);
             }
-#  if  LIBXSMM_VERSION3(1, 16, 1) <= LIBXSMM_VERSION3(LIBXSMM_VERSION_MAJOR, \
-       LIBXSMM_VERSION_MINOR, LIBXSMM_VERSION_UPDATE) && 1014 <= LIBXSMM_VERSION_PATCH
+#   if  LIBXSMM_VERSION3(1, 16, 1) <= LIBXSMM_VERSION3(LIBXSMM_VERSION_MAJOR, \
+        LIBXSMM_VERSION_MINOR, LIBXSMM_VERSION_UPDATE) && 1014 <= LIBXSMM_VERSION_PATCH
             fprintf(stderr, " => ERROR diff=%g (%g != %g)\n", diff.linf_abs, diff.v_ref, diff.v_tst);
-#  else
+#   else
             fprintf(stderr, " => ERROR diff=%g\n", diff.linf_abs);
-#  endif
-#  if defined(_DEBUG)
+#   endif
+#   if defined(_DEBUG)
             opencl_libsmm_print_matrix(stderr, "gold = ", datatype, gold + ic, m_max, n_max);
             opencl_libsmm_print_matrix(stderr, "test = ", datatype, test + ic, m_max, n_max);
             fprintf(stderr, "\n");
-#  endif
-            result = EXIT_FAILURE; break;
+#   endif
+#   if defined(OPENCL_LIBSMM_DEBUG_EXIT)
+            exit(EXIT_FAILURE);
+#   else
+            result = EXIT_FAILURE;
+            break;
+#   endif
           }
         }
         if (0 != c_dbcsr_acc_opencl_config.verbosity && EXIT_SUCCESS == result) {

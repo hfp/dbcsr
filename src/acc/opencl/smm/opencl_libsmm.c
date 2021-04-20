@@ -62,6 +62,8 @@ extern "C" {
 
 volatile int opencl_libsmm_lock_trans[OPENCL_LIBSMM_NLOCKS_TRANS];
 volatile int opencl_libsmm_lock_smm[OPENCL_LIBSMM_NLOCKS_SMM];
+double opencl_libsmm_max_gf_ai_sratio;
+double opencl_libsmm_max_gf_ai_dratio;
 int opencl_libsmm_initialized;
 
 
@@ -104,10 +106,12 @@ void opencl_libsmm_print_matrix(FILE* ostream, const char* label, libsmm_acc_dat
 
 
 int opencl_libsmm_read_params(char* parambuf,
-  opencl_libsmm_smmkey_t* key, opencl_libsmm_smm_t* value)
+  opencl_libsmm_smmkey_t* key, opencl_libsmm_smm_t* value,
+  double* max_gf_ai_sratio, double* max_gf_ai_dratio)
 {
   const char* s = strtok(parambuf, OPENCL_LIBSMM_PARAMS_DELIMS);
-  int consumed = 0, t = 0, i;
+  int result, consumed = 0, t = 0, i;
+  double gflops;
   assert(NULL != key && NULL != value);
   for (; NULL != s; s = strtok(NULL, OPENCL_LIBSMM_PARAMS_DELIMS), ++t) {
     switch (t) {
@@ -123,6 +127,10 @@ int opencl_libsmm_read_params(char* parambuf,
       case 3: if (1 == sscanf(s, "%i", &i)) {
         key->k = i; ++consumed;
       } break;
+      case 4: if (1 == sscanf(s, "%lf", &gflops)) {
+        assert(0 <= gflops);
+        ++consumed;
+      } break;
       case 5: if (1 == sscanf(s, "%i", &i)) {
         value->bs = i; ++consumed;
       } break;
@@ -134,7 +142,30 @@ int opencl_libsmm_read_params(char* parambuf,
       } break;
     }
   }
-  return (7 == consumed ? EXIT_SUCCESS : EXIT_FAILURE);
+  if (8 == consumed) {
+    const double nflops = 2 * key->m * key->n * key->k;
+    switch (key->type) {
+      case dbcsr_type_real_4: if (NULL != max_gf_ai_sratio) {
+        const double nbytes = sizeof(float) * key->k * (key->m + key->n);
+        const double ai = nflops / nbytes;
+        const double ratio = gflops / ai;
+        if (*max_gf_ai_sratio < ratio) *max_gf_ai_sratio = ratio;
+        result = EXIT_SUCCESS;
+      } break;
+      case dbcsr_type_real_8: if (NULL != max_gf_ai_dratio) {
+        const double nbytes = sizeof(double) * key->k * (key->m + key->n);
+        const double ai = nflops / nbytes;
+        const double ratio = gflops / ai;
+        if (*max_gf_ai_dratio < ratio) *max_gf_ai_dratio = ratio;
+        result = EXIT_SUCCESS;
+      } break;
+      default: result = EXIT_FAILURE;
+    }
+  }
+  else {
+    result = EXIT_FAILURE;
+  }
+  return result;
 }
 
 
@@ -172,6 +203,7 @@ int libsmm_acc_init(void)
       /* potentially heterogeneous key-data */
       LIBXSMM_MEMZERO127(&key);
       if (NULL == env_params || '0' != *env_params) {
+        double max_gf_ai_sratio = 0, max_gf_ai_dratio = 0;
         if (NULL != env_params && '\0' != *env_params) {
           FILE *const file = fopen(env_params, "r");
           /* consume first line and skip CSV header line */
@@ -181,7 +213,8 @@ int libsmm_acc_init(void)
           while (EXIT_SUCCESS == result &&
             NULL != fgets(buffer, ACC_OPENCL_BUFFERSIZE, file))
           {
-            result = opencl_libsmm_read_params(buffer, &key, &config);
+            result = opencl_libsmm_read_params(buffer, &key, &config,
+              &max_gf_ai_sratio, &max_gf_ai_dratio);
             if (EXIT_SUCCESS == result &&
               NULL == OPENCL_LIBSMM_REGISTER(&key, sizeof(key), sizeof(config), &config))
             {
@@ -197,7 +230,8 @@ int libsmm_acc_init(void)
             if (NULL != next && next < (line + ACC_OPENCL_BUFFERSIZE)) {
               const int len = next - line;
               memcpy(buffer, line, len); buffer[len] = '\0';
-              result = opencl_libsmm_read_params(buffer, &key, &config);
+              result = opencl_libsmm_read_params(buffer, &key, &config,
+                &max_gf_ai_sratio, &max_gf_ai_dratio);
               if (EXIT_SUCCESS == result &&
                 NULL == OPENCL_LIBSMM_REGISTER(&key, sizeof(key), sizeof(config), &config))
               {
@@ -208,6 +242,10 @@ int libsmm_acc_init(void)
           } while (NULL != next);
         }
 #endif
+        if (EXIT_SUCCESS == result) {
+          opencl_libsmm_max_gf_ai_sratio = max_gf_ai_sratio;
+          opencl_libsmm_max_gf_ai_dratio = max_gf_ai_dratio;
+        }
       }
     }
   }
@@ -235,8 +273,7 @@ int libsmm_acc_finalize(void)
     LIBXSMM_VERSION_MINOR, LIBXSMM_VERSION_UPDATE) && 1159 <= LIBXSMM_VERSION_PATCH
   /* multiple calls to libsmm_acc_finalize are not considered as an error */
   if (0 == LIBXSMM_ATOMIC_SUB_FETCH(&opencl_libsmm_initialized, 1, LIBXSMM_ATOMIC_RELAXED)) {
-    const void* regkey = NULL;
-    const void* regentry = libxsmm_get_registry_begin(LIBXSMM_KERNEL_KIND_USER, &regkey);
+    const void *regkey = NULL, *regentry = libxsmm_get_registry_begin(LIBXSMM_KERNEL_KIND_USER, &regkey);
     for (; NULL != regentry; regentry = libxsmm_get_registry_next(regentry, &regkey)) {
       /* opencl_libsmm_trans_t/opencl_libsmm_smm_t carry cl_kernel as 1st data member */
       const cl_kernel kernel = *(const cl_kernel*)regentry;
@@ -273,6 +310,7 @@ int libsmm_acc_finalize(void)
         ACC_OPENCL_CHECK(clReleaseKernel(kernel), "release kernel", result);
       }
     }
+    opencl_libsmm_max_gf_ai_sratio = opencl_libsmm_max_gf_ai_dratio = 0;
   }
 #endif
   /* c_dbcsr_acc_finalize is not called since it can be used independently */

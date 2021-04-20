@@ -55,6 +55,19 @@
 # define OPENCL_LIBSMM_NLOCKS_SMM 16
 #endif
 
+/* approximate arithmetic intensity for SMMs like C += Ai * Bi (beta=1) */
+#define OPENCL_LIBSMM_AI(M, N, K, TYPESIZE) ( \
+  (2.0 * (M) * (N) * (K)) / ((TYPESIZE) * (K) * ((M) + (N))))
+
+#define OPENCL_LIBSMM_TYPESIZE(TYPEID) ( \
+  dbcsr_type_real_8 == (TYPEID) \
+    ? 8 : (dbcsr_type_real_4 == (TYPEID) \
+    ? 4 : 0/*unknown*/))
+
+#define OPENCL_LIBSMM_GFLOPS(M, N, K, TYPESIZE) ( \
+  LIBXSMM_MAX(opencl_libsmm_max_gf_ai_sratio, opencl_libsmm_max_gf_ai_dratio) \
+  * OPENCL_LIBSMM_AI(M, N, K, TYPESIZE))
+
 
 #if defined(__cplusplus)
 extern "C" {
@@ -143,20 +156,15 @@ int opencl_libsmm_read_params(char* parambuf,
     }
   }
   if (8 == consumed) {
-    const double nflops = 2 * key->m * key->n * key->k;
     switch (key->type) {
-      case dbcsr_type_real_4: if (NULL != max_gf_ai_sratio) {
-        const double nbytes = sizeof(float) * key->k * (key->m + key->n);
-        const double ai = nflops / nbytes;
-        const double ratio = gflops / ai;
-        if (*max_gf_ai_sratio < ratio) *max_gf_ai_sratio = ratio;
+      case dbcsr_type_real_8: if (NULL != max_gf_ai_dratio) {
+        const double ratio = gflops / OPENCL_LIBSMM_AI(key->m, key->n, key->k, sizeof(double));
+        if (*max_gf_ai_dratio < ratio) *max_gf_ai_dratio = ratio;
         result = EXIT_SUCCESS;
       } break;
-      case dbcsr_type_real_8: if (NULL != max_gf_ai_dratio) {
-        const double nbytes = sizeof(double) * key->k * (key->m + key->n);
-        const double ai = nflops / nbytes;
-        const double ratio = gflops / ai;
-        if (*max_gf_ai_dratio < ratio) *max_gf_ai_dratio = ratio;
+      case dbcsr_type_real_4: if (NULL != max_gf_ai_sratio) {
+        const double ratio = gflops / OPENCL_LIBSMM_AI(key->m, key->n, key->k, sizeof(float));
+        if (*max_gf_ai_sratio < ratio) *max_gf_ai_sratio = ratio;
         result = EXIT_SUCCESS;
       } break;
       default: result = EXIT_FAILURE;
@@ -288,7 +296,7 @@ int libsmm_acc_finalize(void)
               const opencl_libsmm_transkey_t *const desc = (const opencl_libsmm_transkey_t*)regkey;
               const opencl_libsmm_trans_t *const entry = (const opencl_libsmm_trans_t*)regentry;
               if (0 < entry->nexec) {
-                fprintf(stderr, "INFO ACC/OpenCL: %ix%i transpose-kernel achieved %.1f GB/s%s\n",
+                fprintf(stderr, "INFO ACC/OpenCL: %ix%i transpose-kernel geo=%.1f GB/s%s\n",
                   desc->m, desc->n, exp(entry->membw_sumlog / entry->nexec),
                   dbcsr_type_real_8 == desc->type ? " (DP)" : (dbcsr_type_real_4 == desc->type ? " (SP)" : ""));
               }
@@ -299,9 +307,19 @@ int libsmm_acc_finalize(void)
               const opencl_libsmm_smmkey_t *const desc = (const opencl_libsmm_smmkey_t*)regkey;
               const opencl_libsmm_smm_t *const entry = (const opencl_libsmm_smm_t*)regentry;
               if (0 < entry->nexec) {
-                fprintf(stderr, "INFO ACC/OpenCL: %ix%ix%i SMM-kernel achieved %.1f GFLOPS/s%s\n",
-                  desc->m, desc->n, desc->k, exp(entry->gflops_sumlog / entry->nexec),
-                  dbcsr_type_real_8 == desc->type ? " (DP)" : (dbcsr_type_real_4 == desc->type ? " (SP)" : ""));
+                switch (desc->type) {
+                  case dbcsr_type_real_8: fprintf(stderr,
+                      "INFO ACC/OpenCL: %ix%ix%i SMM-kernel geo=%.1f est=%.1f GFLOPS/s (DP)\n",
+                      desc->m, desc->n, desc->k, exp(entry->gflops_sumlog / entry->nexec),
+                      OPENCL_LIBSMM_GFLOPS(desc->m, desc->n, desc->k, sizeof(double)));
+                    break;
+                  case dbcsr_type_real_4: fprintf(stderr,
+                      "INFO ACC/OpenCL: %ix%ix%i SMM-kernel geo=%.1f est=%.1f GFLOPS/s (SP)\n",
+                      desc->m, desc->n, desc->k, exp(entry->gflops_sumlog / entry->nexec),
+                      OPENCL_LIBSMM_GFLOPS(desc->m, desc->n, desc->k, sizeof(float)));
+                    break;
+                  default: result = EXIT_FAILURE;
+                }
               }
 # endif
             }
@@ -454,8 +472,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
     if (EXIT_SUCCESS == result) {
       cl_event event, *const perf_event = ((0 <= c_dbcsr_acc_opencl_config.verbosity && 3 > c_dbcsr_acc_opencl_config.verbosity) ? NULL : &event);
       const size_t work_size = config->wgsize * stack_size;
-      const int typesize = (dbcsr_type_real_8 == datatype ? 8
-        : (dbcsr_type_real_4 == datatype ? 4 : 0/*unknown*/));
+      const int typesize = OPENCL_LIBSMM_TYPESIZE(datatype);
 # if defined(OPENCL_LIBSMM_DEBUG_TRANS)
       const int offset_stack_size = offset + stack_size;
       char *imat = NULL, *omat = NULL, *gold = NULL;
@@ -514,7 +531,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
 # endif
 # if !defined(OPENCL_LIBSMM_DEBUG_TRANS)
             if (4 <= c_dbcsr_acc_opencl_config.verbosity || 0 > c_dbcsr_acc_opencl_config.verbosity) {
-              fprintf(stderr, "INFO ACC/OpenCL: %ix%i transpose-kernel achieved %.1f GB/s%s\n", m, n, membw,
+              fprintf(stderr, "INFO ACC/OpenCL: %ix%i transpose-kernel cur=%.1f GB/s%s\n", m, n, membw,
                 dbcsr_type_real_8 == datatype ? " (DP)" : (dbcsr_type_real_4 == datatype ? " (SP)" : ""));
             }
 # endif
@@ -834,8 +851,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
       const libxsmm_gemm_precision precision = (dbcsr_type_real_8 == datatype
         ? LIBXSMM_GEMM_PRECISION_F64 : (dbcsr_type_real_4 == datatype ? LIBXSMM_GEMM_PRECISION_F32
         : (libxsmm_gemm_precision)LIBXSMM_DATATYPE_UNSUPPORTED));
-      const int typesize = (dbcsr_type_real_8 == datatype ? 8
-        : (dbcsr_type_real_4 == datatype ? 4 : 0/*unknown*/));
+      const int typesize = OPENCL_LIBSMM_TYPESIZE(datatype);
       size_t asize, bsize, csize;
       void* scratch = NULL;
       libxsmm_xmmfunction kernel = { NULL };
@@ -909,8 +925,17 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
 # endif
 # if !defined(OPENCL_LIBSMM_DEBUG_SMM)
             if (4 <= c_dbcsr_acc_opencl_config.verbosity || 0 > c_dbcsr_acc_opencl_config.verbosity) {
-              fprintf(stderr, "INFO ACC/OpenCL: %ix%ix%i SMM-kernel achieved %.1f GFLOPS/s%s\n", m_max, n_max, k_max, gflops,
-                dbcsr_type_real_8 == datatype ? " (DP)" : (dbcsr_type_real_4 == datatype ? " (SP)" : ""));
+              switch (datatype) {
+                case dbcsr_type_real_8: fprintf(stderr,
+                    "INFO ACC/OpenCL: %ix%ix%i SMM-kernel cur=%.1f est=%.1f GFLOPS/s (DP)\n",
+                    m_max, n_max, k_max, gflops, OPENCL_LIBSMM_GFLOPS(m_max, n_max, k_max, sizeof(double)));
+                  break;
+                case dbcsr_type_real_4: fprintf(stderr,
+                    "INFO ACC/OpenCL: %ix%ix%i SMM-kernel cur=%.1f est=%.1f GFLOPS/s (SP)\n",
+                    m_max, n_max, k_max, gflops, OPENCL_LIBSMM_GFLOPS(m_max, n_max, k_max, sizeof(float)));
+                  break;
+                default: result = EXIT_FAILURE;
+              }
             }
 # endif
           }

@@ -123,7 +123,7 @@ int opencl_libsmm_read_params(char* parambuf,
   double* max_gf_ai_sratio, double* max_gf_ai_dratio)
 {
   const char* s = strtok(parambuf, OPENCL_LIBSMM_PARAMS_DELIMS);
-  int result, consumed = 0, t = 0, i;
+  int result = EXIT_SUCCESS, consumed = 0, t = 0, i;
   double gflops;
   assert(NULL != key && NULL != value);
   for (; NULL != s; s = strtok(NULL, OPENCL_LIBSMM_PARAMS_DELIMS), ++t) {
@@ -160,12 +160,10 @@ int opencl_libsmm_read_params(char* parambuf,
       case dbcsr_type_real_8: if (NULL != max_gf_ai_dratio) {
         const double ratio = gflops / OPENCL_LIBSMM_AI(key->m, key->n, key->k, sizeof(double));
         if (*max_gf_ai_dratio < ratio) *max_gf_ai_dratio = ratio;
-        result = EXIT_SUCCESS;
       } break;
       case dbcsr_type_real_4: if (NULL != max_gf_ai_sratio) {
         const double ratio = gflops / OPENCL_LIBSMM_AI(key->m, key->n, key->k, sizeof(float));
         if (*max_gf_ai_sratio < ratio) *max_gf_ai_sratio = ratio;
-        result = EXIT_SUCCESS;
       } break;
       default: result = EXIT_FAILURE;
     }

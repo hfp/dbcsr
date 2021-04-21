@@ -161,11 +161,13 @@ int opencl_libsmm_read_params(char* parambuf,
         case dbcsr_type_real_8: {
           const double ratio = gflops / OPENCL_LIBSMM_AI(key->m, key->n, key->k, sizeof(double));
           libxsmm_kahan_sum(log(ratio), &perfest->gf_ai_dratio_sumlog, &perfest->gf_ai_dratio_kahan);
+          if (perfest->gf_ai_dratio_max < ratio) perfest->gf_ai_dratio_max = ratio;
           ++perfest->dcount;
         } break;
         case dbcsr_type_real_4: {
           const double ratio = gflops / OPENCL_LIBSMM_AI(key->m, key->n, key->k, sizeof(float));
           libxsmm_kahan_sum(log(ratio), &perfest->gf_ai_sratio_sumlog, &perfest->gf_ai_sratio_kahan);
+          if (perfest->gf_ai_sratio_max < ratio) perfest->gf_ai_sratio_max = ratio;
           ++perfest->scount;
         } break;
         default: result = EXIT_FAILURE;
@@ -253,10 +255,12 @@ int libsmm_acc_init(void)
 #endif
         if (EXIT_SUCCESS == result) {
           if (0 != perfest.scount) {
-            opencl_libsmm_gf_ai_sratio = exp(perfest.gf_ai_sratio_sumlog / perfest.scount);
+            opencl_libsmm_gf_ai_sratio = sqrt(perfest.gf_ai_sratio_max
+              * exp(perfest.gf_ai_sratio_sumlog / perfest.scount));
           }
           if (0 != perfest.dcount) {
-            opencl_libsmm_gf_ai_dratio = exp(perfest.gf_ai_dratio_sumlog / perfest.dcount);
+            opencl_libsmm_gf_ai_dratio = sqrt(perfest.gf_ai_dratio_max
+              * exp(perfest.gf_ai_dratio_sumlog / perfest.dcount));
           }
         }
       }

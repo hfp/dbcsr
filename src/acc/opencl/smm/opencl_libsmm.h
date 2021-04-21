@@ -77,8 +77,8 @@ typedef struct opencl_libsmm_smm_t {
 
 /** Type to collect statistics about tuned SMM-kernels */
 typedef struct opencl_libsmm_perfest_t {
-  double gf_ai_sratio_sumlog, gf_ai_sratio_kahan;
-  double gf_ai_dratio_sumlog, gf_ai_dratio_kahan;
+  double gf_ai_sratio_max, gf_ai_sratio_sumlog, gf_ai_sratio_kahan;
+  double gf_ai_dratio_max, gf_ai_dratio_sumlog, gf_ai_dratio_kahan;
   size_t scount, dcount;
 } opencl_libsmm_perfest_t;
 

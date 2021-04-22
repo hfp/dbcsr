@@ -561,8 +561,15 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
             const double membw = (1E-9 * (1ULL << 30) * stack_size * (typesize * m * n)) / LIBXSMM_DELTA(begin, end);
 # if LIBXSMM_VERSION3(1, 16, 1) <= LIBXSMM_VERSION3(LIBXSMM_VERSION_MAJOR, \
       LIBXSMM_VERSION_MINOR, LIBXSMM_VERSION_UPDATE) && 1159 <= LIBXSMM_VERSION_PATCH
+            const int size = sizeof(config->size) / sizeof(*config->size);
+            int i = (int)((config->nexec++) % size);
             libxsmm_kahan_sum(log(membw), &config->membw_sumlog, &config->membw_comp);
-            ++config->nexec;
+            config->size[i] = stack_size;
+            if ((i + 1) == size) { /* fill config->size with median */
+              int m; OPENCL_LIBSMM_ISORT(config->size, size); m = config->size[size>>1];
+              if (0 == (1 & size) && 0 < size) m = (m + config->size[(size>>1)-1]) >> 1;
+              for (i = 0; i < size; ++i) config->size[i] = m;
+            }
 # endif
 # if !defined(OPENCL_LIBSMM_DEBUG_TRANS)
             if (4 <= c_dbcsr_acc_opencl_config.verbosity || 0 > c_dbcsr_acc_opencl_config.verbosity) {

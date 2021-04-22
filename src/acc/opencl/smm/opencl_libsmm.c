@@ -551,7 +551,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
           "launch transpose kernel", result);
         /* eventually update performance counters inside of locked region */
         if (NULL != perf_event) {
-          cl_ulong begin, end = 0;
+          cl_ulong begin = 0, end = 0;
           clWaitForEvents(1, perf_event);
           ACC_OPENCL_CHECK(clGetEventProfilingInfo(*perf_event, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &begin, NULL),
             "query kernel start time", result);
@@ -956,7 +956,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
           duration = libxsmm_timer_duration(start, libxsmm_timer_tick()) * 1E9; /* Nanoseconds */
         }
         else {
-          cl_ulong begin, end = 0;
+          cl_ulong begin = 0, end = 0;
           clWaitForEvents(1, perf_event);
           ACC_OPENCL_CHECK(clGetEventProfilingInfo(*perf_event, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &begin, NULL),
             "query kernel start time", result);

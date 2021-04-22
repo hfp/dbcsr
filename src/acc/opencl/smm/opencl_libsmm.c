@@ -318,11 +318,15 @@ int libsmm_acc_finalize(void)
             if (NULL != strstr(fname, OPENCL_LIBSMM_KERNELNAME_TRANS)) { /* trans-kernel */
 # if !defined(OPENCL_LIBSMM_DEBUG_TRANS)
               const opencl_libsmm_transkey_t *const desc = (const opencl_libsmm_transkey_t*)regkey;
-              const opencl_libsmm_trans_t *const entry = (const opencl_libsmm_trans_t*)regentry;
+              opencl_libsmm_trans_t *const entry = (opencl_libsmm_trans_t*)regentry;
               if (0 < entry->nexec) {
-                fprintf(stderr, "INFO ACC/OpenCL: %ix%i transpose-kernel geo=%.1f GB/s%s\n",
-                  desc->m, desc->n, exp(entry->membw_sumlog / entry->nexec),
+                const int size = (int)LIBXSMM_MIN(sizeof(entry->size) / sizeof(*entry->size), entry->nexec);
+                int batchsize; OPENCL_LIBSMM_ISORT(entry->size, size); batchsize = entry->size[size>>1];
+                if (0 == (1 & size)) batchsize = (batchsize + entry->size[(size>>1)-1]) >> 1;
+                fprintf(stderr, "INFO ACC/OpenCL: %i x %ix%i transpose-kernel geo=%.1f GB/s%s\n",
+                  batchsize, desc->m, desc->n, exp(entry->membw_sumlog / entry->nexec),
                   dbcsr_type_real_8 == desc->type ? " (DP)" : (dbcsr_type_real_4 == desc->type ? " (SP)" : ""));
+                entry->nexec = 0; /* reset */
               }
 # endif
             }
@@ -349,6 +353,7 @@ int libsmm_acc_finalize(void)
                   } break;
                   default: result = EXIT_FAILURE;
                 }
+                entry->nexec = 0; /* reset */
               }
 # endif
             }
@@ -481,8 +486,8 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
 # if !defined(OPENCL_LIBSMM_DEBUG_TRANS)
                   if (2 <= c_dbcsr_acc_opencl_config.verbosity || 0 > c_dbcsr_acc_opencl_config.verbosity) {
                     duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
-                    fprintf(stderr, "INFO ACC/OpenCL: %ix%i transpose-kernel generated in %.1f ms\n",
-                      m, n, 1000.0 * duration);
+                    fprintf(stderr, "INFO ACC/OpenCL: %i x %ix%i transpose-kernel generated in %.1f ms\n",
+                      stack_size, m, n, 1000.0 * duration);
                   }
 # endif
                 }

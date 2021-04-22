@@ -56,6 +56,7 @@ typedef struct opencl_libsmm_trans_t {
   /* ACC_OPENCL_VERBOSE: perf. counters */
   double membw_sumlog, membw_comp;
   size_t nexec;
+  int size[5];
 } opencl_libsmm_trans_t;
 
 /** Type for querying SMM-kernel configuration. */

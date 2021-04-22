@@ -486,8 +486,8 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
 # if !defined(OPENCL_LIBSMM_DEBUG_TRANS)
                   if (2 <= c_dbcsr_acc_opencl_config.verbosity || 0 > c_dbcsr_acc_opencl_config.verbosity) {
                     duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
-                    fprintf(stderr, "INFO ACC/OpenCL: %i x %ix%i transpose-kernel generated in %.1f ms\n",
-                      stack_size, m, n, 1000.0 * duration);
+                    fprintf(stderr, "INFO ACC/OpenCL: %ix%i transpose-kernel generated in %.1f ms\n",
+                      m, n, 1000.0 * duration);
                   }
 # endif
                 }

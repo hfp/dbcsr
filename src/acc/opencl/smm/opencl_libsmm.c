@@ -433,18 +433,18 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
           const int blockm = ((NULL == env_blockm || '\0' == *env_blockm)
             ? m/*TODO*/ : atoi(env_blockm));
           const int bm = LIBXSMM_CLMP(blockm, 1, m);
-          const char* typename = "";
+          const char* tname = "";
           int wgsize = 0, max_wgsize;
           result = c_dbcsr_acc_opencl_wgsize(active_device,
             NULL/*kernel*/, &max_wgsize, NULL/*prefmult*/);
           if (EXIT_SUCCESS == result) {
             switch (datatype) {
               case dbcsr_type_real_8: {
-                typename = "char8"; /* double */
+                tname = "char8"; /* double */
                 fname[0] = 'd';
               } break;
               case dbcsr_type_real_4: {
-                typename = "float";
+                tname = "float";
                 fname[0] = 's';
               } break;
               default: ;
@@ -454,9 +454,9 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
               " -DGLOBAL=%s -DINPLACE=%i -DFN=%s -DSM=%i -DSN=%i -DSWG=%i -DT=%s",
               (NULL == env_options || '\0' == *env_options) ? "" : env_options,
               EXIT_SUCCESS != opencl_libsmm_use_cmem(active_device) ? "global" : "constant",
-              inplace, fname, m, n, wgsize, typename);
+              inplace, fname, m, n, wgsize, tname);
           }
-          if ('\0' != *typename && 0 < nchar && (int)sizeof(build_options) > nchar) {
+          if ('\0' != *tname && 0 < nchar && (int)sizeof(build_options) > nchar) {
             opencl_libsmm_trans_t new_config;
             memset(&new_config, 0, sizeof(new_config));
             result = c_dbcsr_acc_opencl_kernel(OPENCL_LIBSMM_SOURCE_TRANSPOSE,
@@ -472,7 +472,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
                     " -DGLOBAL=%s -DINPLACE=%i -DFN=%s -DSM=%i -DSN=%i -DSWG=%i -DT=%s",
                     (NULL == env_options || '\0' == *env_options) ? "" : env_options,
                     EXIT_SUCCESS != opencl_libsmm_use_cmem(active_device) ? "global" : "constant",
-                    inplace, fname, m, n, wgsize, typename);
+                    inplace, fname, m, n, wgsize, tname);
                   if (0 < nchar && (int)sizeof(build_options) > nchar) {
                     result = c_dbcsr_acc_opencl_kernel(OPENCL_LIBSMM_SOURCE_TRANSPOSE,
                       build_options, fname, &new_config.kernel);
@@ -551,7 +551,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
           "launch transpose kernel", result);
         /* eventually update performance counters inside of locked region */
         if (NULL != perf_event) {
-          cl_ulong begin, end;
+          cl_ulong begin, end = 0;
           clWaitForEvents(1, perf_event);
           ACC_OPENCL_CHECK(clGetEventProfilingInfo(*perf_event, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &begin, NULL),
             "query kernel start time", result);
@@ -705,14 +705,14 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
         cl_device_id active_device;
         result = c_dbcsr_acc_opencl_device(stream, &active_device);
         if (EXIT_SUCCESS == result) {
-          const char *typename = NULL, *atomic_ops = NULL;
+          const char *tname = NULL, *atomic_ops = NULL;
           assert(NULL != active_device);
           switch (datatype) {
             case dbcsr_type_real_8: {
               extensions = "cl_khr_fp64 cl_khr_int64_base_atomics";
               if (EXIT_SUCCESS == c_dbcsr_acc_opencl_device_ext(active_device, &extensions, 1)) {
                 atomic_ops = "-DTA=long -DCMPXCHG=atom_cmpxchg -DXCHG=atom_xchg";
-                typename = "double";
+                tname = "double";
                 fname[0] = 'd';
               }
             } break;
@@ -720,13 +720,13 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
               extensions = "cl_khr_global_int32_base_atomics";
               if (EXIT_SUCCESS == c_dbcsr_acc_opencl_device_ext(active_device, &extensions, 1)) {
                 atomic_ops = "-DTA=int -DCMPXCHG=atomic_cmpxchg -DXCHG=atomic_xchg";
-                typename = "float";
+                tname = "float";
                 fname[0] = 's';
               }
             } break;
             default: ;
           }
-          if (NULL != typename) {
+          if (NULL != tname) {
             int unified = 0;
             const int cl_intel = (EXIT_SUCCESS == c_dbcsr_acc_opencl_device_vendor(active_device, "intel"));
             const int cl_intel_0x4905 = (cl_intel && EXIT_SUCCESS == c_dbcsr_acc_opencl_device_name(active_device, "0x4905"));
@@ -809,7 +809,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                   " %s -D\"ATOMIC_ADD_GLOBAL(A,B)=%s\" %s",
                   (NULL == env_options || '\0' == *env_options) ? "" : env_options,
                   EXIT_SUCCESS != opencl_libsmm_use_cmem(active_device) ? "global" : "constant",
-                  fname, m_max, n_max, k_max, bm, bn, bs, typename, atomic_ops, atomic_expr,
+                  fname, m_max, n_max, k_max, bm, bn, bs, tname, atomic_ops, atomic_expr,
                   NULL == atomic_expr2 ? "" : atomic_expr2);
                 if (0 >= nchar || (int)sizeof(build_options) <= nchar) result = EXIT_FAILURE;
               }
@@ -956,7 +956,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
           duration = libxsmm_timer_duration(start, libxsmm_timer_tick()) * 1E9; /* Nanoseconds */
         }
         else {
-          cl_ulong begin, end;
+          cl_ulong begin, end = 0;
           clWaitForEvents(1, perf_event);
           ACC_OPENCL_CHECK(clGetEventProfilingInfo(*perf_event, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &begin, NULL),
             "query kernel start time", result);

@@ -329,17 +329,20 @@ int libsmm_acc_finalize(void)
             else if (NULL != strstr(fname, OPENCL_LIBSMM_KERNELNAME_SMM)) { /* SMM-kernel */
 # if !defined(OPENCL_LIBSMM_DEBUG_SMM)
               const opencl_libsmm_smmkey_t *const desc = (const opencl_libsmm_smmkey_t*)regkey;
-              const opencl_libsmm_smm_t *const entry = (const opencl_libsmm_smm_t*)regentry;
+              opencl_libsmm_smm_t *const entry = (opencl_libsmm_smm_t*)regentry;
               if (0 < entry->nexec) {
+                const int size = (int)LIBXSMM_MIN(sizeof(entry->size) / sizeof(*entry->size), entry->nexec);
+                int batchsize; OPENCL_LIBSMM_ISORT(entry->size, size); batchsize = entry->size[size>>1];
+                if (0 == (1 & size)) batchsize = (batchsize + entry->size[(size>>1)-1]) >> 1;
                 switch (desc->type) {
                   case dbcsr_type_real_8: fprintf(stderr,
-                      "INFO ACC/OpenCL: %ix%ix%i SMM-kernel geo=%.1f est=%.1f GFLOPS/s (DP)\n",
-                      desc->m, desc->n, desc->k, exp(entry->gflops_sumlog / entry->nexec),
+                      "INFO ACC/OpenCL: %i x %ix%ix%i SMM-kernel geo=%.1f est=%.1f GFLOPS/s (DP)\n",
+                      batchsize, desc->m, desc->n, desc->k, exp(entry->gflops_sumlog / entry->nexec),
                       OPENCL_LIBSMM_GFLOPS(desc->m, desc->n, desc->k, sizeof(double)));
                     break;
                   case dbcsr_type_real_4: fprintf(stderr,
-                      "INFO ACC/OpenCL: %ix%ix%i SMM-kernel geo=%.1f est=%.1f GFLOPS/s (SP)\n",
-                      desc->m, desc->n, desc->k, exp(entry->gflops_sumlog / entry->nexec),
+                      "INFO ACC/OpenCL: %i x %ix%ix%i SMM-kernel geo=%.1f est=%.1f GFLOPS/s (SP)\n",
+                      batchsize, desc->m, desc->n, desc->k, exp(entry->gflops_sumlog / entry->nexec),
                       OPENCL_LIBSMM_GFLOPS(desc->m, desc->n, desc->k, sizeof(float)));
                     break;
                   default: result = EXIT_FAILURE;

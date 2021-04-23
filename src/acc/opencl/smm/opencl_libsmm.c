@@ -569,11 +569,11 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
             const size_t size = sizeof(config->size) / sizeof(*config->size); assert(2 <= size);
             libxsmm_kahan_sum(log(membw), &config->membw_sumlog, &config->membw_comp);
             if (size <= config->nexec) {
-              const int s = size - 1, i = (int)((config->nexec++) % s);
+              const int s1 = size - 1, i = (int)((config->nexec++) % s1);
               config->size[i] = stack_size;
-              if ((i + 1) == s) { /* fill config->size with median */
-                const int s2 = size >> 1; OPENCL_LIBSMM_ISORT(config->size, size); config->size[size] = config->size[s2];
-                if (0 == (1 & s)) config->size[size] = (config->size[size] + config->size[s2-1]) >> 1;
+              if ((i + 1) == s1) { /* fill config->size with median */
+                const int s2 = size >> 1; OPENCL_LIBSMM_ISORT(config->size, size); config->size[s1] = config->size[s2];
+                if (0 == (1 & s1)) config->size[s1] = (config->size[s1] + config->size[s2-1]) >> 1;
               }
             }
             else config->size[config->nexec++] = stack_size;
@@ -977,11 +977,11 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
             const size_t size = sizeof(config->size) / sizeof(*config->size); assert(2 <= size);
             libxsmm_kahan_sum(log(gflops), &config->gflops_sumlog, &config->gflops_comp);
             if (size <= config->nexec) {
-              const int s = size - 1, i = (int)((config->nexec++) % s);
+              const int s1 = size - 1, i = (int)((config->nexec++) % s1);
               config->size[i] = stack_size;
-              if ((i + 1) == s) { /* fill config->size with median */
-                const int s2 = size >> 1; OPENCL_LIBSMM_ISORT(config->size, size); config->size[size] = config->size[s2];
-                if (0 == (1 & s)) config->size[size] = (config->size[size] + config->size[s2-1]) >> 1;
+              if ((i + 1) == s1) { /* fill config->size with median */
+                const int s2 = size >> 1; OPENCL_LIBSMM_ISORT(config->size, size); config->size[s1] = config->size[s2];
+                if (0 == (1 & s1)) config->size[s1] = (config->size[s1] + config->size[s2-1]) >> 1;
               }
             }
             else config->size[config->nexec++] = stack_size;

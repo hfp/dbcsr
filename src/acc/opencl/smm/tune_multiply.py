@@ -46,11 +46,11 @@ class SmmTuner(MeasurementInterface):
                 str(run_result["stderr"]),
             )
         else:
-            typename = None
+            typename = device = None
         if (typename is not None) and typename.group(1) and typename.group(2):
             self.typename = typename.group(2)
             self.typeid = int(typename.group(1))
-        else:
+        elif not self.args.merge:
             sys.tracebacklimit = 0
             raise RuntimeError(
                 "Setup failed for {}/{}!".format(self.exepath, self.exename)

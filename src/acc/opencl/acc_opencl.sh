@@ -27,6 +27,7 @@ if [ "${BASENAME}" ] && [ "${SED}" ] && [ "${RM}" ]; then
     # allow for instance /dev/stdout
     if [ "${OFILE##*.}" = "h" ]; then
       truncate -s0 "${OFILE}"
+      HFILE=${OFILE}
     elif [ "${OFILE##*.}" = "cl" ] || [ "${OFILE##*.}" = "csv" ]; then
       >&2 echo "ERROR: no output/header file given!"
       exit 1
@@ -63,7 +64,7 @@ if [ "${BASENAME}" ] && [ "${SED}" ] && [ "${RM}" ]; then
             NFILES_OCL=$((NFILES_OCL+1))
           else
             >&2 echo "ERROR: ${IFILE} does not exist!"
-            rm -f "${OFILE}"
+            if [ "${HFILE}" ]; then ${RM} -f "${OFILE}"; fi
             exit 1
           fi
         elif [ "${IFILE##*.}" = "csv" ]; then
@@ -74,6 +75,18 @@ if [ "${BASENAME}" ] && [ "${SED}" ] && [ "${RM}" ]; then
             SNAME=OPENCL_LIBSMM_STRING_PARAMS_SMM
             VNAME=opencl_libsmm_params_smm
             MNAME=$(echo "${VNAME}" | tr '[:lower:]' '[:upper:]')
+            if [ "$(command -v tail)" ] && [ "$(command -v cut)" ] && \
+               [ "$(command -v sort)" ] && [ "$(command -v wc)" ];
+            then
+              DEVICE=$(tail -n+2 "${IFILE}" | cut -d"${SEPAR}" -f1 | sort -u)
+              if [ "1" = "$(echo "${DEVICE}" | wc -l)" ]; then
+                echo "#define OPENCL_LIBSMM_PARAMS_DEVICE \"${DEVICE}\""
+              else
+                >&2 echo "ERROR: ${IFILE} contains parameters for different devices!"
+                if [ "${HFILE}" ]; then ${RM} -f "${OFILE}"; fi
+                exit 1
+              fi
+            fi
             echo "#define ${MNAME} ${VNAME}" >>"${OFILE}"
             echo "#define ${SNAME} \\" >>"${OFILE}"
             ${SED} "s/^[^${SEPAR}]*${SEPAR}/  \"/;s/$/\\\n\" \\\/;1d" "${IFILE}" >>"${OFILE}"
@@ -83,18 +96,18 @@ if [ "${BASENAME}" ] && [ "${SED}" ] && [ "${RM}" ]; then
           fi
         else
           >&2 echo "ERROR: ${IFILE} is not an OpenCL or CSV file!"
-          rm -f "${OFILE}"
+          if [ "${HFILE}" ]; then ${RM} -f "${OFILE}"; fi
           exit 1
         fi
       fi
     done
     if [ "0" = "${NFILES_OCL}" ]; then
       >&2 echo "ERROR: no OpenCL file was given!"
-      rm -f "${OFILE}"
+      if [ "${HFILE}" ]; then ${RM} -f "${OFILE}"; fi
       exit 1
     elif [ "0" != "$((1<NFILES_CSV))" ]; then
       >&2 echo "ERROR: more than one CSV file was given!"
-      rm -f "${OFILE}"
+      if [ "${HFILE}" ]; then ${RM} -f "${OFILE}"; fi
       exit 1
     fi
   else

@@ -90,7 +90,8 @@ int opencl_libsmm_use_cmem(cl_device_id device);
 /* Tokenize parambuf and initialize key/value pair. */
 int opencl_libsmm_read_params(char* parambuf,
   opencl_libsmm_smmkey_t* key, opencl_libsmm_smm_t* value,
-  opencl_libsmm_perfest_t* perfest);
+  opencl_libsmm_perfest_t* perfest,
+  char** device);
 
 #if defined(OPENCL_LIBSMM_DEBUG) && defined(_DEBUG)
 void opencl_libsmm_print_matrix(FILE* ostream, const char* label,

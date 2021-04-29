@@ -89,6 +89,7 @@
 extern "C" {
 #endif
 
+char opencl_libsmm_devices[ACC_OPENCL_DEVICES_MAXCOUNT][ACC_OPENCL_BUFFERSIZE];
 volatile int opencl_libsmm_lock_trans[OPENCL_LIBSMM_NLOCKS_TRANS];
 volatile int opencl_libsmm_lock_smm[OPENCL_LIBSMM_NLOCKS_SMM];
 double opencl_libsmm_gf_ai_sratio, opencl_libsmm_gf_ai_dratio;
@@ -135,42 +136,47 @@ void opencl_libsmm_print_matrix(FILE* ostream, const char* label, libsmm_acc_dat
 
 int opencl_libsmm_read_params(char* parambuf,
   opencl_libsmm_smmkey_t* key, opencl_libsmm_smm_t* value,
-  opencl_libsmm_perfest_t* perfest)
+  opencl_libsmm_perfest_t* perfest, char** device)
 {
   const char* s = strtok(parambuf, OPENCL_LIBSMM_PARAMS_DELIMS);
-  int result = EXIT_SUCCESS, consumed = 0, t = 0, i;
+  const int max_consumed = (NULL == device ? 8 : 9);
+  int result = EXIT_SUCCESS, consumed = 0, i;
+  int t = (NULL == device ? 1 : 0);
   double gflops;
   assert(NULL != key && NULL != value);
   for (; NULL != s; s = strtok(NULL, OPENCL_LIBSMM_PARAMS_DELIMS), ++t) {
     switch (t) {
-      case 0: if (1 == sscanf(s, "%i", &i)) {
-        key->type = (libsmm_acc_data_t)i; ++consumed;
+      case 0: if (1 == sscanf(s, "%s", *device)) {
+        ++consumed;
       } break;
       case 1: if (1 == sscanf(s, "%i", &i)) {
-        key->m = i; ++consumed;
+        key->type = (libsmm_acc_data_t)i; ++consumed;
       } break;
       case 2: if (1 == sscanf(s, "%i", &i)) {
-        key->n = i; ++consumed;
+        key->m = i; ++consumed;
       } break;
       case 3: if (1 == sscanf(s, "%i", &i)) {
+        key->n = i; ++consumed;
+      } break;
+      case 4: if (1 == sscanf(s, "%i", &i)) {
         key->k = i; ++consumed;
       } break;
-      case 4: if (1 == sscanf(s, "%lf", &gflops)) {
+      case 5: if (1 == sscanf(s, "%lf", &gflops)) {
         assert(0 <= gflops);
         ++consumed;
       } break;
-      case 5: if (1 == sscanf(s, "%i", &i)) {
+      case 6: if (1 == sscanf(s, "%i", &i)) {
         value->bs = i; ++consumed;
       } break;
-      case 6: if (1 == sscanf(s, "%i", &i)) {
+      case 7: if (1 == sscanf(s, "%i", &i)) {
         value->bm = i; ++consumed;
       } break;
-      case 7: if (1 == sscanf(s, "%i", &i)) {
+      case 8: if (1 == sscanf(s, "%i", &i)) {
         value->bn = i; ++consumed;
       } break;
     }
   }
-  if (8 == consumed) {
+  if (max_consumed == consumed) {
     if (NULL != perfest) {
       switch (key->type) {
         case dbcsr_type_real_8: {
@@ -234,14 +240,18 @@ int libsmm_acc_init(void)
         memset(&perfest, 0, sizeof(perfest));
         if (NULL != env_params && '\0' != *env_params) {
           FILE *const file = fopen(env_params, "r");
+          char* device = NULL;
           /* consume first line and skip CSV header line */
-          if (NULL == file || NULL == fgets(buffer, ACC_OPENCL_BUFFERSIZE, file)) {
-            result = EXIT_FAILURE;
+          if (NULL != file && NULL != fgets(buffer, ACC_OPENCL_BUFFERSIZE, file)) {
+            if (NULL != c_dbcsr_acc_opencl_stristr(buffer, "device")) {
+              device = opencl_libsmm_devices[0];
+            }
           }
+          else result = EXIT_FAILURE;
           while (EXIT_SUCCESS == result &&
             NULL != fgets(buffer, ACC_OPENCL_BUFFERSIZE, file))
           {
-            result = opencl_libsmm_read_params(buffer, &key, &config, &perfest);
+            result = opencl_libsmm_read_params(buffer, &key, &config, &perfest, &device);
             if (EXIT_SUCCESS == result && NULL == OPENCL_LIBSMM_REGISTER(
               &key, sizeof(key), sizeof(config), &config))
             {
@@ -257,7 +267,7 @@ int libsmm_acc_init(void)
             if (NULL != next && next < (line + ACC_OPENCL_BUFFERSIZE)) {
               const int len = next - line;
               memcpy(buffer, line, len); buffer[len] = '\0';
-              result = opencl_libsmm_read_params(buffer, &key, &config, &perfest);
+              result = opencl_libsmm_read_params(buffer, &key, &config, &perfest, NULL);
               if (EXIT_SUCCESS == result && NULL == OPENCL_LIBSMM_REGISTER(
                 &key, sizeof(key), sizeof(config), &config))
               {

@@ -24,7 +24,7 @@
 # define OPENCL_LIBSMM_TRANS_INPLACE
 #endif
 #if !defined(OPENCL_LIBSMM_PARAMS_DELIMS)
-# define OPENCL_LIBSMM_PARAMS_DELIMS ";, \t|/"
+# define OPENCL_LIBSMM_PARAMS_DELIMS ";,\t|/"
 #endif
 #if !defined(OPENCL_LIBSMM_DEBUG) && 0
 # define OPENCL_LIBSMM_DEBUG 1

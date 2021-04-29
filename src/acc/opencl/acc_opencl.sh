@@ -13,6 +13,9 @@ SED=$(command -v gsed)
 CPP=$(command -v cpp)
 RM=$(command -v rm)
 
+# delimiters allowed in CSV-file
+DELIMS=";,\t|/"
+
 # GNU sed is desired (macOS)
 if [ "" = "${SED}" ]; then
   SED=$(command -v sed)
@@ -66,12 +69,14 @@ if [ "${BASENAME}" ] && [ "${SED}" ] && [ "${RM}" ]; then
         elif [ "${IFILE##*.}" = "csv" ]; then
           # non-existence does not trigger an error
           if [ -e "${IFILE}" ]; then
+            DELIM=$(tr -cd "${DELIMS}" < "${IFILE}")
+            SEPAR=${DELIM:0:1}
             SNAME=OPENCL_LIBSMM_STRING_PARAMS_SMM
             VNAME=opencl_libsmm_params_smm
             MNAME=$(echo "${VNAME}" | tr '[:lower:]' '[:upper:]')
             echo "#define ${MNAME} ${VNAME}" >>"${OFILE}"
             echo "#define ${SNAME} \\" >>"${OFILE}"
-            ${SED} 's/^/  "/;s/$/\\n" \\/;1d' "${IFILE}" >>"${OFILE}"
+            ${SED} "s/^[^${SEPAR}]*${SEPAR}/  \"/;s/$/\\\n\" \\\/;1d" "${IFILE}" >>"${OFILE}"
             echo "  \"\"" >>"${OFILE}"
             echo "const char ${VNAME}[] = ${SNAME};" >>"${OFILE}"
             NFILES_CSV=$((NFILES_CSV+1))

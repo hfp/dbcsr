@@ -80,7 +80,7 @@ if [ "${BASENAME}" ] && [ "${SED}" ] && [ "${RM}" ]; then
             then
               DEVICE=$(tail -n+2 "${IFILE}" | cut -d"${SEPAR}" -f1 | sort -u)
               if [ "1" = "$(echo "${DEVICE}" | wc -l)" ]; then
-                echo "#define OPENCL_LIBSMM_PARAMS_DEVICE \"${DEVICE}\""
+                echo "#define OPENCL_LIBSMM_PARAMS_DEVICE \"${DEVICE}\"" >>"${OFILE}"
               else
                 >&2 echo "ERROR: ${IFILE} contains parameters for different devices!"
                 if [ "${HFILE}" ]; then ${RM} -f "${OFILE}"; fi

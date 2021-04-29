@@ -31,26 +31,34 @@ class SmmTuner(MeasurementInterface):
         Define the search space by creating a
         ConfigurationManipulator
         """
-        if self.args.merge:
-            self.merge_into_csv(glob.glob("*.json"))
-            exit(0)
         self.exepath = "../.."
         self.exename = "acc_bench_smm"
-        run_result = self.call_program("{}/{} 1 1 1".format(self.exepath, self.exename))
+        run_result = self.call_program(
+            # verbosity level to capture device name
+            "ACC_OPENCL_VERBOSE=1 {}/{} 1 1 1".format(self.exepath, self.exename)
+        )
         if 0 == run_result["returncode"]:
-            match = re.search(
+            typename = re.search(
                 "typename \\(id=([0-9]+)\\):\\s+(\\w+)", str(run_result["stdout"])
             )
+            device = re.search(
+                'INFO ACC/OpenCL:\\s+ndevices=[0-9]+\\s+device[0-9]+="(.+)"',
+                str(run_result["stderr"]),
+            )
         else:
-            match = None
-        if (match is not None) and match.group(1) and match.group(2):
-            self.typename = match.group(2)
-            self.typeid = int(match.group(1))
+            typename = None
+        if (typename is not None) and typename.group(1) and typename.group(2):
+            self.typename = typename.group(2)
+            self.typeid = int(typename.group(1))
         else:
             sys.tracebacklimit = 0
             raise RuntimeError(
                 "Setup failed for {}/{}!".format(self.exepath, self.exename)
             )
+        if (device is not None) and device.group(1):
+            self.device = device.group(1)
+        else:
+            self.device = "Unknown"
         # sanitize input arguments
         self.args.m = max(self.args.m, 1)
         self.args.n = [max(self.args.n, 1), self.args.m][0 == self.args.n]
@@ -60,6 +68,10 @@ class SmmTuner(MeasurementInterface):
         self.args.bm = [max(self.args.bm, 1), self.args.m][0 == self.args.bm]
         self.args.bn = [max(self.args.bn, 1), 1][0 == self.args.bn]
         self.gflops = 0
+        # consider merge-only
+        if self.args.merge:
+            self.merge_into_csv(glob.glob("*.json"))
+            exit(0)
         # setup tunable parameters
         manipulator = ConfigurationManipulator()
         manipulator.add_parameter(IntegerParameter("BS", 1, self.args.mb))
@@ -102,15 +114,15 @@ class SmmTuner(MeasurementInterface):
         )
         run_result = self.call_program(run_cmd)
         if 0 == run_result["returncode"]:
-            match = re.search(
+            performance = re.search(
                 "device:\\s+([0-9]+(\\.[0-9]*)*) ms\\s+([0-9]+(\\.[0-9]*)*)",
                 str(run_result["stdout"]),
             )
         else:
-            match = None
-        if (match is not None) and match.group(1) and match.group(3):
-            mseconds = float(match.group(1))
-            gflops = float(match.group(3))
+            performance = None
+        if (performance is not None) and performance.group(1) and performance.group(3):
+            mseconds = float(performance.group(1))
+            gflops = float(performance.group(3))
             if self.gflops < gflops:
                 # keep best configuration in case of an early exit
                 self.config = desired_result.configuration
@@ -132,7 +144,13 @@ class SmmTuner(MeasurementInterface):
                     data = dict()
                     with open(ifilename, "r") as ifile:
                         data = json.load(ifile)
-                    key = (int(data["TYPEID"]), data["M"], data["N"], data["K"])
+                    key = (
+                        data["DEVICE"] if "DEVICE" in data else self.device,
+                        int(data["TYPEID"]),
+                        data["M"],
+                        data["N"],
+                        data["K"],
+                    )
                     value = (
                         data["GFLOPS"],
                         data["BS"],
@@ -155,11 +173,12 @@ class SmmTuner(MeasurementInterface):
                     print("Failed to merge {} into CSV-file.".format(ifilename))
             if bool(merged):
                 with open(self.args.csvfile, "w") as ofile:
-                    ofile.write(  # CSV header line
-                        self.args.csvsep.join(
-                            ["TYPEID", "M", "N", "K", "GFLOPS", "BS", "BM", "BN\n"]
-                        )
+                    ofile.write(  # CSV header line (key part)
+                        self.args.csvsep.join(["DEVICE", "TYPEID", "M", "N", "K"])
                     )
+                    ofile.write(self.args.csvsep)
+                    ofile.write(self.args.csvsep.join(["GFLOPS", "BS", "BM", "BN"]))
+                    ofile.write("\n")  # CSV header line (termination)
                     for key, value in merged.items():  # CSV data lines
                         strkey = self.args.csvsep.join([str(k) for k in key])
                         strval = self.args.csvsep.join([str(v) for v in value[:-1]])
@@ -185,6 +204,7 @@ class SmmTuner(MeasurementInterface):
             )
             # extend result for easier reuse later
             config = configuration.data
+            config["DEVICE"] = self.device
             config["GFLOPS"] = self.gflops
             config["TYPEID"] = self.typeid
             config["M"] = self.args.m

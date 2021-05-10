@@ -716,11 +716,11 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
 # endif
     opencl_libsmm_smm_t* config;
     opencl_libsmm_smmkey_t key;
+    /* do not attempt to match the device name */
+    const size_t key_size = (uintptr_t)&key.device - (uintptr_t)&key.type;
     LIBXSMM_MEMZERO127(&key); /* potentially heterogeneous key-data */
     key.type = datatype; key.m = m_max; key.n = n_max; key.k = k_max; /* initialize key */
-    config = (opencl_libsmm_smm_t*)OPENCL_LIBSMM_DISPATCH(&key,
-      /* do not attempt to match the device name */
-      (uintptr_t)&key.device - (uintptr_t)&key.type);
+    config = (opencl_libsmm_smm_t*)OPENCL_LIBSMM_DISPATCH(&key, key_size);
     if (NULL == config || NULL == config->kernel) {
       char build_options[ACC_OPENCL_BUFFERSIZE], fname[OPENCL_LIBSMM_KERNELNAME_MAXSIZE];
       int nchar = ACC_OPENCL_SNPRINTF(fname, sizeof(fname),

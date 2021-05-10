@@ -80,7 +80,11 @@ if [ "${BASENAME}" ] && [ "${SED}" ] && [ "${RM}" ]; then
             then
               DEVICE=$(tail -n+2 "${IFILE}" | cut -d"${SEPAR}" -f1 | sort -u)
               if [ "1" = "$(echo "${DEVICE}" | wc -l)" ]; then
-                echo "#define OPENCL_LIBSMM_PARAMS_DEVICE \"${DEVICE}\"" >>"${OFILE}"
+                if [ "${DEVICE}" ]; then
+                  echo "#define OPENCL_LIBSMM_PARAMS_DEVICE \"${DEVICE}\"" >>"${OFILE}"
+                else
+                  echo "#define OPENCL_LIBSMM_PARAMS_DEVICE NULL" >>"${OFILE}"
+                fi
               else
                 >&2 echo "ERROR: ${IFILE} contains parameters for different devices!"
                 if [ "${HFILE}" ]; then ${RM} -f "${OFILE}"; fi
@@ -89,7 +93,7 @@ if [ "${BASENAME}" ] && [ "${SED}" ] && [ "${RM}" ]; then
             fi
             echo "#define ${MNAME} ${VNAME}" >>"${OFILE}"
             echo "#define ${SNAME} \\" >>"${OFILE}"
-            ${SED} "s/^[^${SEPAR}]*${SEPAR}/  \"/;s/$/\\\n\" \\\/;1d" "${IFILE}" >>"${OFILE}"
+            ${SED} "1d;s/^[^${SEPAR}]*${SEPAR}/  \"/;s/[\r]*$/\\\n\" \\\/" "${IFILE}" >>"${OFILE}"
             echo "  \"\"" >>"${OFILE}"
             echo "const char ${VNAME}[] = ${SNAME};" >>"${OFILE}"
             NFILES_CSV=$((NFILES_CSV+1))

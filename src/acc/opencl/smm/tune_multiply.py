@@ -58,7 +58,7 @@ class SmmTuner(MeasurementInterface):
         if (device is not None) and device.group(1):
             self.device = device.group(1)
         else:
-            self.device = "Unknown"
+            self.device = ""  # unknown
         # sanitize input arguments
         self.args.m = max(self.args.m, 1)
         self.args.n = [max(self.args.n, 1), self.args.m][0 == self.args.n]

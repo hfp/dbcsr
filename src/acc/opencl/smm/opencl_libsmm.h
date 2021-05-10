@@ -63,6 +63,8 @@ typedef struct opencl_libsmm_trans_t {
 typedef struct opencl_libsmm_smmkey_t {
   libsmm_acc_data_t type; /* must be the 1st data member */
   int m, n, k;
+  /* device that matches configuration (parameters) */
+  const char* device; /* must be the last data member */
 } opencl_libsmm_smmkey_t;
 
 /** Type for SMM-kernel configuration. */
@@ -91,7 +93,7 @@ int opencl_libsmm_use_cmem(cl_device_id device);
 int opencl_libsmm_read_params(char* parambuf,
   opencl_libsmm_smmkey_t* key, opencl_libsmm_smm_t* value,
   opencl_libsmm_perfest_t* perfest,
-  char** device);
+  char* const* device);
 
 #if defined(OPENCL_LIBSMM_DEBUG) && defined(_DEBUG)
 void opencl_libsmm_print_matrix(FILE* ostream, const char* label,

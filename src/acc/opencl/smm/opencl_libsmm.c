@@ -146,7 +146,7 @@ int opencl_libsmm_read_params(char* parambuf,
   assert(NULL != key && NULL != value);
   for (; NULL != s; s = strtok(NULL, OPENCL_LIBSMM_PARAMS_DELIMS), ++t) {
     switch (t) {
-      case 0: if (1 == sscanf(s, "%s", *device)) {
+      case 0: if (1 == sscanf(s, "%[^" OPENCL_LIBSMM_PARAMS_DELIMS "]", *device)) {
         ++consumed;
       } break;
       case 1: if (1 == sscanf(s, "%i", &i)) {
@@ -250,10 +250,9 @@ int libsmm_acc_init(void)
               result = opencl_libsmm_read_params(buffer, &key, &config, &perfest, &device);
               if (EXIT_SUCCESS == result) {
                 for (i = 0; i < ndevices; ++i) {
-                  if (0 == strncmp(device, opencl_libsmm_devices[i], ACC_OPENCL_BUFFERSIZE)) {
-                    key.device = opencl_libsmm_devices[i]; break;
-                  }
+                  if (0 == strncmp(device, opencl_libsmm_devices[i], ACC_OPENCL_BUFFERSIZE)) break;
                 }
+                key.device = opencl_libsmm_devices[i];
                 if (i == ndevices) ++ndevices;
                 if (NULL == OPENCL_LIBSMM_REGISTER(&key, sizeof(key), sizeof(config), &config)) {
                   result = EXIT_FAILURE; break;

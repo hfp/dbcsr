@@ -261,25 +261,27 @@ int libsmm_acc_init(void)
       memset(&config, 0, sizeof(config));
       /* potentially heterogeneous key-data */
       LIBXSMM_MEMZERO127(&key);
+      assert(NULL == key.device);
       if (NULL == env_params || '0' != *env_params) {
         opencl_libsmm_perfest_t perfest;
         memset(&perfest, 0, sizeof(perfest));
         if (NULL != env_params && '\0' != *env_params) { /* filename */
           FILE *const file = fopen(env_params, "r");
           /* consume first line, check for device entry, and skip CSV header line */
-          if (NULL != file && NULL != fgets(buffer, ACC_OPENCL_BUFFERSIZE, file) &&
-            NULL != c_dbcsr_acc_opencl_stristr(buffer, "device"))
-          {
+          if (NULL != file && NULL != fgets(buffer, ACC_OPENCL_BUFFERSIZE, file)) {
+            char* device = (NULL != c_dbcsr_acc_opencl_stristr(buffer, "device")
+              ? opencl_libsmm_devices[0] : NULL);
             int ndevices = 0, i;
             while (NULL != fgets(buffer, ACC_OPENCL_BUFFERSIZE, file)) {
-              char *const device = opencl_libsmm_devices[ndevices%ACC_OPENCL_DEVICES_MAXCOUNT];
               result = opencl_libsmm_read_params(buffer, &key, &config, &perfest, &device);
               if (EXIT_SUCCESS == result) {
-                for (i = 0; i < ndevices; ++i) {
-                  if (0 == strncmp(device, opencl_libsmm_devices[i], ACC_OPENCL_BUFFERSIZE)) break;
+                if (NULL != device) {
+                  for (i = 0; i < ndevices; ++i) {
+                    if (0 == strncmp(device, opencl_libsmm_devices[i], ACC_OPENCL_BUFFERSIZE)) break;
+                  }
+                  key.device = ('\0' != *opencl_libsmm_devices[i] ? opencl_libsmm_devices[i] : NULL);
+                  if (i == ndevices) device = opencl_libsmm_devices[++ndevices%ACC_OPENCL_DEVICES_MAXCOUNT];
                 }
-                key.device = ('\0' != *opencl_libsmm_devices[i] ? opencl_libsmm_devices[i] : NULL);
-                if (i == ndevices) ++ndevices;
                 if (NULL == OPENCL_LIBSMM_REGISTER(&key, sizeof(key), sizeof(config), &config)) {
                   result = EXIT_FAILURE; break;
                 }
@@ -292,7 +294,6 @@ int libsmm_acc_init(void)
 #if defined(OPENCL_LIBSMM_PARAMS_SMM)
         else {
           const char* line = OPENCL_LIBSMM_PARAMS_SMM, *next;
-          assert(NULL == key.device);
 # if defined(OPENCL_LIBSMM_PARAMS_DEVICE)
           key.device = OPENCL_LIBSMM_PARAMS_DEVICE;
 # endif

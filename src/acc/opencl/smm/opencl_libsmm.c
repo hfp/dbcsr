@@ -793,9 +793,12 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                 NULL/*device-specific*/, &max_wgsize, NULL/*prefmult*/);
             }
             if (EXIT_SUCCESS == result) {
-              const char *const env_batchsize = getenv("OPENCL_LIBSMM_SMM_BATCHSIZE");
-              const char *const env_blockm = getenv("OPENCL_LIBSMM_SMM_BLOCK_M");
-              const char *const env_blockn = getenv("OPENCL_LIBSMM_SMM_BLOCK_N");
+              const char *const env_batchsize = (NULL == getenv("OPENCL_LIBSMM_SMM_BATCHSIZE")
+                ? getenv("OPENCL_LIBSMM_SMM_BS") : getenv("OPENCL_LIBSMM_SMM_BATCHSIZE"));
+              const char *const env_blockm = (NULL == getenv("OPENCL_LIBSMM_SMM_BLOCK_M")
+                ? getenv("OPENCL_LIBSMM_SMM_BM") : getenv("OPENCL_LIBSMM_SMM_BLOCK_M"));
+              const char *const env_blockn = (NULL == getenv("OPENCL_LIBSMM_SMM_BLOCK_N")
+                ? getenv("OPENCL_LIBSMM_SMM_BN") : getenv("OPENCL_LIBSMM_SMM_BLOCK_N"));
               /* TODO: load parameters from file (auto-tuned) */
               const int batchsize = ((NULL == env_batchsize || '\0' == *env_batchsize)
                 ? (NULL == config ? 32/*default*/ : config->bs) : atoi(env_batchsize));

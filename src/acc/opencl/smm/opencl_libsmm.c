@@ -210,7 +210,11 @@ int opencl_libsmm_device(void* stream, cl_device_id* device, const char** config
     char buffer[ACC_OPENCL_BUFFERSIZE];
     result = clGetDeviceInfo(*device, CL_DEVICE_NAME,
       ACC_OPENCL_BUFFERSIZE, buffer, NULL);
-    *config = NULL;
+#if defined(OPENCL_LIBSMM_PARAMS_DEVICE)
+   *config = OPENCL_LIBSMM_PARAMS_DEVICE;
+#else
+   *config = NULL;
+#endif
     if (CL_SUCCESS == result) {
       int empty = 0, i = 0;
       for (; i < ACC_OPENCL_DEVICES_MAXCOUNT; ++i) {

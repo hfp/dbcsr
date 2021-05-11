@@ -273,7 +273,7 @@ int libsmm_acc_init(void)
               ? opencl_libsmm_devices[0] : NULL);
             int ndevices = 0, i;
             while (NULL != fgets(buffer, ACC_OPENCL_BUFFERSIZE, file)) {
-              result = opencl_libsmm_read_params(buffer, &key, &config, &perfest, &device);
+              result = opencl_libsmm_read_params(buffer, &key, &config, &perfest, NULL != device ? &device : NULL);
               if (EXIT_SUCCESS == result) {
                 if (NULL != device) {
                   for (i = 0; i < ndevices; ++i) {

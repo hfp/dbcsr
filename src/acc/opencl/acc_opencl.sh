@@ -75,12 +75,14 @@ if [ "${BASENAME}" ] && [ "${SED}" ] && [ "${RM}" ]; then
             SNAME=OPENCL_LIBSMM_STRING_PARAMS_SMM
             VNAME=opencl_libsmm_params_smm
             MNAME=$(echo "${VNAME}" | tr '[:lower:]' '[:upper:]')
+            DEVCOL=0
             if [ "$(command -v tail)" ] && [ "$(command -v cut)" ] && \
                [ "$(command -v sort)" ] && [ "$(command -v wc)" ];
             then
               DEVICE=$(tail -n+2 "${IFILE}" | cut -d"${SEPAR}" -f1 | sort -u)
-              if [ "1" = "$(echo "${DEVICE}" | wc -l)" ]; then
-                if [ "${DEVICE}" ]; then
+              if [ "$(echo "${DEVICE}" | ${SED} "s/[0-9]//g")" ]; then DEVCOL=1; fi
+              if [ "0" = "${DEVCOL}" ] || [ "1" = "$(echo "${DEVICE}" | wc -l)" ]; then
+                if [ "0" != "${DEVCOL}" ] && [ "${DEVICE}" ]; then
                   echo "#define OPENCL_LIBSMM_PARAMS_DEVICE \"${DEVICE}\"" >>"${OFILE}"
                 else
                   echo "#define OPENCL_LIBSMM_PARAMS_DEVICE NULL" >>"${OFILE}"
@@ -93,7 +95,11 @@ if [ "${BASENAME}" ] && [ "${SED}" ] && [ "${RM}" ]; then
             fi
             echo "#define ${MNAME} ${VNAME}" >>"${OFILE}"
             echo "#define ${SNAME} \\" >>"${OFILE}"
-            ${SED} "1d;s/^[^${SEPAR}]*${SEPAR}/  \"/;s/[\r]*$/\\\n\" \\\/" "${IFILE}" >>"${OFILE}"
+            if [ "0" != "${DEVCOL}" ]; then
+              ${SED} "1d;s/^[^${SEPAR}]*${SEPAR}/  \"/;s/[\r]*$/\\\n\" \\\/" "${IFILE}" >>"${OFILE}"
+            else
+              ${SED} "1d;s/^/  \"/;s/[\r]*$/\\\n\" \\\/" "${IFILE}" >>"${OFILE}"
+            fi
             echo "  \"\"" >>"${OFILE}"
             echo "const char ${VNAME}[] = ${SNAME};" >>"${OFILE}"
             NFILES_CSV=$((NFILES_CSV+1))

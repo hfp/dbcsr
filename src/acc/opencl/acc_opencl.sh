@@ -81,7 +81,7 @@ if [ "${BASENAME}" ] && [ "${SED}" ] && [ "${RM}" ]; then
             then
               DEVICE=$(tail -n+2 "${IFILE}" | cut -d"${SEPAR}" -f1 | sort -u)
               if [ "$(echo "${DEVICE}" | ${SED} "s/[0-9]//g")" ]; then DEVCOL=1; fi
-              if [ "0" = "${DEVCOL}" ] || [ "1" = "$(echo "${DEVICE}" | wc -l)" ]; then
+              if [ "0" = "${DEVCOL}" ] || [ "1" = "$(echo "${DEVICE}" | wc -l | ${SED} "s/[[:space:]]//g")" ]; then
                 if [ "0" != "${DEVCOL}" ] && [ "${DEVICE}" ]; then
                   echo "#define OPENCL_LIBSMM_PARAMS_DEVICE \"${DEVICE}\"" >>"${OFILE}"
                 else

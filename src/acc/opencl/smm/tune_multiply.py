@@ -68,6 +68,15 @@ class SmmTuner(MeasurementInterface):
         self.args.bm = [max(self.args.bm, 1), self.args.m][0 == self.args.bm]
         self.args.bn = [max(self.args.bn, 1), 1][0 == self.args.bn]
         self.gflops = 0
+        # construct label used for the database session
+        if not self.args.label:
+            self.args.label = "multiply-{}x{}x{}-{}{}".format(
+                self.args.m,
+                self.args.n,
+                self.args.k,
+                self.typename,
+                ["", self.device]["" != self.device],
+            )
         # consider merge-only
         if self.args.merge:
             self.merge_into_csv(glob.glob("*.json"))
@@ -243,6 +252,7 @@ class SmmTuner(MeasurementInterface):
 
 if __name__ == "__main__":
     argparser = opentuner.default_argparser()
+    # additional arguments
     argparser.add_argument(
         "m", type=int, default=23, nargs="?", help="Shape of SMM-kernel (M)"
     )
@@ -340,4 +350,6 @@ if __name__ == "__main__":
         dest="primary",
         help="Primary objective only",
     )
+    # adjust default value of existing arguments
+    argparser.set_defaults(no_dups=True)
     SmmTuner.main(argparser.parse_args())

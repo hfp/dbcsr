@@ -114,7 +114,8 @@ int opencl_libsmm_use_cmem(cl_device_id device)
 
 
 #if defined(OPENCL_LIBSMM_DEBUG) && defined(_DEBUG)
-void opencl_libsmm_print_matrix(FILE* ostream, const char* label, libsmm_acc_data_t type, const void* mat, int m, int n)
+void opencl_libsmm_print_matrix(FILE* ostream, const char* label,
+  libsmm_acc_data_t type, const void* mat, int m, int n)
 {
   int i, j;
   const char *const s = (NULL != label ? label : "");
@@ -277,7 +278,8 @@ int libsmm_acc_init(void)
               ? opencl_libsmm_devices[0] : NULL);
             int ndevices = 0, i;
             while (NULL != fgets(buffer, ACC_OPENCL_BUFFERSIZE, file)) {
-              result = opencl_libsmm_read_params(buffer, &key, &config, &perfest, NULL != device ? &device : NULL);
+              result = opencl_libsmm_read_params(buffer, &key, &config, &perfest,
+                NULL != device ? &device : NULL);
               if (EXIT_SUCCESS == result) {
                 if (NULL != device) {
                   for (i = 0; i < ndevices; ++i) {
@@ -554,7 +556,8 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
     }
     assert((NULL != config && NULL != config->kernel && 0 < config->wgsize) || EXIT_SUCCESS != result);
     if (EXIT_SUCCESS == result) {
-      cl_event event, *const perf_event = ((0 <= c_dbcsr_acc_opencl_config.verbosity && 3 > c_dbcsr_acc_opencl_config.verbosity) ? NULL : &event);
+      cl_event event, *const perf_event = ((0 <= c_dbcsr_acc_opencl_config.verbosity
+        && 3 > c_dbcsr_acc_opencl_config.verbosity) ? NULL : &event);
       const size_t work_size = config->wgsize * stack_size;
       const int typesize = OPENCL_LIBSMM_TYPESIZE(datatype);
 # if defined(OPENCL_LIBSMM_DEBUG_TRANS)
@@ -943,7 +946,8 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
           && 1 <= config->bs && 0 < config->bm && 0 < config->bn
           && 0 < config->wgsize));
       if (EXIT_SUCCESS == result) {
-        cl_event event, *const perf_event = ((0 <= c_dbcsr_acc_opencl_config.verbosity && 3 > c_dbcsr_acc_opencl_config.verbosity) ? NULL : &event);
+        cl_event event, *const perf_event = ((0 <= c_dbcsr_acc_opencl_config.verbosity
+          && 3 > c_dbcsr_acc_opencl_config.verbosity) ? NULL : &event);
         /* adjust overall stacksize according to intra-kernel batchsize */
         const size_t work_size = ((stack_size + config->bs - 1) / config->bs) * config->wgsize;
 # if defined(OPENCL_LIBSMM_DEBUG_SMM)

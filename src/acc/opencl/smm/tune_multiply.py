@@ -75,7 +75,7 @@ class SmmTuner(MeasurementInterface):
                 self.args.n,
                 self.args.k,
                 self.typename,
-                ["", self.device]["" != self.device],
+                ["", " " + self.device]["" != self.device],
             )
         # consider merge-only
         if self.args.merge:

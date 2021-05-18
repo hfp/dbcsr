@@ -374,9 +374,9 @@ int libsmm_acc_finalize(void)
                 const int size = (int)LIBXSMM_MIN(sizeof(entry->size) / sizeof(*entry->size), entry->nexec);
                 int batchsize; OPENCL_LIBSMM_ISORT(entry->size, size); batchsize = entry->size[size>>1];
                 if (0 == (1 & size)) batchsize = (batchsize + entry->size[(size>>1)-1]) >> 1;
-                fprintf(stderr, "INFO ACC/OpenCL: %ix%i transpose-kernel bs=%i geo=%.1f GB/s%s\n",
-                  desc->m, desc->n, batchsize, exp(entry->membw_sumlog / entry->nexec),
-                  dbcsr_type_real_8 == desc->type ? " (DP)" : (dbcsr_type_real_4 == desc->type ? " (SP)" : ""));
+                fprintf(stderr, "INFO ACC/OpenCL: %ix%i transpose-kernel%s bs=%i geo=%.1f GB/s\n", desc->m, desc->n,
+                  dbcsr_type_real_8 == desc->type ? " (DP)" : (dbcsr_type_real_4 == desc->type ? " (SP)" : ""),
+                  batchsize, exp(entry->membw_sumlog / entry->nexec));
                 entry->nexec = 0; /* reset */
               }
 # endif
@@ -386,24 +386,25 @@ int libsmm_acc_finalize(void)
               const opencl_libsmm_smmkey_t *const desc = (const opencl_libsmm_smmkey_t*)regkey;
               opencl_libsmm_smm_t *const entry = (opencl_libsmm_smm_t*)regentry;
               if (0 < entry->nexec) {
+                const double geo = exp(entry->gflops_sumlog / entry->nexec);
                 const int size = (int)LIBXSMM_MIN(sizeof(entry->size) / sizeof(*entry->size), entry->nexec);
                 int batchsize; OPENCL_LIBSMM_ISORT(entry->size, size); batchsize = entry->size[size>>1];
                 if (0 == (1 & size)) batchsize = (batchsize + entry->size[(size>>1)-1]) >> 1;
-                fprintf(stderr, "INFO ACC/OpenCL: %ix%ix%i SMM-kernel bs=%i geo=%.1f",
-                  desc->m, desc->n, desc->k, batchsize, exp(entry->gflops_sumlog / entry->nexec));
+                fprintf(stderr, "INFO ACC/OpenCL: %ix%ix%i SMM-kernel", desc->m, desc->n, desc->k);
                 switch (desc->type) {
                   case dbcsr_type_real_8: {
                     const double est = OPENCL_LIBSMM_GFLOPS(desc->m, desc->n, desc->k, sizeof(double));
+                    fprintf(stderr, " (DP) bs=%i geo=%.1f", batchsize, geo);
                     if (0 < est) fprintf(stderr, " est=%.1f", est);
-                    fprintf(stderr," GFLOPS/s (DP)\n");
                   } break;
                   case dbcsr_type_real_4: {
                     const double est = OPENCL_LIBSMM_GFLOPS(desc->m, desc->n, desc->k, sizeof(float));
+                    fprintf(stderr, " (SP) bs=%i geo=%.1f", batchsize, geo);
                     if (0 < est) fprintf(stderr, " est=%.1f", est);
-                    fprintf(stderr, " GFLOPS/s (SP)\n");
                   } break;
                   default: result = EXIT_FAILURE;
                 }
+                fprintf(stderr, " GFLOPS/s\n");
                 entry->nexec = 0; /* reset */
               }
 # endif
@@ -438,10 +439,11 @@ c_dbcsr_acc_bool_t libsmm_acc_is_suitable(
   int max_kernel_dim)
 {
   int result = 0;
+  double est = 0;
   switch (datatype) {
 #if defined(OPENCL_LIBSMM_F64)
     case dbcsr_type_real_8: if (0 < m_max && 0 < n_max && 0 < k_max
-# if !defined(NDEBUG) || (defined(OPENCL_LIBSMM_DEBUG) && (0 != OPENCL_LIBSMM_DEBUG))
+# if defined(NDEBUG) || !defined(OPENCL_LIBSMM_DEBUG) || (0 == OPENCL_LIBSMM_DEBUG)
       /* allow k_max to exceed max_kernel_dim */
       && m_max <= max_kernel_dim
       && n_max <= max_kernel_dim
@@ -449,16 +451,14 @@ c_dbcsr_acc_bool_t libsmm_acc_is_suitable(
 # endif
       && 0 != def_mnk/*homogeneous*/)
     {
-      const double est = OPENCL_LIBSMM_GFLOPS(m_max, n_max, k_max, sizeof(double));
-      if (0 < est) {
-        result = 1;
-      }
-      else result = 1;
+      const double cpu = 0;
+      est = OPENCL_LIBSMM_GFLOPS(m_max, n_max, k_max, sizeof(double));
+      if (0 == est || cpu < est) result = 1;
     } break;
 #endif
 #if defined(OPENCL_LIBSMM_F32)
     case dbcsr_type_real_4: if (0 < m_max && 0 < n_max && 0 < k_max
-# if !defined(NDEBUG) || (defined(OPENCL_LIBSMM_DEBUG) && (0 != OPENCL_LIBSMM_DEBUG))
+# if defined(NDEBUG) || !defined(OPENCL_LIBSMM_DEBUG) || (0 == OPENCL_LIBSMM_DEBUG)
       /* allow k_max to exceed max_kernel_dim */
       && m_max <= max_kernel_dim
       && n_max <= max_kernel_dim
@@ -466,22 +466,22 @@ c_dbcsr_acc_bool_t libsmm_acc_is_suitable(
 # endif
       && 0 != def_mnk/*homogeneous*/)
     {
-      const double est = OPENCL_LIBSMM_GFLOPS(m_max, n_max, k_max, sizeof(float));
-      if (0 < est) {
-        result = 1;
-      }
-      else result = 1;
+      const double cpu = 0;
+      est = OPENCL_LIBSMM_GFLOPS(m_max, n_max, k_max, sizeof(float));
+      if (0 == est || cpu < est) result = 1;
     } break;
 #endif
     default: assert(0 == result);
   }
-#if !defined(OPENCL_LIBSMM_DEBUG_TRANS)
+#if defined(NDEBUG) || !defined(OPENCL_LIBSMM_DEBUG) || (0 == OPENCL_LIBSMM_DEBUG)
   if ((0 == result) &&
       (4 <= c_dbcsr_acc_opencl_config.verbosity || 0 > c_dbcsr_acc_opencl_config.verbosity))
   {
-    fprintf(stderr, "INFO ACC/OpenCL: %ix%ix%i SMM-kernel%s bs=%i not suitable%s", m_max, n_max, k_max,
+    fprintf(stderr, "INFO ACC/OpenCL: %ix%ix%i SMM-kernel%s bs=%i", m_max, n_max, k_max,
       dbcsr_type_real_8 == datatype ? " (DP)" : (dbcsr_type_real_4 == datatype ? " (SP)" : ""),
-      stack_size, 0 != def_mnk ? "\n" : " (inhomogeneous)\n");
+      stack_size);
+    if (0 < est) fprintf(stderr, " est=%.1f GFLOPS/s", est);
+    fprintf(stderr, " not suitable%s", 0 != def_mnk ? "\n" : " (inhomogeneous)\n");
   }
 #endif
   return result;
@@ -687,8 +687,9 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
             else config->size[config->nexec++] = stack_size;
 #   endif
             if (4 <= c_dbcsr_acc_opencl_config.verbosity || 0 > c_dbcsr_acc_opencl_config.verbosity) {
-              fprintf(stderr, "INFO ACC/OpenCL: %ix%i transpose-kernel bs=%i cur=%.1f GB/s%s\n", m, n, stack_size,
-                membw, dbcsr_type_real_8 == datatype ? " (DP)" : (dbcsr_type_real_4 == datatype ? " (SP)" : ""));
+              fprintf(stderr, "INFO ACC/OpenCL: %ix%i transpose-kernel%s bs=%i cur=%.1f GB/s\n", m, n,
+                dbcsr_type_real_8 == datatype ? " (DP)" : (dbcsr_type_real_4 == datatype ? " (SP)" : "")
+                stack_size, membw);
             }
           }
 # endif
@@ -1094,21 +1095,21 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
               else config->size[config->nexec++] = stack_size;
 #   endif
               if (4 <= c_dbcsr_acc_opencl_config.verbosity || 0 > c_dbcsr_acc_opencl_config.verbosity) {
-                fprintf(stderr, "INFO ACC/OpenCL: %ix%ix%i SMM-kernel bs=%i cur=%.1f",
-                  m_max, n_max, k_max, stack_size, gflops);
+                fprintf(stderr, "INFO ACC/OpenCL: %ix%ix%i SMM-kernel", m_max, n_max, k_max);
                 switch (datatype) {
                   case dbcsr_type_real_8: {
                     const double est = OPENCL_LIBSMM_GFLOPS(m_max, n_max, k_max, sizeof(double));
+                    fprintf(stderr, " (DP) bs=%i cur=%.1f", stack_size, gflops);
                     if (0 < est) fprintf(stderr, " est=%.1f", est);
-                    fprintf(stderr, " GFLOPS/s (DP)\n");
                   } break;
                   case dbcsr_type_real_4: {
                     const double est = OPENCL_LIBSMM_GFLOPS(m_max, n_max, k_max, sizeof(float));
+                    fprintf(stderr, " (SP) bs=%i cur=%.1f", stack_size, gflops);
                     if (0 < est) fprintf(stderr, " est=%.1f", est);
-                    fprintf(stderr, " GFLOPS/s (SP)\n");
                   } break;
                   default: result = EXIT_FAILURE;
                 }
+                fprintf(stderr, " GFLOPS/s\n");
               }
             }
           }

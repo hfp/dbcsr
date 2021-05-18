@@ -113,7 +113,7 @@ int opencl_libsmm_use_cmem(cl_device_id device)
 }
 
 
-#if defined(OPENCL_LIBSMM_DEBUG) && defined(_DEBUG)
+#if defined(_DEBUG) && defined(OPENCL_LIBSMM_DEBUG) && (0 != OPENCL_LIBSMM_DEBUG)
 void opencl_libsmm_print_matrix(FILE* ostream, const char* label,
   libsmm_acc_data_t type, const void* mat, int m, int n)
 {
@@ -439,26 +439,32 @@ c_dbcsr_acc_bool_t libsmm_acc_is_suitable(
 {
   int result = 0;
   switch (datatype) {
-    case dbcsr_type_real_8: if (0 != def_mnk/*homogeneous*/
-      && 0 < m_max && 0 < n_max && 0 < k_max
+#if defined(OPENCL_LIBSMM_F64)
+    case dbcsr_type_real_8: if (0 < m_max && 0 < n_max && 0 < k_max
+# if !defined(NDEBUG) || (defined(OPENCL_LIBSMM_DEBUG) && (0 != OPENCL_LIBSMM_DEBUG))
       /* allow k_max to exceed max_kernel_dim */
       && m_max <= max_kernel_dim
       && n_max <= max_kernel_dim
-      && 1000 < stack_size)
+      && 1000 < stack_size
+# endif
+      && 0 != def_mnk/*homogeneous*/)
     {
       const double est = OPENCL_LIBSMM_GFLOPS(m_max, n_max, k_max, sizeof(double));
       if (0 < est) {
         result = 1;
       }
       else result = 1;
-      result = 1;
     } break;
-    case dbcsr_type_real_4: if (0 != def_mnk/*homogeneous*/
-      && 0 < m_max && 0 < n_max && 0 < k_max
+#endif
+#if defined(OPENCL_LIBSMM_F32)
+    case dbcsr_type_real_4: if (0 < m_max && 0 < n_max && 0 < k_max
+# if !defined(NDEBUG) || (defined(OPENCL_LIBSMM_DEBUG) && (0 != OPENCL_LIBSMM_DEBUG))
       /* allow k_max to exceed max_kernel_dim */
       && m_max <= max_kernel_dim
       && n_max <= max_kernel_dim
-      && 1000 < stack_size)
+      && 1000 < stack_size
+# endif
+      && 0 != def_mnk/*homogeneous*/)
     {
       const double est = OPENCL_LIBSMM_GFLOPS(m_max, n_max, k_max, sizeof(float));
       if (0 < est) {
@@ -466,6 +472,7 @@ c_dbcsr_acc_bool_t libsmm_acc_is_suitable(
       }
       else result = 1;
     } break;
+#endif
     default: assert(0 == result);
   }
 #if !defined(OPENCL_LIBSMM_DEBUG_TRANS)

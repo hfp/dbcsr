@@ -9,6 +9,7 @@
 
 PROGRAM dbcsr_test_csr_conversions
    !! Testing DBCSR to CSR conversion with random matrices
+   USE dbcsr_kinds, ONLY: dp, real_8
    USE dbcsr_api, ONLY: &
       dbcsr_convert_csr_to_dbcsr, dbcsr_convert_dbcsr_to_csr, &
       dbcsr_csr_create_from_dbcsr, dbcsr_csr_destroy, &
@@ -18,8 +19,7 @@ PROGRAM dbcsr_test_csr_conversions
       dbcsr_init_lib, dbcsr_nblkcols_total, dbcsr_nblkrows_total, dbcsr_norm, &
       dbcsr_norm_maxabsnorm, dbcsr_put_block, dbcsr_release, dbcsr_to_csr_filter, dbcsr_type, &
       dbcsr_type_no_symmetry, dbcsr_type_real_8, dbcsr_print_statistics
-   USE dbcsr_kinds, ONLY: dp, &
-                          real_8
+   USE dbcsr_config, ONLY: dbcsr_set_config
    USE dbcsr_machine, ONLY: default_output_unit
    USE dbcsr_mpiwrap, ONLY: mp_bcast, &
                             mp_cart_create, &
@@ -62,6 +62,9 @@ PROGRAM dbcsr_test_csr_conversions
    IF (mynode .EQ. 0) io_unit = default_output_unit
 
    CALL dbcsr_init_lib(mp_comm, io_unit)
+
+   ! test all cases even if unsuitable for the ACC backend
+   CALL dbcsr_set_config(accdrv_do_unsuitable=.TRUE.)
 
    npdims(:) = 0
    CALL mp_cart_create(mp_comm, 2, npdims, myploc, group)

@@ -13,6 +13,7 @@ PROGRAM dbcsr_tas_unittest
    USE dbcsr_api, ONLY: dbcsr_finalize_lib, &
                         dbcsr_init_lib, &
                         dbcsr_print_statistics
+   USE dbcsr_config, ONLY: dbcsr_set_config
    USE dbcsr_tas_base, ONLY: dbcsr_tas_destroy, &
                              dbcsr_tas_info, &
                              dbcsr_tas_nblkcols_total, &
@@ -53,6 +54,9 @@ PROGRAM dbcsr_tas_unittest
    IF (mynode .EQ. 0) io_unit = default_output_unit
 
    CALL dbcsr_init_lib(mp_comm, io_unit)
+
+   ! test all cases even if unsuitable for the ACC backend
+   CALL dbcsr_set_config(accdrv_do_unsuitable=.TRUE.)
 
    CALL dbcsr_tas_reset_randmat_seed()
 

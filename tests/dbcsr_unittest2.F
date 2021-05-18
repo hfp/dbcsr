@@ -16,6 +16,7 @@ PROGRAM dbcsr_unittest_2
    USE dbcsr_lib, ONLY: dbcsr_finalize_lib, &
                         dbcsr_init_lib, &
                         dbcsr_print_statistics
+   USE dbcsr_config, ONLY: dbcsr_set_config
    USE dbcsr_machine, ONLY: default_output_unit
    USE dbcsr_mp_methods, ONLY: dbcsr_mp_new, &
                                dbcsr_mp_release
@@ -59,16 +60,17 @@ PROGRAM dbcsr_unittest_2
    CALL dbcsr_mp_new(mp_env, group, pgrid, mynode, numnodes, &
                      myprow=myploc(1), mypcol=myploc(2))
    DEALLOCATE (pgrid)
-   !
+
    ! set standard output parameters
    io_unit = 0
    IF (mynode .EQ. 0) io_unit = default_output_unit
 
-   !
    ! initialize libdbcsr
    CALL dbcsr_init_lib(mp_comm, io_unit)
 
-   !
+   ! test all cases even if unsuitable for the ACC backend
+   CALL dbcsr_set_config(accdrv_do_unsuitable=.TRUE.)
+
    ! initialize libdbcsr errors
    CALL timeset(routineN, handle)
 

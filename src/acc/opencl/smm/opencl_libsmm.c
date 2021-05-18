@@ -432,6 +432,46 @@ c_dbcsr_acc_bool_t libsmm_acc_is_thread_safe(void)
 }
 
 
+c_dbcsr_acc_bool_t libsmm_acc_is_suitable(
+  c_dbcsr_acc_bool_t def_mnk, libsmm_acc_data_t datatype,
+  int stack_size, int m_max, int n_max, int k_max,
+  int max_kernel_dim)
+{
+  int result = 0;
+  switch (datatype) {
+    case dbcsr_type_real_8: if (0 != def_mnk/*homogeneous*/
+      && 0 < m_max && 0 < n_max && 0 < k_max
+      /* allow k_max to exceed max_kernel_dim */
+      && m_max <= max_kernel_dim
+      && n_max <= max_kernel_dim
+      && 1000 < stack_size)
+    {
+      const double est = OPENCL_LIBSMM_GFLOPS(m_max, n_max, k_max, sizeof(double));
+      if (0 < est) {
+        result = 1;
+      }
+      else result = 1;
+      result = 1;
+    } break;
+    case dbcsr_type_real_4: if (0 != def_mnk/*homogeneous*/
+      && 0 < m_max && 0 < n_max && 0 < k_max
+      /* allow k_max to exceed max_kernel_dim */
+      && m_max <= max_kernel_dim
+      && n_max <= max_kernel_dim
+      && 1000 < stack_size)
+    {
+      const double est = OPENCL_LIBSMM_GFLOPS(m_max, n_max, k_max, sizeof(float));
+      if (0 < est) {
+        result = 1;
+      }
+      else result = 1;
+    } break;
+    default: assert(0 == result);
+  }
+  return result;
+}
+
+
 int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
   void* dev_data, libsmm_acc_data_t datatype, int m, int n, int max_kernel_dim, void* stream)
 {
@@ -498,7 +538,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
                 tname = "float";
                 fname[0] = 's';
               } break;
-              default: ;
+              default: assert('\0' == *tname);
             }
             wgsize = LIBXSMM_MIN((m == bm || 0 == (m % bm)) ? bm : m, max_wgsize);
             nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options), "%s"
@@ -717,7 +757,6 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
 {
   int result = EXIT_SUCCESS;
 #if defined(OPENCL_LIBSMM_SOURCE_MULTIPLY)
-  const int mnk = m_max * n_max * k_max;
   ACC_OPENCL_UNUSED(c_stream); /* TODO */
   assert(0 == stack_size || (NULL != host_param_stack && NULL != dev_param_stack
     && NULL != dev_a_data && NULL != dev_b_data && NULL != dev_c_data));
@@ -736,13 +775,10 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
       0
 # endif
     )
-    && 1 <= mnk
-# if 1
-    && mnk <= (max_kernel_dim * max_kernel_dim * max_kernel_dim)
-# else
-    && m_max <= max_kernel_dim && n_max <= max_kernel_dim && k_max <= max_kernel_dim
-# endif
-    && def_mnk/*homogeneous*/)
+    && 0 < m_max && 0 < n_max && 0 < k_max
+    /* allow k_max to exceed max_kernel_dim */
+    && m_max <= max_kernel_dim && n_max <= max_kernel_dim
+    && 0 != def_mnk/*homogeneous*/)
   {
 # if !defined(OPENCL_LIBSMM_DEBUG_SMM)
     const libxsmm_timer_tickint start = libxsmm_timer_tick();
@@ -782,7 +818,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                 fname[0] = 's';
               }
             } break;
-            default: ;
+            default: assert(NULL == tname);
           }
           if (NULL != tname) {
             int unified = 0;

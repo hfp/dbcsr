@@ -296,7 +296,18 @@ int libsmm_acc_process_d(const int* param_stack, int stack_size, ACC_DRV(stream)
 
 
 //===========================================================================
-int libsmm_acc_process (const int* param_stack_host, const int *param_stack_dev, int stack_size, int nparams, libsmm_acc_data_t datatype, const void *a_data, const void *b_data, void *c_data, int m, int n, int k, int max_kernel_dim, int def_mnk, void *stack_stream, void *c_stream){
+extern "C" c_dbcsr_acc_bool_t libsmm_acc_is_suitable (c_dbcsr_acc_bool_t def_mnk, libsmm_acc_data_t datatype, int stack_size, int m_max, int n_max, int k_max, int max_kernel_dim){
+    if(def_mnk!=1)
+        return 0; // inhomogeneous stacks not supported
+    if(datatype==dbcsr_type_real_8) {
+      return 1;
+    }
+    return 0; // datatype not supported
+}
+
+
+//===========================================================================
+extern "C" int libsmm_acc_process (const int* param_stack_host, const int *param_stack_dev, int stack_size, int nparams, libsmm_acc_data_t datatype, const void *a_data, const void *b_data, void *c_data, int m, int n, int k, int max_kernel_dim, int def_mnk, void *stack_stream, void *c_stream){
     if(def_mnk!=1)
         return -1; // inhomogeneous stacks not supported
     if(datatype==dbcsr_type_real_8) {

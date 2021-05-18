@@ -37,7 +37,7 @@ MODULE dbcsr_acc_operations
 
 #if defined (__DBCSR_ACC)
    INTERFACE
-      FUNCTION libsmm_acc_is_suitable_cu(def_mnk, datatype, &
+      FUNCTION libsmm_acc_is_suitable_cu(def_mnk, data_type, &
                                          stack_size, m_max, n_max, k_max, &
                                          max_kernel_dim) &
          RESULT(suitable) &
@@ -84,17 +84,17 @@ MODULE dbcsr_acc_operations
 
 CONTAINS
 
-   FUNCTION libsmm_acc_is_suitable(def_mnk, datatype, stack_size, &
+   FUNCTION libsmm_acc_is_suitable(def_mnk, data_type, stack_size, &
                                    m_max, n_max, k_max) &
       !! Check if problem-size is suitable for ACCelerator backend.
       RESULT(suitable)
       LOGICAL, INTENT(IN) :: def_mnk
-      INTEGER, INTENT(IN) :: datatype, stack_size
+      INTEGER, INTENT(IN) :: data_type, stack_size
       INTEGER, INTENT(IN) :: m_max, n_max, k_max
       LOGICAL             :: suitable
 #if ! defined (__DBCSR_ACC)
       MARK_USED(def_mnk)
-      MARK_USED(datatype)
+      MARK_USED(data_type)
       MARK_USED(stack_size)
       MARK_USED(m_max)
       MARK_USED(n_max)
@@ -104,7 +104,7 @@ CONTAINS
 #else
       suitable = libsmm_acc_is_suitable_cu( &
                  INT(MERGE(1, 0, def_mnk), KIND=C_INT), &
-                 INT(datatype, KIND=C_INT), &
+                 INT(data_type, KIND=C_INT), &
                  INT(stack_size, KIND=C_INT), &
                  INT(m_max, KIND=C_INT), &
                  INT(n_max, KIND=C_INT), &
@@ -113,14 +113,14 @@ CONTAINS
 #endif
    END FUNCTION libsmm_acc_is_suitable
 
-   SUBROUTINE dbcsr_acc_do_mm_stack(param_stack_host, param_stack_dev, stack_size, datatype, &
+   SUBROUTINE dbcsr_acc_do_mm_stack(param_stack_host, param_stack_dev, stack_size, data_type, &
                                     a_data, b_data, c_data, m_max, n_max, k_max, def_mnk, &
                                     stack_stream, c_stream, success)
       !! Launch an accelerated kernel for processing a stack.
       INTEGER, DIMENSION(:, :), TARGET, INTENT(IN) :: param_stack_host
       TYPE(acc_devmem_type), INTENT(IN)            :: param_stack_dev
       INTEGER, INTENT(IN)                          :: stack_size
-      INTEGER, INTENT(IN)                          :: datatype
+      INTEGER, INTENT(IN)                          :: data_type
       TYPE(acc_devmem_type), INTENT(IN)            :: a_data, b_data
       TYPE(acc_devmem_type), INTENT(INOUT)         :: c_data
       INTEGER, INTENT(IN)                          :: m_max, n_max, k_max
@@ -131,7 +131,7 @@ CONTAINS
       MARK_USED(param_stack_host)
       MARK_USED(param_stack_dev)
       MARK_USED(stack_size)
-      MARK_USED(datatype)
+      MARK_USED(data_type)
       MARK_USED(a_data)
       MARK_USED(b_data)
       MARK_USED(c_data)
@@ -163,7 +163,7 @@ CONTAINS
                                     acc_devmem_cptr(param_stack_dev), &
                                     INT(stack_size, KIND=C_INT), &
                                     INT(dbcsr_ps_width, KIND=C_INT), &
-                                    INT(datatype, KIND=C_INT), &
+                                    INT(data_type, KIND=C_INT), &
                                     acc_devmem_cptr(a_data), &
                                     acc_devmem_cptr(b_data), &
                                     acc_devmem_cptr(c_data), &
@@ -179,12 +179,12 @@ CONTAINS
 #endif
    END SUBROUTINE dbcsr_acc_do_mm_stack
 
-   SUBROUTINE dbcsr_acc_transpose(trs_stack, offset, nblks, datatype, buffer, m, n, stream)
+   SUBROUTINE dbcsr_acc_transpose(trs_stack, offset, nblks, data_type, buffer, m, n, stream)
       !! Launch an accelerated transpose kernel
       TYPE(acc_devmem_type), INTENT(IN)        :: trs_stack
       INTEGER, INTENT(IN)                      :: offset
       INTEGER, INTENT(IN)                      :: nblks
-      INTEGER, INTENT(IN)                      :: datatype
+      INTEGER, INTENT(IN)                      :: data_type
       TYPE(acc_devmem_type), INTENT(IN)        :: buffer
       INTEGER, INTENT(IN)                      :: m, n
       TYPE(acc_stream_type), INTENT(IN)        :: stream
@@ -192,7 +192,7 @@ CONTAINS
       MARK_USED(trs_stack)
       MARK_USED(offset)
       MARK_USED(nblks)
-      MARK_USED(datatype)
+      MARK_USED(data_type)
       MARK_USED(buffer)
       MARK_USED(m)
       MARK_USED(n)
@@ -213,7 +213,7 @@ CONTAINS
                                          INT(offset, KIND=C_INT), &
                                          INT(nblks, KIND=C_INT), &
                                          acc_devmem_cptr(buffer), &
-                                         INT(datatype, KIND=C_INT), &
+                                         INT(data_type, KIND=C_INT), &
                                          INT(m, KIND=C_INT), &
                                          INT(n, KIND=C_INT), &
                                          INT(max_kernel_dim, KIND=C_INT), &

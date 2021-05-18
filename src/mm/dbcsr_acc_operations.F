@@ -33,7 +33,7 @@ MODULE dbcsr_acc_operations
 
    LOGICAL, PARAMETER :: careful_mod = .FALSE.
 
-   PUBLIC :: dbcsr_acc_do_mm_stack, dbcsr_acc_transpose
+   PUBLIC :: libsmm_acc_is_suitable, dbcsr_acc_do_mm_stack, dbcsr_acc_transpose
 
 #if defined (__DBCSR_ACC)
    INTERFACE
@@ -102,14 +102,14 @@ CONTAINS
       suitable = .FALSE.
       DBCSR_ABORT("__DBCSR_ACC not compiled in.")
 #else
-      suitable = libsmm_acc_is_suitable_cu( &
-                 INT(MERGE(1, 0, def_mnk), KIND=C_INT), &
-                 INT(data_type, KIND=C_INT), &
-                 INT(stack_size, KIND=C_INT), &
-                 INT(m_max, KIND=C_INT), &
-                 INT(n_max, KIND=C_INT), &
-                 INT(k_max, KIND=C_INT), &
-                 INT(max_kernel_dim, KIND=C_INT))
+      suitable = (0 .NE. libsmm_acc_is_suitable_cu( &
+                  INT(MERGE(1, 0, def_mnk), KIND=C_INT), &
+                  INT(data_type, KIND=C_INT), &
+                  INT(stack_size, KIND=C_INT), &
+                  INT(m_max, KIND=C_INT), &
+                  INT(n_max, KIND=C_INT), &
+                  INT(k_max, KIND=C_INT), &
+                  INT(max_kernel_dim, KIND=C_INT)))
 #endif
    END FUNCTION libsmm_acc_is_suitable
 

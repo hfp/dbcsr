@@ -18,9 +18,11 @@ MODULE dbcsr_mm_sched
    !! - 2013-01    extensive refactoring (Ole Schuett)
 
    USE dbcsr_block_operations, ONLY: dbcsr_data_clear
+   USE dbcsr_acc_operations, ONLY: libsmm_acc_is_suitable
    USE dbcsr_config, ONLY: dbcsr_cfg, &
                            default_resize_factor, &
                            has_acc
+   USE dbcsr_data_methods_low, ONLY: dbcsr_data_get_type
    USE dbcsr_data_methods, ONLY: dbcsr_data_ensure_size, &
                                  dbcsr_data_get_size
    USE dbcsr_kinds, ONLY: int_4, &
@@ -336,7 +338,7 @@ CONTAINS
           (stack_descr%defined_mnk .OR. dbcsr_cfg%accdrv_do_inhomogenous) .AND. &
           (flop_per_entry > dbcsr_cfg%accdrv_min_flop_process) .AND. &
           (libsmm_acc_is_suitable(stack_descr%defined_mnk, &
-                                  this%accdrv%c_buffer%d%data_type, stack_fillcount, &
+                                  dbcsr_data_get_type(this%hostdrv%data_area), stack_fillcount, &
                                   stack_descr%max_m, stack_descr%max_n, stack_descr%max_k))) THEN
          CALL dbcsr_mm_accdrv_process( &
             this%accdrv, &

@@ -468,6 +468,15 @@ c_dbcsr_acc_bool_t libsmm_acc_is_suitable(
     } break;
     default: assert(0 == result);
   }
+#if !defined(OPENCL_LIBSMM_DEBUG_TRANS)
+  if ((0 == result) &&
+      (4 <= c_dbcsr_acc_opencl_config.verbosity || 0 > c_dbcsr_acc_opencl_config.verbosity))
+  {
+    fprintf(stderr, "INFO ACC/OpenCL: %ix%ix%i SMM-kernel%s bs=%i not suitable%s", m_max, n_max, k_max,
+      dbcsr_type_real_8 == datatype ? " (DP)" : (dbcsr_type_real_4 == datatype ? " (SP)" : ""),
+      stack_size, 0 != def_mnk ? "\n" : " (inhomogeneous)\n");
+  }
+#endif
   return result;
 }
 

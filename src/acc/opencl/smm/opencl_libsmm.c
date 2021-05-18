@@ -29,6 +29,10 @@
     libxsmm_xdispatch(KEY, KEY_SIZE)
 #endif
 
+#if !defined(OPENCL_LIBSMM_SUITABLE) \
+  && (defined(NDEBUG) || !defined(OPENCL_LIBSMM_DEBUG) || (0 == OPENCL_LIBSMM_DEBUG))
+# define OPENCL_LIBSMM_SUITABLE
+#endif
 #if !defined(OPENCL_LIBSMM_DEBUG_TRANS) && defined(OPENCL_LIBSMM_DEBUG) \
   && (1 < OPENCL_LIBSMM_DEBUG || 0 > OPENCL_LIBSMM_DEBUG)
 # define OPENCL_LIBSMM_DEBUG_TRANS
@@ -443,7 +447,7 @@ c_dbcsr_acc_bool_t libsmm_acc_is_suitable(
   switch (datatype) {
 #if defined(OPENCL_LIBSMM_F64)
     case dbcsr_type_real_8: if (0 < m_max && 0 < n_max && 0 < k_max
-# if defined(NDEBUG) || !defined(OPENCL_LIBSMM_DEBUG) || (0 == OPENCL_LIBSMM_DEBUG)
+# if defined(OPENCL_LIBSMM_SUITABLE)
       /* allow k_max to exceed max_kernel_dim */
       && m_max <= max_kernel_dim
       && n_max <= max_kernel_dim
@@ -458,7 +462,7 @@ c_dbcsr_acc_bool_t libsmm_acc_is_suitable(
 #endif
 #if defined(OPENCL_LIBSMM_F32)
     case dbcsr_type_real_4: if (0 < m_max && 0 < n_max && 0 < k_max
-# if defined(NDEBUG) || !defined(OPENCL_LIBSMM_DEBUG) || (0 == OPENCL_LIBSMM_DEBUG)
+# if defined(OPENCL_LIBSMM_SUITABLE)
       /* allow k_max to exceed max_kernel_dim */
       && m_max <= max_kernel_dim
       && n_max <= max_kernel_dim
@@ -473,7 +477,7 @@ c_dbcsr_acc_bool_t libsmm_acc_is_suitable(
 #endif
     default: assert(0 == result);
   }
-#if defined(NDEBUG) || !defined(OPENCL_LIBSMM_DEBUG) || (0 == OPENCL_LIBSMM_DEBUG)
+#if defined(OPENCL_LIBSMM_SUITABLE)
   if ((0 == result) &&
       (4 <= c_dbcsr_acc_opencl_config.verbosity || 0 > c_dbcsr_acc_opencl_config.verbosity))
   {

@@ -374,8 +374,8 @@ int libsmm_acc_finalize(void)
                 const int size = (int)LIBXSMM_MIN(sizeof(entry->size) / sizeof(*entry->size), entry->nexec);
                 int batchsize; OPENCL_LIBSMM_ISORT(entry->size, size); batchsize = entry->size[size>>1];
                 if (0 == (1 & size)) batchsize = (batchsize + entry->size[(size>>1)-1]) >> 1;
-                fprintf(stderr, "INFO ACC/OpenCL: %ix%i%s TRANS-kernel bs=%i geo=%.1f GB/s\n", desc->m, desc->n,
-                  dbcsr_type_real_8 == desc->type ? " DP" : (dbcsr_type_real_4 == desc->type ? " SP" : ""),
+                fprintf(stderr, "INFO ACC/OpenCL: %ix%i %sTRANS-kernel bs=%i geo=%.1f GB/s\n", desc->m, desc->n,
+                  dbcsr_type_real_8 == desc->type ? "D" : (dbcsr_type_real_4 == desc->type ? "S" : ""),
                   batchsize, exp(entry->membw_sumlog / entry->nexec));
                 entry->nexec = 0; /* reset */
               }
@@ -394,12 +394,12 @@ int libsmm_acc_finalize(void)
                 switch (desc->type) {
                   case dbcsr_type_real_8: {
                     const double est = OPENCL_LIBSMM_GFLOPS(desc->m, desc->n, desc->k, sizeof(double));
-                    fprintf(stderr, " DP SMM-kernel bs=%i geo=%.1f", batchsize, geo);
+                    fprintf(stderr, " DSMM-kernel bs=%i geo=%.1f", batchsize, geo);
                     if (0 < est) fprintf(stderr, " est=%.1f", est);
                   } break;
                   case dbcsr_type_real_4: {
                     const double est = OPENCL_LIBSMM_GFLOPS(desc->m, desc->n, desc->k, sizeof(float));
-                    fprintf(stderr, " SP SMM-kernel bs=%i geo=%.1f", batchsize, geo);
+                    fprintf(stderr, " SSMM-kernel bs=%i geo=%.1f", batchsize, geo);
                     if (0 < est) fprintf(stderr, " est=%.1f", est);
                   } break;
                   default: result = EXIT_FAILURE;
@@ -477,8 +477,8 @@ c_dbcsr_acc_bool_t libsmm_acc_is_suitable(
   if ((0 == result) &&
       (4 <= c_dbcsr_acc_opencl_config.verbosity || 0 > c_dbcsr_acc_opencl_config.verbosity))
   {
-    fprintf(stderr, "INFO ACC/OpenCL: %ix%ix%i%s SMM-kernel bs=%i", m_max, n_max, k_max,
-      dbcsr_type_real_8 == datatype ? " DP" : (dbcsr_type_real_4 == datatype ? " SP" : ""),
+    fprintf(stderr, "INFO ACC/OpenCL: %ix%ix%i %sSMM-kernel bs=%i", m_max, n_max, k_max,
+      dbcsr_type_real_8 == datatype ? "D" : (dbcsr_type_real_4 == datatype ? "S" : ""),
       stack_size);
     if (0 < est) fprintf(stderr, " est=%.1f GFLOPS/s", est);
     fprintf(stderr, " not suitable%s", 0 != def_mnk ? "\n" : " (inhomogeneous)\n");
@@ -687,8 +687,8 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
             else config->size[config->nexec++] = stack_size;
 #   endif
             if (4 <= c_dbcsr_acc_opencl_config.verbosity || 0 > c_dbcsr_acc_opencl_config.verbosity) {
-              fprintf(stderr, "INFO ACC/OpenCL: %ix%i%s TRANS-kernel bs=%i cur=%.1f GB/s\n", m, n,
-                dbcsr_type_real_8 == datatype ? " DP" : (dbcsr_type_real_4 == datatype ? " SP" : ""),
+              fprintf(stderr, "INFO ACC/OpenCL: %ix%i %sTRANS-kernel bs=%i cur=%.1f GB/s\n", m, n,
+                dbcsr_type_real_8 == datatype ? "D" : (dbcsr_type_real_4 == datatype ? "S" : ""),
                 stack_size, membw);
             }
           }
@@ -1099,12 +1099,12 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                 switch (datatype) {
                   case dbcsr_type_real_8: {
                     const double est = OPENCL_LIBSMM_GFLOPS(m_max, n_max, k_max, sizeof(double));
-                    fprintf(stderr, " DP SMM-kernel bs=%i cur=%.1f", stack_size, gflops);
+                    fprintf(stderr, " DSMM-kernel bs=%i cur=%.1f", stack_size, gflops);
                     if (0 < est) fprintf(stderr, " est=%.1f", est);
                   } break;
                   case dbcsr_type_real_4: {
                     const double est = OPENCL_LIBSMM_GFLOPS(m_max, n_max, k_max, sizeof(float));
-                    fprintf(stderr, " SP SMM-kernel bs=%i cur=%.1f", stack_size, gflops);
+                    fprintf(stderr, " SSMM-kernel bs=%i cur=%.1f", stack_size, gflops);
                     if (0 < est) fprintf(stderr, " est=%.1f", est);
                   } break;
                   default: result = EXIT_FAILURE;

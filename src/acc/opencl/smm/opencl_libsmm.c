@@ -447,7 +447,7 @@ c_dbcsr_acc_bool_t libsmm_acc_is_suitable(
       /* allow k_max to exceed max_kernel_dim */
       && m_max <= max_kernel_dim
       && n_max <= max_kernel_dim
-      && 1000 < stack_size
+      && 1000 <= stack_size
 # endif
       && 0 != def_mnk/*homogeneous*/)
     {
@@ -462,7 +462,7 @@ c_dbcsr_acc_bool_t libsmm_acc_is_suitable(
       /* allow k_max to exceed max_kernel_dim */
       && m_max <= max_kernel_dim
       && n_max <= max_kernel_dim
-      && 1000 < stack_size
+      && 1000 <= stack_size
 # endif
       && 0 != def_mnk/*homogeneous*/)
     {
@@ -688,7 +688,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
 #   endif
             if (4 <= c_dbcsr_acc_opencl_config.verbosity || 0 > c_dbcsr_acc_opencl_config.verbosity) {
               fprintf(stderr, "INFO ACC/OpenCL: %ix%i transpose-kernel%s bs=%i cur=%.1f GB/s\n", m, n,
-                dbcsr_type_real_8 == datatype ? " (DP)" : (dbcsr_type_real_4 == datatype ? " (SP)" : "")
+                dbcsr_type_real_8 == datatype ? " (DP)" : (dbcsr_type_real_4 == datatype ? " (SP)" : ""),
                 stack_size, membw);
             }
           }

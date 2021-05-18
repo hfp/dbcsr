@@ -272,8 +272,8 @@ CONTAINS
    END SUBROUTINE dbcsr_mm_sched_barrier
 
    SUBROUTINE dbcsr_mm_sched_process(this, left, right, stack_data, &
-      !! Processes a given stack.
                                      stack_fillcount, stack_descr)
+      !! Processes a given stack.
       TYPE(dbcsr_mm_sched_type), INTENT(INOUT)           :: this
       TYPE(dbcsr_type), INTENT(IN)                       :: left, right
       INTEGER, DIMENSION(:, :), POINTER                  :: stack_data
@@ -332,10 +332,12 @@ CONTAINS
       flop_per_entry = INT(2, KIND=int_8)*stack_descr%max_m*stack_descr%max_n*stack_descr%max_k
       total_flop = stack_fillcount*flop_per_entry
 
-      IF (has_acc .AND. &
-          flop_per_entry > dbcsr_cfg%accdrv_min_flop_process .AND. &
-          (.NOT. this%avoid_accdrv) .AND. &
-          (stack_descr%defined_mnk .OR. dbcsr_cfg%accdrv_do_inhomogenous)) THEN
+      IF ((has_acc .AND. (.NOT. this%avoid_accdrv)) .AND. &
+          (stack_descr%defined_mnk .OR. dbcsr_cfg%accdrv_do_inhomogenous) .AND. &
+          (flop_per_entry > dbcsr_cfg%accdrv_min_flop_process) .AND. &
+          (libsmm_acc_is_suitable(stack_descr%defined_mnk, &
+                                  this%accdrv%c_buffer%d%data_type, stack_fillcount, &
+                                  stack_descr%max_m, stack_descr%max_n, stack_descr%max_k))) THEN
          CALL dbcsr_mm_accdrv_process( &
             this%accdrv, &
             left, right, &

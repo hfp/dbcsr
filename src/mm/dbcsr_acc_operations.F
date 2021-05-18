@@ -18,7 +18,7 @@ MODULE dbcsr_acc_operations
    USE dbcsr_acc_stream, ONLY: acc_stream_cptr, &
                                acc_stream_type, &
                                acc_stream_synchronize
-   USE dbcsr_config, ONLY: max_kernel_dim
+   USE dbcsr_config, ONLY: max_kernel_dim, dbcsr_cfg
    USE dbcsr_mm_types, ONLY: dbcsr_ps_width
    USE dbcsr_kinds, ONLY: real_8, dp
    USE dbcsr_types, ONLY: dbcsr_type_real_8
@@ -92,6 +92,8 @@ CONTAINS
       INTEGER, INTENT(IN) :: data_type, stack_size
       INTEGER, INTENT(IN) :: m_max, n_max, k_max
       LOGICAL             :: suitable
+
+      suitable = .NOT. dbcsr_cfg%accdrv_do_unsuitable
 #if ! defined (__DBCSR_ACC)
       MARK_USED(def_mnk)
       MARK_USED(data_type)
@@ -99,17 +101,18 @@ CONTAINS
       MARK_USED(m_max)
       MARK_USED(n_max)
       MARK_USED(k_max)
-      suitable = .FALSE.
       DBCSR_ABORT("__DBCSR_ACC not compiled in.")
 #else
-      suitable = (0 .NE. libsmm_acc_is_suitable_cu( &
-                  INT(MERGE(1, 0, def_mnk), KIND=C_INT), &
-                  INT(data_type, KIND=C_INT), &
-                  INT(stack_size, KIND=C_INT), &
-                  INT(m_max, KIND=C_INT), &
-                  INT(n_max, KIND=C_INT), &
-                  INT(k_max, KIND=C_INT), &
-                  INT(max_kernel_dim, KIND=C_INT)))
+      IF (suitable) THEN
+         suitable = (0 .NE. libsmm_acc_is_suitable_cu( &
+                     INT(MERGE(1, 0, def_mnk), KIND=C_INT), &
+                     INT(data_type, KIND=C_INT), &
+                     INT(stack_size, KIND=C_INT), &
+                     INT(m_max, KIND=C_INT), &
+                     INT(n_max, KIND=C_INT), &
+                     INT(k_max, KIND=C_INT), &
+                     INT(max_kernel_dim, KIND=C_INT)))
+      ENDIF
 #endif
    END FUNCTION libsmm_acc_is_suitable
 

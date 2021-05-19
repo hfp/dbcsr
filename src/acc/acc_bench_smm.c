@@ -7,9 +7,8 @@
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
 #include "acc_libsmm.h"
-#include <stdlib.h>
+#include "acc_bench.h"
 #include <string.h>
-#include <assert.h>
 #include <stdio.h>
 #include <math.h>
 
@@ -37,8 +36,6 @@
 # define WARMUP 2
 #endif
 
-#define MIN(A, B) ((A) < (B) ? (A) : (B))
-#define MAX(A, B) ((B) < (A) ? (A) : (B))
 #define ROUNDUP2(N, NPOT) ((((unsigned long long)N) + ((NPOT) - 1)) & ~((NPOT) - 1))
 #define CHECK(EXPR, RPTR) if ((NULL != ((const void*)(RPTR)) && EXIT_SUCCESS != *((const int*)(RPTR))) || \
   EXIT_SUCCESS != (NULL != ((const void*)(RPTR)) ? (*((int*)(RPTR)) = (EXPR)) : (EXPR))) assert(0)
@@ -47,11 +44,6 @@
 #if defined(_DEBUG) && defined(USE_LIBXSMM) && defined(VALIDATE) && (0 != VALIDATE)
 static void print(FILE* ostream, const char* label, const ELEM_TYPE* mat, int m, int n);
 #endif
-
-static void init(int seed, ELEM_TYPE* dst, int m, int n, double scale);
-/* for comparison, adopt artificial stack-setup from other DBCSR/ACC benchmarks */
-static void init_stack(int* stack, int stack_size,
-  int mn, int mk, int kn, int nc, int na, int nb);
 
 
 int main(int argc, char* argv[])
@@ -132,10 +124,10 @@ int main(int argc, char* argv[])
   CHECK(c_dbcsr_acc_stream_sync(stream), &result); /* ensure host-data is allocated */
   /* initialize matrices */
   for (i = 0; i < na; ++i) {
-    init(i/*seed*/ + 42, &amat_hst[i*mk], m, k, 1.0 / (nc * na));
+    INIT_MAT(ELEM_TYPE, i/*seed*/ + 42, &amat_hst[i*mk], m, k, 1.0 / (nc * na));
   }
   for (i = 0; i < nb; ++i) {
-    init(i/*seed*/ + 24, &bmat_hst[i*kn], k, n, 1.0 / (nc * nb));
+    INIT_MAT(ELEM_TYPE, i/*seed*/ + 24, &bmat_hst[i*kn], k, n, 1.0 / (nc * nb));
     trans_hst[i] = i * kn;
   }
   init_stack(stack_hst, stack_size, mn, mk, kn, nc, na, nb);
@@ -293,41 +285,6 @@ int main(int argc, char* argv[])
     fprintf(stderr, "FAILED\n");
   }
   return result;
-}
-
-
-static void init(int seed, ELEM_TYPE* dst, int m, int n, double scale) {
-  const double seed1 = scale * seed + scale;
-  int i, j;
-  for (i = 0; i < n; ++i) {
-    for (j = 0; j < m; ++j) {
-      const int k = i * m + j;
-      dst[k] = (ELEM_TYPE)(seed1 * (k + 1));
-    }
-  }
-}
-
-
-static void init_stack(int* stack, int stack_size,
-  int mn, int mk, int kn, int nc, int na, int nb)
-{
-  /* navg matrix products are accumulated into a C-matrix */
-  int navg = stack_size / nc;
-  int nimb = MAX(1, navg - 4); /* imbalance */
-  int i = 0, c = 0, ntop = 0;
-  assert(0 < nc && nc <= stack_size);
-  while (i < stack_size) {
-    const int next = c + 1;
-    ntop += navg + (rand() % (2 * nimb) - nimb);
-    if (stack_size < ntop) ntop = stack_size;
-    for (;i < ntop; ++i) { /* setup one-based indexes */
-      const int a = rand() % na, b = rand() % nb;
-      *stack++ = a * mk + 1; /* A-index */
-      *stack++ = b * kn + 1; /* B-index */
-      *stack++ = c * mn + 1; /* C-index */
-    }
-    if (next < nc) c = next;
-  }
 }
 
 

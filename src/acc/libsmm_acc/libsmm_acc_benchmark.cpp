@@ -14,6 +14,7 @@
 #include "libsmm_acc_benchmark.h"
 #include "parameters.h"
 #include "parameters_utils.h"
+#include "../acc_libsmm.h"
 
 
 //===========================================================================
@@ -115,37 +116,7 @@ void stackInit(int *stack, int n_stack, int n_c, double* mat_c,
                int n_a, double * mat_a, int n_b, double* mat_b,
                int mat_m, int mat_n, int mat_k){
 
-  if(n_stack < n_c){
-    printf("Error: n_stack < n_c\n");
-    exit(1);
-  }
-
-  // on average, we have n_avg matrix products contributing to a result mat_c
-  int n_avg = n_stack / n_c;
-
-  int n_imbalance = std::max(1, n_avg-4);
-
-  int c = 0;
-  int n_top = 0;
-  int p = 0;
-
- int* s = stack;
-  while( p < n_stack ){
-    if(c >= n_c) c = n_c-1;
-
-    n_top += n_avg + (rand() % (2*n_imbalance) - n_imbalance);
-    if(n_top > n_stack) n_top = n_stack;
-
-    for(;p < n_top; p++){
-     int a = rand() % n_a;
-     int b = rand() % n_b;
-
-     *s++ =  a * mat_m * mat_k + 1;        // A_src
-     *s++ =  b * mat_k * mat_n + 1;        // B_src
-     *s++ =  c * mat_m * mat_n + 1;        // C_dst
-    }
-    c++;
- }
+  init_stack(stack, n_stack, mat_m * mat_n, mat_m * mat_k, mat_k * mat_n, n_c, n_a, n_b);
 }
 
 

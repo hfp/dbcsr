@@ -328,11 +328,31 @@ int libsmm_acc_init(void)
         }
 #endif
         if (EXIT_SUCCESS == result) {
+          int stack[30000*3];
+          const int stack_size = sizeof(stack) / (sizeof(*stack) * 3);
+          const int m = 8, n = 8, k = 8;
+          const char notrans = 'N';
+
+
           if (0 != perfest.scount) {
+            const double ai = OPENCL_LIBSMM_AI(m, n, k, sizeof(float));
+            const float alpha = 1, beta = 1;
+            const libxsmm_timer_tickint start = libxsmm_timer_tick();
+            for (r = 0; r < nrepeat; ++r) {
+              libxsmm_gemm_batch_omp(LIBXSMM_GEMM_PRECISION_F32, LIBXSMM_GEMM_PRECISION_F32,
+                &notrans, &notrans, m, n, k, &alpha, amat_hst, &m/*lda*/, bmat_hst, &k/*ldb*/,
+                &beta, gold_hst, &m/*ldc*/, 1/*index_base*/, sizeof(*stack) * 3,
+                stack + 0, stack + 1, stack + 2, stack_size);
+            }
+            duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
+            opencl_libsmm_shst = 0;
             opencl_libsmm_sacc = sqrt(perfest.gf_ai_sratio_max
               * exp(perfest.gf_ai_sratio_sumlog / perfest.scount));
           }
           if (0 != perfest.dcount) {
+            const double ai = OPENCL_LIBSMM_AI(m, n, k, sizeof(double));
+            const double alpha = 1, beta = 1;
+            const libxsmm_timer_tickint start = libxsmm_timer_tick();
             opencl_libsmm_dacc = sqrt(perfest.gf_ai_dratio_max
               * exp(perfest.gf_ai_dratio_sumlog / perfest.dcount));
           }

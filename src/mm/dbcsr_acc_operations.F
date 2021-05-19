@@ -93,7 +93,13 @@ CONTAINS
       INTEGER, INTENT(IN) :: m_max, n_max, k_max
       LOGICAL             :: suitable
 
-      suitable = .NOT. dbcsr_cfg%accdrv_do_unsuitable
+      suitable = .NOT. dbcsr_cfg%accdrv_do_unsuitable .AND. &
+                 (def_mnk .OR. dbcsr_cfg%accdrv_do_inhomogenous)
+
+      IF (suitable .AND. (0 .LT. dbcsr_cfg%accdrv_min_flop_process)) THEN
+         suitable = (dbcsr_cfg%accdrv_min_flop_process .LT. (INT(2, KIND=int_8)*m_max*n_max*k_max))
+      ENDIF
+
 #if ! defined (__DBCSR_ACC)
       MARK_USED(def_mnk)
       MARK_USED(data_type)

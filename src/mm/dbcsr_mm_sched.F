@@ -25,9 +25,7 @@ MODULE dbcsr_mm_sched
    USE dbcsr_data_methods_low, ONLY: dbcsr_data_get_type
    USE dbcsr_data_methods, ONLY: dbcsr_data_ensure_size, &
                                  dbcsr_data_get_size
-   USE dbcsr_kinds, ONLY: int_4, &
-                          int_8, &
-                          real_8
+   USE dbcsr_kinds, ONLY: int_4, int_8, real_8
    USE dbcsr_mm_accdrv, ONLY: &
       dbcsr_mm_accdrv_barrier, dbcsr_mm_accdrv_dev2host_init, dbcsr_mm_accdrv_finalize, &
       dbcsr_mm_accdrv_init, dbcsr_mm_accdrv_lib_finalize, dbcsr_mm_accdrv_lib_init, &
@@ -283,7 +281,7 @@ CONTAINS
       TYPE(stack_descriptor_type), INTENT(IN)            :: stack_descr
 
       INTEGER                                            :: ithread, sp, stacked_datasize
-      INTEGER(kind=int_8)                                :: flop_per_entry, total_flop
+      INTEGER(kind=int_8)                                :: total_flop
       LOGICAL                                            :: success, used_smm
       TYPE(stats_type), POINTER                          :: mystats
 
@@ -331,15 +329,12 @@ CONTAINS
       ENDIF
 
       ! Submitting the stack for processing -------------------------------------
-      flop_per_entry = INT(2, KIND=int_8)*stack_descr%max_m*stack_descr%max_n*stack_descr%max_k
-      total_flop = stack_fillcount*flop_per_entry
+      total_flop = INT(2, KIND=int_8)*stack_descr%max_m*stack_descr%max_n*stack_descr%max_k*stack_fillcount
 
-      IF ((has_acc .AND. (.NOT. this%avoid_accdrv)) .AND. &
-          (stack_descr%defined_mnk .OR. dbcsr_cfg%accdrv_do_inhomogenous) .AND. &
-          (flop_per_entry > dbcsr_cfg%accdrv_min_flop_process) .AND. &
-          (libsmm_acc_is_suitable(stack_descr%defined_mnk, &
-                                  dbcsr_data_get_type(this%hostdrv%data_area), stack_fillcount, &
-                                  stack_descr%max_m, stack_descr%max_n, stack_descr%max_k))) THEN
+      IF (has_acc .AND. (.NOT. this%avoid_accdrv) .AND. &
+          libsmm_acc_is_suitable(stack_descr%defined_mnk, &
+                                 dbcsr_data_get_type(this%hostdrv%data_area), stack_fillcount, &
+                                 stack_descr%max_m, stack_descr%max_n, stack_descr%max_k)) THEN
          CALL dbcsr_mm_accdrv_process( &
             this%accdrv, &
             left, right, &

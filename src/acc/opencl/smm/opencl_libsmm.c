@@ -352,8 +352,19 @@ int libsmm_acc_init(void)
               float *const c = (float*)LIBXSMM_UP2((uintptr_t)b + sizeof(float) * nb * kn, LIBXSMM_ALIGNMENT);
               const float alpha = 1, beta = 1;
               init_stack(s, stack_size, mn, mk, kn, nc, na, nb);
-              for (i = 0; i < na; ++i) INIT_MAT(float, i + 42, &a[i*mk], m, k, 1.0 / (nc * na));
-              for (i = 0; i < nb; ++i) INIT_MAT(float, i + 24, &b[i*kn], k, n, 1.0 / (nc * nb));
+#if defined(_OPENMP)
+#             pragma omp parallel
+#endif
+              {
+#if defined(_OPENMP)
+#               pragma omp for
+#endif
+                for (i = 0; i < na; ++i) INIT_MAT(float, i + 42, &a[i*mk], m, k, 1.0 / (nc * na));
+#if defined(_OPENMP)
+#               pragma omp for
+#endif
+                for (i = 0; i < nb; ++i) INIT_MAT(float, i + 24, &b[i*kn], k, n, 1.0 / (nc * nb));
+              }
               memset(c, 0, sizeof(float) * nc * mn);
               start = libxsmm_timer_tick();
               for (i = 0; i < nrepeat; ++i) {
@@ -375,12 +386,23 @@ int libsmm_acc_init(void)
               double *const c = (double*)LIBXSMM_UP2((uintptr_t)b + sizeof(double) * nb * kn, LIBXSMM_ALIGNMENT);
               const double alpha = 1, beta = 1;
               init_stack(s, stack_size, mn, mk, kn, nc, na, nb);
-              for (i = 0; i < na; ++i) INIT_MAT(double, i + 42, &a[i*mk], m, k, 1.0 / (nc * na));
-              for (i = 0; i < nb; ++i) INIT_MAT(double, i + 24, &b[i*kn], k, n, 1.0 / (nc * nb));
+#if defined(_OPENMP)
+#             pragma omp parallel
+#endif
+              {
+#if defined(_OPENMP)
+#               pragma omp for
+#endif
+                for (i = 0; i < na; ++i) INIT_MAT(double, i + 42, &a[i*mk], m, k, 1.0 / (nc * na));
+#if defined(_OPENMP)
+#               pragma omp for
+#endif
+                for (i = 0; i < nb; ++i) INIT_MAT(double, i + 24, &b[i*kn], k, n, 1.0 / (nc * nb));
+              }
               memset(c, 0, sizeof(double) * nc * mn);
               start = libxsmm_timer_tick();
               for (i = 0; i < nrepeat; ++i) {
-                OPENCL_LIBSMM_GEMMBATCH(LIBXSMM_GEMM_PRECISION_F32, LIBXSMM_GEMM_PRECISION_F32,
+                OPENCL_LIBSMM_GEMMBATCH(LIBXSMM_GEMM_PRECISION_F64, LIBXSMM_GEMM_PRECISION_F64,
                   &notrans, &notrans, m, n, k, &alpha, a, &m/*lda*/, b, &k/*ldb*/,
                   &beta, c, &m/*ldc*/, 1/*index_base*/, sizeof(int) * 3,
                   s + 0, s + 1, s + 2, stack_size);

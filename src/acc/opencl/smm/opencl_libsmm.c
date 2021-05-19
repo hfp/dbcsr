@@ -69,9 +69,9 @@
     ? 4 : 0/*unknown*/))
 
 #define OPENCL_LIBSMM_GFLOPS(M, N, K, TYPESIZE) (OPENCL_LIBSMM_AI(M, N, K, TYPESIZE) \
-  * ((0 < opencl_libsmm_gf_ai_sratio && 0 < opencl_libsmm_gf_ai_dratio) \
-  ? sqrt(opencl_libsmm_gf_ai_sratio * opencl_libsmm_gf_ai_dratio) \
-  : LIBXSMM_MAX(opencl_libsmm_gf_ai_sratio, opencl_libsmm_gf_ai_dratio)))
+  * ((0 < opencl_libsmm_sacc && 0 < opencl_libsmm_dacc) \
+  ? sqrt(opencl_libsmm_sacc * opencl_libsmm_dacc) \
+  : LIBXSMM_MAX(opencl_libsmm_sacc, opencl_libsmm_dacc)))
 
 #define OPENCL_LIBSMM_ISORT(IARR, SIZE) { int opencl_libsmm_isort_i_ = 0; \
   for (; opencl_libsmm_isort_i_ < ((int)(SIZE) - 1); ++opencl_libsmm_isort_i_) { \
@@ -93,10 +93,14 @@
 extern "C" {
 #endif
 
+/* maintain GFLOPS/AI ratios for performance estimates and suitability */
+double opencl_libsmm_shst, opencl_libsmm_dhst, opencl_libsmm_sacc, opencl_libsmm_dacc;
+/* collect device name/id persistent/global buffer such that pointer remains valid */
 char opencl_libsmm_devices[ACC_OPENCL_DEVICES_MAXCOUNT][ACC_OPENCL_BUFFERSIZE];
+/* calling clSetKernelArg must be consistent across host-threads */
 volatile int opencl_libsmm_lock_trans[OPENCL_LIBSMM_NLOCKS_TRANS];
 volatile int opencl_libsmm_lock_smm[OPENCL_LIBSMM_NLOCKS_SMM];
-double opencl_libsmm_gf_ai_sratio, opencl_libsmm_gf_ai_dratio;
+/* track initialization status of LIBSMM */
 int opencl_libsmm_initialized;
 
 
@@ -325,11 +329,11 @@ int libsmm_acc_init(void)
 #endif
         if (EXIT_SUCCESS == result) {
           if (0 != perfest.scount) {
-            opencl_libsmm_gf_ai_sratio = sqrt(perfest.gf_ai_sratio_max
+            opencl_libsmm_sacc = sqrt(perfest.gf_ai_sratio_max
               * exp(perfest.gf_ai_sratio_sumlog / perfest.scount));
           }
           if (0 != perfest.dcount) {
-            opencl_libsmm_gf_ai_dratio = sqrt(perfest.gf_ai_dratio_max
+            opencl_libsmm_dacc = sqrt(perfest.gf_ai_dratio_max
               * exp(perfest.gf_ai_dratio_sumlog / perfest.dcount));
           }
         }
@@ -418,7 +422,7 @@ int libsmm_acc_finalize(void)
         ACC_OPENCL_CHECK(clReleaseKernel(kernel), "release kernel", result);
       }
     }
-    opencl_libsmm_gf_ai_sratio = opencl_libsmm_gf_ai_dratio = 0;
+    opencl_libsmm_shst = opencl_libsmm_dhst = opencl_libsmm_sacc = opencl_libsmm_dacc = 0;
   }
 #endif
   /* c_dbcsr_acc_finalize is not called since it can be used independently */
@@ -443,36 +447,32 @@ c_dbcsr_acc_bool_t libsmm_acc_is_suitable(
   int max_kernel_dim)
 {
   int result = 0;
-  double est = 0;
+  double hst = 0, acc = 0;
   switch (datatype) {
 #if defined(OPENCL_LIBSMM_F64)
     case dbcsr_type_real_8: if (0 < m_max && 0 < n_max && 0 < k_max
 # if defined(OPENCL_LIBSMM_SUITABLE)
-      /* allow k_max to exceed max_kernel_dim */
-      && m_max <= max_kernel_dim
-      && n_max <= max_kernel_dim
-      && 1000 <= stack_size
+      /* allow k_max to exceed max_kernel_dim , TODO: BLAS for large kernels (m,n) */
+      && m_max <= max_kernel_dim && n_max <= max_kernel_dim
+      /*&& 1000 <= stack_size*/
 # endif
       && 0 != def_mnk/*homogeneous*/)
     {
-      const double cpu = 0;
-      est = OPENCL_LIBSMM_GFLOPS(m_max, n_max, k_max, sizeof(double));
-      if (0 == est || cpu < est) result = 1;
+      acc = OPENCL_LIBSMM_GFLOPS(m_max, n_max, k_max, sizeof(double));
+      if (0 == hst || 0 == acc || hst < acc) result = 1;
     } break;
 #endif
 #if defined(OPENCL_LIBSMM_F32)
     case dbcsr_type_real_4: if (0 < m_max && 0 < n_max && 0 < k_max
 # if defined(OPENCL_LIBSMM_SUITABLE)
-      /* allow k_max to exceed max_kernel_dim */
-      && m_max <= max_kernel_dim
-      && n_max <= max_kernel_dim
-      && 1000 <= stack_size
+      /* allow k_max to exceed max_kernel_dim , TODO: BLAS for large kernels (m,n) */
+      && m_max <= max_kernel_dim && n_max <= max_kernel_dim
+      /*&& 1000 <= stack_size*/
 # endif
       && 0 != def_mnk/*homogeneous*/)
     {
-      const double cpu = 0;
-      est = OPENCL_LIBSMM_GFLOPS(m_max, n_max, k_max, sizeof(float));
-      if (0 == est || cpu < est) result = 1;
+      acc = OPENCL_LIBSMM_GFLOPS(m_max, n_max, k_max, sizeof(float));
+      if (0 == hst || 0 == acc || hst < acc) result = 1;
     } break;
 #endif
     default: assert(0 == result);
@@ -484,7 +484,7 @@ c_dbcsr_acc_bool_t libsmm_acc_is_suitable(
     fprintf(stderr, "INFO ACC/OpenCL: %ix%ix%i %sSMM-kernel bs=%i", m_max, n_max, k_max,
       dbcsr_type_real_8 == datatype ? "D" : (dbcsr_type_real_4 == datatype ? "S" : ""),
       stack_size);
-    if (0 < est) fprintf(stderr, " est=%.1f GFLOPS/s", est);
+    if (0 < hst && 0 < acc) fprintf(stderr, " hst=%.1f acc=%.1f GFLOPS/s", hst, acc);
     fprintf(stderr, " not suitable%s", 0 != def_mnk ? "\n" : " (inhomogeneous)\n");
   }
 #endif

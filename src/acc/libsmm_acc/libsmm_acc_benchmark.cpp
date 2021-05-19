@@ -112,8 +112,7 @@ void matInit(double* mat, int mat_n, int x, int y, int seed){
 //===========================================================================
 // initialize the task list ("stack" in DBCSR lingo)
 // for each of the result matrices we have a random number
-void stackInit(int *stack, int n_stack, int n_c, double* mat_c,
-               int n_a, double * mat_a, int n_b, double* mat_b,
+void stackInit(int *stack, int n_stack, int n_c, int n_a, int n_b,
                int mat_m, int mat_n, int mat_k){
 
   init_stack(stack, n_stack, mat_m * mat_n, mat_m * mat_k, mat_k * mat_n, n_c, n_a, n_b);
@@ -269,7 +268,7 @@ int libsmm_acc_benchmark(libsmm_acc_benchmark_t* h,
 
  if(h->mode == tune)
      printf("Initializing ...\n");
- stackInit(h->stack, h->n_stack, h->n_c, h->mat_c, h->n_a, h->mat_a, h->n_b, h->mat_b, mat_m, mat_n, mat_k);
+ stackInit(h->stack, h->n_stack, h->n_c, h->n_a, h->n_b, mat_m, mat_n, mat_k);
 
  // Actually, we would have to calculate the stack n_iter times.
  // We cheat by simply scaling the results of a single stack calculation.

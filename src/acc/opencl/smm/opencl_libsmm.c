@@ -273,44 +273,48 @@ int libsmm_acc_init(void)
     }
 #endif
     if (EXIT_SUCCESS == result) {
-      char buffer[ACC_OPENCL_BUFFERSIZE];
       const char *const env_params = getenv("OPENCL_LIBSMM_SMM_PARAMS");
-      opencl_libsmm_smm_t config;
-      opencl_libsmm_smmkey_t key;
-      /* zeroing config (tuned parameters are setup below) */
-      memset(&config, 0, sizeof(config));
-      /* potentially heterogeneous key-data */
-      LIBXSMM_MEMZERO127(&key);
-      assert(NULL == key.device);
       if (NULL == env_params || '0' != *env_params) {
+        char buffer[ACC_OPENCL_BUFFERSIZE];
         opencl_libsmm_perfest_t perfest;
+        opencl_libsmm_smm_t config;
+        opencl_libsmm_smmkey_t key;
         memset(&perfest, 0, sizeof(perfest));
+        /* zeroing config (tuned parameters are setup below) */
+        memset(&config, 0, sizeof(config));
+        /* potentially heterogeneous key-data */
+        LIBXSMM_MEMZERO127(&key);
+        assert(NULL == key.device);
         if (NULL != env_params && '\0' != *env_params) { /* filename */
           FILE *const file = fopen(env_params, "r");
-          /* consume first line, check for device entry, and skip CSV header line */
-          if (NULL != file && NULL != fgets(buffer, ACC_OPENCL_BUFFERSIZE, file)) {
-            char* device = (NULL != c_dbcsr_acc_opencl_stristr(buffer, "device")
-              ? opencl_libsmm_devices[0] : NULL);
-            int ndevices = 0, i;
-            while (NULL != fgets(buffer, ACC_OPENCL_BUFFERSIZE, file)) {
-              result = opencl_libsmm_read_params(buffer, &key, &config, &perfest,
-                NULL != device ? &device : NULL);
-              if (EXIT_SUCCESS == result) {
-                if (NULL != device) {
-                  for (i = 0; i < ndevices; ++i) {
-                    if (0 == strncmp(device, opencl_libsmm_devices[i], ACC_OPENCL_BUFFERSIZE)) break;
+          if (NULL != file) {
+            /* consume first line, check for device entry, and skip CSV header line */
+            if (NULL != fgets(buffer, ACC_OPENCL_BUFFERSIZE, file)) {
+              char* device = (NULL != c_dbcsr_acc_opencl_stristr(buffer, "device")
+                ? opencl_libsmm_devices[0] : NULL);
+              int ndevices = 0, i;
+              while (NULL != fgets(buffer, ACC_OPENCL_BUFFERSIZE, file)) {
+                result = opencl_libsmm_read_params(buffer, &key, &config, &perfest,
+                  NULL != device ? &device : NULL);
+                if (EXIT_SUCCESS == result) {
+                  if (NULL != device) {
+                    for (i = 0; i < ndevices; ++i) {
+                      if (0 == strncmp(device, opencl_libsmm_devices[i], ACC_OPENCL_BUFFERSIZE)) break;
+                    }
+                    key.device = ('\0' != *opencl_libsmm_devices[i] ? opencl_libsmm_devices[i] : NULL);
+                    if (i == ndevices) device = opencl_libsmm_devices[++ndevices%ACC_OPENCL_DEVICES_MAXCOUNT];
                   }
-                  key.device = ('\0' != *opencl_libsmm_devices[i] ? opencl_libsmm_devices[i] : NULL);
-                  if (i == ndevices) device = opencl_libsmm_devices[++ndevices%ACC_OPENCL_DEVICES_MAXCOUNT];
+                  if (NULL == OPENCL_LIBSMM_REGISTER(&key, sizeof(key), sizeof(config), &config)) {
+                    result = EXIT_FAILURE; break;
+                  }
                 }
-                if (NULL == OPENCL_LIBSMM_REGISTER(&key, sizeof(key), sizeof(config), &config)) {
-                  result = EXIT_FAILURE; break;
-                }
+                else break; /* invalid entry, or no device column */
               }
-              else break; /* invalid entry */
             }
+            else result = EXIT_FAILURE; /* invalid header */
+            fclose(file);
           }
-          else result = EXIT_FAILURE; /* invalid file/header, or no device column */
+          else result = EXIT_FAILURE; /* invalid file */
         }
 #if defined(OPENCL_LIBSMM_PARAMS_SMM)
         else {

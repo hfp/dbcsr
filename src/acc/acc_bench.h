@@ -19,14 +19,13 @@
 # define MAX(A, B) ((B) < (A) ? (A) : (B))
 #endif
 
-
 #define INIT_MAT(ELEM_TYPE, SEED, MAT, M, N, SCALE) do { \
-  const double seed1 = (SCALE) * (SEED) + (SCALE); \
-  int i, j; \
-  for (i = 0; i < (N); ++i) { \
-    for (j = 0; j < (M); ++j) { \
-      const int k = i * (M) + j; \
-      ((ELEM_TYPE*)(MAT))[k] = (ELEM_TYPE)(seed1 * (k + 1)); \
+  const double init_mat_seed1_ = (SCALE) * (SEED) + (SCALE); \
+  int init_mat_i_, init_mat_j_; \
+  for (init_mat_i_ = 0; init_mat_i_ < (N); ++init_mat_i_) { \
+    for (init_mat_j_ = 0; init_mat_j_ < (M); ++init_mat_j_) { \
+      const int init_mat_k_ = init_mat_i_ * (M) + init_mat_j_; \
+      ((ELEM_TYPE*)(MAT))[init_mat_k_] = (ELEM_TYPE)(init_mat_seed1_ * (init_mat_k_ + 1)); \
     } \
   } \
 } while(0)

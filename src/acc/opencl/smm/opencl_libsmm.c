@@ -36,10 +36,6 @@
 # define OPENCL_LIBSMM_USEOMP(FUNC) (FUNC)
 #endif
 
-#if !defined(OPENCL_LIBSMM_SUITABLE) \
-  && (defined(NDEBUG) || !defined(OPENCL_LIBSMM_DEBUG) || (0 == OPENCL_LIBSMM_DEBUG))
-# define OPENCL_LIBSMM_SUITABLE
-#endif
 #if !defined(OPENCL_LIBSMM_DEBUG_TRANS) && defined(OPENCL_LIBSMM_DEBUG) \
   && (1 < OPENCL_LIBSMM_DEBUG || 0 > OPENCL_LIBSMM_DEBUG)
 # define OPENCL_LIBSMM_DEBUG_TRANS
@@ -333,6 +329,7 @@ int libsmm_acc_init(void)
           } while (NULL != next);
         }
 #endif
+#if defined(OPENCL_LIBSMM_SUITABLE)
         if (EXIT_SUCCESS == result) {
           const int stack_size = 30000, nrepeat = 100;
           const int nc = MAX(stack_size / 16, 1), na = 10 * nc, nb = 10 * nc;
@@ -351,17 +348,17 @@ int libsmm_acc_init(void)
               float *const c = (float*)LIBXSMM_UP2((uintptr_t)b + sizeof(float) * nb * kn, LIBXSMM_ALIGNMENT);
               const float alpha = 1, beta = 1;
               init_stack(s, stack_size, mn, mk, kn, nc, na, nb);
-#if defined(_OPENMP)
+# if defined(_OPENMP)
 #             pragma omp parallel
-#endif
+# endif
               {
-#if defined(_OPENMP)
+# if defined(_OPENMP)
 #               pragma omp for
-#endif
+# endif
                 for (i = 0; i < na; ++i) INIT_MAT(float, i + 42, &a[i*mk], m, k, 1.0 / (nc * na));
-#if defined(_OPENMP)
+# if defined(_OPENMP)
 #               pragma omp for
-#endif
+# endif
                 for (i = 0; i < nb; ++i) INIT_MAT(float, i + 24, &b[i*kn], k, n, 1.0 / (nc * nb));
               }
               memset(c, 0, sizeof(float) * nc * mn);
@@ -387,17 +384,17 @@ int libsmm_acc_init(void)
               double *const c = (double*)LIBXSMM_UP2((uintptr_t)b + sizeof(double) * nb * kn, LIBXSMM_ALIGNMENT);
               const double alpha = 1, beta = 1;
               init_stack(s, stack_size, mn, mk, kn, nc, na, nb);
-#if defined(_OPENMP)
+# if defined(_OPENMP)
 #             pragma omp parallel
-#endif
+# endif
               {
-#if defined(_OPENMP)
+# if defined(_OPENMP)
 #               pragma omp for
-#endif
+# endif
                 for (i = 0; i < na; ++i) INIT_MAT(double, i + 42, &a[i*mk], m, k, 1.0 / (nc * na));
-#if defined(_OPENMP)
+# if defined(_OPENMP)
 #               pragma omp for
-#endif
+# endif
                 for (i = 0; i < nb; ++i) INIT_MAT(double, i + 24, &b[i*kn], k, n, 1.0 / (nc * nb));
               }
               memset(c, 0, sizeof(double) * nc * mn);
@@ -418,6 +415,7 @@ int libsmm_acc_init(void)
           }
           libxsmm_free(scratch);
         }
+#endif
       }
     }
   }
@@ -528,34 +526,38 @@ c_dbcsr_acc_bool_t libsmm_acc_is_suitable(
   int max_kernel_dim)
 {
   int result = 0;
+#if defined(OPENCL_LIBSMM_SUITABLE)
   double hst = 0, acc = 0;
+#endif
   switch (datatype) {
 #if defined(OPENCL_LIBSMM_F64)
     case dbcsr_type_real_8: if (0 < m_max && 0 < n_max && 0 < k_max
-# if defined(OPENCL_LIBSMM_SUITABLE)
       /* allow k_max to exceed max_kernel_dim , TODO: BLAS for large kernels (m,n) */
       && m_max <= max_kernel_dim && n_max <= max_kernel_dim
       /*&& 1000 <= stack_size*/
-# endif
       && 0 != def_mnk/*homogeneous*/)
     {
+# if defined(OPENCL_LIBSMM_SUITABLE)
       const double ai = OPENCL_LIBSMM_AI(m_max, n_max, k_max, sizeof(double));
       hst = ai * opencl_libsmm_dhst; acc = ai * opencl_libsmm_dacc;
-      if (0 == hst || 0 == acc || hst < acc) result = 1;
+      if (0 == hst || 0 == acc || hst < acc)
+# endif
+      result = 1;
     } break;
 #endif
 #if defined(OPENCL_LIBSMM_F32)
     case dbcsr_type_real_4: if (0 < m_max && 0 < n_max && 0 < k_max
-# if defined(OPENCL_LIBSMM_SUITABLE)
       /* allow k_max to exceed max_kernel_dim , TODO: BLAS for large kernels (m,n) */
       && m_max <= max_kernel_dim && n_max <= max_kernel_dim
       /*&& 1000 <= stack_size*/
-# endif
       && 0 != def_mnk/*homogeneous*/)
     {
+# if defined(OPENCL_LIBSMM_SUITABLE)
       const double ai = OPENCL_LIBSMM_AI(m_max, n_max, k_max, sizeof(float));
       hst = ai * opencl_libsmm_shst; acc = ai * opencl_libsmm_sacc;
-      if (0 == hst || 0 == acc || hst < acc) result = 1;
+      if (0 == hst || 0 == acc || hst < acc)
+# endif
+      result = 1;
     } break;
 #endif
     default: assert(0 == result);

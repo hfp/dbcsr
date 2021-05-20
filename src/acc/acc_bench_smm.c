@@ -197,10 +197,10 @@ int main(int argc, char* argv[])
     duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
 #   if defined(TRANSPOSE) && (0 != TRANSPOSE)
     printf("transpose: %.1f ms %.1f GFLOPS/s\n", 1000.0 * (duration + transpose) / nrepeat,
-      ((size_t)2 * m * n * k) * stack_size / ((duration + transpose) * 1E9 / nrepeat));
+      1E-9 * ((size_t)2 * m * n * k * stack_size * nrepeat) / (duration + transpose));
 #   endif
     printf("device: %.1f ms %.1f GFLOPS/s\n", 1000.0 * duration / nrepeat,
-      ((size_t)2 * m * n * k) * stack_size / (duration * 1E9 / nrepeat));
+      1E-9 * ((size_t)2 * m * n * k * stack_size * nrepeat) / duration);
 #endif
   }
 #if defined(USE_LIBXSMM)
@@ -232,7 +232,7 @@ int main(int argc, char* argv[])
     }
     duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
     printf("host: %.1f ms %.1f GFLOPS/s\n", 1000.0 * duration / nrepeat,
-      ((size_t)2 * m * n * k) * stack_size / (duration * 1E9 / nrepeat));
+      1E-9 * ((size_t)2 * m * n * k * stack_size * nrepeat) / duration);
     if (0 != suitable) {
       /* transfer result from device to host for validation */
       CHECK(c_dbcsr_acc_memcpy_d2h(cmat_dev, cmat_hst, sizeof(ELEM_TYPE) * mn * nc, stream), &result);

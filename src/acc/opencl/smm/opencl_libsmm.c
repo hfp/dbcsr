@@ -372,7 +372,7 @@ int libsmm_acc_init(void)
                   &beta, c, &m/*ldc*/, 1/*index_base*/, sizeof(int) * 3,
                   s + 0, s + 1, s + 2, stack_size);
               }
-              opencl_libsmm_shst = 1E-9 * ((size_t)2 * m * n * k * nrepeat * stack_size) / (
+              opencl_libsmm_shst = 1E-9 * ((size_t)2 * m * n * k * stack_size * nrepeat) / (
                   libxsmm_timer_duration(start, libxsmm_timer_tick())
                 * OPENCL_LIBSMM_AI(m, n, k, sizeof(float)));
             }
@@ -407,7 +407,7 @@ int libsmm_acc_init(void)
                   &beta, c, &m/*ldc*/, 1/*index_base*/, sizeof(int) * 3,
                   s + 0, s + 1, s + 2, stack_size);
               }
-              opencl_libsmm_dhst = 1E-9 * ((size_t)2 * m * n * k * nrepeat * stack_size) / (
+              opencl_libsmm_dhst = 1E-9 * ((size_t)2 * m * n * k * stack_size * nrepeat) / (
                   libxsmm_timer_duration(start, libxsmm_timer_tick())
                 * OPENCL_LIBSMM_AI(m, n, k, sizeof(double)));
             }

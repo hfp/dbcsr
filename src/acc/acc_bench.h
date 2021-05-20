@@ -20,7 +20,7 @@
 #endif
 
 #if !defined(INLINE) && (defined(__cplusplus) || \
-    (defined(__STDC_VERSION__) && (199901L <= __STDC_VERSION__) /*C99*/)
+    (defined(__STDC_VERSION__) && (199901L <= __STDC_VERSION__) /*C99*/))
 # define INLINE inline
 #endif
 

@@ -79,7 +79,6 @@ int main(int argc, char* argv[])
   const int warmup = 0;
 #endif
   const char *const env_suitable = getenv("SUITABLE");
-  const int suitable = (NULL == env_suitable ? 1 : atoi(env_suitable));
 #if defined(VALIDATE) && (0 != VALIDATE)
   const char *const env_check = getenv("CHECK");
   const double check = (NULL == env_check ? -1 : fabs(atof(env_check)));
@@ -87,7 +86,7 @@ int main(int argc, char* argv[])
   int *stack_hst = NULL, *stack_dev = NULL, *trans_hst = NULL, *trans_dev = NULL;
   ELEM_TYPE *amat_hst = NULL, *bmat_hst = NULL, *cmat_hst = NULL;
   ELEM_TYPE *amat_dev = NULL, *bmat_dev = NULL, *cmat_dev = NULL;
-  int result = EXIT_SUCCESS, ndevices = 0, r, i;
+  int result = EXIT_SUCCESS, ndevices = 0, suitable, r, i;
   void *stream = NULL;
 #if defined(USE_LIBXSMM)
   libxsmm_timer_tickint start;
@@ -174,9 +173,10 @@ int main(int argc, char* argv[])
   transpose = libxsmm_timer_duration(start, libxsmm_timer_tick());
 # endif
 #endif
-  if (0 != suitable /* by default all problem sizes are considered suitable */ ||
-      0 != libsmm_acc_is_suitable(1/*homogeneous*/, DBCSR_TYPE(ELEM_TYPE), stack_size, m, n, k, MAX_KERNEL_DIM))
-  {
+  /* by default all cases are considered suitable and libsmm_acc_is_suitable is not called */
+  suitable = (NULL == env_suitable || 0 != atoi(env_suitable) || 0 != libsmm_acc_is_suitable(
+    1/*homogeneous*/, DBCSR_TYPE(ELEM_TYPE), stack_size, m, n, k, MAX_KERNEL_DIM));
+  if (0 != suitable) {
     /* warmup execution and prebuild SMM-kernel */
     for (r = 0; r < warmup; ++r) {
       CHECK(libsmm_acc_process(stack_hst, stack_dev, stack_size, 3/*nparams*/, DBCSR_TYPE(ELEM_TYPE),
@@ -195,39 +195,45 @@ int main(int argc, char* argv[])
 #if defined(USE_LIBXSMM)
     CHECK(c_dbcsr_acc_stream_sync(stream), &result);
     duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
-# if defined(VALIDATE) && (0 != VALIDATE)
-    if (0 != check && EXIT_SUCCESS == result) {
-      ELEM_TYPE *const gold_hst = (ELEM_TYPE*)libxsmm_malloc(sizeof(ELEM_TYPE) * mn * nc);
-      const ELEM_TYPE alpha = 1, beta = 1;
-      const char transa = 'N';
-#   if !defined(TRANSPOSE) || (0 == TRANSPOSE)
-      const char transb = 'T';
-#   else
-      const char transb = 'N';
-      printf("transpose: %.1f ms %.1f GFLOPS/s\n", 1000.0 * (duration + transpose) / nrepeat,
-        ((size_t)2 * m * n * k) * stack_size / ((duration + transpose) * 1E9 / nrepeat));
+#   if defined(TRANSPOSE) && (0 != TRANSPOSE)
+    printf("transpose: %.1f ms %.1f GFLOPS/s\n", 1000.0 * (duration + transpose) / nrepeat,
+      ((size_t)2 * m * n * k) * stack_size / ((duration + transpose) * 1E9 / nrepeat));
 #   endif
-      printf("device: %.1f ms %.1f GFLOPS/s\n", 1000.0 * duration / nrepeat,
-        ((size_t)2 * m * n * k) * stack_size / (duration * 1E9 / nrepeat));
-      memset(gold_hst, 0, sizeof(ELEM_TYPE) * mn * nc);
-      for (r = 0; r < warmup; ++r) {
-        libxsmm_gemm_batch_omp(LIBXSMM_GEMM_PRECISION(ELEM_TYPE), LIBXSMM_GEMM_PRECISION(ELEM_TYPE),
-          &transa, &transb, m, n, k, &alpha, amat_hst, &m/*lda*/, bmat_hst, &k/*ldb*/,
-          &beta, gold_hst, &m/*ldc*/, 1/*index_base*/, sizeof(int) * 3,
-          stack_hst + 0, stack_hst + 1, stack_hst + 2, stack_size);
-      }
-      memset(gold_hst, 0, sizeof(ELEM_TYPE) * mn * nc);
-      start = libxsmm_timer_tick();
-      /* CPU-kernel operates on data that is not initialized in NUMA-aware fashion */
-      for (r = 0; r < nrepeat; ++r) {
-        libxsmm_gemm_batch_omp(LIBXSMM_GEMM_PRECISION(ELEM_TYPE), LIBXSMM_GEMM_PRECISION(ELEM_TYPE),
-          &transa, &transb, m, n, k, &alpha, amat_hst, &m/*lda*/, bmat_hst, &k/*ldb*/,
-          &beta, gold_hst, &m/*ldc*/, 1/*index_base*/, sizeof(int) * 3,
-          stack_hst + 0, stack_hst + 1, stack_hst + 2, stack_size);
-      }
-      duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
-      printf("host: %.1f ms %.1f GFLOPS/s\n", 1000.0 * duration / nrepeat,
-        ((size_t)2 * m * n * k) * stack_size / (duration * 1E9 / nrepeat));
+    printf("device: %.1f ms %.1f GFLOPS/s\n", 1000.0 * duration / nrepeat,
+      ((size_t)2 * m * n * k) * stack_size / (duration * 1E9 / nrepeat));
+#endif
+  }
+#if defined(USE_LIBXSMM)
+# if defined(VALIDATE) && (0 != VALIDATE)
+  if (0 != check && EXIT_SUCCESS == result) {
+    ELEM_TYPE *const gold_hst = (ELEM_TYPE*)libxsmm_malloc(sizeof(ELEM_TYPE) * mn * nc);
+    const ELEM_TYPE alpha = 1, beta = 1;
+    const char transa = 'N';
+#   if defined(TRANSPOSE) && (0 != TRANSPOSE)
+    const char transb = 'N';
+#   else
+    const char transb = 'T';
+#   endif
+    memset(gold_hst, 0, sizeof(ELEM_TYPE) * mn * nc);
+    for (r = 0; r < warmup; ++r) {
+      libxsmm_gemm_batch_omp(LIBXSMM_GEMM_PRECISION(ELEM_TYPE), LIBXSMM_GEMM_PRECISION(ELEM_TYPE),
+        &transa, &transb, m, n, k, &alpha, amat_hst, &m/*lda*/, bmat_hst, &k/*ldb*/,
+        &beta, gold_hst, &m/*ldc*/, 1/*index_base*/, sizeof(int) * 3,
+        stack_hst + 0, stack_hst + 1, stack_hst + 2, stack_size);
+    }
+    memset(gold_hst, 0, sizeof(ELEM_TYPE) * mn * nc);
+    start = libxsmm_timer_tick();
+    /* CPU-kernel operates on data that is not initialized in NUMA-aware fashion */
+    for (r = 0; r < nrepeat; ++r) {
+      libxsmm_gemm_batch_omp(LIBXSMM_GEMM_PRECISION(ELEM_TYPE), LIBXSMM_GEMM_PRECISION(ELEM_TYPE),
+        &transa, &transb, m, n, k, &alpha, amat_hst, &m/*lda*/, bmat_hst, &k/*ldb*/,
+        &beta, gold_hst, &m/*ldc*/, 1/*index_base*/, sizeof(int) * 3,
+        stack_hst + 0, stack_hst + 1, stack_hst + 2, stack_size);
+    }
+    duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
+    printf("host: %.1f ms %.1f GFLOPS/s\n", 1000.0 * duration / nrepeat,
+      ((size_t)2 * m * n * k) * stack_size / (duration * 1E9 / nrepeat));
+    if (0 != suitable) {
       /* transfer result from device to host for validation */
       CHECK(c_dbcsr_acc_memcpy_d2h(cmat_dev, cmat_hst, sizeof(ELEM_TYPE) * mn * nc, stream), &result);
       CHECK(c_dbcsr_acc_stream_sync(stream), &result);
@@ -262,16 +268,11 @@ int main(int argc, char* argv[])
         printf("max.error: abs=%g rel=%g\n", abserror, relerror);
         if (0 < check && check < relerror) result = EXIT_FAILURE;
       }
-      libxsmm_free(gold_hst);
     }
-    else
-# endif
-    if (EXIT_SUCCESS == result) {
-      printf("device: %.1f ms %.1f GFLOPS/s\n", 1000.0 * duration / nrepeat,
-        ((size_t)2 * m * n * k) * stack_size / (duration * 1E9 / nrepeat));
-    }
-#endif
+    libxsmm_free(gold_hst);
   }
+# endif
+#endif
   CHECK(c_dbcsr_acc_host_mem_deallocate(stack_hst, stream), NULL);
   CHECK(c_dbcsr_acc_host_mem_deallocate(trans_hst, stream), NULL);
   CHECK(c_dbcsr_acc_host_mem_deallocate(amat_hst, stream), NULL);

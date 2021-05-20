@@ -528,6 +528,8 @@ c_dbcsr_acc_bool_t libsmm_acc_is_suitable(
   int result = 0;
 #if defined(OPENCL_LIBSMM_SUITABLE)
   double hst = 0, acc = 0;
+#else
+  ACC_OPENCL_UNUSED(stack_size);
 #endif
   switch (datatype) {
 #if defined(OPENCL_LIBSMM_F64)

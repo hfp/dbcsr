@@ -376,8 +376,8 @@ int libsmm_acc_init(void)
                   libxsmm_timer_duration(start, libxsmm_timer_tick())
                 * OPENCL_LIBSMM_AI(m, n, k, sizeof(float)));
             }
-            opencl_libsmm_sacc = sqrt(perfest.gf_ai_sratio_max
-              * exp(perfest.gf_ai_sratio_sumlog / perfest.scount));
+            opencl_libsmm_sacc = sqrt(perfest.gf_ai_sratio_max *
+              exp(perfest.gf_ai_sratio_sumlog / perfest.scount));
           }
           if (0 != perfest.dcount) {
             if (NULL != scratch) {
@@ -411,8 +411,8 @@ int libsmm_acc_init(void)
                   libxsmm_timer_duration(start, libxsmm_timer_tick())
                 * OPENCL_LIBSMM_AI(m, n, k, sizeof(double)));
             }
-            opencl_libsmm_dacc = sqrt(perfest.gf_ai_dratio_max
-              * exp(perfest.gf_ai_dratio_sumlog / perfest.dcount));
+            opencl_libsmm_dacc = sqrt(perfest.gf_ai_dratio_max *
+              exp(perfest.gf_ai_dratio_sumlog / perfest.dcount));
           }
           libxsmm_free(scratch);
         }

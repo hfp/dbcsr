@@ -124,12 +124,21 @@ int main(int argc, char* argv[])
   CHECK(c_dbcsr_acc_host_mem_allocate((void**)&trans_hst, sizeof(int) * nb, stream), &result);
   CHECK(c_dbcsr_acc_stream_sync(stream), &result); /* ensure host-data is allocated */
   /* initialize matrices */
-  for (i = 0; i < na; ++i) {
-    INIT_MAT(ELEM_TYPE, i/*seed*/ + 42, &amat_hst[i*mk], m, k, 1.0 / (nc * na));
-  }
-  for (i = 0; i < nb; ++i) {
-    INIT_MAT(ELEM_TYPE, i/*seed*/ + 24, &bmat_hst[i*kn], k, n, 1.0 / (nc * nb));
-    trans_hst[i] = i * kn;
+#if defined(_OPENMP)
+# pragma omp parallel
+#endif
+  {
+#if defined(_OPENMP)
+#   pragma omp for
+#endif
+    for (i = 0; i < na; ++i) INIT_MAT(ELEM_TYPE, i/*seed*/ + 42, &amat_hst[i*mk], m, k, 1.0 / (nc * na));
+#if defined(_OPENMP)
+#   pragma omp for
+#endif
+    for (i = 0; i < nb; ++i) {
+      INIT_MAT(ELEM_TYPE, i/*seed*/ + 24, &bmat_hst[i*kn], k, n, 1.0 / (nc * nb));
+      trans_hst[i] = i * kn;
+    }
   }
   init_stack(stack_hst, stack_size, mn, mk, kn, nc, na, nb);
   CHECK(c_dbcsr_acc_dev_mem_allocate((void**)&amat_dev, sizeof(ELEM_TYPE) * mk * na), &result);

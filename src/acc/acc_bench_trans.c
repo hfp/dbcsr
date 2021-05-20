@@ -14,6 +14,11 @@
 #if defined(__LIBXSMM)
 # include <libxsmm.h>
 # define USE_LIBXSMM
+# if defined(_OPENMP)
+#   define ACC_BENCH_USEOMP(FUNC) LIBXSMM_USEOMP(FUNC)
+# else
+#   define ACC_BENCH_USEOMP(FUNC) (FUNC)
+# endif
 # if !defined(SHUFFLE) && 0
 #   define SHUFFLE
 # endif
@@ -168,7 +173,7 @@ int main(int argc, char* argv[])
     mm = m; nn = n;
     start = libxsmm_timer_tick();
     for (r = 0; r < nodd; ++r) {
-      libxsmm_itrans_batch_omp(mat_hst, sizeof(ELEM_TYPE), mm, nn, mm, nn,
+      ACC_BENCH_USEOMP(libxsmm_itrans_batch)(mat_hst, sizeof(ELEM_TYPE), mm, nn, mm, nn,
         0/*index_base*/, sizeof(int)/*index_stride*/, stack_hst + offset, stack_size);
       swap(&mm, &nn);
     }

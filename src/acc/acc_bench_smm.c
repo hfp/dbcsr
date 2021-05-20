@@ -15,6 +15,11 @@
 #if defined(__LIBXSMM)
 # include <libxsmm.h>
 # define USE_LIBXSMM
+# if defined(_OPENMP)
+#   define ACC_BENCH_USEOMP(FUNC) LIBXSMM_USEOMP(FUNC)
+# else
+#   define ACC_BENCH_USEOMP(FUNC) (FUNC)
+# endif
 #endif
 
 #if !defined(ELEM_TYPE)
@@ -225,7 +230,8 @@ int main(int argc, char* argv[])
 #   endif
     memset(gold_hst, 0, sizeof(ELEM_TYPE) * mn * nc);
     for (r = 0; r < warmup; ++r) {
-      libxsmm_gemm_batch_omp(LIBXSMM_GEMM_PRECISION(ELEM_TYPE), LIBXSMM_GEMM_PRECISION(ELEM_TYPE),
+      ACC_BENCH_USEOMP(libxsmm_gemm_batch)(
+        LIBXSMM_GEMM_PRECISION(ELEM_TYPE), LIBXSMM_GEMM_PRECISION(ELEM_TYPE),
         &transa, &transb, m, n, k, &alpha, amat_hst, &m/*lda*/, bmat_hst, &k/*ldb*/,
         &beta, gold_hst, &m/*ldc*/, 1/*index_base*/, sizeof(int) * 3,
         stack_hst + 0, stack_hst + 1, stack_hst + 2, stack_size);
@@ -234,7 +240,8 @@ int main(int argc, char* argv[])
     start = libxsmm_timer_tick();
     /* CPU-kernel operates on data that is not initialized in NUMA-aware fashion */
     for (r = 0; r < nrepeat; ++r) {
-      libxsmm_gemm_batch_omp(LIBXSMM_GEMM_PRECISION(ELEM_TYPE), LIBXSMM_GEMM_PRECISION(ELEM_TYPE),
+      ACC_BENCH_USEOMP(libxsmm_gemm_batch)(
+        LIBXSMM_GEMM_PRECISION(ELEM_TYPE), LIBXSMM_GEMM_PRECISION(ELEM_TYPE),
         &transa, &transb, m, n, k, &alpha, amat_hst, &m/*lda*/, bmat_hst, &k/*ldb*/,
         &beta, gold_hst, &m/*ldc*/, 1/*index_base*/, sizeof(int) * 3,
         stack_hst + 0, stack_hst + 1, stack_hst + 2, stack_size);

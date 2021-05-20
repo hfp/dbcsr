@@ -188,7 +188,7 @@ int main(int argc, char* argv[])
 # endif
 #endif
   /* by default all cases are considered suitable and libsmm_acc_is_suitable is not called */
-  suitable = (NULL == env_suitable || 0 != atoi(env_suitable) || 0 != libsmm_acc_is_suitable(
+  suitable = (NULL == env_suitable || 0 == atoi(env_suitable) || 0 != libsmm_acc_is_suitable(
     1/*homogeneous*/, DBCSR_TYPE(ELEM_TYPE), stack_size, m, n, k, MAX_KERNEL_DIM));
   if (0 != suitable) {
     /* warmup execution and prebuild SMM-kernel */

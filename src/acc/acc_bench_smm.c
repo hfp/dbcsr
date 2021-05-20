@@ -78,17 +78,17 @@ int main(int argc, char* argv[])
 #else
   const int warmup = 0;
 #endif
-  const char *const env_suitable = getenv("SUITABLE");
-#if defined(VALIDATE) && (0 != VALIDATE)
-  const char *const env_check = getenv("CHECK");
-  const double check = (NULL == env_check ? -1 : fabs(atof(env_check)));
-#endif
   int *stack_hst = NULL, *stack_dev = NULL, *trans_hst = NULL, *trans_dev = NULL;
   ELEM_TYPE *amat_hst = NULL, *bmat_hst = NULL, *cmat_hst = NULL;
   ELEM_TYPE *amat_dev = NULL, *bmat_dev = NULL, *cmat_dev = NULL;
   int result = EXIT_SUCCESS, ndevices = 0, suitable, r, i;
   void *stream = NULL;
+  const char *const env_suitable = getenv("SUITABLE");
 #if defined(USE_LIBXSMM)
+# if defined(VALIDATE) && (0 != VALIDATE)
+  const char *const env_check = getenv("CHECK");
+  const double check = (NULL == env_check ? -1 : fabs(atof(env_check)));
+# endif
   libxsmm_timer_tickint start;
 # if defined(TRANSPOSE) && (0 != TRANSPOSE) && defined(VALIDATE) && (0 != VALIDATE)
   double transpose;

@@ -7,9 +7,8 @@
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
 #include "acc_libsmm.h"
-#include <stdlib.h>
+#include "acc_bench.h"
 #include <string.h>
-#include <assert.h>
 #include <stdio.h>
 
 #if defined(__LIBXSMM)

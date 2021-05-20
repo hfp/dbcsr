@@ -19,6 +19,7 @@ CFLAGS := -fPIC \
   -Wall -Wextra -pedantic \
   -Wno-overlength-strings \
   -Wno-variadic-macros \
+  -Wno-unused-function \
   -Wno-long-long \
   -D__OPENCL \
   $(NULL)

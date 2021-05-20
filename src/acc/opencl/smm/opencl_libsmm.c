@@ -31,9 +31,9 @@
 #endif
 
 #if defined(_OPENMP)
-# define OPENCL_LIBSMM_GEMMBATCH libxsmm_gemm_batch_omp
+# define OPENCL_LIBSMM_USEOMP(FUNC) LIBXSMM_USEOMP(FUNC)
 #else
-# define OPENCL_LIBSMM_GEMMBATCH libxsmm_gemm_batch
+# define OPENCL_LIBSMM_USEOMP(FUNC) (FUNC)
 #endif
 
 #if !defined(OPENCL_LIBSMM_SUITABLE) \
@@ -367,7 +367,8 @@ int libsmm_acc_init(void)
               memset(c, 0, sizeof(float) * nc * mn);
               start = libxsmm_timer_tick();
               for (i = 0; i < nrepeat; ++i) {
-                OPENCL_LIBSMM_GEMMBATCH(LIBXSMM_GEMM_PRECISION_F32, LIBXSMM_GEMM_PRECISION_F32,
+                OPENCL_LIBSMM_USEOMP(libxsmm_gemm_batch)(
+                  LIBXSMM_GEMM_PRECISION_F32, LIBXSMM_GEMM_PRECISION_F32,
                   &notrans, &notrans, m, n, k, &alpha, a, &m/*lda*/, b, &k/*ldb*/,
                   &beta, c, &m/*ldc*/, 1/*index_base*/, sizeof(int) * 3,
                   s + 0, s + 1, s + 2, stack_size);
@@ -402,7 +403,8 @@ int libsmm_acc_init(void)
               memset(c, 0, sizeof(double) * nc * mn);
               start = libxsmm_timer_tick();
               for (i = 0; i < nrepeat; ++i) {
-                OPENCL_LIBSMM_GEMMBATCH(LIBXSMM_GEMM_PRECISION_F64, LIBXSMM_GEMM_PRECISION_F64,
+                OPENCL_LIBSMM_USEOMP(libxsmm_gemm_batch)(
+                  LIBXSMM_GEMM_PRECISION_F64, LIBXSMM_GEMM_PRECISION_F64,
                   &notrans, &notrans, m, n, k, &alpha, a, &m/*lda*/, b, &k/*ldb*/,
                   &beta, c, &m/*ldc*/, 1/*index_base*/, sizeof(int) * 3,
                   s + 0, s + 1, s + 2, stack_size);

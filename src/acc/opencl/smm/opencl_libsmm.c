@@ -534,7 +534,7 @@ c_dbcsr_acc_bool_t libsmm_acc_is_suitable(
   switch (datatype) {
 #if defined(OPENCL_LIBSMM_F64)
     case dbcsr_type_real_8: if (0 < m_max && 0 < n_max && 0 < k_max
-      /* allow k_max to exceed max_kernel_dim , TODO: BLAS for large kernels (m,n) */
+      /* allow k_max to exceed max_kernel_dim, TODO: BLAS for large kernels (m,n) */
       && m_max <= max_kernel_dim && n_max <= max_kernel_dim
       /*&& 1000 <= stack_size*/
       && 0 != def_mnk/*homogeneous*/)
@@ -884,7 +884,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
 # endif
     )
     && 0 < m_max && 0 < n_max && 0 < k_max
-    /* allow k_max to exceed max_kernel_dim */
+    /* allow k_max to exceed max_kernel_dim, TODO: BLAS for large kernels (m,n) */
     && m_max <= max_kernel_dim && n_max <= max_kernel_dim
     && 0 != def_mnk/*homogeneous*/)
   {

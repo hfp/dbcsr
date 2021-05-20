@@ -18,9 +18,9 @@ MODULE dbcsr_acc_operations
    USE dbcsr_acc_stream, ONLY: acc_stream_cptr, &
                                acc_stream_type, &
                                acc_stream_synchronize
-   USE dbcsr_config, ONLY: max_kernel_dim, dbcsr_cfg
+   USE dbcsr_config, ONLY: max_kernel_dim
    USE dbcsr_mm_types, ONLY: dbcsr_ps_width
-   USE dbcsr_kinds, ONLY: int_8, real_8, dp
+   USE dbcsr_kinds, ONLY: real_8, dp
    USE dbcsr_types, ONLY: dbcsr_type_real_8
 
 !$ USE OMP_LIB, ONLY: omp_get_thread_num, omp_get_num_threads
@@ -33,22 +33,10 @@ MODULE dbcsr_acc_operations
 
    LOGICAL, PARAMETER :: careful_mod = .FALSE.
 
-   PUBLIC :: libsmm_acc_is_suitable, dbcsr_acc_do_mm_stack, dbcsr_acc_transpose
+   PUBLIC :: dbcsr_acc_do_mm_stack, dbcsr_acc_transpose
 
 #if defined (__DBCSR_ACC)
    INTERFACE
-      FUNCTION libsmm_acc_is_suitable_cu(def_mnk, data_type, &
-                                         stack_size, m_max, n_max, k_max, &
-                                         max_kernel_dim) &
-         RESULT(suitable) &
-         BIND(C, name="libsmm_acc_is_suitable")
-         IMPORT
-         INTEGER(KIND=C_INT), INTENT(IN), VALUE   :: def_mnk, data_type
-         INTEGER(KIND=C_INT), INTENT(IN), VALUE   :: stack_size, m_max, n_max, k_max
-         INTEGER(KIND=C_INT), INTENT(IN), VALUE   :: max_kernel_dim
-         INTEGER(KIND=C_INT)                      :: suitable
-      END FUNCTION libsmm_acc_is_suitable_cu
-
       FUNCTION libsmm_acc_process_cu(param_stack_host, param_stack_dev, stack_size, nparams, &
                                      data_type, a_data, b_data, c_data, m_max, &
                                      n_max, k_max, max_kernel_dim, def_mnk, &
@@ -83,44 +71,6 @@ MODULE dbcsr_acc_operations
 #endif
 
 CONTAINS
-
-   FUNCTION libsmm_acc_is_suitable(def_mnk, data_type, stack_size, &
-                                   m_max, n_max, k_max) &
-      !! Check if problem-size is suitable for ACCelerator backend.
-      RESULT(suitable)
-      LOGICAL, INTENT(IN) :: def_mnk
-      INTEGER, INTENT(IN) :: data_type, stack_size
-      INTEGER, INTENT(IN) :: m_max, n_max, k_max
-      LOGICAL             :: suitable
-
-      suitable = .NOT. dbcsr_cfg%accdrv_do_unsuitable .AND. &
-                 (def_mnk .OR. dbcsr_cfg%accdrv_do_inhomogenous)
-
-      IF (suitable .AND. (0 .LT. dbcsr_cfg%accdrv_min_flop_process)) THEN
-         suitable = (dbcsr_cfg%accdrv_min_flop_process .LT. (INT(2, KIND=int_8)*m_max*n_max*k_max))
-      ENDIF
-
-#if ! defined (__DBCSR_ACC)
-      MARK_USED(def_mnk)
-      MARK_USED(data_type)
-      MARK_USED(stack_size)
-      MARK_USED(m_max)
-      MARK_USED(n_max)
-      MARK_USED(k_max)
-      DBCSR_ABORT("__DBCSR_ACC not compiled in.")
-#else
-      IF (suitable) THEN
-         suitable = (0 .NE. libsmm_acc_is_suitable_cu( &
-                     INT(MERGE(1, 0, def_mnk), KIND=C_INT), &
-                     INT(data_type, KIND=C_INT), &
-                     INT(stack_size, KIND=C_INT), &
-                     INT(m_max, KIND=C_INT), &
-                     INT(n_max, KIND=C_INT), &
-                     INT(k_max, KIND=C_INT), &
-                     INT(max_kernel_dim, KIND=C_INT)))
-      ENDIF
-#endif
-   END FUNCTION libsmm_acc_is_suitable
 
    SUBROUTINE dbcsr_acc_do_mm_stack(param_stack_host, param_stack_dev, stack_size, data_type, &
                                     a_data, b_data, c_data, m_max, n_max, k_max, def_mnk, &

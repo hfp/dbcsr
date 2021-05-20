@@ -75,11 +75,6 @@
     ? 8 : (dbcsr_type_real_4 == (TYPEID) \
     ? 4 : 0/*unknown*/))
 
-#define OPENCL_LIBSMM_GFLOPS(M, N, K, TYPESIZE) (OPENCL_LIBSMM_AI(M, N, K, TYPESIZE) \
-  * ((0 < opencl_libsmm_sacc && 0 < opencl_libsmm_dacc) \
-  ? sqrt(opencl_libsmm_sacc * opencl_libsmm_dacc) \
-  : LIBXSMM_MAX(opencl_libsmm_sacc, opencl_libsmm_dacc)))
-
 #define OPENCL_LIBSMM_ISORT(IARR, SIZE) { int opencl_libsmm_isort_i_ = 0; \
   for (; opencl_libsmm_isort_i_ < ((int)(SIZE) - 1); ++opencl_libsmm_isort_i_) { \
     int opencl_libsmm_isort_j_ = opencl_libsmm_isort_i_ + 2; \
@@ -377,8 +372,9 @@ int libsmm_acc_init(void)
                   &beta, c, &m/*ldc*/, 1/*index_base*/, sizeof(int) * 3,
                   s + 0, s + 1, s + 2, stack_size);
               }
-              opencl_libsmm_shst = 1E-9 * ((size_t)2 * m * n * k * nrepeat * stack_size) /
-                (OPENCL_LIBSMM_AI(m, n, k, sizeof(float)) * libxsmm_timer_duration(start, libxsmm_timer_tick()));
+              opencl_libsmm_shst = 1E-9 * ((size_t)2 * m * n * k * nrepeat * stack_size) / (
+                  libxsmm_timer_duration(start, libxsmm_timer_tick())
+                * OPENCL_LIBSMM_AI(m, n, k, sizeof(float)));
             }
             opencl_libsmm_sacc = sqrt(perfest.gf_ai_sratio_max
               * exp(perfest.gf_ai_sratio_sumlog / perfest.scount));
@@ -411,8 +407,9 @@ int libsmm_acc_init(void)
                   &beta, c, &m/*ldc*/, 1/*index_base*/, sizeof(int) * 3,
                   s + 0, s + 1, s + 2, stack_size);
               }
-              opencl_libsmm_dhst = 1E-9 * ((size_t)2 * m * n * k * nrepeat * stack_size) /
-                (OPENCL_LIBSMM_AI(m, n, k, sizeof(double)) * libxsmm_timer_duration(start, libxsmm_timer_tick()));
+              opencl_libsmm_dhst = 1E-9 * ((size_t)2 * m * n * k * nrepeat * stack_size) / (
+                  libxsmm_timer_duration(start, libxsmm_timer_tick())
+                * OPENCL_LIBSMM_AI(m, n, k, sizeof(double)));
             }
             opencl_libsmm_dacc = sqrt(perfest.gf_ai_dratio_max
               * exp(perfest.gf_ai_dratio_sumlog / perfest.dcount));
@@ -483,12 +480,12 @@ int libsmm_acc_finalize(void)
                 fprintf(stderr, "INFO ACC/OpenCL: %ix%ix%i", desc->m, desc->n, desc->k);
                 switch (desc->type) {
                   case dbcsr_type_real_8: {
-                    const double est = OPENCL_LIBSMM_GFLOPS(desc->m, desc->n, desc->k, sizeof(double));
+                    const double est = OPENCL_LIBSMM_AI(desc->m, desc->n, desc->k, sizeof(double)) * opencl_libsmm_dacc;
                     fprintf(stderr, " DSMM-kernel bs=%i geo=%.1f", batchsize, geo);
                     if (0 < est) fprintf(stderr, " est=%.1f", est);
                   } break;
                   case dbcsr_type_real_4: {
-                    const double est = OPENCL_LIBSMM_GFLOPS(desc->m, desc->n, desc->k, sizeof(float));
+                    const double est = OPENCL_LIBSMM_AI(desc->m, desc->n, desc->k, sizeof(float)) * opencl_libsmm_sacc;
                     fprintf(stderr, " SSMM-kernel bs=%i geo=%.1f", batchsize, geo);
                     if (0 < est) fprintf(stderr, " est=%.1f", est);
                   } break;
@@ -540,8 +537,8 @@ c_dbcsr_acc_bool_t libsmm_acc_is_suitable(
 # endif
       && 0 != def_mnk/*homogeneous*/)
     {
-      hst = opencl_libsmm_dhst;
-      acc = OPENCL_LIBSMM_GFLOPS(m_max, n_max, k_max, sizeof(double));
+      const double ai = OPENCL_LIBSMM_AI(m_max, n_max, k_max, sizeof(double));
+      hst = ai * opencl_libsmm_dhst; acc = ai * opencl_libsmm_dacc;
       if (0 == hst || 0 == acc || hst < acc) result = 1;
     } break;
 #endif
@@ -554,8 +551,8 @@ c_dbcsr_acc_bool_t libsmm_acc_is_suitable(
 # endif
       && 0 != def_mnk/*homogeneous*/)
     {
-      hst = opencl_libsmm_shst;
-      acc = OPENCL_LIBSMM_GFLOPS(m_max, n_max, k_max, sizeof(float));
+      const double ai = OPENCL_LIBSMM_AI(m_max, n_max, k_max, sizeof(float));
+      hst = ai * opencl_libsmm_shst; acc = ai * opencl_libsmm_sacc;
       if (0 == hst || 0 == acc || hst < acc) result = 1;
     } break;
 #endif
@@ -1186,12 +1183,12 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                 fprintf(stderr, "INFO ACC/OpenCL: %ix%ix%i", m_max, n_max, k_max);
                 switch (datatype) {
                   case dbcsr_type_real_8: {
-                    const double est = OPENCL_LIBSMM_GFLOPS(m_max, n_max, k_max, sizeof(double));
+                    const double est = OPENCL_LIBSMM_AI(m_max, n_max, k_max, sizeof(double)) * opencl_libsmm_dacc;
                     fprintf(stderr, " DSMM-kernel bs=%i cur=%.1f", stack_size, gflops);
                     if (0 < est) fprintf(stderr, " est=%.1f", est);
                   } break;
                   case dbcsr_type_real_4: {
-                    const double est = OPENCL_LIBSMM_GFLOPS(m_max, n_max, k_max, sizeof(float));
+                    const double est = OPENCL_LIBSMM_AI(m_max, n_max, k_max, sizeof(float)) * opencl_libsmm_sacc;
                     fprintf(stderr, " SSMM-kernel bs=%i cur=%.1f", stack_size, gflops);
                     if (0 < est) fprintf(stderr, " est=%.1f", est);
                   } break;

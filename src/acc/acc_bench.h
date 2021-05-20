@@ -19,6 +19,11 @@
 # define MAX(A, B) ((B) < (A) ? (A) : (B))
 #endif
 
+#if !defined(INLINE) && (defined(__cplusplus) || \
+    (defined(__STDC_VERSION__) && (199901L <= __STDC_VERSION__) /*C99*/)
+# define INLINE inline
+#endif
+
 #define INIT_MAT(ELEM_TYPE, SEED, MAT, M, N, SCALE) do { \
   const double init_mat_seed1_ = (SCALE) * (SEED) + (SCALE); \
   int init_mat_i_, init_mat_j_; \
@@ -32,7 +37,7 @@
 
 
 /* artificial stack-setup for DBCSR/ACC benchmarks */
-static void init_stack(int* stack, int stack_size,
+static INLINE void init_stack(int* stack, int stack_size,
   int mn, int mk, int kn, int nc, int na, int nb)
 {
   /* navg matrix products are accumulated into a C-matrix */

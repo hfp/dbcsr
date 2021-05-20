@@ -106,6 +106,11 @@ void opencl_libsmm_print_matrix(FILE* ostream, const char* label,
   libsmm_acc_data_t type, const void* mat, int m, int n);
 #endif
 
+c_dbcsr_acc_bool_t libsmm_acc_process_suitable(
+  c_dbcsr_acc_bool_t def_mnk, libsmm_acc_data_t datatype,
+  int stack_size, int m_max, int n_max, int k_max,
+  int max_kernel_dim);
+
 #if defined(__cplusplus)
 }
 #endif

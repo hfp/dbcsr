@@ -520,65 +520,6 @@ c_dbcsr_acc_bool_t libsmm_acc_is_thread_safe(void)
 }
 
 
-c_dbcsr_acc_bool_t libsmm_acc_is_suitable(
-  c_dbcsr_acc_bool_t def_mnk, libsmm_acc_data_t datatype,
-  int stack_size, int m_max, int n_max, int k_max,
-  int max_kernel_dim)
-{
-  int result = 0;
-#if defined(OPENCL_LIBSMM_SUITABLE)
-  double hst = 0, acc = 0;
-#else
-  ACC_OPENCL_UNUSED(stack_size);
-#endif
-  switch (datatype) {
-#if defined(OPENCL_LIBSMM_F64)
-    case dbcsr_type_real_8: if (0 < m_max && 0 < n_max && 0 < k_max
-      /* allow k_max to exceed max_kernel_dim, TODO: BLAS for large kernels (m,n) */
-      && m_max <= max_kernel_dim && n_max <= max_kernel_dim
-      /*&& 1000 <= stack_size*/
-      && 0 != def_mnk/*homogeneous*/)
-    {
-# if defined(OPENCL_LIBSMM_SUITABLE)
-      const double ai = OPENCL_LIBSMM_AI(m_max, n_max, k_max, sizeof(double));
-      hst = ai * opencl_libsmm_dhst; acc = ai * opencl_libsmm_dacc;
-      if (0 == hst || 0 == acc || hst < acc)
-# endif
-      result = 1;
-    } break;
-#endif
-#if defined(OPENCL_LIBSMM_F32)
-    case dbcsr_type_real_4: if (0 < m_max && 0 < n_max && 0 < k_max
-      /* allow k_max to exceed max_kernel_dim , TODO: BLAS for large kernels (m,n) */
-      && m_max <= max_kernel_dim && n_max <= max_kernel_dim
-      /*&& 1000 <= stack_size*/
-      && 0 != def_mnk/*homogeneous*/)
-    {
-# if defined(OPENCL_LIBSMM_SUITABLE)
-      const double ai = OPENCL_LIBSMM_AI(m_max, n_max, k_max, sizeof(float));
-      hst = ai * opencl_libsmm_shst; acc = ai * opencl_libsmm_sacc;
-      if (0 == hst || 0 == acc || hst < acc)
-# endif
-      result = 1;
-    } break;
-#endif
-    default: assert(0 == result);
-  }
-#if defined(OPENCL_LIBSMM_SUITABLE)
-  if ((0 == result) &&
-      (2 <= c_dbcsr_acc_opencl_config.verbosity || 0 > c_dbcsr_acc_opencl_config.verbosity))
-  {
-    fprintf(stderr, "INFO ACC/OpenCL: %ix%ix%i %sSMM-kernel bs=%i", m_max, n_max, k_max,
-      dbcsr_type_real_8 == datatype ? "D" : (dbcsr_type_real_4 == datatype ? "S" : ""),
-      stack_size);
-    if (0 < hst && 0 < acc) fprintf(stderr, " hst=%.1f acc=%.1f GFLOPS/s", hst, acc);
-    fprintf(stderr, " not suitable%s", 0 != def_mnk ? "\n" : " (inhomogeneous)\n");
-  }
-#endif
-  return result;
-}
-
-
 int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
   void* dev_data, libsmm_acc_data_t datatype, int m, int n, int max_kernel_dim, void* stream)
 {
@@ -859,6 +800,61 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
 }
 
 
+c_dbcsr_acc_bool_t libsmm_acc_process_suitable(
+  c_dbcsr_acc_bool_t def_mnk, libsmm_acc_data_t datatype,
+  int stack_size, int m_max, int n_max, int k_max,
+  int max_kernel_dim)
+{
+  int result = 0;
+#if defined(OPENCL_LIBSMM_SUITABLE)
+  double hst = 0, acc = 0;
+#endif
+  switch (datatype) {
+#if defined(OPENCL_LIBSMM_F64)
+    case dbcsr_type_real_8: if (0 < m_max && 0 < n_max && 0 < k_max && 0 < stack_size
+      /* allow k_max to exceed max_kernel_dim, TODO: BLAS for large kernels (m,n) */
+      && m_max <= max_kernel_dim && n_max <= max_kernel_dim
+      && 0 != def_mnk/*homogeneous*/)
+    {
+# if defined(OPENCL_LIBSMM_SUITABLE)
+      const double ai = OPENCL_LIBSMM_AI(m_max, n_max, k_max, sizeof(double));
+      hst = ai * opencl_libsmm_dhst; acc = ai * opencl_libsmm_dacc;
+      if (0 == hst || 0 == acc || hst < acc)
+# endif
+      result = 1;
+    } break;
+#endif
+#if defined(OPENCL_LIBSMM_F32)
+    case dbcsr_type_real_4: if (0 < m_max && 0 < n_max && 0 < k_max && 0 < stack_size
+      /* allow k_max to exceed max_kernel_dim , TODO: BLAS for large kernels (m,n) */
+      && m_max <= max_kernel_dim && n_max <= max_kernel_dim
+      && 0 != def_mnk/*homogeneous*/)
+    {
+# if defined(OPENCL_LIBSMM_SUITABLE)
+      const double ai = OPENCL_LIBSMM_AI(m_max, n_max, k_max, sizeof(float));
+      hst = ai * opencl_libsmm_shst; acc = ai * opencl_libsmm_sacc;
+      if (0 == hst || 0 == acc || hst < acc)
+# endif
+      result = 1;
+    } break;
+#endif
+    default: assert(0 == result);
+  }
+#if defined(OPENCL_LIBSMM_SUITABLE)
+  if ((0 == result) &&
+      (2 <= c_dbcsr_acc_opencl_config.verbosity || 0 > c_dbcsr_acc_opencl_config.verbosity))
+  {
+    fprintf(stderr, "INFO ACC/OpenCL: %ix%ix%i %sSMM-kernel bs=%i", m_max, n_max, k_max,
+      dbcsr_type_real_8 == datatype ? "D" : (dbcsr_type_real_4 == datatype ? "S" : ""),
+      stack_size);
+    if (0 < hst && 0 < acc) fprintf(stderr, " hst=%.1f acc=%.1f GFLOPS/s", hst, acc);
+    fprintf(stderr, " not suitable%s", 0 != def_mnk ? "\n" : " (inhomogeneous)\n");
+  }
+#endif
+  return result;
+}
+
+
 int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, int stack_size,
   int nparams, libsmm_acc_data_t datatype, const void* dev_a_data, const void* dev_b_data, void* dev_c_data,
   int m_max, int n_max, int k_max, int max_kernel_dim, c_dbcsr_acc_bool_t def_mnk, void* stream, void* c_stream)
@@ -870,24 +866,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
     && NULL != dev_a_data && NULL != dev_b_data && NULL != dev_c_data));
   assert(0 < nparams && 0 < max_kernel_dim && NULL != stream);
   assert(0 <= stack_size && 0 <= m_max && 0 <= n_max && 0 <= k_max);
-  if (0 < stack_size && (
-# if defined(OPENCL_LIBSMM_F64)
-      dbcsr_type_real_8 == datatype
-# else
-      0
-# endif
-      ||
-# if defined(OPENCL_LIBSMM_F32)
-      dbcsr_type_real_4 == datatype
-# else
-      0
-# endif
-    )
-    && 0 < m_max && 0 < n_max && 0 < k_max
-    /* allow k_max to exceed max_kernel_dim, TODO: BLAS for large kernels (m,n) */
-    && m_max <= max_kernel_dim && n_max <= max_kernel_dim
-    && 0 != def_mnk/*homogeneous*/)
-  {
+  if (0 != libsmm_acc_process_suitable(def_mnk, datatype, stack_size, m_max, n_max, k_max, max_kernel_dim)) {
 # if !defined(OPENCL_LIBSMM_DEBUG_SMM)
     const libxsmm_timer_tickint start = libxsmm_timer_tick();
     double duration;

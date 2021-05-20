@@ -13,7 +13,6 @@ PROGRAM dbcsr_tensor_unittest
                         dbcsr_init_lib, &
                         dbcsr_type_real_8, &
                         dbcsr_print_statistics
-   USE dbcsr_config, ONLY: dbcsr_set_config
    USE dbcsr_machine, ONLY: default_output_unit
    USE dbcsr_mpiwrap, ONLY: mp_cart_create, &
                             mp_comm_free, &
@@ -68,9 +67,6 @@ PROGRAM dbcsr_tensor_unittest
 
    ! initialize libdbcsr
    CALL dbcsr_init_lib(mp_comm, io_unit)
-
-   ! test all cases even if unsuitable for the ACC backend
-   CALL dbcsr_set_config(accdrv_do_unsuitable=.TRUE.)
 
    CALL dbcsr_t_reset_randmat_seed()
 

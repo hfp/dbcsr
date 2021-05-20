@@ -31,11 +31,6 @@ int libsmm_acc_init(void);
 int libsmm_acc_finalize(void);
 c_dbcsr_acc_bool_t libsmm_acc_is_thread_safe(void);
 
-c_dbcsr_acc_bool_t libsmm_acc_is_suitable(
-  c_dbcsr_acc_bool_t def_mnk, libsmm_acc_data_t datatype,
-  int stack_size, int m_max, int n_max, int k_max,
-  int max_kernel_dim);
-
 int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
   void* dev_data, libsmm_acc_data_t datatype, int m, int n, int max_kernel_dim, void* stream);
 

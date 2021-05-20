@@ -15,7 +15,6 @@ PROGRAM dbcsr_unittest_1
    USE dbcsr_lib, ONLY: dbcsr_finalize_lib, &
                         dbcsr_init_lib, &
                         dbcsr_print_statistics
-   USE dbcsr_config, ONLY: dbcsr_set_config
    USE dbcsr_machine, ONLY: default_output_unit
    USE dbcsr_mp_methods, ONLY: dbcsr_mp_new, &
                                dbcsr_mp_release
@@ -69,9 +68,6 @@ PROGRAM dbcsr_unittest_1
 
    ! initialize libdbcsr
    CALL dbcsr_init_lib(mp_comm, io_unit)
-
-   ! test all cases even if unsuitable for the ACC backend
-   CALL dbcsr_set_config(accdrv_do_unsuitable=.TRUE.)
 
    ! initialize libdbcsr errors
    CALL timeset(routineN, handle)

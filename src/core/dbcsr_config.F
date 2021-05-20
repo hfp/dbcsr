@@ -113,7 +113,6 @@ MODULE dbcsr_config
       LOGICAL  :: accdrv_stack_sort = .TRUE.
       INTEGER  :: accdrv_min_flop_sort = 4000
       LOGICAL  :: accdrv_do_inhomogenous = .TRUE.
-      LOGICAL  :: accdrv_do_unsuitable = .FALSE.
       INTEGER  :: accdrv_binning_nbins = 4096
       INTEGER  :: accdrv_binning_binsize = 16
       LOGICAL  :: use_mempools_cpu = .FALSE.
@@ -158,7 +157,6 @@ CONTAINS
       accdrv_stack_sort, &
       accdrv_min_flop_sort, &
       accdrv_do_inhomogenous, &
-      accdrv_do_unsuitable, &
       accdrv_binning_nbins, &
       accdrv_binning_binsize, &
       use_mempools_cpu, &
@@ -187,7 +185,6 @@ CONTAINS
       LOGICAL, INTENT(IN), OPTIONAL                      :: accdrv_stack_sort
       INTEGER, INTENT(IN), OPTIONAL                      :: accdrv_min_flop_sort
       LOGICAL, INTENT(IN), OPTIONAL                      :: accdrv_do_inhomogenous
-      LOGICAL, INTENT(IN), OPTIONAL                      :: accdrv_do_unsuitable
       INTEGER, INTENT(IN), OPTIONAL                      :: accdrv_binning_nbins, &
                                                             accdrv_binning_binsize
       LOGICAL, INTENT(IN), OPTIONAL                      :: use_mempools_cpu
@@ -212,7 +209,6 @@ CONTAINS
       IF (PRESENT(accdrv_stack_sort)) dbcsr_cfg%accdrv_stack_sort = accdrv_stack_sort
       IF (PRESENT(accdrv_min_flop_sort)) dbcsr_cfg%accdrv_min_flop_sort = accdrv_min_flop_sort
       IF (PRESENT(accdrv_do_inhomogenous)) dbcsr_cfg%accdrv_do_inhomogenous = accdrv_do_inhomogenous
-      IF (PRESENT(accdrv_do_unsuitable)) dbcsr_cfg%accdrv_do_unsuitable = accdrv_do_unsuitable
       IF (PRESENT(accdrv_binning_nbins)) dbcsr_cfg%accdrv_binning_nbins = accdrv_binning_nbins
       IF (PRESENT(accdrv_binning_binsize)) dbcsr_cfg%accdrv_binning_binsize = accdrv_binning_binsize
       IF (PRESENT(use_mempools_cpu)) dbcsr_cfg%use_mempools_cpu = use_mempools_cpu
@@ -284,7 +280,6 @@ CONTAINS
       accdrv_stack_sort, &
       accdrv_min_flop_sort, &
       accdrv_do_inhomogenous, &
-      accdrv_do_unsuitable, &
       accdrv_binning_nbins, &
       accdrv_binning_binsize, &
       use_mempools_cpu, &
@@ -305,7 +300,6 @@ CONTAINS
       LOGICAL, INTENT(OUT), OPTIONAL                     :: accdrv_stack_sort
       INTEGER, INTENT(OUT), OPTIONAL                     :: accdrv_min_flop_sort
       LOGICAL, INTENT(OUT), OPTIONAL                     :: accdrv_do_inhomogenous
-      LOGICAL, INTENT(OUT), OPTIONAL                     :: accdrv_do_unsuitable
       INTEGER, INTENT(OUT), OPTIONAL                     :: accdrv_binning_nbins, &
                                                             accdrv_binning_binsize
       LOGICAL, INTENT(OUT), OPTIONAL                     :: use_mempools_cpu
@@ -333,7 +327,6 @@ CONTAINS
       IF (PRESENT(accdrv_stack_sort)) accdrv_stack_sort = default_cfg%accdrv_stack_sort
       IF (PRESENT(accdrv_min_flop_sort)) accdrv_min_flop_sort = default_cfg%accdrv_min_flop_sort
       IF (PRESENT(accdrv_do_inhomogenous)) accdrv_do_inhomogenous = default_cfg%accdrv_do_inhomogenous
-      IF (PRESENT(accdrv_do_unsuitable)) accdrv_do_unsuitable = default_cfg%accdrv_do_unsuitable
       IF (PRESENT(accdrv_binning_nbins)) accdrv_binning_nbins = default_cfg%accdrv_binning_nbins
       IF (PRESENT(accdrv_binning_binsize)) accdrv_binning_binsize = default_cfg%accdrv_binning_binsize
       IF (PRESENT(use_mempools_cpu)) use_mempools_cpu = default_cfg%use_mempools_cpu
@@ -466,8 +459,6 @@ CONTAINS
             "DBCSR| ACC: Avoid driver after busy ", dbcsr_cfg%accdrv_avoid_after_busy
          WRITE (UNIT=unit_nr, FMT='(1X,A,T80,L1)') &
             "DBCSR| ACC: Process inhomogeneous stacks", dbcsr_cfg%accdrv_do_inhomogenous
-         WRITE (UNIT=unit_nr, FMT='(1X,A,T80,L1)') &
-            "DBCSR| ACC: Process unsuitable stacks", dbcsr_cfg%accdrv_do_unsuitable
          WRITE (UNIT=unit_nr, FMT='(1X,A,T70,I11)') &
             "DBCSR| ACC: Min. flop for processing", dbcsr_cfg%accdrv_min_flop_process
          IF (dbcsr_cfg%accdrv_stack_sort) THEN

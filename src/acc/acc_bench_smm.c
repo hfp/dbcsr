@@ -86,9 +86,8 @@ int main(int argc, char* argv[])
   int *stack_hst = NULL, *stack_dev = NULL, *trans_hst = NULL, *trans_dev = NULL;
   ELEM_TYPE *amat_hst = NULL, *bmat_hst = NULL, *cmat_hst = NULL;
   ELEM_TYPE *amat_dev = NULL, *bmat_dev = NULL, *cmat_dev = NULL;
-  int result = EXIT_SUCCESS, ndevices = 0, suitable, r, i;
+  int result = EXIT_SUCCESS, ndevices = 0, r, i;
   void *stream = NULL;
-  const char *const env_suitable = getenv("SUITABLE");
 #if defined(USE_LIBXSMM)
 # if defined(VALIDATE) && (0 != VALIDATE)
   const char *const env_check = getenv("CHECK");
@@ -187,37 +186,30 @@ int main(int argc, char* argv[])
   transpose = libxsmm_timer_duration(start, libxsmm_timer_tick());
 # endif
 #endif
-  /* by default all cases are considered suitable and libsmm_acc_is_suitable is not called */
-  suitable = (NULL == env_suitable || 0 == atoi(env_suitable) || 0 != libsmm_acc_is_suitable(
-    1/*homogeneous*/, DBCSR_TYPE(ELEM_TYPE), stack_size, m, n, k, MAX_KERNEL_DIM));
-  if (0 != suitable) {
-    /* warmup execution and prebuild SMM-kernel */
-    for (r = 0; r < warmup; ++r) {
-      CHECK(libsmm_acc_process(stack_hst, stack_dev, stack_size, 3/*nparams*/, DBCSR_TYPE(ELEM_TYPE),
-        amat_dev, bmat_dev, cmat_dev, m, n, k, MAX_KERNEL_DIM, 1/*homogeneous*/, stream, stream), &result);
-    }
-    CHECK(c_dbcsr_acc_memset_zero(cmat_dev, 0/*offset*/, sizeof(ELEM_TYPE) * mn * nc, stream), &result);
+  /* warmup execution and prebuild SMM-kernel */
+  for (r = 0; r < warmup; ++r) {
+    CHECK(libsmm_acc_process(stack_hst, stack_dev, stack_size, 3/*nparams*/, DBCSR_TYPE(ELEM_TYPE),
+      amat_dev, bmat_dev, cmat_dev, m, n, k, MAX_KERNEL_DIM, 1/*homogeneous*/, stream, stream), &result);
+  }
+  CHECK(c_dbcsr_acc_memset_zero(cmat_dev, 0/*offset*/, sizeof(ELEM_TYPE) * mn * nc, stream), &result);
 #if defined(USE_LIBXSMM)
-    CHECK(c_dbcsr_acc_stream_sync(stream), &result);
-    start = libxsmm_timer_tick();
+  CHECK(c_dbcsr_acc_stream_sync(stream), &result);
+  start = libxsmm_timer_tick();
 #endif
-    for (r = 0; r < nrepeat; ++r) {
-      /* GPU-kernel is limited to C += Ai * Bi^T, i.e., NT (for NN, all Bi must be transposed upfront) */
-      CHECK(libsmm_acc_process(stack_hst, stack_dev, stack_size, 3/*nparams*/, DBCSR_TYPE(ELEM_TYPE),
-        amat_dev, bmat_dev, cmat_dev, m, n, k, MAX_KERNEL_DIM, 1/*homogeneous*/, stream, stream), &result);
-    }
-#if defined(USE_LIBXSMM)
-    CHECK(c_dbcsr_acc_stream_sync(stream), &result);
-    duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
-#   if defined(TRANSPOSE) && (0 != TRANSPOSE)
-    printf("transpose: %.1f ms %.1f GFLOPS/s\n", 1000.0 * (duration + transpose) / nrepeat,
-      1E-9 * ((size_t)2 * m * n * k * stack_size * nrepeat) / (duration + transpose));
-#   endif
-    printf("device: %.1f ms %.1f GFLOPS/s\n", 1000.0 * duration / nrepeat,
-      1E-9 * ((size_t)2 * m * n * k * stack_size * nrepeat) / duration);
-#endif
+  for (r = 0; r < nrepeat; ++r) {
+    /* GPU-kernel is limited to C += Ai * Bi^T, i.e., NT (for NN, all Bi must be transposed upfront) */
+    CHECK(libsmm_acc_process(stack_hst, stack_dev, stack_size, 3/*nparams*/, DBCSR_TYPE(ELEM_TYPE),
+      amat_dev, bmat_dev, cmat_dev, m, n, k, MAX_KERNEL_DIM, 1/*homogeneous*/, stream, stream), &result);
   }
 #if defined(USE_LIBXSMM)
+  CHECK(c_dbcsr_acc_stream_sync(stream), &result);
+  duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
+# if defined(TRANSPOSE) && (0 != TRANSPOSE)
+  printf("transpose: %.1f ms %.1f GFLOPS/s\n", 1000.0 * (duration + transpose) / nrepeat,
+    1E-9 * ((size_t)2 * m * n * k * stack_size * nrepeat) / (duration + transpose));
+# endif
+  printf("device: %.1f ms %.1f GFLOPS/s\n", 1000.0 * duration / nrepeat,
+    1E-9 * ((size_t)2 * m * n * k * stack_size * nrepeat) / duration);
 # if defined(VALIDATE) && (0 != VALIDATE)
   if (0 != check && EXIT_SUCCESS == result) {
     ELEM_TYPE *const gold_hst = (ELEM_TYPE*)libxsmm_malloc(sizeof(ELEM_TYPE) * mn * nc);
@@ -249,41 +241,39 @@ int main(int argc, char* argv[])
     duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
     printf("host: %.1f ms %.1f GFLOPS/s\n", 1000.0 * duration / nrepeat,
       1E-9 * ((size_t)2 * m * n * k * stack_size * nrepeat) / duration);
-    if (0 != suitable) {
-      /* transfer result from device to host for validation */
-      CHECK(c_dbcsr_acc_memcpy_d2h(cmat_dev, cmat_hst, sizeof(ELEM_TYPE) * mn * nc, stream), &result);
-      CHECK(c_dbcsr_acc_stream_sync(stream), &result);
-      if (EXIT_SUCCESS == result) {
-        double abserror = 0, relerror = 0;
-        for (i = 0; i < nc; ++i) {
-          const ELEM_TYPE *const gold = gold_hst + mn * i;
-          const ELEM_TYPE *const test = cmat_hst + mn * i;
-          double diff = 0, a = 0, b = 0;
-          for (r = 0; r < (m * n); ++r) {
-            const double ar = (double)gold[r];
-            const double br = (double)test[r];
-            const double d = fabs(ar - br);
-            if (d > diff) {
-              diff = d;
-              a = ar;
-              b = br;
-            }
-          }
-          if (0 < diff) {
-#   if defined(_DEBUG)
-            print(stderr, "gold = ", gold, m, n);
-            print(stderr, "test = ", test, m, n);
-            fprintf(stderr, "diff = %g (%g != %g)\n", diff, a, b);
-#   endif
-            if (abserror < diff) {
-              relerror = fabs(0 != a ? (diff / a) : (diff / b));
-              abserror = diff;
-            }
+    /* transfer result from device to host for validation */
+    CHECK(c_dbcsr_acc_memcpy_d2h(cmat_dev, cmat_hst, sizeof(ELEM_TYPE) * mn * nc, stream), &result);
+    CHECK(c_dbcsr_acc_stream_sync(stream), &result);
+    if (EXIT_SUCCESS == result) {
+      double abserror = 0, relerror = 0;
+      for (i = 0; i < nc; ++i) {
+        const ELEM_TYPE *const gold = gold_hst + mn * i;
+        const ELEM_TYPE *const test = cmat_hst + mn * i;
+        double diff = 0, a = 0, b = 0;
+        for (r = 0; r < (m * n); ++r) {
+          const double ar = (double)gold[r];
+          const double br = (double)test[r];
+          const double d = fabs(ar - br);
+          if (d > diff) {
+            diff = d;
+            a = ar;
+            b = br;
           }
         }
-        printf("max.error: abs=%g rel=%g\n", abserror, relerror);
-        if (0 < check && check < relerror) result = EXIT_FAILURE;
+        if (0 < diff) {
+#   if defined(_DEBUG)
+          print(stderr, "gold = ", gold, m, n);
+          print(stderr, "test = ", test, m, n);
+          fprintf(stderr, "diff = %g (%g != %g)\n", diff, a, b);
+#   endif
+          if (abserror < diff) {
+            relerror = fabs(0 != a ? (diff / a) : (diff / b));
+            abserror = diff;
+          }
+        }
       }
+      printf("max.error: abs=%g rel=%g\n", abserror, relerror);
+      if (0 < check && check < relerror) result = EXIT_FAILURE;
     }
     libxsmm_free(gold_hst);
   }

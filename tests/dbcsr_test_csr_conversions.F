@@ -63,9 +63,6 @@ PROGRAM dbcsr_test_csr_conversions
 
    CALL dbcsr_init_lib(mp_comm, io_unit)
 
-   ! test all cases even if unsuitable for the ACC backend
-   CALL dbcsr_set_config(accdrv_do_unsuitable=.TRUE.)
-
    npdims(:) = 0
    CALL mp_cart_create(mp_comm, 2, npdims, myploc, group)
    CALL mp_environ(numnodes, mynode, group)

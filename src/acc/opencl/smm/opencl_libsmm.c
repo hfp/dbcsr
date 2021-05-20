@@ -562,7 +562,7 @@ c_dbcsr_acc_bool_t libsmm_acc_is_suitable(
   }
 #if defined(OPENCL_LIBSMM_SUITABLE)
   if ((0 == result) &&
-      (4 <= c_dbcsr_acc_opencl_config.verbosity || 0 > c_dbcsr_acc_opencl_config.verbosity))
+      (2 <= c_dbcsr_acc_opencl_config.verbosity || 0 > c_dbcsr_acc_opencl_config.verbosity))
   {
     fprintf(stderr, "INFO ACC/OpenCL: %ix%ix%i %sSMM-kernel bs=%i", m_max, n_max, k_max,
       dbcsr_type_real_8 == datatype ? "D" : (dbcsr_type_real_4 == datatype ? "S" : ""),

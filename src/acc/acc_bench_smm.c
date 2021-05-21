@@ -96,6 +96,7 @@ int main(int argc, char* argv[])
 # if defined(VALIDATE) && (0 != VALIDATE)
   const char *const env_check = getenv("CHECK");
   const double check = (NULL == env_check ? -1 : fabs(atof(env_check) * ACC_BENCH_SMM_EPSILON(ELEM_TYPE)));
+  ELEM_TYPE *const gold_hst = (ELEM_TYPE*)(0 != check ? libxsmm_malloc(sizeof(ELEM_TYPE) * mn * nc) : NULL);
 # endif
   libxsmm_timer_tickint start;
 # if defined(TRANSPOSE) && (0 != TRANSPOSE) && defined(VALIDATE) && (0 != VALIDATE)
@@ -208,15 +209,17 @@ int main(int argc, char* argv[])
 #if defined(USE_LIBXSMM)
   CHECK(c_dbcsr_acc_stream_sync(stream), &result);
   duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
+  if (EXIT_SUCCESS == result) {
 # if defined(TRANSPOSE) && (0 != TRANSPOSE)
-  printf("transpose: %.1f ms %.1f GFLOPS/s\n", 1000.0 * (duration + transpose) / nrepeat,
-    1E-9 * ((size_t)2 * m * n * k * stack_size * nrepeat) / (duration + transpose));
+    printf("transpose: %.1f ms %.1f GFLOPS/s\n", 1000.0 * (duration + transpose) / nrepeat,
+      1E-9 * ((size_t)2 * m * n * k * stack_size * nrepeat) / (duration + transpose));
 # endif
-  printf("device: %.1f ms %.1f GFLOPS/s\n", 1000.0 * duration / nrepeat,
-    1E-9 * ((size_t)2 * m * n * k * stack_size * nrepeat) / duration);
+    printf("device: %.1f ms %.1f GFLOPS/s\n", 1000.0 * duration / nrepeat,
+      1E-9 * ((size_t)2 * m * n * k * stack_size * nrepeat) / duration);
+  }
 # if defined(VALIDATE) && (0 != VALIDATE)
-  if (0 != check && EXIT_SUCCESS == result) {
-    ELEM_TYPE *const gold_hst = (ELEM_TYPE*)libxsmm_malloc(sizeof(ELEM_TYPE) * mn * nc);
+  /* determine host's performance independent of current result code/status */
+  if (NULL != gold_hst) {
     const ELEM_TYPE alpha = 1, beta = 1;
     const char transa = 'N';
 #   if defined(TRANSPOSE) && (0 != TRANSPOSE)
@@ -245,40 +248,43 @@ int main(int argc, char* argv[])
     duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
     printf("host: %.1f ms %.1f GFLOPS/s\n", 1000.0 * duration / nrepeat,
       1E-9 * ((size_t)2 * m * n * k * stack_size * nrepeat) / duration);
-    /* transfer result from device to host for validation */
-    CHECK(c_dbcsr_acc_memcpy_d2h(cmat_dev, cmat_hst, sizeof(ELEM_TYPE) * mn * nc, stream), &result);
-    CHECK(c_dbcsr_acc_stream_sync(stream), &result);
+    /* validate correctness in case of successful result code/status */
     if (EXIT_SUCCESS == result) {
-      double abserror = 0, relerror = 0, a = 0, b = 0;
-      for (i = 0; i < nc; ++i) {
-        const ELEM_TYPE *const gold = gold_hst + mn * i;
-        const ELEM_TYPE *const test = cmat_hst + mn * i;
-        double diff = 0, ai = 0, bi = 0;
-        for (r = 0; r < (m * n); ++r) {
-          const double ar = (double)gold[r];
-          const double br = (double)test[r];
-          const double d = fabs(ar - br);
-          if (diff < d) {
-            diff = d; ai = ar; bi = br;
+      /* transfer result from device to host for validation */
+      CHECK(c_dbcsr_acc_memcpy_d2h(cmat_dev, cmat_hst, sizeof(ELEM_TYPE) * mn * nc, stream), &result);
+      CHECK(c_dbcsr_acc_stream_sync(stream), &result);
+      if (EXIT_SUCCESS == result) {
+        double abserror = 0, relerror = 0, a = 0, b = 0;
+        for (i = 0; i < nc; ++i) {
+          const ELEM_TYPE *const gold = gold_hst + mn * i;
+          const ELEM_TYPE *const test = cmat_hst + mn * i;
+          double diff = 0, ai = 0, bi = 0;
+          for (r = 0; r < (m * n); ++r) {
+            const double ar = (double)gold[r];
+            const double br = (double)test[r];
+            const double d = fabs(ar - br);
+            if (diff < d) {
+              diff = d; ai = ar; bi = br;
+            }
           }
-        }
-        if (0 < diff) {
-          const double rd = fabs(0 != ai ? (diff / ai) : (diff / bi));
+          if (0 < diff) {
+            const double rd = fabs(0 != ai ? (diff / ai) : (diff / bi));
 #   if defined(_DEBUG)
-          print(stderr, "gold = ", gold, m, n);
-          print(stderr, "test = ", test, m, n);
-          fprintf(stderr, "rel = %g (%g != %g)\n", rd, ai, bi);
+            print(stderr, "gold = ", gold, m, n);
+            print(stderr, "test = ", test, m, n);
+            fprintf(stderr, "rel = %g (%g != %g)\n", rd, ai, bi);
 #   endif
-          if (abserror < diff) {
-            abserror = diff;
-            relerror = rd;
-            a = ai; b = bi;
+            if (abserror < diff) {
+              abserror = diff;
+              relerror = rd;
+              a = ai; b = bi;
+            }
           }
         }
+        relerror /= (nc * nrepeat); /* normalize error */
+        printf("max.error: rel=%g (%g != %g)\n", relerror, a, b);
+        if (0 < check && check < relerror) result = EXIT_FAILURE;
       }
-      relerror /= (nc * nrepeat); /* normalize error */
-      printf("max.error: rel=%g (%g != %g)\n", relerror, a, b);
-      if (0 < check && check < relerror) result = EXIT_FAILURE;
     }
     libxsmm_free(gold_hst);
   }

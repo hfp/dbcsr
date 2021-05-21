@@ -41,6 +41,10 @@
 # define WARMUP 2
 #endif
 
+#define ACC_BENCH_SMM_EPSILON(T) DBCSR_CONCATENATE(ACC_BENCH_SMM_EPSILON_, T)
+#define ACC_BENCH_SMM_EPSILON_double 5E-18
+#define ACC_BENCH_SMM_EPSILON_float 5E-8
+
 #define ROUNDUP2(N, NPOT) ((((unsigned long long)N) + ((NPOT) - 1)) & ~((NPOT) - 1))
 #define CHECK(EXPR, RPTR) if ((NULL != ((const void*)(RPTR)) && EXIT_SUCCESS != *((const int*)(RPTR))) || \
   EXIT_SUCCESS != (NULL != ((const void*)(RPTR)) ? (*((int*)(RPTR)) = (EXPR)) : (EXPR))) assert(0)
@@ -91,7 +95,7 @@ int main(int argc, char* argv[])
 #if defined(USE_LIBXSMM)
 # if defined(VALIDATE) && (0 != VALIDATE)
   const char *const env_check = getenv("CHECK");
-  const double check = (NULL == env_check ? -1 : fabs(atof(env_check)));
+  const double check = (NULL == env_check ? -1 : fabs(atof(env_check) * ACC_BENCH_SMM_EPSILON(ELEM_TYPE)));
 # endif
   libxsmm_timer_tickint start;
 # if defined(TRANSPOSE) && (0 != TRANSPOSE) && defined(VALIDATE) && (0 != VALIDATE)
@@ -245,34 +249,35 @@ int main(int argc, char* argv[])
     CHECK(c_dbcsr_acc_memcpy_d2h(cmat_dev, cmat_hst, sizeof(ELEM_TYPE) * mn * nc, stream), &result);
     CHECK(c_dbcsr_acc_stream_sync(stream), &result);
     if (EXIT_SUCCESS == result) {
-      double abserror = 0, relerror = 0;
+      double abserror = 0, relerror = 0, a = 0, b = 0;
       for (i = 0; i < nc; ++i) {
         const ELEM_TYPE *const gold = gold_hst + mn * i;
         const ELEM_TYPE *const test = cmat_hst + mn * i;
-        double diff = 0, a = 0, b = 0;
+        double diff = 0, ai = 0, bi = 0;
         for (r = 0; r < (m * n); ++r) {
           const double ar = (double)gold[r];
           const double br = (double)test[r];
           const double d = fabs(ar - br);
-          if (d > diff) {
-            diff = d;
-            a = ar;
-            b = br;
+          if (diff < d) {
+            diff = d; ai = ar; bi = br;
           }
         }
         if (0 < diff) {
+          const double rd = fabs(0 != ai ? (diff / ai) : (diff / bi));
 #   if defined(_DEBUG)
           print(stderr, "gold = ", gold, m, n);
           print(stderr, "test = ", test, m, n);
-          fprintf(stderr, "diff = %g (%g != %g)\n", diff, a, b);
+          fprintf(stderr, "rel = %g (%g != %g)\n", rd, ai, bi);
 #   endif
           if (abserror < diff) {
-            relerror = fabs(0 != a ? (diff / a) : (diff / b));
             abserror = diff;
+            relerror = rd;
+            a = ai; b = bi;
           }
         }
       }
-      printf("max.error: abs=%g rel=%g\n", abserror, relerror);
+      relerror /= (nc * nrepeat); /* normalize error */
+      printf("max.error: rel=%g (%g != %g)\n", relerror, a, b);
       if (0 < check && check < relerror) result = EXIT_FAILURE;
     }
     libxsmm_free(gold_hst);

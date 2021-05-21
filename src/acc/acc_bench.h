@@ -22,6 +22,8 @@
 #if !defined(INLINE) && (defined(__cplusplus) || \
     (defined(__STDC_VERSION__) && (199901L <= __STDC_VERSION__) /*C99*/))
 # define INLINE inline
+#else
+# define INLINE
 #endif
 
 #define INIT_MAT(ELEM_TYPE, SEED, MAT, M, N, SCALE) do { \

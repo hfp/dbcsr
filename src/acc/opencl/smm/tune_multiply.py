@@ -107,7 +107,7 @@ class SmmTuner(MeasurementInterface):
         return performance
         """
         config = desired_result.configuration.data
-        run_cmd = "{} CHECK={} {}={} {}={} {}={} {}/{} 0 {} {} {} {}".format(
+        run_cmd = "{} CHECK={} {}={} {}={} {}={} {}/{} {} 0 {} {} {}".format(
             "OMP_PROC_BIND=TRUE OPENCL_LIBSMM_SMM_PARAMS=0",
             self.args.check,
             "OPENCL_LIBSMM_SMM_BATCHSIZE",

@@ -282,8 +282,8 @@ int main(int argc, char* argv[])
             }
           }
         }
-        printf("max.error: rel=%g (%g != %g)\n", relerror, a, b);
-        if (0 < check && check < relerror) result = EXIT_FAILURE;
+        printf("max.error: eps=%g (%g != %g)\n", relerror / nr, a, b);
+        if (0 < check && (nr * check) < relerror) result = EXIT_FAILURE;
       }
     }
     libxsmm_free(gold_hst);

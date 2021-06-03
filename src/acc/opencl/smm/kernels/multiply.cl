@@ -72,9 +72,8 @@ kernel void FN(global T *restrict cdata,
 #endif
   global T *restrict c = cdata + c0;
 
-  T amk[SK];
 #if (SWG != SN)
-  T bkn[SK][BN];
+  T amk[SK], bkn[SK][BN];
 # if (1 < BS)
   T cmn[BM][BN] = {{ 0 }};
 # endif
@@ -153,8 +152,7 @@ kernel void FN(global T *restrict cdata,
     barrier(CLK_LOCAL_MEM_FENCE);
     for (int m = 0; m < SM; ++m) {
       T r = 0;
-      for (int k = 0; k < SK; ++k) amk[k] = awg[m][k];
-      for (int k = 0; k < SK; ++k) r = FMA(amk[k], bkn[k], r);
+      for (int k = 0; k < SK; ++k) r = FMA(awg[m][k], bkn[k], r);
 # if (1 < BS)
       cmn[m] += r;
 # else

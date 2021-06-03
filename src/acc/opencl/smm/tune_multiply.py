@@ -49,6 +49,10 @@ class SmmTuner(MeasurementInterface):
             )
         else:
             typename = device = None
+        if device and device.group(1):
+            self.device = device.group(1)
+        else:
+            self.device = ""  # unknown
         if typename and typename.group(1) and typename.group(2):
             self.typename = typename.group(2)
             self.typeid = int(typename.group(1))
@@ -66,10 +70,6 @@ class SmmTuner(MeasurementInterface):
             raise RuntimeError(
                 "Setup failed for {}/{}!".format(self.exepath, self.exename)
             )
-        if device and device.group(1):
-            self.device = device.group(1)
-        else:
-            self.device = ""  # unknown
         # sanitize input arguments
         self.args.m = max(self.args.m, 1)
         self.args.n = [max(self.args.n, 1), self.args.m][0 == self.args.n]

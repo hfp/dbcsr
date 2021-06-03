@@ -152,12 +152,13 @@ kernel void FN(global T *restrict cdata,
 #else
     barrier(CLK_LOCAL_MEM_FENCE);
     for (int m = 0; m < SM; ++m) {
+# if (1 < BS)
+      for (int k = 0; k < SK; ++k) amk[k] = awg[m][k];
+      for (int k = 0; k < SK; ++k) cmn[m] = FMA(amk[k], bkn[k], cmn[m]);
+# else
       T r = 0;
       for (int k = 0; k < SK; ++k) amk[k] = awg[m][k];
       for (int k = 0; k < SK; ++k) r = FMA(amk[k], bkn[k], r);
-# if (1 < BS)
-      cmn[m] += r;
-# else
       if (0 != r) ATOMIC_ADD_GLOBAL(&c[SM*n+m], r);
 # endif
     }
@@ -176,10 +177,10 @@ kernel void FN(global T *restrict cdata,
 # else
 #   if defined(ATOMIC_ADD2_GLOBAL)
       for (int m = 0; m < SM; m += 2) {
-        float2 *const restrict r = (float2*)(cmn + m);
-        if (0 != r) {
-          ATOMIC_ADD2_GLOBAL((global volatile float2*)(c + SM * n + m), *r);
-          *r = 0; /* reset */
+        float2 *const restrict r2 = (float2*)(cmn + m);
+        if (0 != r2) {
+          ATOMIC_ADD2_GLOBAL((global volatile float2*)(c + SM * n + m), *r2);
+          *r2 = 0; /* reset */
         }
       }
 #   else

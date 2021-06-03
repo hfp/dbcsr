@@ -49,7 +49,7 @@ class SmmTuner(MeasurementInterface):
             )
         else:
             typename = device = None
-        if (typename is not None) and typename.group(1) and typename.group(2):
+        if typename and typename.group(1) and typename.group(2):
             self.typename = typename.group(2)
             self.typeid = int(typename.group(1))
             # construct label used for the database session
@@ -66,7 +66,7 @@ class SmmTuner(MeasurementInterface):
             raise RuntimeError(
                 "Setup failed for {}/{}!".format(self.exepath, self.exename)
             )
-        if (device is not None) and device.group(1):
+        if device and device.group(1):
             self.device = device.group(1)
         else:
             self.device = ""  # unknown
@@ -132,7 +132,7 @@ class SmmTuner(MeasurementInterface):
             )
         else:
             performance = None
-        if (performance is not None) and performance.group(1) and performance.group(3):
+        if performance and performance.group(1) and performance.group(3):
             mseconds = float(performance.group(1))
             gflops = float(performance.group(3))
             if self.gflops < gflops:

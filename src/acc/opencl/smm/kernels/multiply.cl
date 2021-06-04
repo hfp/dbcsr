@@ -174,10 +174,10 @@ kernel void FN(global T *restrict cdata,
 # else
 #   if defined(ATOMIC_ADD2_GLOBAL)
       for (int m = 0; m < SM; m += 2) {
-        float2 *const restrict r2 = (float2*)(cmn + m);
-        if (0 != r2) {
-          ATOMIC_ADD2_GLOBAL((global volatile float2*)(c + SM * n + m), *r2);
-          *r2 = 0; /* reset */
+        /*if (0 != cmn[m] && 0 != cmn[m+1])*/ {
+          const float2 r2 = (float2)(cmn[m], cmn[m+1]);
+          ATOMIC_ADD2_GLOBAL((global volatile float2*)(c + SM * n + m), r2);
+          cmn[m] = cmn[m+1] = 0; /* reset */
         }
       }
 #   else

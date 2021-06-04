@@ -892,7 +892,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
             case dbcsr_type_real_8: {
               extensions = "cl_khr_fp64 cl_khr_int64_base_atomics";
               if (EXIT_SUCCESS == c_dbcsr_acc_opencl_device_ext(active_device, &extensions, 1)) {
-                atomic_ops = "-DTA=long -DCMPXCHG=atom_cmpxchg -DXCHG=atom_xchg";
+                atomic_ops = "-DTA=long -DTN=3 -DCMPXCHG=atom_cmpxchg -DXCHG=atom_xchg";
                 tname = "double";
                 fname[0] = 'd';
               }
@@ -900,7 +900,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
             case dbcsr_type_real_4: {
               extensions = "cl_khr_global_int32_base_atomics";
               if (EXIT_SUCCESS == c_dbcsr_acc_opencl_device_ext(active_device, &extensions, 1)) {
-                atomic_ops = "-DTA=int -DCMPXCHG=atomic_cmpxchg -DXCHG=atomic_xchg";
+                atomic_ops = "-DTA=int -DTN=1 -DCMPXCHG=atomic_cmpxchg -DXCHG=atomic_xchg";
                 tname = "float";
                 fname[0] = 's';
               }

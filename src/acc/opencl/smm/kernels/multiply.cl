@@ -151,11 +151,11 @@ kernel void FN(global T *restrict cdata,
 #else
     barrier(CLK_LOCAL_MEM_FENCE);
     for (int m = 0; m < SM; ++m) {
+# if (1 < BS)
+      for (int k = 0; k < SK; ++k) cmn[m] = FMA(awg[m][k], bkn[k], cmn[m]);
+# else
       T r = 0;
       for (int k = 0; k < SK; ++k) r = FMA(awg[m][k], bkn[k], r);
-# if (1 < BS)
-      cmn[m] += r;
-# else
       if (0 != r) ATOMIC_ADD_GLOBAL(&c[SM*n+m], r);
 # endif
     }

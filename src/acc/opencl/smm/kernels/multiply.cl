@@ -31,12 +31,18 @@ inline void atomic_add_global_cmpxchg(global volatile T* dst, T inc)
 __attribute__((always_inline))
 inline void atomic_add_global_xchg(global volatile T* dst, T inc)
 {
+#if defined(__NV_CL_C_VERSION) && (1 == TN)
+  asm("{ .reg .f32 t; atom.global.add.f32 t, [%0], %1; }" :: "l"(dst), "f"(inc));
+#elif defined(__NV_CL_C_VERSION) && (3 == TN)
+  asm("{ .reg .f64 t; atom.global.add.f64 t, [%0], %1; }" :: "l"(dst), "d"(inc));
+#else
   union { T f; TA a; } old_val = { .f = inc }, try_val, new_val = { .f = 0 };
   do {
     try_val.a = XCHG((global volatile TA*)dst, new_val.a);
     try_val.f += old_val.f;
     old_val.a = XCHG((global volatile TA*)dst, try_val.a);
   } while (old_val.a != new_val.a);
+#endif
 }
 
 #if defined(ATOMIC_ADD2_GLOBAL)

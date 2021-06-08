@@ -155,7 +155,9 @@ kernel void FN(global T *restrict cdata,
       }
     }
 #else
+# if (1 < SWG)
     barrier(CLK_LOCAL_MEM_FENCE);
+# endif
     for (int m = 0; m < SM; ++m) {
 # if (1 < BS)
       for (int k = 0; k < SK; ++k) cmn[m] = FMA(awg[m][k], bkn[k], cmn[m]);
@@ -199,7 +201,6 @@ kernel void FN(global T *restrict cdata,
       c = cdata + c1;
       c0 = c1;
     }
-    barrier(CLK_LOCAL_MEM_FENCE);
 #endif
   }
 }

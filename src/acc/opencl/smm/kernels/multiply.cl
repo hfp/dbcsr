@@ -97,6 +97,13 @@ kernel void FN(global T *restrict cdata,
   for (int i = 0; i < batchsize; ++i)
 #endif
   {
+#if (1 < BS)
+    const int c1 = (i < (batchsize - 1) ? (params[3*i+5] - 1) : -1);
+    const int a0 = params[3*i+0] - 1, b0 = params[3*i+1] - 1;
+#else
+    const int a0 = params[0] - 1, b0 = params[1] - 1;
+#endif
+    GLOBAL const T *const restrict a = adata + a0;
 #if (SWG != SN)
     const int im = idx / NBN;
     const int m0 = im * BM, m1 = min(m0 + BM, SM);
@@ -106,16 +113,6 @@ kernel void FN(global T *restrict cdata,
     const int bm = (SM + SN - 1) / SN;
     const int m0 = idx * bm, m1 = min(m0 + bm, SM);
     const int n = idx;
-#endif
-#if (1 < BS)
-    const int c1 = (i < (batchsize - 1) ? (params[3*i+5] - 1) : -1);
-    const int a0 = params[3*i+0] - 1, b0 = params[3*i+1] - 1;
-#else
-    const int a0 = params[0] - 1, b0 = params[1] - 1;
-#endif
-    GLOBAL const T *const restrict a = adata + a0;
-
-#if (SWG == SN)
     /* transpose A-matrix into local buffer */
     for (int m = m0; m < m1; ++m) {
       for (int k = 0; k < SK; ++k) awg[m][k] = a[SM*k+m];

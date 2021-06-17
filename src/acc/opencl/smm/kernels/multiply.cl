@@ -110,11 +110,14 @@ kernel void FN(global T *restrict cdata,
     const int n0 = (idx - im * NBN) * BN;
     const int n1 = min(n0 + BN, SN);
 #else
-    const int bm = (SM + SN - 1) / SN;
+# if (SM != SN)
+    const int bm = (SM + SN - 1) / SN, n = idx;
     const int m0 = idx * bm, m1 = min(m0 + bm, SM);
-    const int n = idx;
-    /* transpose A-matrix into local buffer */
-    for (int m = m0; m < m1; ++m) {
+    for (int m = m0; m < m1; ++m)
+# else
+    const int m = idx, n = idx;
+# endif
+    { /* transpose A-matrix into local buffer */
       for (int k = 0; k < SK; ++k) awg[m][k] = a[SM*k+m];
     }
 #endif

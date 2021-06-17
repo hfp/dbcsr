@@ -110,14 +110,15 @@ kernel void FN(global T *restrict cdata,
     const int n0 = (idx - im * NBN) * BN;
     const int n1 = min(n0 + BN, SN);
 #else
+    const int n = idx;
 # if (SM != SN)
-    const int bm = (SM + SN - 1) / SN, n = idx;
+    const int bm = (SM + SN - 1) / SN;
     const int m0 = idx * bm, m1 = min(m0 + bm, SM);
-    for (int m = m0; m < m1; ++m)
+    for (int m = m0; m < m1; ++m) {
 # else
-    const int m = idx, n = idx;
+    { const int m = idx;
 # endif
-    { /* transpose A-matrix into local buffer */
+      /* transpose A-matrix into local buffer */
       for (int k = 0; k < SK; ++k) awg[m][k] = a[SM*k+m];
     }
 #endif
@@ -156,6 +157,7 @@ kernel void FN(global T *restrict cdata,
     }
 #else
 # if (1 < SWG)
+    /* finish copy-transpose */
     barrier(CLK_LOCAL_MEM_FENCE);
 # endif
     for (int m = 0; m < SM; ++m) {
@@ -170,7 +172,7 @@ kernel void FN(global T *restrict cdata,
 #endif
 
 #if (1 < BS)
-    if (c0 != c1) { /* copy private tile to global memory */
+    if (c0 != c1) { /* apply private tile to global memory */
 # if (SWG != SN)
       for (int m = 0; m < BM; ++m) for (int n = 0; n < BN; ++n) {
         const int gm = m + m0, gn = n + n0;

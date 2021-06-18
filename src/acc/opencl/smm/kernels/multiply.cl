@@ -83,42 +83,38 @@ kernel void FN(global T *restrict cdata,
 # if (1 < BS)
   T cmn[BM][BN] = {{ 0 }};
 # endif
+  const int m0 = (idx / NBN) * BM, m1 = min(m0 + BM, SM);
+  const int n0 = (idx % NBN) * BN, n1 = min(n0 + BN, SN);
 #else
   local T awg[SM][SK];
   T bkn[SK];
 # if (1 < BS)
   T cmn[SM] = { 0 };
 # endif
+# if (SM != SN)
+  const int bm = (SM + SN - 1) / SN;
+  const int m0 = idx * bm, m1 = min(m0 + bm, SM);
+# endif
 #endif
 
   /* intra-kernel mini-batch of SMMs */
 #if (1 < BS)
   const int batchsize = min(BS, stack_size - BS * gid);
-  for (int i = 0; i < batchsize; ++i)
-#endif
-  {
-#if (1 < BS)
+  for (int i = 0; i < batchsize; ++i) {
     const int c1 = (i < (batchsize - 1) ? (params[3*i+5] - 1) : -1);
     const int a0 = params[3*i+0] - 1, b0 = params[3*i+1] - 1;
 #else
-    const int a0 = params[0] - 1, b0 = params[1] - 1;
+  { const int a0 = params[0] - 1, b0 = params[1] - 1;
 #endif
     GLOBAL const T *const restrict a = adata + a0;
-#if (SWG != SN)
-    const int im = idx / NBN;
-    const int m0 = im * BM, m1 = min(m0 + BM, SM);
-    const int n0 = (idx - im * NBN) * BN;
-    const int n1 = min(n0 + BN, SN);
-#else
-    const int n = idx;
+
+    /* transpose A-matrix into local buffer */
+#if (SWG == SN)
 # if (SM != SN)
-    const int bm = (SM + SN - 1) / SN;
-    const int m0 = idx * bm, m1 = min(m0 + bm, SM);
     for (int m = m0; m < m1; ++m) {
 # else
     { const int m = idx;
 # endif
-      /* transpose A-matrix into local buffer */
       for (int k = 0; k < SK; ++k) awg[m][k] = a[SM*k+m];
     }
 #endif
@@ -133,7 +129,7 @@ kernel void FN(global T *restrict cdata,
 #if (SWG != SN)
         for (int n = n0; n < n1; ++n) bkn[k][n-n0] = b[SN*k+n];
 #else
-        bkn[k] = b[SN*k+n];
+        bkn[k] = b[SN*k+idx];
 #endif
       }
 #if (1 < BS)
@@ -166,7 +162,7 @@ kernel void FN(global T *restrict cdata,
 # else
       T r = 0;
       for (int k = 0; k < SK; ++k) r = FMA(awg[m][k], bkn[k], r);
-      if (0 != r) ATOMIC_ADD_GLOBAL(&c[SM*n+m], r);
+      if (0 != r) ATOMIC_ADD_GLOBAL(&c[SM*idx+m], r);
 # endif
     }
 #endif
@@ -186,14 +182,14 @@ kernel void FN(global T *restrict cdata,
       for (int m = 0; m < SM; m += 2) {
         /*if (0 != cmn[m] && 0 != cmn[m+1])*/ {
           const float2 r2 = (float2)(cmn[m], cmn[m+1]);
-          ATOMIC_ADD2_GLOBAL((global volatile float2*)(c + SM * n + m), r2);
+          ATOMIC_ADD2_GLOBAL((global volatile float2*)(c + SM * idx + m), r2);
           cmn[m] = cmn[m+1] = 0; /* reset */
         }
       }
 #   else
       for (int m = 0; m < SM; ++m) {
         if (0 != cmn[m]) {
-          ATOMIC_ADD_GLOBAL(&c[SM*n+m], cmn[m]);
+          ATOMIC_ADD_GLOBAL(&c[SM*idx+m], cmn[m]);
           cmn[m] = 0; /* reset */
         }
       }

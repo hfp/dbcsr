@@ -61,6 +61,7 @@ inline void atomic_add_global_cmpxchg2(global volatile float2* dst, float2 inc)
 #endif
 
 
+__attribute__((reqd_work_group_size(SWG, 1, 1)))
 kernel void FN(global T *restrict cdata,
   GLOBAL const T *restrict adata, GLOBAL const T *restrict bdata,
 #if (1 < BS)

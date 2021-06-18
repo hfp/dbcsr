@@ -42,8 +42,8 @@
 #endif
 
 #define ACC_BENCH_SMM_EPSILON(T) DBCSR_CONCATENATE(ACC_BENCH_SMM_EPSILON_, T)
-#define ACC_BENCH_SMM_EPSILON_double 5E-18
-#define ACC_BENCH_SMM_EPSILON_float 5E-8
+#define ACC_BENCH_SMM_EPSILON_double 5E-7
+#define ACC_BENCH_SMM_EPSILON_float 5E-7
 
 #define ROUNDUP2(N, NPOT) ((((unsigned long long)N) + ((NPOT) - 1)) & ~((NPOT) - 1))
 #define CHECK(EXPR, RPTR) if ((NULL != ((const void*)(RPTR)) && EXIT_SUCCESS != *((const int*)(RPTR))) || \

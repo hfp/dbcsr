@@ -166,7 +166,7 @@ kernel void FN(global T *restrict cdata,
     /* finish copy-transpose */
     barrier(CLK_LOCAL_MEM_FENCE);
 # endif
-      __attribute__((opencl_unroll_hint(SM)))
+    __attribute__((opencl_unroll_hint(SM)))
     for (int m = 0; m < SM; ++m) {
 # if (1 < BS)
       __attribute__((opencl_unroll_hint(SK)))

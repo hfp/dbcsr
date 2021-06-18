@@ -188,6 +188,7 @@ kernel void FN(global T *restrict cdata,
       }
 # else
 #   if defined(ATOMIC_ADD2_GLOBAL)
+      __attribute__((opencl_unroll_hint(SM)))
       for (int m = 0; m < SM; m += 2) {
         /*if (0 != cmn[m] && 0 != cmn[m+1])*/ {
           const float2 r2 = (float2)(cmn[m], cmn[m+1]);
@@ -196,6 +197,7 @@ kernel void FN(global T *restrict cdata,
         }
       }
 #   else
+      __attribute__((opencl_unroll_hint(SM)))
       for (int m = 0; m < SM; ++m) {
         if (0 != cmn[m]) {
           ATOMIC_ADD_GLOBAL(&c[SM*idx+m], cmn[m]);

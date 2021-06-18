@@ -100,6 +100,7 @@ kernel void FN(global T *restrict cdata,
   /* intra-kernel mini-batch of SMMs */
 #if (1 < BS)
   const int batchsize = min(BS, stack_size - BS * gid);
+  __attribute__((opencl_unroll_hint(1)))
   for (int i = 0; i < batchsize; ++i) {
     const int c1 = (i < (batchsize - 1) ? (params[3*i+5] - 1) : -1);
     const int a0 = params[3*i+0] - 1, b0 = params[3*i+1] - 1;
@@ -140,9 +141,11 @@ kernel void FN(global T *restrict cdata,
     /* calculate private result-tile */
 #if (SWG != SN)
     for (int m = m0; m < m1; ++m) {
+      __attribute__((opencl_unroll_hint(SK)))
       for (int k = 0; k < SK; ++k) amk[k] = a[SM*k+m];
       for (int n = n0; n < n1; ++n) {
         T r = 0;
+        __attribute__((opencl_unroll_hint(SK)))
         for (int k = 0; k < SK; ++k) r = FMA(amk[k], bkn[k][n-n0], r);
 # if (1 < BS)
         cmn[m-m0][n-n0] += r;
@@ -158,9 +161,11 @@ kernel void FN(global T *restrict cdata,
 # endif
     for (int m = 0; m < SM; ++m) {
 # if (1 < BS)
+      __attribute__((opencl_unroll_hint(SK)))
       for (int k = 0; k < SK; ++k) cmn[m] = FMA(awg[m][k], bkn[k], cmn[m]);
 # else
       T r = 0;
+      __attribute__((opencl_unroll_hint(SK)))
       for (int k = 0; k < SK; ++k) r = FMA(awg[m][k], bkn[k], r);
       if (0 != r) ATOMIC_ADD_GLOBAL(&c[SM*idx+m], r);
 # endif
@@ -170,11 +175,14 @@ kernel void FN(global T *restrict cdata,
 #if (1 < BS)
     if (c0 != c1) { /* apply private tile to global memory */
 # if (SWG != SN)
-      for (int m = 0; m < BM; ++m) for (int n = 0; n < BN; ++n) {
-        const int gm = m + m0, gn = n + n0;
-        if (gm < SM && gn < SN && 0 != cmn[m][n]) {
-          ATOMIC_ADD_GLOBAL(&c[SM*gn+gm], cmn[m][n]);
-          cmn[m][n] = 0; /* reset */
+      for (int m = 0; m < BM; ++m) {
+        __attribute__((opencl_unroll_hint(BN)))
+        for (int n = 0; n < BN; ++n) {
+          const int gm = m + m0, gn = n + n0;
+          if (gm < SM && gn < SN && 0 != cmn[m][n]) {
+            ATOMIC_ADD_GLOBAL(&c[SM*gn+gm], cmn[m][n]);
+            cmn[m][n] = 0; /* reset */
+          }
         }
       }
 # else

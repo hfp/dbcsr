@@ -180,8 +180,10 @@ kernel void FN(global T *restrict cdata,
     UNROLL_NV(SM)
     for (int m = 0; m < SM; ++m) {
 # if (1 < BS)
+      T r = cmn[m];
       UNROLL(SK)
-      for (int k = 0; k < SK; ++k) cmn[m] = FMA(awg[m][k], bkn[k], cmn[m]);
+      for (int k = 0; k < SK; ++k) r = FMA(awg[m][k], bkn[k], r);
+      cmn[m] = r;
 # else
       T r = 0;
       UNROLL(SK)

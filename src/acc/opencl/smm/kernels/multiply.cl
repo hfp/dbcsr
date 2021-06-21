@@ -7,6 +7,12 @@
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
 
+#if (200/*CL_VERSION_2_0*/ <= __OPENCL_VERSION__)
+# define UNROLL(N) __attribute__((opencl_unroll_hint(N)))
+#else
+# define UNROLL(N)
+#endif
+
 #define BMN ((SM + SN - 1) / SN)
 /* number of M-blocks */
 #define NBM ((SM + BM - 1) / BM)
@@ -101,7 +107,7 @@ kernel void FN(global T *restrict cdata,
   /* intra-kernel mini-batch of SMMs */
 #if (1 < BS)
   const int batchsize = min(BS, stack_size - BS * gid);
-  __attribute__((opencl_unroll_hint(1)))
+  UNROLL(1)
   for (int i = 0; i < batchsize; ++i) {
     const int c1 = (i < (batchsize - 1) ? (params[3*i+5] - 1) : -1);
     const int a0 = params[3*i+0] - 1, b0 = params[3*i+1] - 1;
@@ -113,12 +119,12 @@ kernel void FN(global T *restrict cdata,
     /* transpose A-matrix into local buffer */
 #if (SWG == SN)
 # if (SM != SN)
-    __attribute__((opencl_unroll_hint(BMN)))
+    UNROLL(BMN)
     for (int m = m0; m < m1; ++m) {
 # else
     { const int m = idx;
 # endif
-      __attribute__((opencl_unroll_hint(SK)))
+      UNROLL(SK)
       for (int k = 0; k < SK; ++k) awg[m][k] = a[SM*k+m];
     }
 #endif
@@ -129,10 +135,10 @@ kernel void FN(global T *restrict cdata,
 #endif
     { /* copy B-matrix into private buffer */
       GLOBAL const T *const restrict b = bdata + b0;
-      __attribute__((opencl_unroll_hint(SK)))
+      UNROLL(SK)
       for (int k = 0; k < SK; ++k) {
 #if (SWG != SN)
-        /*__attribute__((opencl_unroll_hint(BN)))*/
+        /*UNROLL(BN)*/
         for (int n = n0; n < n1; ++n) bkn[k][n-n0] = b[SN*k+n];
 #else
         bkn[k] = b[SN*k+idx];
@@ -145,14 +151,14 @@ kernel void FN(global T *restrict cdata,
 
     /* calculate private result-tile */
 #if (SWG != SN)
-    /*__attribute__((opencl_unroll_hint(BM)))*/
+    /*UNROLL(BM)*/
     for (int m = m0; m < m1; ++m) {
-      __attribute__((opencl_unroll_hint(SK)))
+      UNROLL(SK)
       for (int k = 0; k < SK; ++k) amk[k] = a[SM*k+m];
-      /*__attribute__((opencl_unroll_hint(BN)))*/
+      /*UNROLL(BN)*/
       for (int n = n0; n < n1; ++n) {
         T r = 0;
-        __attribute__((opencl_unroll_hint(SK)))
+        UNROLL(SK)
         for (int k = 0; k < SK; ++k) r = FMA(amk[k], bkn[k][n-n0], r);
 # if (1 < BS)
         cmn[m-m0][n-n0] += r;
@@ -166,14 +172,14 @@ kernel void FN(global T *restrict cdata,
     /* finish copy-transpose */
     barrier(CLK_LOCAL_MEM_FENCE);
 # endif
-    __attribute__((opencl_unroll_hint(SM)))
+    UNROLL(SM)
     for (int m = 0; m < SM; ++m) {
 # if (1 < BS)
-      __attribute__((opencl_unroll_hint(SK)))
+      UNROLL(SK)
       for (int k = 0; k < SK; ++k) cmn[m] = FMA(awg[m][k], bkn[k], cmn[m]);
 # else
       T r = 0;
-      __attribute__((opencl_unroll_hint(SK)))
+      UNROLL(SK)
       for (int k = 0; k < SK; ++k) r = FMA(awg[m][k], bkn[k], r);
       if (0 != r) ATOMIC_ADD_GLOBAL(&c[SM*idx+m], r);
 # endif
@@ -183,9 +189,9 @@ kernel void FN(global T *restrict cdata,
 #if (1 < BS)
     if (c0 != c1) { /* apply private tile to global memory */
 # if (SWG != SN)
-      __attribute__((opencl_unroll_hint(1)))
+      UNROLL(1)
       for (int m = 0; m < BM; ++m) {
-        __attribute__((opencl_unroll_hint(BN)))
+        UNROLL(BN)
         for (int n = 0; n < BN; ++n) {
           const int gm = m + m0, gn = n + n0;
           if (gm < SM && gn < SN && 0 != cmn[m][n]) {
@@ -196,7 +202,7 @@ kernel void FN(global T *restrict cdata,
       }
 # else
 #   if defined(ATOMIC_ADD2_GLOBAL)
-      __attribute__((opencl_unroll_hint(SM)))
+      UNROLL(SM)
       for (int m = 0; m < SM; m += 2) {
         /*if (0 != cmn[m] && 0 != cmn[m+1])*/ {
           const float2 r2 = (float2)(cmn[m], cmn[m+1]);
@@ -205,7 +211,7 @@ kernel void FN(global T *restrict cdata,
         }
       }
 #   else
-      __attribute__((opencl_unroll_hint(SM)))
+      UNROLL(SM)
       for (int m = 0; m < SM; ++m) {
         if (0 != cmn[m]) {
           ATOMIC_ADD_GLOBAL(&c[SM*idx+m], cmn[m]);

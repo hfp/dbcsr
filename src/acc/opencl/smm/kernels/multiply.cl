@@ -13,9 +13,9 @@
 # define UNROLL(N)
 #endif
 #if defined(__NV_CL_C_VERSION)
-# define UNROLL_NV UNROLL
+# define UNROLL_NV(N) UNROLL(N)
 #else
-# define UNROLL_NV
+# define UNROLL_NV(N)
 #endif
 
 #define BMN ((SM + SN - 1) / SN)

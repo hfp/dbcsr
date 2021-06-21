@@ -12,6 +12,11 @@
 #else
 # define UNROLL(N)
 #endif
+#if defined(__NV_CL_C_VERSION)
+# define UNROLL_NV UNROLL
+#else
+# define UNROLL_NV
+#endif
 
 #define BMN ((SM + SN - 1) / SN)
 /* number of M-blocks */
@@ -172,7 +177,7 @@ kernel void FN(global T *restrict cdata,
     /* finish copy-transpose */
     barrier(CLK_LOCAL_MEM_FENCE);
 # endif
-    UNROLL(SM)
+    UNROLL_NV(SM)
     for (int m = 0; m < SM; ++m) {
 # if (1 < BS)
       UNROLL(SK)

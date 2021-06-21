@@ -191,7 +191,9 @@ kernel void FN(global T *restrict cdata,
     /* finish copy-transpose */
     barrier(CLK_LOCAL_MEM_FENCE);
 # endif
-    UNROLL_NV(SM)
+# if !defined(INTEL) || (16 != SM && 32 != SM)
+    UNROLL(SM)
+# endif
     for (int m = 0; m < SM; ++m) {
 # if (1 < BS)
       T r = cmn[m];

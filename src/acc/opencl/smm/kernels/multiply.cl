@@ -95,7 +95,7 @@ kernel void FN(global T *restrict cdata,
   global T *restrict c = cdata + c0;
 
 #if (SWG != SN)
-  T amk[SK]
+  T amk[SK];
 # if defined(COPY_B)
   T bkn[SK][BN];
 # endif

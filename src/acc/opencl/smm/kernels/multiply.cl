@@ -17,6 +17,9 @@
 #else
 # define UNROLL_NV(N)
 #endif
+#if 0
+# define COPY_B
+#endif
 
 #define BMN ((SM + SN - 1) / SN)
 /* number of M-blocks */
@@ -92,7 +95,10 @@ kernel void FN(global T *restrict cdata,
   global T *restrict c = cdata + c0;
 
 #if (SWG != SN)
-  T amk[SK], bkn[SK][BN];
+  T amk[SK]
+# if defined(COPY_B)
+  T bkn[SK][BN];
+# endif
 # if (1 < BS)
   T cmn[BM][BN] = {{ 0 }};
 # endif
@@ -100,7 +106,9 @@ kernel void FN(global T *restrict cdata,
   const int n0 = (idx % NBN) * BN, n1 = min(n0 + BN, SN);
 #else
   local T awg[SM][SK];
+# if defined(COPY_B)
   T bkn[SK];
+# endif
 # if (1 < BS)
   T cmn[SM] = { 0 };
 # endif
@@ -120,6 +128,7 @@ kernel void FN(global T *restrict cdata,
   { const int a0 = params[0] - 1, b0 = params[1] - 1;
 #endif
     GLOBAL const T *const restrict a = adata + a0;
+    GLOBAL const T *const restrict b = bdata + b0;
 
     /* transpose A-matrix into local buffer */
 #if (SWG == SN)
@@ -135,24 +144,25 @@ kernel void FN(global T *restrict cdata,
 #endif
 
     /* avoiding to load same B-tile seems to be not beneficial */
-#if (1 < BS) && 0
+#if defined(COPY_B)
+# if (1 < BS) && 0
     if (b0 != b1)
-#endif
+# endif
     { /* copy B-matrix into private buffer */
-      GLOBAL const T *const restrict b = bdata + b0;
       UNROLL(SK)
       for (int k = 0; k < SK; ++k) {
-#if (SWG != SN)
+# if (SWG != SN)
         UNROLL_NV(BN)
         for (int n = n0; n < n1; ++n) bkn[k][n-n0] = b[SN*k+n];
-#else
+# else
         bkn[k] = b[SN*k+idx];
-#endif
+# endif
       }
-#if (1 < BS)
+# if (1 < BS)
       b1 = b0;
-#endif
+# endif
     }
+#endif
 
     /* calculate private result-tile */
 #if (SWG != SN)
@@ -164,7 +174,11 @@ kernel void FN(global T *restrict cdata,
       for (int n = n0; n < n1; ++n) {
         T r = 0;
         UNROLL(SK)
+# if defined(COPY_B)
         for (int k = 0; k < SK; ++k) r = FMA(amk[k], bkn[k][n-n0], r);
+# else
+        for (int k = 0; k < SK; ++k) r = FMA(amk[k], b[SN*k+n], r);
+# endif
 # if (1 < BS)
         cmn[m-m0][n-n0] += r;
 # else
@@ -181,13 +195,18 @@ kernel void FN(global T *restrict cdata,
     for (int m = 0; m < SM; ++m) {
 # if (1 < BS)
       T r = cmn[m];
-      UNROLL(SK)
-      for (int k = 0; k < SK; ++k) r = FMA(awg[m][k], bkn[k], r);
-      cmn[m] = r;
 # else
       T r = 0;
+# endif
       UNROLL(SK)
+# if defined(COPY_B)
       for (int k = 0; k < SK; ++k) r = FMA(awg[m][k], bkn[k], r);
+# else
+      for (int k = 0; k < SK; ++k) r = FMA(awg[m][k], b[SN*k+idx], r);
+# endif
+# if (1 < BS)
+      cmn[m] = r;
+# else
       if (0 != r) ATOMIC_ADD_GLOBAL(&c[SM*idx+m], r);
 # endif
     }

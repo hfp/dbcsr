@@ -143,9 +143,9 @@ kernel void FN(global T *restrict cdata,
     }
 #endif
 
-    /* avoiding to load same B-tile seems to be not beneficial */
 #if defined(COPY_B)
 # if (1 < BS) && 0
+    /* avoiding to load same B-tile seems to be not beneficial */
     if (b0 != b1)
 # endif
     { /* copy B-matrix into private buffer */

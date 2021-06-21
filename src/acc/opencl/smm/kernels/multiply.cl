@@ -143,7 +143,7 @@ kernel void FN(global T *restrict cdata,
       UNROLL(SK)
       for (int k = 0; k < SK; ++k) {
 #if (SWG != SN)
-        /*UNROLL(BN)*/
+        UNROLL_NV(BN)
         for (int n = n0; n < n1; ++n) bkn[k][n-n0] = b[SN*k+n];
 #else
         bkn[k] = b[SN*k+idx];

@@ -206,7 +206,7 @@ kernel void FN(global T *restrict cdata,
       }
     }
 #else
-# if !defined(INTEL) || (16 != SM && 32 != SM)
+# if !defined(INTEL)
     UNROLL(SM)
 # endif
     for (int m = 0; m < SM; ++m) {

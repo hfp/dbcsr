@@ -97,7 +97,8 @@ kernel void FN(global T *restrict cdata,
   int b1 = -1;
 # endif
 #else
-  const int a0 = params[0] - 1, b0 = params[1] - 1;
+  GLOBAL const T *const restrict a = adata + params[0] - 1;
+  GLOBAL const T *const restrict b = bdata + params[1] - 1;
 #endif
   int c0 = params[2] - 1;
   global T *restrict c = cdata + c0;
@@ -134,14 +135,14 @@ kernel void FN(global T *restrict cdata,
   const int batchsize = min(BS, stack_size - BS * gid);
   UNROLL(1)
   for (int i = 0; i < batchsize; ++i) {
-    const int c1 = (i < (batchsize - 1) ? (params[3*i+5] - 1) : -1);
-    const int a0 = params[3*i+0] - 1, b0 = params[3*i+1] - 1;
+    const int c1 = (i < (batchsize - 1) ? (params[5] - 1) : -1);
+    const int a0 = params[0] - 1, b0 = params[1] - 1;
+    GLOBAL const T *const restrict a = adata + a0;
+    GLOBAL const T *const restrict b = bdata + b0;
+    params += 3; /* next set of indexes */
 #else
   {
 #endif
-    GLOBAL const T *const restrict a = adata + a0;
-    GLOBAL const T *const restrict b = bdata + b0;
-
     /* transpose A-matrix into local buffer */
 #if !defined(PRIVATE_A)
 # if (SM != SN || SWG != SN)

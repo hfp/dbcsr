@@ -154,6 +154,7 @@ class SmmTuner(MeasurementInterface):
     def update_jsons(self, filenames):
         """update device name of all JSONs"""
         if self.device:
+            updated = False
             for filename in filenames:
                 try:
                     with open(filename, "r") as file:
@@ -166,8 +167,11 @@ class SmmTuner(MeasurementInterface):
                                 json.dump(data, file)
                                 file.write("\n")
                                 print("Updated {} to {}.".format(filename, self.device))
+                                updated = True
                 except (json.JSONDecodeError, KeyError):
                     print("Failed to update {}.".format(filename))
+            if not updated:
+                print("All JSONs target {}.".format(self.device))
         else:
             print("Cannot determine device name.")
 

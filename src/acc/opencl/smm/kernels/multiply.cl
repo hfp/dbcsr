@@ -26,6 +26,12 @@
 #if 0
 # define PRIVATE_B
 #endif
+#if 0
+# define TRACK_B
+#endif
+#if 1
+# define TRACK_C
+#endif
 
 
 #if !defined(cl_intel_global_float_atomics)
@@ -124,7 +130,6 @@ kernel void FN(global T *restrict cdata,
   const int batchsize = min(BS, stack_size - BS * gid);
   UNROLL(1)
   for (int i = 0; i < batchsize; ++i) {
-    const int c1 = (i < (batchsize - 1) ? (params[3*i+5] - 1) : -1);
     const int a0 = params[3*i+0] - 1, b0 = params[3*i+1] - 1;
 #else
   { const int a0 = params[0] - 1, b0 = params[1] - 1;
@@ -146,8 +151,7 @@ kernel void FN(global T *restrict cdata,
 #endif
 
 #if defined(PRIVATE_B)
-# if (1 < BS) && 0
-    /* avoiding to load same B-tile seems to be not beneficial */
+# if defined(TRACK_B) && (1 < BS)
     if (b0 != b1)
 # endif
     { /* copy B-matrix into private buffer */
@@ -238,42 +242,49 @@ kernel void FN(global T *restrict cdata,
 #endif
 
 #if (1 < BS)
-    if (c0 != c1) { /* apply private tile to global memory */
+    { /* atomically commit private C-tile to global memory */
+# if defined(TRACK_C)
+      const int c1 = (i < (batchsize - 1) ? (params[3*i+5] - 1) : -1);
+      if (c0 != c1) {
+        c0 = c1; /* next iteration */
+# else
+      {
+# endif
 # if (SWG != SN)
-      UNROLL(1)
-      for (int m = 0; m < BM; ++m) {
-        UNROLL(BN)
-        for (int n = 0; n < BN; ++n) {
-          const int gm = m + m0, gn = n + n0;
-          if (gm < SM && gn < SN && 0 != cmn[m][n]) {
-            ATOMIC_ADD_GLOBAL(&c[SM*gn+gm], cmn[m][n]);
-            cmn[m][n] = 0; /* reset */
+        UNROLL(1)
+        for (int m = 0; m < BM; ++m) {
+          UNROLL(BN)
+          for (int n = 0; n < BN; ++n) {
+            const int gm = m + m0, gn = n + n0;
+            if (gm < SM && gn < SN && 0 != cmn[m][n]) {
+              ATOMIC_ADD_GLOBAL(&c[SM*gn+gm], cmn[m][n]);
+              cmn[m][n] = 0; /* reset */
+            }
           }
         }
-      }
 # else
 #   if defined(ATOMIC_ADD2_GLOBAL)
-      UNROLL(SM)
-      for (int m = 0; m < SM; m += 2) {
-        /*if (0 != cmn[m] && 0 != cmn[m+1])*/ {
-          const float2 r2 = (float2)(cmn[m], cmn[m+1]);
-          ATOMIC_ADD2_GLOBAL((global volatile float2*)(c + SM * idx + m), r2);
-          cmn[m] = cmn[m+1] = 0; /* reset */
+        UNROLL(SM)
+        for (int m = 0; m < SM; m += 2) {
+          /*if (0 != cmn[m] && 0 != cmn[m+1])*/ {
+            const float2 r2 = (float2)(cmn[m], cmn[m+1]);
+            ATOMIC_ADD2_GLOBAL((global volatile float2*)(c + SM * idx + m), r2);
+            cmn[m] = cmn[m+1] = 0; /* reset */
+          }
         }
-      }
 #   else
-      UNROLL(SM)
-      for (int m = 0; m < SM; ++m) {
-        if (0 != cmn[m]) {
-          ATOMIC_ADD_GLOBAL(&c[SM*idx+m], cmn[m]);
-          cmn[m] = 0; /* reset */
+        UNROLL(SM)
+        for (int m = 0; m < SM; ++m) {
+          if (0 != cmn[m]) {
+            ATOMIC_ADD_GLOBAL(&c[SM*idx+m], cmn[m]);
+            cmn[m] = 0; /* reset */
+          }
         }
-      }
 #   endif
 # endif
-      /* next iteration */
-      c = cdata + c1;
-      c0 = c1;
+        /* next iteration */
+        c = cdata + c0;
+      }
     }
 #endif
   }

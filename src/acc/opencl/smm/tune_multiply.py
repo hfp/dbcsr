@@ -91,18 +91,18 @@ class SmmTuner(MeasurementInterface):
         manipulator = ConfigurationManipulator()
         manipulator.add_parameter(
             IntegerParameter("BS", self.args.bs, self.args.bs)
-            if os.environ["OPENCL_LIBSMM_SMM_BATCHSIZE"]
+            if os.environ["OPENCL_LIBSMM_SMM_BS"]
             else IntegerParameter("BS", 1, self.args.mb)
         )
 
         manipulator.add_parameter(
             IntegerParameter("BM", self.args.bm, self.args.bm)
-            if os.environ["OPENCL_LIBSMM_SMM_BLOCK_M"]
+            if os.environ["OPENCL_LIBSMM_SMM_BM"]
             else IntegerParameter("BM", 1, self.args.m)
         )
         manipulator.add_parameter(
             IntegerParameter("BN", self.args.bn, self.args.bn)
-            if os.environ["OPENCL_LIBSMM_SMM_BLOCK_N"]
+            if os.environ["OPENCL_LIBSMM_SMM_BN"]
             else IntegerParameter("BN", 1, self.args.n)
         )
         # register signal handler (CTRL-C)
@@ -127,11 +127,11 @@ class SmmTuner(MeasurementInterface):
         run_cmd = "{} CHECK={} {}={} {}={} {}={} {}/{} {} {} {} {} {}".format(
             "OMP_PROC_BIND=TRUE OPENCL_LIBSMM_SMM_PARAMS=0",
             self.args.check,
-            "OPENCL_LIBSMM_SMM_BATCHSIZE",
+            "OPENCL_LIBSMM_SMM_BS",
             config["BS"],
-            "OPENCL_LIBSMM_SMM_BLOCK_M",
+            "OPENCL_LIBSMM_SMM_BM",
             config["BM"],
-            "OPENCL_LIBSMM_SMM_BLOCK_N",
+            "OPENCL_LIBSMM_SMM_BN",
             config["BN"],
             self.exepath,
             self.exename,
@@ -311,8 +311,8 @@ if __name__ == "__main__":
         "--initial-bm",
         type=int,
         default=(
-            int(os.environ["OPENCL_LIBSMM_SMM_BLOCK_M"])
-            if (os.environ["OPENCL_LIBSMM_SMM_BLOCK_M"])
+            int(os.environ["OPENCL_LIBSMM_SMM_BM"])
+            if (os.environ["OPENCL_LIBSMM_SMM_BM"])
             else 0
         ),
         nargs="?",
@@ -324,8 +324,8 @@ if __name__ == "__main__":
         "--initial-bn",
         type=int,
         default=(
-            int(os.environ["OPENCL_LIBSMM_SMM_BLOCK_N"])
-            if (os.environ["OPENCL_LIBSMM_SMM_BLOCK_N"])
+            int(os.environ["OPENCL_LIBSMM_SMM_BN"])
+            if (os.environ["OPENCL_LIBSMM_SMM_BN"])
             else 0
         ),
         nargs="?",
@@ -337,8 +337,8 @@ if __name__ == "__main__":
         "--initial-bs",
         type=int,
         default=(
-            int(os.environ["OPENCL_LIBSMM_SMM_BATCHSIZE"])
-            if (os.environ["OPENCL_LIBSMM_SMM_BATCHSIZE"])
+            int(os.environ["OPENCL_LIBSMM_SMM_BS"])
+            if (os.environ["OPENCL_LIBSMM_SMM_BS"])
             else 24
         ),
         nargs="?",

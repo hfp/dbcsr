@@ -93,7 +93,7 @@ kernel void FN(global T *restrict cdata,
   GLOBAL const int *const restrict params = param_stack + gid * (3 * BS);
   /* indexes given by param_stack are one-based */
   int c0 = params[2] - 1;
-#if (1 < BS)
+#if defined(TRACK_B) && (1 < BS)
   int b1 = -1;
 #endif
   global T *restrict c = cdata + c0;
@@ -152,9 +152,11 @@ kernel void FN(global T *restrict cdata,
 
 #if defined(PRIVATE_B)
 # if defined(TRACK_B) && (1 < BS)
-    if (b0 != b1)
-# endif
+    if (b0 != b1) {
+      b1 = b0;
+# else
     { /* copy B-matrix into private buffer */
+# endif
       UNROLL(SK)
       for (int k = 0; k < SK; ++k) {
 # if (SWG != SN)
@@ -166,9 +168,6 @@ kernel void FN(global T *restrict cdata,
         bkn[k] = b[SN*k+idx];
 # endif
       }
-# if (1 < BS)
-      b1 = b0;
-# endif
     }
 #endif
 

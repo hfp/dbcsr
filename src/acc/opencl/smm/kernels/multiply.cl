@@ -7,6 +7,14 @@
  * SPDX-License-Identifier: GPL-2.0+                                                              *
  *------------------------------------------------------------------------------------------------*/
 
+#define BMN ((SM + SN - 1) / SN)
+/* number of M-blocks */
+#define NBM ((SM + BM - 1) / BM)
+/* number of N-blocks */
+#define NBN ((SN + BN - 1) / BN)
+/* size of workgroup (WG) */
+#define SWG (NBM * NBN)
+
 #if (200/*CL_VERSION_2_0*/ <= __OPENCL_VERSION__)
 # define UNROLL(N) __attribute__((opencl_unroll_hint(N)))
 #else
@@ -18,14 +26,6 @@
 #if 0
 # define PRIVATE_B
 #endif
-
-#define BMN ((SM + SN - 1) / SN)
-/* number of M-blocks */
-#define NBM ((SM + BM - 1) / BM)
-/* number of N-blocks */
-#define NBN ((SN + BN - 1) / BN)
-/* size of workgroup (WG) */
-#define SWG (NBM * NBN)
 
 
 #if !defined(cl_intel_global_float_atomics)
@@ -217,9 +217,17 @@ kernel void FN(global T *restrict cdata,
 # endif
       UNROLL(SK)
 # if defined(PRIVATE_B)
+#   if defined(PRIVATE_A)
+      for (int k = 0; k < SK; ++k) r = FMA(a[SM*k+m], bkn[k], r);
+#   else
       for (int k = 0; k < SK; ++k) r = FMA(awg[m][k], bkn[k], r);
+#   endif
 # else
+#   if defined(PRIVATE_A)
+      for (int k = 0; k < SK; ++k) r = FMA(a[SM*k+m], b[SN*k+idx], r);
+#   else
       for (int k = 0; k < SK; ++k) r = FMA(awg[m][k], b[SN*k+idx], r);
+#   endif
 # endif
 # if (1 < BS)
       cmn[m] = r;

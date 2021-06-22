@@ -90,12 +90,16 @@ kernel void FN(global T *restrict cdata,
 #endif
 {
   const int gid = get_group_id(0), idx = get_local_id(0);
-  GLOBAL const int *const restrict params = param_stack + gid * (3 * BS);
   /* indexes given by param_stack are one-based */
-  int c0 = params[2] - 1;
-#if defined(TRACK_B) && (1 < BS)
+  GLOBAL const int *restrict params = param_stack + gid * (3 * BS);
+#if (1 < BS)
+# if defined(TRACK_B)
   int b1 = -1;
+# endif
+#else
+  const int a0 = params[0] - 1, b0 = params[1] - 1;
 #endif
+  int c0 = params[2] - 1;
   global T *restrict c = cdata + c0;
 
 #if !defined(PRIVATE_A)
@@ -133,7 +137,7 @@ kernel void FN(global T *restrict cdata,
     const int c1 = (i < (batchsize - 1) ? (params[3*i+5] - 1) : -1);
     const int a0 = params[3*i+0] - 1, b0 = params[3*i+1] - 1;
 #else
-  { const int a0 = params[0] - 1, b0 = params[1] - 1;
+  {
 #endif
     GLOBAL const T *const restrict a = adata + a0;
     GLOBAL const T *const restrict b = bdata + b0;

@@ -91,18 +91,18 @@ class SmmTuner(MeasurementInterface):
         manipulator = ConfigurationManipulator()
         manipulator.add_parameter(
             IntegerParameter("BS", self.args.bs, self.args.bs)
-            if os.environ["OPENCL_LIBSMM_SMM_BS"]
+            if os.getenv("OPENCL_LIBSMM_SMM_BS")
             else IntegerParameter("BS", 1, self.args.mb)
         )
 
         manipulator.add_parameter(
             IntegerParameter("BM", self.args.bm, self.args.bm)
-            if os.environ["OPENCL_LIBSMM_SMM_BM"]
+            if os.getenv("OPENCL_LIBSMM_SMM_BM")
             else IntegerParameter("BM", 1, self.args.m)
         )
         manipulator.add_parameter(
             IntegerParameter("BN", self.args.bn, self.args.bn)
-            if os.environ["OPENCL_LIBSMM_SMM_BN"]
+            if os.getenv("OPENCL_LIBSMM_SMM_BN")
             else IntegerParameter("BN", 1, self.args.n)
         )
         # register signal handler (CTRL-C)
@@ -310,11 +310,7 @@ if __name__ == "__main__":
         "-bm",
         "--initial-bm",
         type=int,
-        default=(
-            int(os.environ["OPENCL_LIBSMM_SMM_BM"])
-            if (os.environ["OPENCL_LIBSMM_SMM_BM"])
-            else 0
-        ),
+        default=int(os.getenv("OPENCL_LIBSMM_SMM_BM", "0")),
         nargs="?",
         dest="bm",
         help="Initial block/tile size (BM)",
@@ -323,11 +319,7 @@ if __name__ == "__main__":
         "-bn",
         "--initial-bn",
         type=int,
-        default=(
-            int(os.environ["OPENCL_LIBSMM_SMM_BN"])
-            if (os.environ["OPENCL_LIBSMM_SMM_BN"])
-            else 0
-        ),
+        default=int(os.getenv("OPENCL_LIBSMM_SMM_BN", "0")),
         nargs="?",
         dest="bn",
         help="Initial block/tile size (BN)",
@@ -336,11 +328,7 @@ if __name__ == "__main__":
         "-bs",
         "--initial-bs",
         type=int,
-        default=(
-            int(os.environ["OPENCL_LIBSMM_SMM_BS"])
-            if (os.environ["OPENCL_LIBSMM_SMM_BS"])
-            else 24
-        ),
+        default=int(os.getenv("OPENCL_LIBSMM_SMM_BS", "24")),
         nargs="?",
         dest="bs",
         help="Initial (mini-)batch size (BS)",

@@ -12,13 +12,11 @@
 #else
 # define UNROLL(N)
 #endif
-#if defined(__NV_CL_C_VERSION)
-# define UNROLL_NV(N) UNROLL(N)
-#else
-# define UNROLL_NV(N)
+#if (SWG != SN)
+# define PRIVATE_A
 #endif
 #if 0
-# define COPY_B
+# define PRIVATE_B
 #endif
 
 #define BMN ((SM + SN - 1) / SN)
@@ -94,9 +92,14 @@ kernel void FN(global T *restrict cdata,
 #endif
   global T *restrict c = cdata + c0;
 
+#if !defined(PRIVATE_A)
+  local T awg[SM][SK];
+#endif
 #if (SWG != SN)
+# if defined(PRIVATE_A)
   T amk[SK];
-# if defined(COPY_B)
+# endif
+# if defined(PRIVATE_B)
   T bkn[SK][BN];
 # endif
 # if (1 < BS)
@@ -105,8 +108,7 @@ kernel void FN(global T *restrict cdata,
   const int m0 = (idx / NBN) * BM, m1 = min(m0 + BM, SM);
   const int n0 = (idx % NBN) * BN, n1 = min(n0 + BN, SN);
 #else
-  local T awg[SM][SK];
-# if defined(COPY_B)
+# if defined(PRIVATE_B)
   T bkn[SK];
 # endif
 # if (1 < BS)
@@ -131,8 +133,8 @@ kernel void FN(global T *restrict cdata,
     GLOBAL const T *const restrict b = bdata + b0;
 
     /* transpose A-matrix into local buffer */
-#if (SWG == SN)
-# if (SM != SN)
+#if !defined(PRIVATE_A)
+# if (SM != SN || SWG != SN)
     UNROLL(BMN)
     for (int m = m0; m < m1; ++m) {
 # else
@@ -143,7 +145,7 @@ kernel void FN(global T *restrict cdata,
     }
 #endif
 
-#if defined(COPY_B)
+#if defined(PRIVATE_B)
 # if (1 < BS) && 0
     /* avoiding to load same B-tile seems to be not beneficial */
     if (b0 != b1)
@@ -152,7 +154,9 @@ kernel void FN(global T *restrict cdata,
       UNROLL(SK)
       for (int k = 0; k < SK; ++k) {
 # if (SWG != SN)
-        UNROLL_NV(BN)
+#   if defined(__NV_CL_C_VERSION)
+        UNROLL(BN)
+#   endif
         for (int n = n0; n < n1; ++n) bkn[k][n-n0] = b[SN*k+n];
 # else
         bkn[k] = b[SN*k+idx];
@@ -164,20 +168,35 @@ kernel void FN(global T *restrict cdata,
     }
 #endif
 
+#if !defined(PRIVATE_A) && (1 < SWG)
+    /* finish copy-transpose */
+    barrier(CLK_LOCAL_MEM_FENCE);
+#endif
+
     /* calculate private result-tile */
 #if (SWG != SN)
     /*UNROLL(BM)*/
     for (int m = m0; m < m1; ++m) {
+# if defined(PRIVATE_A)
       UNROLL(SK)
       for (int k = 0; k < SK; ++k) amk[k] = a[SM*k+m];
+# endif
       /*UNROLL(BN)*/
       for (int n = n0; n < n1; ++n) {
         T r = 0;
         UNROLL(SK)
-# if defined(COPY_B)
+# if defined(PRIVATE_B)
+#   if defined(PRIVATE_A)
         for (int k = 0; k < SK; ++k) r = FMA(amk[k], bkn[k][n-n0], r);
+#   else
+        for (int k = 0; k < SK; ++k) r = FMA(awg[m][k], bkn[k][n-n0], r);
+#   endif
 # else
+#   if defined(PRIVATE_A)
         for (int k = 0; k < SK; ++k) r = FMA(amk[k], b[SN*k+n], r);
+#   else
+        for (int k = 0; k < SK; ++k) r = FMA(awg[m][k], b[SN*k+n], r);
+#   endif
 # endif
 # if (1 < BS)
         cmn[m-m0][n-n0] += r;
@@ -187,10 +206,6 @@ kernel void FN(global T *restrict cdata,
       }
     }
 #else
-# if (1 < SWG)
-    /* finish copy-transpose */
-    barrier(CLK_LOCAL_MEM_FENCE);
-# endif
 # if !defined(INTEL) || (16 != SM && 32 != SM)
     UNROLL(SM)
 # endif
@@ -201,7 +216,7 @@ kernel void FN(global T *restrict cdata,
       T r = 0;
 # endif
       UNROLL(SK)
-# if defined(COPY_B)
+# if defined(PRIVATE_B)
       for (int k = 0; k < SK; ++k) r = FMA(awg[m][k], bkn[k], r);
 # else
       for (int k = 0; k < SK; ++k) r = FMA(awg[m][k], b[SN*k+idx], r);

@@ -263,6 +263,7 @@ int libsmm_acc_init(void)
       result = c_dbcsr_acc_init();
     }
 #endif
+    libxsmm_init();
     if (EXIT_SUCCESS == result) {
       const char *const env_params = getenv("OPENCL_LIBSMM_SMM_PARAMS");
       if (NULL == env_params || '0' != *env_params) {
@@ -502,6 +503,17 @@ int libsmm_acc_finalize(void)
       }
     }
     opencl_libsmm_shst = opencl_libsmm_dhst = opencl_libsmm_sacc = opencl_libsmm_dacc = 0;
+# if !defined(__DBCSR_ACC)
+    /* DBCSR shall call c_dbcsr_acc_init as well as libsmm_acc_init (since both interfaces are used).
+     * Also, libsmm_acc_init may privately call c_dbcsr_acc_init (as it depends on the ACC interface).
+     * The implementation of c_dbcsr_acc_init should hence be safe against "over initialization".
+     * However, DBCSR only calls c_dbcsr_acc_init (and expects an implicit libsmm_acc_init).
+     */
+    if (EXIT_SUCCESS == result) {
+      result = libsmm_acc_finalize();
+    }
+# endif
+    libxsmm_finalize();
   }
 #endif
   /* c_dbcsr_acc_finalize is not called since it can be used independently */

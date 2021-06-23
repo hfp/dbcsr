@@ -234,7 +234,7 @@ int opencl_libsmm_device(void* stream, cl_device_id* device, const char** config
       }
 #if !defined(OPENCL_LIBSMM_DEVMATCH)
       else {
-        *config = name;
+        *config = opencl_libsmm_devices[0];
       }
 #endif
     }

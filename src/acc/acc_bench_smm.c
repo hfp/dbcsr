@@ -55,28 +55,41 @@ static void print(FILE* ostream, const char* label, const ELEM_TYPE* mat, int m,
 #endif
 
 
-int main(int argc, char* argv[])
+static int parse_params(int argc, char* argv[], FILE** file,
+  int* inr, int* iss, int* ism, int* isn, int* isk, int* inc, int* ina, int* inb)
 {
-  int result = EXIT_SUCCESS, inr = 0, iss = 0, ism = 0, isn = 0, isk = 0, inc = 0, ina = 0, inb = 0;
-  FILE* file = 1 < argc ? fopen(argv[1], "r") : NULL;
-  if (NULL == file) {
-    inr = (1 < argc ? atoi(argv[1]) : 0);
-    iss = (2 < argc ? atoi(argv[2]) : 0);
-    ism = (3 < argc ? atoi(argv[3]) : 0);
-    isn = (4 < argc ? atoi(argv[4]) : 0);
-    isk = (5 < argc ? atoi(argv[5]) : 0);
-    inc = (6 < argc ? atoi(argv[6]) : 0);
-    ina = (7 < argc ? atoi(argv[7]) : 0);
-    inb = (8 < argc ? atoi(argv[8]) : 0);
+  int result = EXIT_SUCCESS;
+  assert(file && inr && iss && ism && isn && isk && inc && ina && inb);
+  if (NULL == *file) *file = (1 < argc ? fopen(argv[1], "r") : NULL);
+  if (NULL == *file) {
+    *inr = (1 < argc ? atoi(argv[1]) : 0);
+    *iss = (2 < argc ? atoi(argv[2]) : 0);
+    *ism = (3 < argc ? atoi(argv[3]) : 0);
+    *isn = (4 < argc ? atoi(argv[4]) : 0);
+    *isk = (5 < argc ? atoi(argv[5]) : 0);
+    *inc = (6 < argc ? atoi(argv[6]) : 0);
+    *ina = (7 < argc ? atoi(argv[7]) : 0);
+    *inb = (8 < argc ? atoi(argv[8]) : 0);
   }
   else {
     char buffer[1024];
-    result = ((NULL != fgets(buffer, sizeof(buffer), file) &&
+    *inr = *iss = *ism = *isn = *isk = *inc = *ina = *inb = 0;
+    result = ((NULL != fgets(buffer, sizeof(buffer), *file) &&
         0 <= sscanf(buffer, "%i %i %i %i %i %i %i %i",
-          &inr, &iss, &ism, &isn, &isk, &inc, &ina, &inb))
+          inr, iss, ism, isn, isk, inc, ina, inb))
       ? EXIT_SUCCESS : EXIT_FAILURE);
   }
+  return result;
+}
+
+
+int main(int argc, char* argv[])
+{
+  FILE* file = NULL;
+  int result = EXIT_SUCCESS;
   do {
+    int inr = 0, iss = 0, ism = 0, isn = 0, isk = 0, inc = 0, ina = 0, inb = 0;
+    int result = parse_params(argc, argv, &file, &inr, &iss, &ism, &isn, &isk, &inc, &ina, &inb);
     const int nrepeat = (0 < inr ? inr : 3);
     const int stack_size = (0 < iss ? iss : 30000);
     const int m = (0 < ism ? ism : 23);
@@ -124,10 +137,7 @@ int main(int argc, char* argv[])
       printf("%s%s%i %i %i %i %i %i %i %i\n", 0 < argc ? argv[0] : "", 0 < argc ? " " : "",
         nrepeat, stack_size, m, n, k, nc, na, nb);
     }
-    else { /* end of input/argument-file reached */
-      if (NULL != file) fclose(file);
-      exit(EXIT_SUCCESS);
-    }
+    else break; /* end of input/argument-file reached */
     CHECK(c_dbcsr_acc_init(), &result);
     /* note: libsmm_acc_init() may imply acc_init() */
     CHECK(libsmm_acc_init(), &result);
@@ -330,6 +340,7 @@ int main(int argc, char* argv[])
       fprintf(stderr, "FAILED\n");
     }
   } while (NULL != file);
+  if (NULL != file) fclose(file);
   return result;
 }
 

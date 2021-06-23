@@ -235,9 +235,11 @@ int opencl_libsmm_device(void* stream, cl_device_id* device, const char** config
         }
         else
 #endif
+        {
 #if defined(OPENCL_LIBSMM_PARAMS_DEVICE)
-        *config = OPENCL_LIBSMM_PARAMS_DEVICE;
+          *config = OPENCL_LIBSMM_PARAMS_DEVICE;
 #endif
+        }
       }
     }
   }

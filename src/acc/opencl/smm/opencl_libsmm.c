@@ -217,26 +217,28 @@ int opencl_libsmm_device(void* stream, cl_device_id* device, const char** config
     char buffer[ACC_OPENCL_BUFFERSIZE];
     result = clGetDeviceInfo(*device, CL_DEVICE_NAME,
       ACC_OPENCL_BUFFERSIZE, buffer, NULL);
-#if defined(OPENCL_LIBSMM_PARAMS_DEVICE)
-    *config = OPENCL_LIBSMM_PARAMS_DEVICE;
-#else
     *config = NULL;
-#endif
-    for (; i < ACC_OPENCL_DEVICES_MAXCOUNT; ++i) {
-      const char *const name = opencl_libsmm_devices[i];
-      if ('\0' == *name) {
-        if (2 <= ++empty) break;
+    if (CL_SUCCESS == result) {
+      for (; i < ACC_OPENCL_DEVICES_MAXCOUNT; ++i) {
+        const char *const name = opencl_libsmm_devices[i];
+        if ('\0' == *name) {
+          if (2 <= ++empty) break;
+        }
+        else if (0 == strncmp(buffer, name, ACC_OPENCL_BUFFERSIZE)) {
+          *config = name; break;
+        }
       }
-      else if (CL_SUCCESS == result &&
-        0 == strncmp(buffer, name, ACC_OPENCL_BUFFERSIZE))
-      {
-        *config = name; break;
-      }
+      if (NULL == *config) { /* no matching device */
 #if !defined(OPENCL_LIBSMM_DEVMATCH)
-      else {
-        *config = opencl_libsmm_devices[0];
-      }
+        if ('\0' != *opencl_libsmm_devices[0]) {
+          *config = opencl_libsmm_devices[0];
+        }
+        else
 #endif
+#if defined(OPENCL_LIBSMM_PARAMS_DEVICE)
+        *config = OPENCL_LIBSMM_PARAMS_DEVICE;
+#endif
+      }
     }
   }
   return result;

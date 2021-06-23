@@ -215,9 +215,7 @@ kernel void FN(global T *restrict cdata,
       }
     }
 #else
-# if !defined(INTEL)
     UNROLL(SM)
-# endif
     for (int m = 0; m < SM; ++m) {
 # if (1 < BS)
       T r = cmn[m];

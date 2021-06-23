@@ -510,7 +510,7 @@ int libsmm_acc_finalize(void)
      * However, DBCSR only calls c_dbcsr_acc_init (and expects an implicit libsmm_acc_init).
      */
     if (EXIT_SUCCESS == result) {
-      result = libsmm_acc_finalize();
+      result = c_dbcsr_acc_finalize();
     }
 # endif
     libxsmm_finalize();

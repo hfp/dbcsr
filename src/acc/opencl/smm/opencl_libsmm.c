@@ -232,6 +232,11 @@ int opencl_libsmm_device(void* stream, cl_device_id* device, const char** config
         else if (0 == strncmp(buffer, name, ACC_OPENCL_BUFFERSIZE)) {
           *config = name; break;
         }
+#if !defined(OPENCL_LIBSMM_DEVMATCH)
+        else {
+          *config = name;
+        }
+#endif
       }
     }
   }

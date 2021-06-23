@@ -211,33 +211,32 @@ int opencl_libsmm_read_params(char* parambuf,
 
 int opencl_libsmm_device(void* stream, cl_device_id* device, const char** config)
 {
-  int result = c_dbcsr_acc_opencl_device(stream, device);
+  int result = c_dbcsr_acc_opencl_device(stream, device), empty = 0, i = 0;
   assert(NULL != config);
   if (EXIT_SUCCESS == result) {
     char buffer[ACC_OPENCL_BUFFERSIZE];
     result = clGetDeviceInfo(*device, CL_DEVICE_NAME,
       ACC_OPENCL_BUFFERSIZE, buffer, NULL);
 #if defined(OPENCL_LIBSMM_PARAMS_DEVICE)
-   *config = OPENCL_LIBSMM_PARAMS_DEVICE;
+    *config = OPENCL_LIBSMM_PARAMS_DEVICE;
 #else
-   *config = NULL;
+    *config = NULL;
 #endif
-    if (CL_SUCCESS == result) {
-      int empty = 0, i = 0;
-      for (; i < ACC_OPENCL_DEVICES_MAXCOUNT; ++i) {
-        const char *const name = opencl_libsmm_devices[i];
-        if ('\0' == *name) {
-          if (2 <= ++empty) break;
-        }
-        else if (0 == strncmp(buffer, name, ACC_OPENCL_BUFFERSIZE)) {
-          *config = name; break;
-        }
-#if !defined(OPENCL_LIBSMM_DEVMATCH)
-        else {
-          *config = name;
-        }
-#endif
+    for (; i < ACC_OPENCL_DEVICES_MAXCOUNT; ++i) {
+      const char *const name = opencl_libsmm_devices[i];
+      if ('\0' == *name) {
+        if (2 <= ++empty) break;
       }
+      else if (CL_SUCCESS == result &&
+        0 == strncmp(buffer, name, ACC_OPENCL_BUFFERSIZE))
+      {
+        *config = name; break;
+      }
+#if !defined(OPENCL_LIBSMM_DEVMATCH)
+      else {
+        *config = name;
+      }
+#endif
     }
   }
   return result;

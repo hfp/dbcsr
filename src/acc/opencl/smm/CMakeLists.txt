@@ -4,7 +4,8 @@ set(SMM_ACC_KERNEL_SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/../acc_opencl.sh)
 set(SMM_ACC_KERNELS kernels/multiply.cl kernels/transpose.cl)
 list(TRANSFORM SMM_ACC_KERNELS PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
 
-set(SMM_ACC_PARAMS_WITHGPU ${CMAKE_CURRENT_SOURCE_DIR}/params/tune_multiply_${WITH_GPU}.csv)
+set(SMM_ACC_PARAMS_WITHGPU
+    ${CMAKE_CURRENT_SOURCE_DIR}/params/tune_multiply_${WITH_GPU}.csv)
 set(SMM_ACC_PARAMS_DEFAULT ${CMAKE_CURRENT_SOURCE_DIR}/tune_multiply.csv)
 
 if (EXISTS ${SMM_ACC_PARAMS_WITHGPU})

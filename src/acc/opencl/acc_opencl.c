@@ -669,9 +669,9 @@ int c_dbcsr_acc_opencl_dump(const char* basename, cl_program program)
     CL_PROGRAM_BINARY_SIZES, sizeof(size_t), &size, NULL),
     "query program binary size", result);
   if (0 < size && size <= ACC_OPENCL_BINARYSIZE) {
-    unsigned char binary[ACC_OPENCL_BINARYSIZE];
+    unsigned char binary[ACC_OPENCL_BINARYSIZE], *binaries = binary;
     result = clGetProgramInfo(program, CL_PROGRAM_BINARIES,
-      sizeof(unsigned char*), &binary, NULL);
+      sizeof(unsigned char*), &binaries, NULL);
     if (CL_SUCCESS == result) {
       char buffer[ACC_OPENCL_BUFFERSIZE];
       const int nchar = ACC_OPENCL_SNPRINTF(buffer, sizeof(buffer),

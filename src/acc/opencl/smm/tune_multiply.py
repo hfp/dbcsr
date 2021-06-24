@@ -217,7 +217,7 @@ class SmmTuner(MeasurementInterface):
                             ifilename = merged[key][-1]
                             merged[key] = value
                         print(
-                            "Worse result {} ignored when merging CSV-file.".format(
+                            "Worse result {} ignored when merging CSV-file".format(
                                 ifilename
                             )
                         )
@@ -239,7 +239,7 @@ class SmmTuner(MeasurementInterface):
                         ofile.write(strval)
                         ofile.write("\n")
                 print(
-                    "Merged {} of {} JSONs into {}.".format(
+                    "Merged {} of {} JSONs into {}".format(
                         len(merged), len(filenames), self.args.csvfile
                     )
                 )
@@ -265,7 +265,7 @@ class SmmTuner(MeasurementInterface):
             filenames = glob.glob("*.json")
             if not filenames and glob.glob(self.args.csvfile):
                 print(
-                    "WARNING: no JSON file found but (unrelated?) {} exists!".format(
+                    "WARNING: no JSON file found but (unrelated?) {}".format(
                         self.args.csvfile
                     )
                 )
@@ -274,7 +274,7 @@ class SmmTuner(MeasurementInterface):
                 json.dump(config, ofile)
                 ofile.write("\n")  # append newline at EOF
             print(
-                "Result achieving {} GFLOPS/s ({}) was written to {}.".format(
+                "Result achieving {} GFLOPS/s ({}) was written to {}".format(
                     self.gflops, self.typename, ofilename
                 )
             )
@@ -285,7 +285,7 @@ class SmmTuner(MeasurementInterface):
     def handle_sigint(self, signum, frame):
         """handles SIGINT or CTRL-C"""
         print(
-            "\nWARNING: tuning {}x{}x{}-kernel was interrupted.".format(
+            "\nWARNING: tuning {}x{}x{}-kernel was interrupted".format(
                 self.args.m, self.args.n, self.args.k
             )
         )

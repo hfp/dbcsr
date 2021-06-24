@@ -17,7 +17,7 @@ DEV ?= 0
 
 PARAMS_WITHGPU := smm/params/tune_multiply_$(WITH_GPU).csv
 PARAMS_DEFAULT := smm/tune_multiply.csv
-PARAMS := $if($(wildcard $(PARAMS_WITHGPU)),$(PARAMS_WITHGPU),$(PARAMS_DEFAULT))
+PARAMS := $(if $(wildcard $(PARAMS_WITHGPU)),$(PARAMS_WITHGPU),$(PARAMS_DEFAULT))
 
 CFLAGS := -fPIC \
   -Wall -Wextra -pedantic \

@@ -664,6 +664,7 @@ int c_dbcsr_acc_opencl_dump(const char* basename, cl_program program)
 {
   cl_int result = EXIT_SUCCESS;
   size_t size;
+  assert(NULL != basename && NULL != program);
   ACC_OPENCL_CHECK(clGetProgramInfo(program,
     CL_PROGRAM_BINARY_SIZES, sizeof(size_t), &size, NULL),
     "query program binary size", result);

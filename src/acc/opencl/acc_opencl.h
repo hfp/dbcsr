@@ -235,10 +235,8 @@ int c_dbcsr_acc_opencl_wgsize(cl_device_id device, cl_kernel kernel,
 /** Build kernel function with given name from source using given build_options. */
 int c_dbcsr_acc_opencl_kernel(const char* source, const char* build_options,
   const char* kernel_name, cl_kernel* kernel);
-
-/** Dump binary code for the given program. */
+/** Dump binary code of the given program. */
 int c_dbcsr_acc_opencl_dump(const char* basename, cl_program program);
-
 /** Create command queue (stream). */
 int c_dbcsr_acc_opencl_stream_create(cl_command_queue* stream_p, const char* name,
   const ACC_OPENCL_COMMAND_QUEUE_PROPERTIES* properties);

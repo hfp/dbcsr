@@ -109,7 +109,6 @@ class SmmTuner(MeasurementInterface):
         return manipulator
 
     def seed_configurations(self):
-        # use unsanitized parameter values (0) for seeding with pretuned values
         return [{"BS": self.args.bs, "BM": self.args.bm, "BN": self.args.bn}]
 
     def objective(self):

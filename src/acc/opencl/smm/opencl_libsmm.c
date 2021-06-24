@@ -946,11 +946,11 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
               const char *const env_blockn = (NULL == getenv("OPENCL_LIBSMM_SMM_BLOCK_N")
                 ? getenv("OPENCL_LIBSMM_SMM_BN") : getenv("OPENCL_LIBSMM_SMM_BLOCK_N"));
               /* TODO: load parameters from file (auto-tuned) */
-              const int batchsize = ((NULL == env_batchsize || '\0' == *env_batchsize)
+              const int batchsize = ((NULL == env_batchsize || '\0' == *env_batchsize || '0' == *env_batchsize)
                 ? (NULL == config ? 24/*default*/ : config->bs) : atoi(env_batchsize));
-              const int blockm = ((NULL == env_blockm || '\0' == *env_blockm)
+              const int blockm = ((NULL == env_blockm || '\0' == *env_blockm || '0' == *env_blockm)
                 ? (NULL == config ? m_max/*default*/ : config->bm) : atoi(env_blockm));
-              const int blockn = ((NULL == env_blockn || '\0' == *env_blockn)
+              const int blockn = ((NULL == env_blockn || '\0' == *env_blockn || '0' == *env_blockn)
                 ? (NULL == config ? 1/*default*/ : config->bn) : atoi(env_blockn));
               bm = LIBXSMM_CLMP(blockm, 1, m_max);
               bn = LIBXSMM_CLMP(blockn, 1, n_max);

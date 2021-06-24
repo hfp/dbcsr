@@ -59,9 +59,9 @@ class SmmTuner(MeasurementInterface):
             # construct label used for the database session
             if not self.args.label:
                 self.args.label = "multiply-{}x{}x{}-{}{}".format(
-                    self.args.m,
-                    self.args.n,
-                    self.args.k,
+                    self.m,
+                    self.n,
+                    self.k,
                     self.typename,
                     ["", " " + self.device]["" != self.device],
                 )
@@ -71,13 +71,13 @@ class SmmTuner(MeasurementInterface):
                 "Setup failed for {}/{}!".format(self.exepath, self.exename)
             )
         # sanitize input arguments
-        self.args.m = max(self.args.m, 1)
-        self.args.n = [max(self.args.n, 1), self.args.m][0 == self.args.n]
-        self.args.k = [max(self.args.k, 1), self.args.m][0 == self.args.k]
-        self.args.mb = max(self.args.mb, 1)
-        self.args.bs = max(min(self.args.bs, self.args.mb), 1)
-        self.args.bm = [max(self.args.bm, 1), self.args.m][0 == self.args.bm]
-        self.args.bn = [max(self.args.bn, 1), 1][0 == self.args.bn]
+        self.m = max(self.args.m, 1)
+        self.n = [max(self.args.n, 1), self.m][0 == self.args.n]
+        self.k = [max(self.args.k, 1), self.m][0 == self.args.k]
+        self.mb = max(self.args.mb, 1)
+        self.bs = max(min(self.args.bs, self.mb), 1)
+        self.bm = [max(self.args.bm, 1), self.m][0 == self.args.bm]
+        self.bn = [max(self.args.bn, 1), 1][0 == self.args.bn]
         self.gflops = 0
         # consider to update and/or merge JSONS (update first)
         if self.args.update or self.args.merge:
@@ -90,26 +90,26 @@ class SmmTuner(MeasurementInterface):
         # setup tunable parameters
         manipulator = ConfigurationManipulator()
         manipulator.add_parameter(
-            IntegerParameter("BS", self.args.bs, self.args.bs)
+            IntegerParameter("BS", self.bs, self.bs)
             if os.getenv("OPENCL_LIBSMM_SMM_BS")
-            else IntegerParameter("BS", 1, self.args.mb)
+            else IntegerParameter("BS", 1, self.mb)
         )
-
         manipulator.add_parameter(
-            IntegerParameter("BM", self.args.bm, self.args.bm)
+            IntegerParameter("BM", self.bm, self.bm)
             if os.getenv("OPENCL_LIBSMM_SMM_BM")
-            else IntegerParameter("BM", 1, self.args.m)
+            else IntegerParameter("BM", 1, self.m)
         )
         manipulator.add_parameter(
-            IntegerParameter("BN", self.args.bn, self.args.bn)
+            IntegerParameter("BN", self.bn, self.bn)
             if os.getenv("OPENCL_LIBSMM_SMM_BN")
-            else IntegerParameter("BN", 1, self.args.n)
+            else IntegerParameter("BN", 1, self.n)
         )
         # register signal handler (CTRL-C)
         signal(SIGINT, self.handle_sigint)
         return manipulator
 
     def seed_configurations(self):
+        # use unsanitized parameter values (0) for seeding with pretuned values
         return [{"BS": self.args.bs, "BM": self.args.bm, "BN": self.args.bn}]
 
     def objective(self):
@@ -137,9 +137,9 @@ class SmmTuner(MeasurementInterface):
             self.exename,
             self.args.r,
             self.args.s,
-            self.args.m,
-            self.args.n,
-            self.args.k,
+            self.m,
+            self.n,
+            self.k,
         )
         run_result = self.call_program(run_cmd)
         if 0 == run_result["returncode"]:
@@ -156,9 +156,7 @@ class SmmTuner(MeasurementInterface):
                 # keep best configuration in case of an early exit
                 self.config = desired_result.configuration
                 self.gflops = gflops
-            kernelreq = round(
-                (100.0 * config["BM"] * config["BN"]) / (self.args.m * self.args.n)
-            )
+            kernelreq = round((100.0 * config["BM"] * config["BN"]) / (self.m * self.n))
             # gflops are reported as "accuracy" (console output)
             return Result(time=mseconds, accuracy=gflops, size=kernelreq)
         else:  # return non-competitive/bad result in case of an error
@@ -253,16 +251,16 @@ class SmmTuner(MeasurementInterface):
         """called at the end of tuning"""
         if 0 < self.gflops:
             ofilename = "tune_multiply-{}-{}x{}x{}-{}gflops.json".format(
-                self.typename, self.args.m, self.args.n, self.args.k, round(self.gflops)
+                self.typename, self.m, self.n, self.k, round(self.gflops)
             )
             # extend result for easier reuse later
             config = configuration.data
             config["DEVICE"] = self.device
             config["GFLOPS"] = self.gflops
             config["TYPEID"] = self.typeid
-            config["M"] = self.args.m
-            config["N"] = self.args.n
-            config["K"] = self.args.k
+            config["M"] = self.m
+            config["N"] = self.n
+            config["K"] = self.k
             filenames = glob.glob("*.json")
             if not filenames and glob.glob(self.args.csvfile):
                 print(
@@ -287,7 +285,7 @@ class SmmTuner(MeasurementInterface):
         """handles SIGINT or CTRL-C"""
         print(
             "\nWARNING: tuning {}x{}x{}-kernel was interrupted.".format(
-                self.args.m, self.args.n, self.args.k
+                self.m, self.n, self.k
             )
         )
         self.save_final_config(self.config)

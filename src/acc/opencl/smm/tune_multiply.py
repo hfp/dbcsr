@@ -62,7 +62,6 @@ class SmmTuner(MeasurementInterface):
                 str(run_result["stderr"]),
             )
             self.device = device.group(1) if device and device.group(1) else ""
-            # INFO ACC/OpenCL: 16x16x16 SSMM-kernel bs=180 bm=2 bn=9 gen=275.8 ms
             params = re.search(
                 "INFO ACC/OpenCL:\\s+{}x{}x{}\\s+{}SMM-kernel\\s+bs=([0-9]+)\\s+bm=([0-9]+)\\s+bn=([0-9]+)\\s+gen=".format(
                     self.args.m,

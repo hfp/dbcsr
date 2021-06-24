@@ -27,10 +27,7 @@ import os
 
 class SmmTuner(MeasurementInterface):
     def manipulator(self):
-        """
-        Define the search space by creating a
-        ConfigurationManipulator
-        """
+        """Setup common state and define search space"""
         # sanitize input arguments
         self.args.m = max(self.args.m, 1)
         self.args.n = [max(self.args.n, 1), self.args.m][0 == self.args.n]
@@ -43,28 +40,44 @@ class SmmTuner(MeasurementInterface):
         self.exepath = "../.."
         self.exename = "acc_bench_smm"
         run_result = self.call_program(
-            # verbosity level to capture device name
-            "ACC_OPENCL_VERBOSE=1 OPENCL_LIBSMM_SMM_PARAMS=0 {}/{} 1 1 1".format(
-                self.exepath, self.exename
+            # verbosity level to capture device name and tuned parameters
+            "ACC_OPENCL_VERBOSE=2 CHECK=0 {}/{} 1 1 {} {} {}".format(
+                self.exepath,
+                self.exename,
+                self.args.m,
+                self.args.n,
+                self.args.k,
             )
         )
         if 0 == run_result["returncode"]:
             typename = re.search(
                 "typename \\(id=([0-9]+)\\):\\s+(\\w+)", str(run_result["stdout"])
             )
+            self.typename = typename.group(2) if typename and typename.group(2) else ""
+            self.typeid = (
+                int(typename.group(1)) if typename and typename.group(1) else 0
+            )
             device = re.search(
                 'INFO ACC/OpenCL:\\s+ndevices=[0-9]+\\s+device[0-9]+="(.+)"',
                 str(run_result["stderr"]),
             )
+            self.device = device.group(1) if device and device.group(1) else ""
+            # INFO ACC/OpenCL: 16x16x16 SSMM-kernel bs=180 bm=2 bn=9 gen=275.8 ms
+            params = re.search(
+                "INFO ACC/OpenCL:\\s+{}x{}x{}\\s+{}SMM-kernel\\s+bs=([0-9]+)\\s+bm=([0-9]+)\\s+bn=([0-9]+)\\s+gen=".format(
+                    self.args.m,
+                    self.args.n,
+                    self.args.k,
+                    {"float": "S", "double": "D"}.get(self.typename, ""),
+                ),
+                str(run_result["stderr"]),
+            )
+            self.bs = int(params.group(1)) if params and params.group(1) else 0
+            self.bm = int(params.group(2)) if params and params.group(2) else 0
+            self.bn = int(params.group(3)) if params and params.group(3) else 0
         else:
-            typename = device = None
-        if device and device.group(1):
-            self.device = device.group(1)
-        else:
-            self.device = ""  # unknown
-        if typename and typename.group(1) and typename.group(2):
-            self.typename = typename.group(2)
-            self.typeid = int(typename.group(1))
+            self.typename = self.typeid = None
+        if self.typename and self.typeid:
             # construct label used for the database session
             if not self.args.label:
                 self.args.label = "multiply-{}x{}x{}-{}{}".format(
@@ -109,7 +122,13 @@ class SmmTuner(MeasurementInterface):
         return manipulator
 
     def seed_configurations(self):
-        return [{"BS": self.args.bs, "BM": self.args.bm, "BN": self.args.bn}]
+        return [
+            {
+                "BS": self.bs if 0 != self.bs else self.args.bs,
+                "BM": self.bm if 0 != self.bm else self.args.bm,
+                "BN": self.bn if 0 != self.bn else self.args.bn,
+            }
+        ]
 
     def objective(self):
         if not self.args.primary:
@@ -118,29 +137,27 @@ class SmmTuner(MeasurementInterface):
             return opentuner.search.objective.MaximizeAccuracy()
 
     def run(self, desired_result, input, limit):
-        """
-        Compile and run a given configuration then
-        return performance
-        """
+        """Run a configuration and return performance"""
         config = desired_result.configuration.data
-        run_cmd = "{} CHECK={} {}={} {}={} {}={} {}/{} {} {} {} {} {}".format(
-            "OMP_PROC_BIND=TRUE OPENCL_LIBSMM_SMM_PARAMS=0",
-            self.args.check,
-            "OPENCL_LIBSMM_SMM_BS",
-            config["BS"],
-            "OPENCL_LIBSMM_SMM_BM",
-            config["BM"],
-            "OPENCL_LIBSMM_SMM_BN",
-            config["BN"],
-            self.exepath,
-            self.exename,
-            self.args.r,
-            self.args.s,
-            self.args.m,
-            self.args.n,
-            self.args.k,
+        run_result = self.call_program(
+            "{} CHECK={} {}={} {}={} {}={} {}/{} {} {} {} {} {}".format(
+                "OMP_PROC_BIND=TRUE",
+                self.args.check,
+                "OPENCL_LIBSMM_SMM_BS",
+                config["BS"],
+                "OPENCL_LIBSMM_SMM_BM",
+                config["BM"],
+                "OPENCL_LIBSMM_SMM_BN",
+                config["BN"],
+                self.exepath,
+                self.exename,
+                self.args.r,
+                self.args.s,
+                self.args.m,
+                self.args.n,
+                self.args.k,
+            )
         )
-        run_result = self.call_program(run_cmd)
         if 0 == run_result["returncode"]:
             performance = re.search(
                 "device:\\s+([0-9]+(\\.[0-9]*)*) ms\\s+([0-9]+(\\.[0-9]*)*)",
@@ -164,7 +181,7 @@ class SmmTuner(MeasurementInterface):
             return Result(time=float("inf"), accuracy=0.0, size=100.0)
 
     def update_jsons(self, filenames):
-        """update device name of all JSONs"""
+        """Update device name of all JSONs"""
         if self.device:
             updated = False
             for filename in filenames:
@@ -188,7 +205,7 @@ class SmmTuner(MeasurementInterface):
             print("Cannot determine device name.")
 
     def merge_jsons(self, filenames):
-        """merge all JSONs into a single CSV-file"""
+        """Merge all JSONs into a single CSV-file"""
         if self.args.csvfile:
             merged = dict()
             for ifilename in filenames:
@@ -249,7 +266,7 @@ class SmmTuner(MeasurementInterface):
                 os.rename(self.args.csvfile, backup)
 
     def save_final_config(self, configuration):
-        """called at the end of tuning"""
+        """Called at termination"""
         if 0 < self.gflops:
             ofilename = "tune_multiply-{}-{}x{}x{}-{}gflops.json".format(
                 self.typename, self.args.m, self.args.n, self.args.k, round(self.gflops)
@@ -283,7 +300,7 @@ class SmmTuner(MeasurementInterface):
                 self.merge_jsons(filenames)
 
     def handle_sigint(self, signum, frame):
-        """handles SIGINT or CTRL-C"""
+        """Handle SIGINT or CTRL-C"""
         print(
             "\nWARNING: tuning {}x{}x{}-kernel was interrupted".format(
                 self.args.m, self.args.n, self.args.k

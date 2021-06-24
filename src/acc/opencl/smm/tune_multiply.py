@@ -31,6 +31,15 @@ class SmmTuner(MeasurementInterface):
         Define the search space by creating a
         ConfigurationManipulator
         """
+        # sanitize input arguments
+        self.m = max(self.args.m, 1)
+        self.n = [max(self.args.n, 1), self.m][0 == self.args.n]
+        self.k = [max(self.args.k, 1), self.m][0 == self.args.k]
+        self.mb = max(self.args.mb, 1)
+        self.bs = max(min(self.args.bs, self.mb), 1)
+        self.bm = [max(self.args.bm, 1), self.m][0 == self.args.bm]
+        self.bn = [max(self.args.bn, 1), 1][0 == self.args.bn]
+        self.gflops = 0
         self.exepath = "../.."
         self.exename = "acc_bench_smm"
         run_result = self.call_program(
@@ -70,15 +79,6 @@ class SmmTuner(MeasurementInterface):
             raise RuntimeError(
                 "Setup failed for {}/{}!".format(self.exepath, self.exename)
             )
-        # sanitize input arguments
-        self.m = max(self.args.m, 1)
-        self.n = [max(self.args.n, 1), self.m][0 == self.args.n]
-        self.k = [max(self.args.k, 1), self.m][0 == self.args.k]
-        self.mb = max(self.args.mb, 1)
-        self.bs = max(min(self.args.bs, self.mb), 1)
-        self.bm = [max(self.args.bm, 1), self.m][0 == self.args.bm]
-        self.bn = [max(self.args.bn, 1), 1][0 == self.args.bn]
-        self.gflops = 0
         # consider to update and/or merge JSONS (update first)
         if self.args.update or self.args.merge:
             filenames = glob.glob("*.json")

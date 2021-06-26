@@ -238,7 +238,7 @@ int c_dbcsr_acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t nbytes, v
   assert((NULL != host_mem || 0 == nbytes) && (NULL != dev_mem || 0 == nbytes) && NULL != stream);
   if (NULL != host_mem && NULL != dev_mem && 0 != nbytes) {
     ACC_OPENCL_CHECK(clEnqueueWriteBuffer(*ACC_OPENCL_STREAM(stream), *ACC_OPENCL_MEM(dev_mem),
-      !c_dbcsr_acc_opencl_config.async_memops, 0/*offset*/, nbytes, host_mem, 0, NULL, NULL),
+      CL_FALSE, 0/*offset*/, nbytes, host_mem, 0, NULL, NULL),
       "enqueue h2d copy", result);
   }
   ACC_OPENCL_RETURN(result);

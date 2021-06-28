@@ -671,16 +671,16 @@ int c_dbcsr_acc_opencl_wgsize(cl_device_id device, cl_kernel kernel,
 
 int c_dbcsr_acc_opencl_dump(const char* basename, cl_program program)
 {
-  cl_int result = EXIT_SUCCESS;
+  cl_int result;
+  unsigned char* binary = NULL;
   size_t size;
   assert(NULL != basename && NULL != program);
-  ACC_OPENCL_CHECK(clGetProgramInfo(program,
-    CL_PROGRAM_BINARY_SIZES, sizeof(size_t), &size, NULL),
-    "query program binary size", result);
-  if (0 < size && size <= ACC_OPENCL_BINARYSIZE) {
-    unsigned char binary[ACC_OPENCL_BINARYSIZE], *binaries = binary;
+  binary = (unsigned char*)(CL_SUCCESS == clGetProgramInfo(program,
+      CL_PROGRAM_BINARY_SIZES, sizeof(size_t), &size, NULL)
+    ? malloc(size) : NULL);
+  if (NULL != binary) {
     result = clGetProgramInfo(program, CL_PROGRAM_BINARIES,
-      sizeof(unsigned char*), &binaries, NULL);
+      sizeof(unsigned char*), &binary, NULL);
     if (CL_SUCCESS == result) {
       char buffer[ACC_OPENCL_BUFFERSIZE];
       const int nchar = ACC_OPENCL_SNPRINTF(buffer, sizeof(buffer),
@@ -697,6 +697,7 @@ int c_dbcsr_acc_opencl_dump(const char* basename, cl_program program)
     else {
       ACC_OPENCL_ERROR("query program binary", result);
     }
+    free(binary);
   }
   else result = EXIT_FAILURE;
   ACC_OPENCL_RETURN(result);

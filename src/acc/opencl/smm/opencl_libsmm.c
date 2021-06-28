@@ -61,6 +61,12 @@
 #if !defined(OPENCL_LIBSMM_NLOCKS_SMM)
 # define OPENCL_LIBSMM_NLOCKS_SMM 16
 #endif
+#if !defined(OPENCL_LIBSMM_BM)
+# define OPENCL_LIBSMM_BM 1
+#endif
+#if !defined(OPENCL_LIBSMM_BN)
+# define OPENCL_LIBSMM_BN 1
+#endif
 
 /* approximate arithmetic intensity for SMMs like C += Ai * Bi (beta=1) */
 #define OPENCL_LIBSMM_AI(M, N, K, TYPESIZE) ( \

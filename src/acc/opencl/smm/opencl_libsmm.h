@@ -44,12 +44,6 @@
 #if !defined(OPENCL_LIBSMM_F64) && 1
 # define OPENCL_LIBSMM_F64
 #endif
-#if !defined(OPENCL_LIBSMM_BM)
-# define OPENCL_LIBSMM_BM 1
-#endif
-#if !defined(OPENCL_LIBSMM_BN)
-# define OPENCL_LIBSMM_BN 1
-#endif
 
 #if defined(__cplusplus)
 extern "C" {

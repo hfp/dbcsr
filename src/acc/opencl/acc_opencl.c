@@ -313,7 +313,7 @@ int c_dbcsr_acc_init(void)
               int level_major = 0;
               c_dbcsr_acc_opencl_config.svm_interop = (NULL == env || 0 != atoi(env)) &&
                 (EXIT_SUCCESS == c_dbcsr_acc_opencl_device_level(active_device,
-                  &level_major, NULL/*level_minor*/) && 2 <= level_major);
+                  &level_major, NULL/*level_minor*/, NULL/*cl_std*/) && 2 <= level_major);
             }
 #else
             c_dbcsr_acc_opencl_config.svm_interop = CL_FALSE;
@@ -474,7 +474,8 @@ int c_dbcsr_acc_opencl_device_name(cl_device_id device, const char* name)
 }
 
 
-int c_dbcsr_acc_opencl_device_level(cl_device_id device, int* level_major, int* level_minor)
+int c_dbcsr_acc_opencl_device_level(cl_device_id device,
+  int* level_major, int* level_minor, char cl_std[16])
 {
   char buffer[ACC_OPENCL_BUFFERSIZE];
   int result = EXIT_SUCCESS;
@@ -488,6 +489,14 @@ int c_dbcsr_acc_opencl_device_level(cl_device_id device, int* level_major, int* 
     if (2 == sscanf(buffer, "%*s %u.%u", level, level+1)) {
       if (NULL != level_major) *level_major = (int)level[0];
       if (NULL != level_minor) *level_minor = (int)level[1];
+      if (NULL != cl_std) {
+        if (1 < level[0]) {
+          const int nchar = ACC_OPENCL_SNPRINTF(cl_std, 16,
+            "-cl-std=CL%u.%u", level[0], level[1]);
+          if (0 >= nchar || 16 <= nchar) result = EXIT_FAILURE;
+        }
+        else *cl_std = '\0';
+      }
     }
     else {
       result = EXIT_SUCCESS;

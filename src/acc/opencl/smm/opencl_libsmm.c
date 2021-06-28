@@ -597,6 +597,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
           result = c_dbcsr_acc_opencl_wgsize(active_device,
             NULL/*kernel*/, &max_wgsize, NULL/*prefmult*/);
           if (EXIT_SUCCESS == result) {
+            char cl_std[16];
             switch (datatype) {
               case dbcsr_type_real_8: {
                 tname = "char8"; /* double */
@@ -609,9 +610,11 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
               default: assert('\0' == *tname);
             }
             wgsize = LIBXSMM_MIN((m == bm || 0 == (m % bm)) ? bm : m, max_wgsize);
-            nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options), "%s"
+            nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options), "%s %s"
               " -DGLOBAL=%s -DINPLACE=%i -DFN=%s -DSM=%i -DSN=%i -DSWG=%i -DT=%s",
               (NULL == env_options || '\0' == *env_options) ? "" : env_options,
+              EXIT_SUCCESS == c_dbcsr_acc_opencl_device_level(active_device,
+                NULL/*level_major*/, NULL/*level_minor*/, cl_std) ? cl_std : "",
               EXIT_SUCCESS != opencl_libsmm_use_cmem(active_device) ? "global" : "constant",
               inplace, fname, m, n, wgsize, tname);
           }
@@ -974,6 +977,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                 const char *const env_options = getenv("OPENCL_LIBSMM_SMM_BUILDOPTS");
                 const char *const env_atomics = getenv("OPENCL_LIBSMM_SMM_ATOMICS");
                 const char *atomic_expr = NULL, *atomic_expr2 = "";
+                char cl_std[16];
                 if (NULL == env_atomics || '0' != *env_atomics) {
                   const char* extension[] = { "cl_khr_int64_base_atomics" };
                   if (NULL == env_atomics || '\0' == *env_atomics) { /* no request made */
@@ -1012,10 +1016,12 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                 }
                 assert(1 <= bs && 0 < bm && 0 < bn && NULL != atomic_expr);
                 nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options),
-                  "%s %s -cl-fast-relaxed-math -cl-no-signed-zeros -cl-denorms-are-zero -DFMA=fma"
+                  "%s %s %s -cl-fast-relaxed-math -cl-no-signed-zeros -cl-denorms-are-zero -DFMA=fma"
                   " -DGLOBAL=%s -DFN=%s -DSM=%i -DSN=%i -DSK=%i -DBM=%i -DBN=%i -DBS=%i -DT=%s -DTN=%i"
                   " %s -D\"ATOMIC_ADD_GLOBAL(A,B)=%s\" %s",
                   (NULL == env_options || '\0' == *env_options) ? "" : env_options, cl_intel ? "-DINTEL" : "",
+                  EXIT_SUCCESS == c_dbcsr_acc_opencl_device_level(active_device,
+                    NULL/*level_major*/, NULL/*level_minor*/, cl_std) ? cl_std : "",
                   EXIT_SUCCESS != opencl_libsmm_use_cmem(active_device) ? "global" : "constant",
                   fname, m_max, n_max, k_max, bm, bn, bs, tname, datatype,
                   atomic_ops, atomic_expr, atomic_expr2);

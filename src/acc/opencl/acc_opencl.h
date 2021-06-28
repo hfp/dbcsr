@@ -223,7 +223,7 @@ int c_dbcsr_acc_opencl_device_vendor(cl_device_id device, const char* vendor);
 int c_dbcsr_acc_opencl_device_name(cl_device_id device, const char* name);
 /** Return the OpenCL support level for the given device. */
 int c_dbcsr_acc_opencl_device_level(cl_device_id device,
-  int* level_major, int* level_minor);
+  int* level_major, int* level_minor, char cl_std[16]);
 /** Check if given device supports the extensions. */
 int c_dbcsr_acc_opencl_device_ext(cl_device_id device,
   const char *const extnames[], int num_exts);

@@ -479,7 +479,7 @@ int c_dbcsr_acc_opencl_device_level(cl_device_id device,
 {
   char buffer[ACC_OPENCL_BUFFERSIZE];
   int result = EXIT_SUCCESS;
-  assert(NULL != device && (NULL != level_major || NULL != level_minor));
+  assert(NULL != device && (NULL != level_major || NULL != level_minor || NULL != cl_std));
   ACC_OPENCL_CHECK(clGetDeviceInfo(device, CL_DEVICE_VERSION,
     ACC_OPENCL_BUFFERSIZE, buffer, NULL),
     "retrieve device level", result);

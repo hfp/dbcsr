@@ -956,8 +956,8 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                 ? (NULL == config ? m_max/*default*/ : config->bm) : atoi(env_blockm));
               const int blockn = ((NULL == env_blockn || '\0' == *env_blockn || '0' == *env_blockn)
                 ? (NULL == config ? 1/*default*/ : config->bn) : atoi(env_blockn));
-              bm = LIBXSMM_CLMP(blockm, 1, m_max);
-              bn = LIBXSMM_CLMP(blockn, 1, n_max);
+              bm = LIBXSMM_MIN(1 < blockm ? LIBXSMM_UP2(blockm, OPENCL_LIBSMM_BM) : 1, m_max);
+              bn = LIBXSMM_MIN(1 < blockn ? LIBXSMM_UP2(blockn, OPENCL_LIBSMM_BN) : 1, n_max);
               bs = LIBXSMM_MAX(batchsize, 1);
               nbm = (m_max + bm - 1) / bm;
               nbn = (n_max + bn - 1) / bn;

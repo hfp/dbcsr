@@ -52,6 +52,13 @@
 #if !defined(ACC_OPENCL_DEVICES_MAXCOUNT)
 # define ACC_OPENCL_DEVICES_MAXCOUNT 256
 #endif
+#if !defined(ACC_OPENCL_OVERMALLOC)
+# if defined(__DBCSR_ACC)
+#   define ACC_OPENCL_OVERMALLOC 0
+# else
+#   define ACC_OPENCL_OVERMALLOC 51200
+# endif
+#endif
 
 /* can depend on OpenCL implementation */
 #if !defined(ACC_OPENCL_MEM_NOALLOC) && 1

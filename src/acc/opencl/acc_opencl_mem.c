@@ -158,11 +158,13 @@ int c_dbcsr_acc_dev_mem_allocate(void** dev_mem, size_t nbytes)
   cl_int result;
   const cl_mem buffer = (
 #if defined(ACC_OPENCL_SVM)
-    c_dbcsr_acc_opencl_config.svm_interop ? clCreateBuffer(c_dbcsr_acc_opencl_context, CL_MEM_USE_HOST_PTR, nbytes,
-      clSVMAlloc(c_dbcsr_acc_opencl_context, CL_MEM_READ_WRITE, nbytes, 0/*default alignment*/), &result) :
+    c_dbcsr_acc_opencl_config.svm_interop ? clCreateBuffer(c_dbcsr_acc_opencl_context, CL_MEM_USE_HOST_PTR,
+      nbytes + ACC_OPENCL_OVERMALLOC, clSVMAlloc(c_dbcsr_acc_opencl_context, CL_MEM_READ_WRITE,
+      nbytes + ACC_OPENCL_OVERMALLOC, 0/*default alignment*/), &result) :
 #endif
-    clCreateBuffer(c_dbcsr_acc_opencl_context, CL_MEM_READ_WRITE, nbytes, NULL/*host_ptr*/, &result));
-  assert(NULL != dev_mem);
+    clCreateBuffer(c_dbcsr_acc_opencl_context, CL_MEM_READ_WRITE,
+      nbytes + ACC_OPENCL_OVERMALLOC, NULL/*host_ptr*/, &result));
+  assert(NULL != dev_mem && 0 <= ACC_OPENCL_OVERMALLOC);
   if (NULL != buffer) {
 #if defined(ACC_OPENCL_MEM_NOALLOC)
     assert(sizeof(void*) >= sizeof(cl_mem));

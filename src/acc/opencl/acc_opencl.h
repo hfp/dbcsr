@@ -56,7 +56,7 @@
 # if defined(__DBCSR_ACC)
 #   define ACC_OPENCL_OVERMALLOC 0
 # else
-#   define ACC_OPENCL_OVERMALLOC 51200
+#   define ACC_OPENCL_OVERMALLOC 8192
 # endif
 #endif
 

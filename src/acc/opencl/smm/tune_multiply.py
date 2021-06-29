@@ -13,7 +13,8 @@
 # LIBXSMM's "xgemm" and "transpose" examples.
 #
 import opentuner
-from opentuner import IntegerParameter, BooleanParameter
+from opentuner.search.manipulator import BooleanParameter
+from opentuner.search.manipulator import IntegerParameter
 from opentuner import ConfigurationManipulator
 from opentuner import MeasurementInterface
 from opentuner import Result

@@ -103,19 +103,21 @@ class SmmTuner(MeasurementInterface):
                 self.merge_jsons(filenames)
             exit(0)
         # setup tunable parameters
-        manipulator = ConfigurationManipulator()
+        manipulator, params = ConfigurationManipulator(), []
         if not os.getenv("OPENCL_LIBSMM_SMM_BS"):
-            manipulator.add_parameter(IntegerParameter("BS", 1, self.args.mb))
+            params.append(IntegerParameter("BS", 1, self.args.mb))
         if not os.getenv("OPENCL_LIBSMM_SMM_BM"):
-            manipulator.add_parameter(IntegerParameter("BM", 1, self.args.m))
+            params.append(IntegerParameter("BM", 1, self.args.m))
         if not os.getenv("OPENCL_LIBSMM_SMM_BN"):
-            manipulator.add_parameter(IntegerParameter("BN", 1, self.args.n))
+            params.append(IntegerParameter("BN", 1, self.args.n))
         if not os.getenv("OPENCL_LIBSMM_SMM_BC"):
-            manipulator.add_parameter(BooleanParameter("BC"))
-        if not manipulator.parameters():
+            params.append(BooleanParameter("BC"))
+        if not params:
             raise RuntimeError(
                 "All tunable parameters are fixed with environment variables!"
             )
+        for param in params:
+            manipulator.add_parameter(param)
         # register signal handler (CTRL-C)
         signal(SIGINT, self.handle_sigint)
         return manipulator

@@ -113,6 +113,7 @@ class SmmTuner(MeasurementInterface):
         if not os.getenv("OPENCL_LIBSMM_SMM_BC"):
             params.append(BooleanParameter("BC"))
         if not params:
+            sys.tracebacklimit = 0
             raise RuntimeError(
                 "All tunable parameters are fixed with environment variables!"
             )

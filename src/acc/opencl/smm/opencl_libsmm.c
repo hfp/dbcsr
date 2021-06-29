@@ -152,7 +152,7 @@ int opencl_libsmm_read_params(char* parambuf,
   opencl_libsmm_perfest_t* perfest, char* const* device)
 {
   const char* s = strtok(parambuf, OPENCL_LIBSMM_PARAMS_DELIMS);
-  const int max_consumed = (NULL == device ? 8 : 9);
+  const int max_consumed = (NULL == device ? 9 : 10);
   int result = EXIT_SUCCESS, consumed = 0, i;
   int t = (NULL == device ? 1 : 0);
   double gflops;
@@ -186,6 +186,9 @@ int opencl_libsmm_read_params(char* parambuf,
       } break;
       case 8: if (1 == sscanf(s, "%i", &i)) {
         value->bn = i; ++consumed;
+      } break;
+      case 9: if (1 == sscanf(s, "%i", &i)) {
+        value->bc = i; ++consumed;
       } break;
     }
   }

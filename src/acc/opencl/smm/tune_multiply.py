@@ -13,9 +13,9 @@
 # LIBXSMM's "xgemm" and "transpose" examples.
 #
 import opentuner
+from opentuner import IntegerParameter, BooleanParameter
 from opentuner import ConfigurationManipulator
 from opentuner import MeasurementInterface
-from opentuner import IntegerParameter
 from opentuner import Result
 from signal import signal, SIGINT
 import json

@@ -225,7 +225,7 @@ class SmmTuner(MeasurementInterface):
                         data["BS"],
                         data["BM"],
                         data["BN"],
-                        data["BC"] if "BC" in data else 0,
+                        int(data["BC"]) if "BC" in data else 0,
                         ifilename,
                     )
                     if key not in merged:

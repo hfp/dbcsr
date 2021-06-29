@@ -109,7 +109,7 @@ kernel void FN(global T *restrict cdata,
   global T *restrict c = cdata + c0;
 
 #if defined(SHARED_A)
-  local T awg[SM][SK+BNC];
+  local T awg[SM][SK+BC];
 #endif
 #if (SWG != SN)
 # if defined(PRIVATE_A)

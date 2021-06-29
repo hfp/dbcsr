@@ -63,17 +63,19 @@ class SmmTuner(MeasurementInterface):
             )
             self.device = device.group(1) if device and device.group(1) else ""
             params = re.search(
-                "INFO ACC/OpenCL:\\s+{}x{}x{}\\s+{}SMM-kernel\\s+bs=([0-9]+)\\s+bm=([0-9]+)\\s+bn=([0-9]+)\\s+gen=".format(
+                "INFO ACC/OpenCL:\\s+{}x{}x{}\\s+{}SMM-kernel{}".format(
                     self.args.m,
                     self.args.n,
                     self.args.k,
                     {"float": "S", "double": "D"}.get(self.typename, ""),
+                    "\\s+bs=([0-9]+)\\s+bm=([0-9]+)\\s+bn=([0-9]+)\\s+bc=([0-9]+)\\s+gen=",
                 ),
                 str(run_result["stderr"]),
             )
-            self.bs = int(params.group(1)) if params and params.group(1) else 0
-            self.bm = int(params.group(2)) if params and params.group(2) else 0
-            self.bn = int(params.group(3)) if params and params.group(3) else 0
+            self.bs = int(params.group(1)) if params and params.group(1) else None
+            self.bm = int(params.group(2)) if params and params.group(2) else None
+            self.bn = int(params.group(3)) if params and params.group(3) else None
+            self.bc = 0 != int(params.group(4)) if params and params.group(4) else None
         else:
             self.typename = self.typeid = None
         if self.typename and self.typeid:
@@ -101,21 +103,18 @@ class SmmTuner(MeasurementInterface):
             exit(0)
         # setup tunable parameters
         manipulator = ConfigurationManipulator()
-        manipulator.add_parameter(
-            IntegerParameter("BS", self.args.bs, self.args.bs)
-            if os.getenv("OPENCL_LIBSMM_SMM_BS")
-            else IntegerParameter("BS", 1, self.args.mb)
-        )
-        manipulator.add_parameter(
-            IntegerParameter("BM", self.args.bm, self.args.bm)
-            if os.getenv("OPENCL_LIBSMM_SMM_BM")
-            else IntegerParameter("BM", 1, self.args.m)
-        )
-        manipulator.add_parameter(
-            IntegerParameter("BN", self.args.bn, self.args.bn)
-            if os.getenv("OPENCL_LIBSMM_SMM_BN")
-            else IntegerParameter("BN", 1, self.args.n)
-        )
+        if not os.getenv("OPENCL_LIBSMM_SMM_BS"):
+            manipulator.add_parameter(IntegerParameter("BS", 1, self.args.mb))
+        if not os.getenv("OPENCL_LIBSMM_SMM_BM"):
+            manipulator.add_parameter(IntegerParameter("BM", 1, self.args.m))
+        if not os.getenv("OPENCL_LIBSMM_SMM_BN"):
+            manipulator.add_parameter(IntegerParameter("BN", 1, self.args.n))
+        if not os.getenv("OPENCL_LIBSMM_SMM_BC"):
+            manipulator.add_parameter(BooleanParameter("BC"))
+        if not manipulator.parameters():
+            raise RuntimeError(
+                "All tunable parameters are fixed with environment variables!"
+            )
         # register signal handler (CTRL-C)
         signal(SIGINT, self.handle_sigint)
         return manipulator
@@ -123,9 +122,10 @@ class SmmTuner(MeasurementInterface):
     def seed_configurations(self):
         return [
             {
-                "BS": self.bs if 0 != self.bs else self.args.bs,
-                "BM": self.bm if 0 != self.bm else self.args.bm,
-                "BN": self.bn if 0 != self.bn else self.args.bn,
+                "BS": self.bs if None != self.bs else self.args.bs,
+                "BM": self.bm if None != self.bm else self.args.bm,
+                "BN": self.bn if None != self.bn else self.args.bn,
+                "BC": self.bc if None != self.bc else self.args.bc,
             }
         ]
 
@@ -139,15 +139,12 @@ class SmmTuner(MeasurementInterface):
         """Run a configuration and return performance"""
         config = desired_result.configuration.data
         run_result = self.call_program(
-            "{} CHECK={} {}={} {}={} {}={} {}/{} {} {} {} {} {}".format(
-                "OMP_PROC_BIND=TRUE",
-                self.args.check,
-                "OPENCL_LIBSMM_SMM_BS",
-                config["BS"],
-                "OPENCL_LIBSMM_SMM_BM",
-                config["BM"],
-                "OPENCL_LIBSMM_SMM_BN",
-                config["BN"],
+            "{} {} {} {} {} {}/{} {} {} {} {} {}".format(
+                "OMP_PROC_BIND=TRUE CHECK={}".format(self.args.check),
+                "OPENCL_LIBSMM_SMM_BS={}".format(config["BS"]),
+                "OPENCL_LIBSMM_SMM_BM={}".format(config["BM"]),
+                "OPENCL_LIBSMM_SMM_BN={}".format(config["BN"]),
+                "OPENCL_LIBSMM_SMM_BC={}".format(int(config["BC"])),
                 self.exepath,
                 self.exename,
                 self.args.r,
@@ -224,6 +221,7 @@ class SmmTuner(MeasurementInterface):
                         data["BS"],
                         data["BM"],
                         data["BN"],
+                        data["BC"] if "BC" in data else 0,
                         ifilename,
                     )
                     if key not in merged:
@@ -245,7 +243,9 @@ class SmmTuner(MeasurementInterface):
                         self.args.csvsep.join(["DEVICE", "TYPEID", "M", "N", "K"])
                     )
                     ofile.write(self.args.csvsep)
-                    ofile.write(self.args.csvsep.join(["GFLOPS", "BS", "BM", "BN"]))
+                    ofile.write(
+                        self.args.csvsep.join(["GFLOPS", "BS", "BM", "BN", "BC"])
+                    )
                     ofile.write("\n")  # CSV header line (termination)
                     for key, value in merged.items():  # CSV data lines
                         strkey = self.args.csvsep.join([str(k) for k in key])
@@ -338,6 +338,14 @@ if __name__ == "__main__":
         nargs="?",
         dest="bn",
         help="Initial block/tile size (BN)",
+    )
+    argparser.add_argument(
+        "-bc",
+        "--initial-bc",
+        action="store_true",
+        default=True if int(os.getenv("OPENCL_LIBSMM_SMM_BC", "0")) else False,
+        dest="bc",
+        help="Initial bank-conflict flag (BC)",
     )
     argparser.add_argument(
         "-bs",

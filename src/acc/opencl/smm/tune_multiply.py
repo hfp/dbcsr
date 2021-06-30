@@ -145,17 +145,19 @@ class SmmTuner(MeasurementInterface):
         else:
             return opentuner.search.objective.MaximizeAccuracy()
 
+    def environment(self, config):
+        return [
+            "OPENCL_LIBSMM_SMM_BS={}".format(config["BS"]),
+            "OPENCL_LIBSMM_SMM_BM={}".format(config["BM"]),
+            "OPENCL_LIBSMM_SMM_BN={}".format(config["BN"]),
+            "OPENCL_LIBSMM_SMM_BC={}".format(int(config["BC"])),
+        ]
+
     def run(self, desired_result, input, limit):
         """Run a configuration and return performance"""
         config = desired_result.configuration.data
         run_result = self.launch(
-            [
-                "OMP_PROC_BIND=TRUE CHECK={}".format(self.args.check),
-                "OPENCL_LIBSMM_SMM_BS={}".format(config["BS"]),
-                "OPENCL_LIBSMM_SMM_BM={}".format(config["BM"]),
-                "OPENCL_LIBSMM_SMM_BN={}".format(config["BN"]),
-                "OPENCL_LIBSMM_SMM_BC={}".format(int(config["BC"])),
-            ]
+            self.environment(config).append("CHECK={}".format(self.args.check))
         )
         if 0 == run_result["returncode"]:
             performance = re.search(
@@ -292,14 +294,18 @@ class SmmTuner(MeasurementInterface):
             with open(ofilename, "w") as ofile:
                 json.dump(config, ofile)
                 ofile.write("\n")  # append newline at EOF
+            if ofilename not in filenames:
+                filenames.append(ofilename)
+                self.merge_jsons(filenames)
             print(
                 "Result achieving {} GFLOPS/s ({}) was written to {}".format(
                     self.gflops, self.typename, ofilename
                 )
             )
-            if ofilename not in filenames:
-                filenames.append(ofilename)
-                self.merge_jsons(filenames)
+            if 0 == self.args.check:
+                run_result = self.launch(self.environment(config).append("CHECK=1"))
+                if 0 != run_result["returncode"]:
+                    print("WARNING: tuned result seems to be incorrect!")
 
     def handle_sigint(self, signum, frame):
         """Handle SIGINT or CTRL-C"""

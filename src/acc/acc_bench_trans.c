@@ -113,6 +113,14 @@ int main(int argc, char* argv[])
       return result;
     }
   }
+  else {
+    fprintf(stderr, "ACC initialization failed!\n");
+#if !defined(__CUDA)
+    CHECK(libsmm_acc_finalize(), NULL);
+#endif
+    CHECK(c_dbcsr_acc_finalize(), NULL);
+    return result;
+  }
   printf("%s%s%i %i %i %i\n", 0 < argc ? argv[0] : "", 0 < argc ? " " : "", nrepeat, stack_size, m, n);
   printf("typename (id=%i): %s\n", DBCSR_TYPE(ELEM_TYPE), DBCSR_STRINGIFY(ELEM_TYPE));
 #if defined(PRIORITY)

@@ -93,7 +93,6 @@ int main(int argc, char* argv[])
   double duration;
 #endif
   assert(m <= (mn / n) && 0 == (mn % n));
-  printf("%s%s%i %i %i %i\n", 0 < argc ? argv[0] : "", 0 < argc ? " " : "", nrepeat, stack_size, m, n);
   CHECK(c_dbcsr_acc_init(), &result);
   /* note: libsmm_acc_init() may imply acc_init() */
   CHECK(libsmm_acc_init(), &result);
@@ -114,6 +113,7 @@ int main(int argc, char* argv[])
       return result;
     }
   }
+  printf("%s%s%i %i %i %i\n", 0 < argc ? argv[0] : "", 0 < argc ? " " : "", nrepeat, stack_size, m, n);
   printf("typename (id=%i): %s\n", DBCSR_TYPE(ELEM_TYPE), DBCSR_STRINGIFY(ELEM_TYPE));
 #if defined(PRIORITY)
   CHECK(c_dbcsr_acc_stream_priority_range(&priomin, &priomax), &result);

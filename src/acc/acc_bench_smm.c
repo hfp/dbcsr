@@ -133,11 +133,6 @@ int main(int argc, char* argv[])
     double duration;
 #endif
     assert(m <= (mn / n) && 0 == (mn % n) && k <= (mk / k) && 0 == (mk % k) && n <= (kn / n) && 0 == (kn % n));
-    if (EXIT_SUCCESS == result) {
-      printf("%s%s%i %i %i %i %i %i %i %i\n", 0 < argc ? argv[0] : "", 0 < argc ? " " : "",
-        nrepeat, stack_size, m, n, k, nc, na, nb);
-    }
-    else break; /* end of input/argument-file reached */
     CHECK(c_dbcsr_acc_init(), &result);
     /* note: libsmm_acc_init() may imply acc_init() */
     CHECK(libsmm_acc_init(), &result);
@@ -158,7 +153,12 @@ int main(int argc, char* argv[])
         return result;
       }
     }
-    printf("typename (id=%i): %s\n", DBCSR_TYPE(ELEM_TYPE), DBCSR_STRINGIFY(ELEM_TYPE));
+    if (EXIT_SUCCESS == result) {
+      printf("%s%s%i %i %i %i %i %i %i %i\n", 0 < argc ? argv[0] : "", 0 < argc ? " " : "",
+        nrepeat, stack_size, m, n, k, nc, na, nb);
+      printf("typename (id=%i): %s\n", DBCSR_TYPE(ELEM_TYPE), DBCSR_STRINGIFY(ELEM_TYPE));
+    }
+    else break; /* end of input/argument-file reached */
     CHECK(c_dbcsr_acc_stream_create(&stream, "stream", -1/*default priority*/), &result);
     CHECK(c_dbcsr_acc_host_mem_allocate((void**)&amat_hst, sizeof(ELEM_TYPE) * mk * na, stream), &result);
     CHECK(c_dbcsr_acc_host_mem_allocate((void**)&bmat_hst, sizeof(ELEM_TYPE) * kn * nb, stream), &result);

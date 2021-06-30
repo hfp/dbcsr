@@ -20,16 +20,16 @@
 /* size of workgroup (WG) */
 #define SWG (NBM * NBN)
 
-#if !defined(PRIVATE_A) && (SWG != SN)
+#if !defined(PRIVATE_A) && (SWG != SN) && 1
 # define PRIVATE_A
 #endif
 #if !defined(PRIVATE_B) && 0
 # define PRIVATE_B
 #endif
-#if !defined(SHARED_A) && !defined(PRIVATE_A)
+#if !defined(SHARED_A) && !defined(PRIVATE_A) && 1
 # define SHARED_A
 #endif
-#if !defined(TRACK_B) && 0
+#if !defined(TRACK_B) && defined(PRIVATE_B) && 0
 # define TRACK_B
 #endif
 #if !defined(TRACK_C) && 1

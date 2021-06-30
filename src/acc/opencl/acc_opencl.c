@@ -486,7 +486,7 @@ int c_dbcsr_acc_opencl_device_level(cl_device_id device,
   if (EXIT_SUCCESS == result) {
     unsigned int level[2];
     /* input: "OpenCL <level_major>.<level_minor> ..." */
-    if (2 == sscanf(buffer, "%*s %u.%u", level, level+1)) {
+    if (2 == sscanf(buffer, "%*s %u.%u", level, level + 1)) {
       if (NULL != level_major) *level_major = (int)level[0];
       if (NULL != level_minor) *level_minor = (int)level[1];
       if (NULL != cl_std) {
@@ -499,8 +499,16 @@ int c_dbcsr_acc_opencl_device_level(cl_device_id device,
       }
     }
     else {
-      result = EXIT_SUCCESS;
+      if (NULL != level_major) *level_major = 0;
+      if (NULL != level_minor) *level_minor = 0;
+      if (NULL != cl_std) *cl_std = '\0';
+      result = EXIT_FAILURE;
     }
+  }
+  else {
+    if (NULL != level_major) *level_major = 0;
+    if (NULL != level_minor) *level_minor = 0;
+    if (NULL != cl_std) *cl_std = '\0';
   }
   ACC_OPENCL_RETURN(result);
 }

@@ -157,7 +157,7 @@ class SmmTuner(MeasurementInterface):
         """Run a configuration and return performance"""
         config = desired_result.configuration.data
         run_result = self.launch(
-            self.environment(config).append("CHECK={}".format(self.args.check))
+            self.environment(config) + ["CHECK={}".format(self.args.check)]
         )
         if 0 == run_result["returncode"]:
             performance = re.search(
@@ -303,7 +303,7 @@ class SmmTuner(MeasurementInterface):
                 )
             )
             if 0 == self.args.check:
-                run_result = self.launch(self.environment(config).append("CHECK=1"))
+                run_result = self.launch(self.environment(config) + ["CHECK=1"])
                 if 0 != run_result["returncode"]:
                     print("WARNING: tuned result seems to be incorrect!")
 

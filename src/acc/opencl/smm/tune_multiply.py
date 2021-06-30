@@ -40,16 +40,8 @@ class SmmTuner(MeasurementInterface):
         self.gflops = 0
         self.exepath = "../.."
         self.exename = "acc_bench_smm"
-        run_result = self.call_program(
-            # verbosity level to capture device name and tuned parameters
-            "ACC_OPENCL_VERBOSE=2 CHECK=0 {}/{} 1 1 {} {} {}".format(
-                self.exepath,
-                self.exename,
-                self.args.m,
-                self.args.n,
-                self.args.k,
-            )
-        )
+        # verbosity level to capture device name and tuned parameters
+        run_result = self.launch(["ACC_OPENCL_VERBOSE=2", "CHECK=0"], 1, 1)
         if 0 == run_result["returncode"]:
             typename = re.search(
                 "typename \\(id=([0-9]+)\\):\\s+(\\w+)", str(run_result["stdout"])
@@ -123,6 +115,20 @@ class SmmTuner(MeasurementInterface):
         signal(SIGINT, self.handle_sigint)
         return manipulator
 
+    def launch(self, envs, nrep=None, size=None):
+        """Launch executable supplying environment and arguments"""
+        return self.call_program(
+            "OMP_PROC_BIND=TRUE {} {} {}".format(
+                " ".join(map(str, envs)),  # environment variables
+                "{}/{}".format(self.exepath, self.exename),
+                # executable's arguments
+                "{} {}".format(
+                    self.args.r if None else nrep, self.args.s if None else size
+                ),
+                "{} {} {}".format(self.args.m, self.args.n, self.args.k),
+            )
+        )
+
     def seed_configurations(self):
         return [
             {
@@ -142,21 +148,14 @@ class SmmTuner(MeasurementInterface):
     def run(self, desired_result, input, limit):
         """Run a configuration and return performance"""
         config = desired_result.configuration.data
-        run_result = self.call_program(
-            "{} {} {} {} {} {}/{} {} {} {} {} {}".format(
+        run_result = self.launch(
+            [
                 "OMP_PROC_BIND=TRUE CHECK={}".format(self.args.check),
                 "OPENCL_LIBSMM_SMM_BS={}".format(config["BS"]),
                 "OPENCL_LIBSMM_SMM_BM={}".format(config["BM"]),
                 "OPENCL_LIBSMM_SMM_BN={}".format(config["BN"]),
                 "OPENCL_LIBSMM_SMM_BC={}".format(int(config["BC"])),
-                self.exepath,
-                self.exename,
-                self.args.r,
-                self.args.s,
-                self.args.m,
-                self.args.n,
-                self.args.k,
-            )
+            ]
         )
         if 0 == run_result["returncode"]:
             performance = re.search(

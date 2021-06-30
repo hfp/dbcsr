@@ -209,10 +209,10 @@ class SmmTuner(MeasurementInterface):
         """Merge all JSONs into a single CSV-file"""
         if self.args.csvfile:
             merged = dict()
-            for ifilename in filenames:
+            for filename in filenames:
                 try:
                     data = dict()
-                    with open(ifilename, "r") as file:
+                    with open(filename, "r") as file:
                         data = json.load(file)
                     key = (
                         data["DEVICE"] if "DEVICE" in data else self.device,
@@ -227,21 +227,21 @@ class SmmTuner(MeasurementInterface):
                         data["BM"],
                         data["BN"],
                         int(data["BC"]) if "BC" in data else 0,
-                        ifilename,
+                        filename,
                     )
                     if key not in merged:
                         merged[key] = value
                     else:
                         if merged[key][0] < value[0]:
-                            ifilename = merged[key][-1]
+                            filename = merged[key][-1]
                             merged[key] = value
                         print(
                             "Worse result {} ignored when merging CSV-file".format(
-                                ifilename
+                                filename
                             )
                         )
                 except (json.JSONDecodeError, KeyError):
-                    print("Failed to merge {} into CSV-file.".format(ifilename))
+                    print("Failed to merge {} into CSV-file.".format(filename))
             if bool(merged):
                 with open(self.args.csvfile, "w") as file:
                     file.write(  # CSV header line (key part)
@@ -272,7 +272,7 @@ class SmmTuner(MeasurementInterface):
     def save_final_config(self, configuration):
         """Called at termination"""
         if 0 < self.gflops:
-            ofilename = "tune_multiply-{}-{}x{}x{}-{}gflops.json".format(
+            filename = "tune_multiply-{}-{}x{}x{}-{}gflops.json".format(
                 self.typename, self.args.m, self.args.n, self.args.k, round(self.gflops)
             )
             # extend result for easier reuse later
@@ -290,16 +290,16 @@ class SmmTuner(MeasurementInterface):
                         self.args.csvfile
                     )
                 )
-            # self.manipulator().save_to_file(config, ofilename)
-            with open(ofilename, "w") as file:
+            # self.manipulator().save_to_file(config, filename)
+            with open(filename, "w") as file:
                 json.dump(config, file)
                 file.write("\n")  # append newline at EOF
-            if ofilename not in filenames:
-                filenames.append(ofilename)
+            if filename not in filenames:
+                filenames.append(filename)
                 self.merge_jsons(filenames)
             print(
                 "Result achieving {} GFLOPS/s ({}) was written to {}".format(
-                    self.gflops, self.typename, ofilename
+                    self.gflops, self.typename, filename
                 )
             )
             if 0 == self.args.check:

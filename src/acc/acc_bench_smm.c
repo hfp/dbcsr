@@ -141,20 +141,22 @@ int main(int argc, char* argv[])
     CHECK(c_dbcsr_acc_init(), &result);
     /* note: libsmm_acc_init() may imply acc_init() */
     CHECK(libsmm_acc_init(), &result);
-    CHECK(c_dbcsr_acc_get_ndevices(&ndevices), &result);
-    if (0 < ndevices && (0 == device || EXIT_SUCCESS == c_dbcsr_acc_set_active_device(device))) {
+    if (EXIT_SUCCESS == result) {
+      result = c_dbcsr_acc_get_ndevices(&ndevices);
+      if (0 < ndevices && (0 == device || EXIT_SUCCESS == c_dbcsr_acc_set_active_device(device))) {
 #if defined(_DEBUG)
-      fprintf(stderr, "Activated device %i of %i.\n", device, ndevices);
+        fprintf(stderr, "Activated device %i of %i.\n", device, ndevices);
 #endif
-    }
-    else {
-      if (0 >= ndevices) fprintf(stderr, "No ACC-device found!\n");
-      else fprintf(stderr, "Failed to activate device %i of %i!\n", device, ndevices);
+      }
+      else {
+        if (0 >= ndevices) fprintf(stderr, "No ACC-device found!\n");
+        else fprintf(stderr, "Failed to activate device %i of %i!\n", device, ndevices);
 #if !defined(__CUDA)
-      CHECK(libsmm_acc_finalize(), NULL);
+        CHECK(libsmm_acc_finalize(), NULL);
 #endif
-      CHECK(c_dbcsr_acc_finalize(), NULL);
-      return result;
+        CHECK(c_dbcsr_acc_finalize(), NULL);
+        return result;
+      }
     }
     printf("typename (id=%i): %s\n", DBCSR_TYPE(ELEM_TYPE), DBCSR_STRINGIFY(ELEM_TYPE));
     CHECK(c_dbcsr_acc_stream_create(&stream, "stream", -1/*default priority*/), &result);

@@ -212,8 +212,8 @@ class SmmTuner(MeasurementInterface):
             for ifilename in filenames:
                 try:
                     data = dict()
-                    with open(ifilename, "r") as ifile:
-                        data = json.load(ifile)
+                    with open(ifilename, "r") as file:
+                        data = json.load(file)
                     key = (
                         data["DEVICE"] if "DEVICE" in data else self.device,
                         int(data["TYPEID"]),
@@ -243,22 +243,22 @@ class SmmTuner(MeasurementInterface):
                 except (json.JSONDecodeError, KeyError):
                     print("Failed to merge {} into CSV-file.".format(ifilename))
             if bool(merged):
-                with open(self.args.csvfile, "w") as ofile:
-                    ofile.write(  # CSV header line (key part)
+                with open(self.args.csvfile, "w") as file:
+                    file.write(  # CSV header line (key part)
                         self.args.csvsep.join(["DEVICE", "TYPEID", "M", "N", "K"])
                     )
-                    ofile.write(self.args.csvsep)
-                    ofile.write(
+                    file.write(self.args.csvsep)
+                    file.write(
                         self.args.csvsep.join(["GFLOPS", "BS", "BM", "BN", "BC"])
                     )
-                    ofile.write("\n")  # CSV header line (termination)
+                    file.write("\n")  # CSV header line (termination)
                     for key, value in merged.items():  # CSV data lines
                         strkey = self.args.csvsep.join([str(k) for k in key])
                         strval = self.args.csvsep.join([str(v) for v in value[:-1]])
-                        ofile.write(strkey)
-                        ofile.write(self.args.csvsep)
-                        ofile.write(strval)
-                        ofile.write("\n")
+                        file.write(strkey)
+                        file.write(self.args.csvsep)
+                        file.write(strval)
+                        file.write("\n")
                 print(
                     "Merged {} of {} JSONs into {}".format(
                         len(merged), len(filenames), self.args.csvfile
@@ -291,9 +291,9 @@ class SmmTuner(MeasurementInterface):
                     )
                 )
             # self.manipulator().save_to_file(config, ofilename)
-            with open(ofilename, "w") as ofile:
-                json.dump(config, ofile)
-                ofile.write("\n")  # append newline at EOF
+            with open(ofilename, "w") as file:
+                json.dump(config, file)
+                file.write("\n")  # append newline at EOF
             if ofilename not in filenames:
                 filenames.append(ofilename)
                 self.merge_jsons(filenames)

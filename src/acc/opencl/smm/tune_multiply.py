@@ -56,20 +56,24 @@ class SmmTuner(MeasurementInterface):
             )
             self.device = device.group(1) if device and device.group(1) else ""
             params = re.search(
-                "INFO ACC/OpenCL:\\s+{}x{}x{}\\s+{}SMM-kernel{}".format(
+                "INFO ACC/OpenCL:\\s+{}x{}x{}\\s+{}SMM-kernel{}{}".format(
                     self.args.m,
                     self.args.n,
                     self.args.k,
                     {"float": "S", "double": "D"}.get(self.typename, ""),
-                    "\\s+bs=([0-9]+)\\s+bm=([0-9]+)\\s+bn=([0-9]+)\\s+ck=([0-9]+)\\s+gen=",
+                    "\\s+bs=([0-9]+)\\s+bm=([0-9]+)\\s+bn=([0-9]+)",
+                    "\\s+cn=([0-9]+)\\s+ck=([0-9]+)\\s+gen=",
                 ),
                 str(run_result["stderr"]),
             )
             self.bs = int(params.group(1)) if params and params.group(1) else None
             self.bm = int(params.group(2)) if params and params.group(2) else None
             self.bn = int(params.group(3)) if params and params.group(3) else None
-            self.ck = (
+            self.cn = (
                 (0 != int(params.group(4))) if params and params.group(4) else None
+            )
+            self.ck = (
+                (0 != int(params.group(5))) if params and params.group(5) else None
             )
         else:
             self.typename = self.typeid = None
@@ -104,6 +108,8 @@ class SmmTuner(MeasurementInterface):
             params.append(IntegerParameter("BM", 1, self.args.m))
         if not os.getenv("OPENCL_LIBSMM_SMM_BN"):
             params.append(IntegerParameter("BN", 1, self.args.n))
+        if not os.getenv("OPENCL_LIBSMM_SMM_CN"):
+            params.append(BooleanParameter("CN"))
         if not os.getenv("OPENCL_LIBSMM_SMM_CK"):
             params.append(BooleanParameter("CK"))
         if not params:
@@ -137,6 +143,7 @@ class SmmTuner(MeasurementInterface):
                 "BS": self.bs if self.bs is not None else self.args.bs,
                 "BM": self.bm if self.bm is not None else self.args.bm,
                 "BN": self.bn if self.bn is not None else self.args.bn,
+                "CN": self.cn if self.cn is not None else self.args.cn,
                 "CK": self.ck if self.ck is not None else self.args.ck,
             }
         ]
@@ -152,6 +159,7 @@ class SmmTuner(MeasurementInterface):
             "OPENCL_LIBSMM_SMM_BS={}".format(config["BS"]),
             "OPENCL_LIBSMM_SMM_BM={}".format(config["BM"]),
             "OPENCL_LIBSMM_SMM_BN={}".format(config["BN"]),
+            "OPENCL_LIBSMM_SMM_CN={}".format(int(config["CN"])),
             "OPENCL_LIBSMM_SMM_CK={}".format(int(config["CK"])),
         ]
 
@@ -228,6 +236,7 @@ class SmmTuner(MeasurementInterface):
                         data["BS"],
                         data["BM"],
                         data["BN"],
+                        int(data["CN"]) if "CN" in data else 0,
                         int(data["CK"]) if "CK" in data else 0,
                         filename,
                     )
@@ -251,7 +260,7 @@ class SmmTuner(MeasurementInterface):
                     )
                     file.write(self.args.csvsep)
                     file.write(
-                        self.args.csvsep.join(["GFLOPS", "BS", "BM", "BN", "CK"])
+                        self.args.csvsep.join(["GFLOPS", "BS", "BM", "BN", "CN", "CK"])
                     )
                     file.write("\n")  # CSV header line (termination)
                     for key, value in merged.items():  # CSV data lines
@@ -349,6 +358,14 @@ if __name__ == "__main__":
         nargs="?",
         dest="bn",
         help="Initial block/tile size (BN)",
+    )
+    argparser.add_argument(
+        "-cn",
+        "--initial-cn",
+        action="store_true",
+        default=True if int(os.getenv("OPENCL_LIBSMM_SMM_CN", "0")) else False,
+        dest="cn",
+        help="Initial bank-conflict flag (N-dimension)",
     )
     argparser.add_argument(
         "-ck",

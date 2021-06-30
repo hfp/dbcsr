@@ -29,6 +29,9 @@
 #if !defined(SHARED_A) && !defined(PRIVATE_A) && 1
 # define SHARED_A
 #endif
+#if !defined(SHARED_B) && !defined(PRIVATE_B) && 1
+# define SHARED_B
+#endif
 #if !defined(TRACK_B) && defined(PRIVATE_B) && 0
 # define TRACK_B
 #endif
@@ -109,7 +112,10 @@ kernel void FN(global T *restrict cdata,
   global T *restrict c = cdata + c0;
 
 #if defined(SHARED_A)
-  local T awg[SM][SK+CK];
+  local T amk[SM][SK+CK];
+#endif
+#if defined(SHARED_B)
+  local T bkn[SK][SN+CN];
 #endif
 #if (SWG != SN)
 # if defined(PRIVATE_A)
@@ -148,8 +154,8 @@ kernel void FN(global T *restrict cdata,
 #else
   {
 #endif
-    /* transpose A-matrix into local/shared buffer */
 #if defined(SHARED_A)
+    /* transpose A-matrix into local/shared buffer */
 # if (SM != SN || SWG != SN)
     UNROLL(BMN)
     for (int m = m0; m < m1; ++m) {
@@ -157,11 +163,13 @@ kernel void FN(global T *restrict cdata,
     { const int m = idx;
 # endif
       UNROLL(SK)
-      for (int k = 0; k < SK; ++k) awg[m][k] = a[SM*k+m];
+      for (int k = 0; k < SK; ++k) amk[m][k] = a[SM*k+m];
     }
 #endif
 
-#if defined(PRIVATE_B)
+#if defined(SHARED_B)
+/* TODO */
+#elif defined(PRIVATE_B)
 # if defined(TRACK_B) && (1 < BS)
     if (b0 != b1) {
       b1 = b0;
@@ -182,8 +190,8 @@ kernel void FN(global T *restrict cdata,
     }
 #endif
 
-#if defined(SHARED_A) && (1 < SWG)
-    /* finish copy-transpose */
+#if (defined(SHARED_A) || defined(SHARED_B)) && (1 < SWG)
+    /* finish transpose/copy */
     barrier(CLK_LOCAL_MEM_FENCE);
 #endif
 
@@ -203,13 +211,13 @@ kernel void FN(global T *restrict cdata,
 #   if defined(PRIVATE_A)
         for (int k = 0; k < SK; ++k) r = FMA(amk[k], bkn[k][n-n0], r);
 #   else
-        for (int k = 0; k < SK; ++k) r = FMA(awg[m][k], bkn[k][n-n0], r);
+        for (int k = 0; k < SK; ++k) r = FMA(amk[m][k], bkn[k][n-n0], r);
 #   endif
 # else
 #   if defined(PRIVATE_A)
         for (int k = 0; k < SK; ++k) r = FMA(amk[k], b[SN*k+n], r);
 #   else
-        for (int k = 0; k < SK; ++k) r = FMA(awg[m][k], b[SN*k+n], r);
+        for (int k = 0; k < SK; ++k) r = FMA(amk[m][k], b[SN*k+n], r);
 #   endif
 # endif
 # if (1 < BS)
@@ -232,13 +240,13 @@ kernel void FN(global T *restrict cdata,
 #   if defined(PRIVATE_A) || !defined(SHARED_A)
       for (int k = 0; k < SK; ++k) r = FMA(a[SM*k+m], bkn[k], r);
 #   else
-      for (int k = 0; k < SK; ++k) r = FMA(awg[m][k], bkn[k], r);
+      for (int k = 0; k < SK; ++k) r = FMA(amk[m][k], bkn[k], r);
 #   endif
 # else
 #   if defined(PRIVATE_A) || !defined(SHARED_A)
       for (int k = 0; k < SK; ++k) r = FMA(a[SM*k+m], b[SN*k+idx], r);
 #   else
-      for (int k = 0; k < SK; ++k) r = FMA(awg[m][k], b[SN*k+idx], r);
+      for (int k = 0; k < SK; ++k) r = FMA(amk[m][k], b[SN*k+idx], r);
 #   endif
 # endif
 # if (1 < BS)

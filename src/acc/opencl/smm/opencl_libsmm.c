@@ -1036,9 +1036,10 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                 nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options),
                   "%s %s %s -cl-fast-relaxed-math -cl-no-signed-zeros -cl-denorms-are-zero -DFMA=fma -DGLOBAL=%s"
                   " -DFN=%s -DSM=%i -DSN=%i -DSK=%i -DBS=%i -DBM=%i -DBN=%i -DCN=%i -DCK=%i -DT=%s -DTN=%i"
-                  " %s -D\"ATOMIC_ADD_GLOBAL(A,B)=%s\" %s",
+                  " %s %s %s -D\"ATOMIC_ADD_GLOBAL(A,B)=%s\" %s",
                   (NULL == env_options || '\0' == *env_options) ? "" : env_options, cl_intel ? "-DINTEL" : "",
                   cl_std, cmem, fname, m_max, n_max, k_max, bs, bm, bn, cn, ck, tname, datatype,
+                  0 == ck ? "" : "-DSHARED_A", 0 == cn ? "" : "-DSHARED_B",
                   atomic_ops, atomic_expr, atomic_expr2);
                 if (0 >= nchar || (int)sizeof(build_options) <= nchar) result = EXIT_FAILURE;
               }

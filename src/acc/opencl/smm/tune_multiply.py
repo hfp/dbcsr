@@ -72,7 +72,7 @@ class SmmTuner(MeasurementInterface):
             self.aa = int(params.group(4)) if params and params.group(4) else None
             self.ab = int(params.group(5)) if params and params.group(5) else None
         else:
-            self.typename = self.typeid = None
+            self.typename = self.typeid = self.device = None
         if self.typename and self.typeid:
             # construct label used for the database session
             if not self.args.label:
@@ -220,11 +220,10 @@ class SmmTuner(MeasurementInterface):
                         data = json.load(file)
                     device = data["DEVICE"] if "DEVICE" in data else self.device
                     key = (device, data["TYPEID"], data["M"], data["N"], data["K"])
-                    value = (
-                        (data["GFLOPS"], data["BS"], data["BM"], data["BN"])
-                        + (data["AA"] if "AA" in data else 1)
-                        + (data["AB"] if "AB" in data else 0)
-                        + (filename)
+                    value = (data["GFLOPS"], data["BS"], data["BM"], data["BN"]) + (
+                        data["AA"] if "AA" in data else 1,
+                        data["AB"] if "AB" in data else 0,
+                        filename,
                     )
                     if key not in merged:
                         merged[key] = value

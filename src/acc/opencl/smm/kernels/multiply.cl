@@ -176,7 +176,17 @@ kernel void FN(global T *restrict cdata,
 #endif
 
 #if defined(SHARED_B)
-/* TODO */
+    UNROLL(SK)
+    for (int k = 0; k < SK; ++k) {
+# if (SWG != SN)
+#   if defined(__NV_CL_C_VERSION)
+      UNROLL(BN)
+#   endif
+      for (int n = n0; n < n1; ++n) bkn[k][n] = b[SN*k+n];
+# else
+      bkn[k][idx] = b[SN*k+idx];
+# endif
+    }
 #elif defined(PRIVATE_B)
 # if defined(TRACK_B) && (1 < BS)
     if (b0 != b1) {
@@ -244,19 +254,20 @@ kernel void FN(global T *restrict cdata,
       T r = 0;
 # endif
       UNROLL(SK)
-# if defined(PRIVATE_B)
-#   if defined(PRIVATE_A) || !defined(SHARED_A)
-      for (int k = 0; k < SK; ++k) r = FMA(a[SM*k+m], bkn[k], r);
-#   else
-      for (int k = 0; k < SK; ++k) r = FMA(amk[m][k], bkn[k], r);
-#   endif
-# else
-#   if defined(PRIVATE_A) || !defined(SHARED_A)
-      for (int k = 0; k < SK; ++k) r = FMA(a[SM*k+m], b[SN*k+idx], r);
-#   else
-      for (int k = 0; k < SK; ++k) r = FMA(amk[m][k], b[SN*k+idx], r);
-#   endif
+      for (int k = 0; k < SK; ++k) r = FMA(
+# if defined(SHARED_A)
+        amk[m][k],
+# else /* TODO: PRIVATE_A*/
+        a[SM*k+m],
 # endif
+# if defined(SHARED_B)
+        bkn[k][idx],
+# elif defined(PRIVATE_B)
+        bkn[k],
+# else
+        b[SN*k+idx],
+# endif
+        r);
 # if (1 < BS)
       cmn[m] = r;
 # else

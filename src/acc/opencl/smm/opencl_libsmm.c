@@ -306,9 +306,9 @@ int libsmm_acc_init(void)
                 ? opencl_libsmm_devices[0] : NULL);
               int ndevices = 0, i;
               while (NULL != fgets(buffer, ACC_OPENCL_BUFFERSIZE, file)) {
-                result = opencl_libsmm_read_params(buffer, &key, &config, &perfest,
-                  NULL != device ? &device : NULL);
-                if (EXIT_SUCCESS == result) {
+                if (EXIT_SUCCESS == opencl_libsmm_read_params(buffer, &key, &config, &perfest,
+                  NULL != device ? &device : NULL))
+                {
                   if (NULL != device) {
                     for (i = 0; i < ndevices; ++i) {
                       if (0 == strncmp(device, opencl_libsmm_devices[i], ACC_OPENCL_BUFFERSIZE)) break;
@@ -320,7 +320,12 @@ int libsmm_acc_init(void)
                     result = EXIT_FAILURE; break;
                   }
                 }
-                else break; /* invalid entry, or no device column */
+                else {
+                  if (0 != c_dbcsr_acc_opencl_config.verbosity) {
+                    fprintf(stderr, "WARNING LIBSMM: failed to load tuned parameters!\n");
+                  }
+                  break; /* invalid entry, or no device column */
+                }
               }
             }
             else result = EXIT_FAILURE; /* invalid header */

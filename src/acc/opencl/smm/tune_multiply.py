@@ -49,7 +49,7 @@ class SmmTuner(MeasurementInterface):
             self.typeid = (
                 int(typename.group(1)) if typename and typename.group(1) else 0
             )
-            if None == self.args.update or "" == self.args.update
+            if None == self.args.update or "" == self.args.update:
                 device = re.search(
                     'INFO ACC/OpenCL:\\s+ndevices=[0-9]+\\s+device[0-9]+="(.+)"',
                     str(run_result["stderr"]),
@@ -198,7 +198,7 @@ class SmmTuner(MeasurementInterface):
                             data.update({"DEVICE": self.device})
                             file.close()
                             with open(filename, "w") as file:
-                                json.dump(data, file)
+                                json.dump(data, file, sort_keys=True)
                                 file.write("\n")
                                 print("Updated {} to {}.".format(filename, self.device))
                                 updated = True
@@ -285,7 +285,7 @@ class SmmTuner(MeasurementInterface):
                 )
             # self.manipulator().save_to_file(config, filename)
             with open(filename, "w") as file:
-                json.dump(config, file)
+                json.dump(config, file, sort_keys=True)
                 file.write("\n")  # append newline at EOF
             if filename not in filenames:
                 filenames.append(filename)

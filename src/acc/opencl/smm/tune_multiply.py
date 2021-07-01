@@ -49,7 +49,7 @@ class SmmTuner(MeasurementInterface):
             self.typeid = (
                 int(typename.group(1)) if typename and typename.group(1) else 0
             )
-            if None == self.args.update or "" == self.args.update:
+            if self.args.update is None or "" == self.args.update:
                 device = re.search(
                     'INFO ACC/OpenCL:\\s+ndevices=[0-9]+\\s+device[0-9]+="(.+)"',
                     str(run_result["stderr"]),
@@ -82,9 +82,9 @@ class SmmTuner(MeasurementInterface):
                     " " + self.device if "" != self.device else "",
                 )
         # consider to update and/or merge JSONS (update first)
-        elif self.args.merge or None == self.args.update or "" != self.args.update:
+        elif self.args.merge or self.args.update is None or "" != self.args.update:
             filenames = glob.glob("*.json")
-            if None == self.args.update or "" != self.args.update:
+            if self.args.update is None or "" != self.args.update:
                 self.update_jsons(filenames)
             if self.args.merge:
                 self.merge_jsons(filenames)
@@ -220,10 +220,12 @@ class SmmTuner(MeasurementInterface):
                         data = json.load(file)
                     device = data["DEVICE"] if "DEVICE" in data else self.device
                     key = (device, data["TYPEID"], data["M"], data["N"], data["K"])
-                    value = (data["GFLOPS"], data["BS"], data["BM"], data["BN"])
-                    value.append(data["AA"] if "AA" in data else 1)
-                    value.append(data["AB"] if "AB" in data else 0)
-                    value.append(filename)
+                    value = (
+                        (data["GFLOPS"], data["BS"], data["BM"], data["BN"])
+                        + (data["AA"] if "AA" in data else 1)
+                        + (data["AB"] if "AB" in data else 0)
+                        + (filename)
+                    )
                     if key not in merged:
                         merged[key] = value
                     else:

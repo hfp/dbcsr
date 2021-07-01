@@ -73,7 +73,15 @@ class SmmTuner(MeasurementInterface):
             self.ab = int(params.group(5)) if params and params.group(5) else None
         else:
             self.typename = self.typeid = self.device = None
-        if self.typename and self.typeid:
+        # consider to update and/or merge JSONS (update first)
+        if self.args.merge or self.args.update is None or "" != self.args.update:
+            filenames = glob.glob("*.json")
+            if self.args.update is None or "" != self.args.update:
+                self.update_jsons(filenames)
+            if self.args.merge:
+                self.merge_jsons(filenames)
+            exit(0)
+        elif self.typename and self.typeid and self.device:
             # construct label used for the database session
             if not self.args.label:
                 self.args.label = "multiply-{}-{}{}".format(
@@ -81,14 +89,6 @@ class SmmTuner(MeasurementInterface):
                     self.typename,
                     " " + self.device if "" != self.device else "",
                 )
-        # consider to update and/or merge JSONS (update first)
-        elif self.args.merge or self.args.update is None or "" != self.args.update:
-            filenames = glob.glob("*.json")
-            if self.args.update is None or "" != self.args.update:
-                self.update_jsons(filenames)
-            if self.args.merge:
-                self.merge_jsons(filenames)
-            exit(0)
         else:
             sys.tracebacklimit = 0
             raise RuntimeError(

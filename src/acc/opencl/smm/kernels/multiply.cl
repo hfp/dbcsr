@@ -112,10 +112,18 @@ kernel void FN(global T *restrict cdata,
   global T *restrict c = cdata + c0;
 
 #if defined(SHARED_A)
-  local T amk[SM][SK+CK];
+# if (1 < SHARED_A)
+  local T amk[SM][SK+1];
+# else
+  local T amk[SM][SK];
+# endif
 #endif
 #if defined(SHARED_B)
-  local T bkn[SK][SN+CN];
+# if (1 < SHARED_A)
+  local T bkn[SK][SN+1];
+# else
+  local T bkn[SK][SN];
+# endif
 #endif
 #if (SWG != SN)
 # if defined(PRIVATE_A)

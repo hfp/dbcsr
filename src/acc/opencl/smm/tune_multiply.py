@@ -13,7 +13,6 @@
 # LIBXSMM's "xgemm" and "transpose" examples.
 #
 import opentuner
-from opentuner.search.manipulator import BooleanParameter
 from opentuner.search.manipulator import IntegerParameter
 from opentuner import ConfigurationManipulator
 from opentuner import MeasurementInterface
@@ -50,56 +49,51 @@ class SmmTuner(MeasurementInterface):
             self.typeid = (
                 int(typename.group(1)) if typename and typename.group(1) else 0
             )
-            device = re.search(
-                'INFO ACC/OpenCL:\\s+ndevices=[0-9]+\\s+device[0-9]+="(.+)"',
-                str(run_result["stderr"]),
-            )
-            self.device = device.group(1) if device and device.group(1) else ""
+            if None == self.args.update or "" == self.args.update
+                device = re.search(
+                    'INFO ACC/OpenCL:\\s+ndevices=[0-9]+\\s+device[0-9]+="(.+)"',
+                    str(run_result["stderr"]),
+                )
+                self.device = device.group(1) if device and device.group(1) else ""
+            else:
+                self.device = self.args.update
             params = re.search(
-                "INFO ACC/OpenCL:\\s+{}x{}x{}\\s+{}SMM-kernel{}{}".format(
-                    self.args.m,
-                    self.args.n,
-                    self.args.k,
+                "INFO ACC/OpenCL:\\s+{}\\s+{}SMM-kernel{}{}".format(
+                    "{}x{}x{}".format(self.args.m, self.args.n, self.args.k),
                     {"float": "S", "double": "D"}.get(self.typename, ""),
                     "\\s+bs=([0-9]+)\\s+bm=([0-9]+)\\s+bn=([0-9]+)",
-                    "\\s+cn=([0-9]+)\\s+ck=([0-9]+)\\s+gen=",
+                    "\\s+aa=([0-9]+)\\s+ab=([0-9]+)\\s+gen=",
                 ),
                 str(run_result["stderr"]),
             )
             self.bs = int(params.group(1)) if params and params.group(1) else None
             self.bm = int(params.group(2)) if params and params.group(2) else None
             self.bn = int(params.group(3)) if params and params.group(3) else None
-            self.cn = (
-                (0 != int(params.group(4))) if params and params.group(4) else None
-            )
-            self.ck = (
-                (0 != int(params.group(5))) if params and params.group(5) else None
-            )
+            self.aa = int(params.group(4)) if params and params.group(4) else None
+            self.ab = int(params.group(5)) if params and params.group(5) else None
         else:
             self.typename = self.typeid = None
         if self.typename and self.typeid:
             # construct label used for the database session
             if not self.args.label:
-                self.args.label = "multiply-{}x{}x{}-{}{}".format(
-                    self.args.m,
-                    self.args.n,
-                    self.args.k,
+                self.args.label = "multiply-{}-{}{}".format(
+                    "{}x{}x{}".format(self.args.m, self.args.n, self.args.k),
                     self.typename,
-                    ["", " " + self.device]["" != self.device],
+                    " " + self.device if "" != self.device else "",
                 )
-        elif not (self.args.merge or self.args.update):
-            sys.tracebacklimit = 0
-            raise RuntimeError(
-                "Setup failed for {}/{}!".format(self.exepath, self.exename)
-            )
         # consider to update and/or merge JSONS (update first)
-        if self.args.update or self.args.merge:
+        elif self.args.merge or None == self.args.update or "" != self.args.update:
             filenames = glob.glob("*.json")
-            if self.args.update:
+            if None == self.args.update or "" != self.args.update:
                 self.update_jsons(filenames)
             if self.args.merge:
                 self.merge_jsons(filenames)
             exit(0)
+        else:
+            sys.tracebacklimit = 0
+            raise RuntimeError(
+                "Setup failed for {}/{}!".format(self.exepath, self.exename)
+            )
         # setup tunable parameters
         manipulator, params = ConfigurationManipulator(), []
         if not os.getenv("OPENCL_LIBSMM_SMM_BS"):
@@ -108,10 +102,10 @@ class SmmTuner(MeasurementInterface):
             params.append(IntegerParameter("BM", 1, self.args.m))
         if not os.getenv("OPENCL_LIBSMM_SMM_BN"):
             params.append(IntegerParameter("BN", 1, self.args.n))
-        if not os.getenv("OPENCL_LIBSMM_SMM_CN"):
-            params.append(BooleanParameter("CN"))
-        if not os.getenv("OPENCL_LIBSMM_SMM_CK"):
-            params.append(BooleanParameter("CK"))
+        if not os.getenv("OPENCL_LIBSMM_SMM_AA"):
+            params.append(IntegerParameter("AA", 1, 3))
+        if not os.getenv("OPENCL_LIBSMM_SMM_AB"):
+            params.append(IntegerParameter("AB", 1, 3))
         if not params:
             sys.tracebacklimit = 0
             raise RuntimeError(
@@ -143,8 +137,8 @@ class SmmTuner(MeasurementInterface):
                 "BS": self.bs if self.bs is not None else self.args.bs,
                 "BM": self.bm if self.bm is not None else self.args.bm,
                 "BN": self.bn if self.bn is not None else self.args.bn,
-                "CN": self.cn if self.cn is not None else self.args.cn,
-                "CK": self.ck if self.ck is not None else self.args.ck,
+                "AA": self.aa if self.aa is not None else self.args.aa,
+                "AB": self.ab if self.ab is not None else self.args.ab,
             }
         ]
 
@@ -159,8 +153,8 @@ class SmmTuner(MeasurementInterface):
             "OPENCL_LIBSMM_SMM_BS={}".format(config["BS"]),
             "OPENCL_LIBSMM_SMM_BM={}".format(config["BM"]),
             "OPENCL_LIBSMM_SMM_BN={}".format(config["BN"]),
-            "OPENCL_LIBSMM_SMM_CN={}".format(int(config["CN"])),
-            "OPENCL_LIBSMM_SMM_CK={}".format(int(config["CK"])),
+            "OPENCL_LIBSMM_SMM_AA={}".format(config["AA"]),
+            "OPENCL_LIBSMM_SMM_AB={}".format(config["AB"]),
         ]
 
     def run(self, desired_result, input, limit):
@@ -211,7 +205,7 @@ class SmmTuner(MeasurementInterface):
                 except (json.JSONDecodeError, KeyError):
                     print("Failed to update {}.".format(filename))
             if not updated:
-                print("All JSONs target {}.".format(self.device))
+                print("All JSONs already target {}.".format(self.device))
         else:
             print("Cannot determine device name.")
 
@@ -224,22 +218,12 @@ class SmmTuner(MeasurementInterface):
                     data = dict()
                     with open(filename, "r") as file:
                         data = json.load(file)
-                    key = (
-                        data["DEVICE"] if "DEVICE" in data else self.device,
-                        int(data["TYPEID"]),
-                        data["M"],
-                        data["N"],
-                        data["K"],
-                    )
-                    value = (
-                        data["GFLOPS"],
-                        data["BS"],
-                        data["BM"],
-                        data["BN"],
-                        int(data["CN"]) if "CN" in data else 0,
-                        int(data["CK"]) if "CK" in data else 0,
-                        filename,
-                    )
+                    device = data["DEVICE"] if "DEVICE" in data else self.device
+                    key = (device, data["TYPEID"], data["M"], data["N"], data["K"])
+                    value = (data["GFLOPS"], data["BS"], data["BM"], data["BN"])
+                    value.append(data["AA"] if "AA" in data else 1)
+                    value.append(data["AB"] if "AB" in data else 0)
+                    value.append(filename)
                     if key not in merged:
                         merged[key] = value
                     else:
@@ -255,21 +239,19 @@ class SmmTuner(MeasurementInterface):
                     print("Failed to merge {} into CSV-file.".format(filename))
             if bool(merged):
                 with open(self.args.csvfile, "w") as file:
-                    file.write(  # CSV header line (key part)
-                        self.args.csvsep.join(["DEVICE", "TYPEID", "M", "N", "K"])
+                    file.write(  # CSV header line with termination/newline
+                        "{}{}{}\n".format(  # key-part
+                            self.args.csvsep.join(["DEVICE", "TYPEID", "M", "N", "K"]),
+                            self.args.csvsep,  # separator for value-part
+                            self.args.csvsep.join(  # value-part
+                                ["GFLOPS", "BS", "BM", "BN", "AA", "AB"]
+                            ),
+                        )
                     )
-                    file.write(self.args.csvsep)
-                    file.write(
-                        self.args.csvsep.join(["GFLOPS", "BS", "BM", "BN", "CN", "CK"])
-                    )
-                    file.write("\n")  # CSV header line (termination)
                     for key, value in merged.items():  # CSV data lines
                         strkey = self.args.csvsep.join([str(k) for k in key])
                         strval = self.args.csvsep.join([str(v) for v in value[:-1]])
-                        file.write(strkey)
-                        file.write(self.args.csvsep)
-                        file.write(strval)
-                        file.write("\n")
+                        file.write("{}{}{}\n".format(strkey, self.args.csvsep, strval))
                 print(
                     "Merged {} of {} JSONs into {}".format(
                         len(merged), len(filenames), self.args.csvfile
@@ -348,7 +330,7 @@ if __name__ == "__main__":
         default=int(os.getenv("OPENCL_LIBSMM_SMM_BM", "0")),
         nargs="?",
         dest="bm",
-        help="Initial block/tile size (BM)",
+        help="Block/tile size (BM)",
     )
     argparser.add_argument(
         "-bn",
@@ -357,23 +339,23 @@ if __name__ == "__main__":
         default=int(os.getenv("OPENCL_LIBSMM_SMM_BN", "0")),
         nargs="?",
         dest="bn",
-        help="Initial block/tile size (BN)",
+        help="Block/tile size (BN)",
     )
     argparser.add_argument(
-        "-cn",
-        "--initial-cn",
-        action="store_true",
-        default=True if int(os.getenv("OPENCL_LIBSMM_SMM_CN", "0")) else False,
-        dest="cn",
-        help="Initial bank-conflict flag (N-dimension)",
+        "-aa",
+        "--initial-aa",
+        type=int,
+        default=int(os.getenv("OPENCL_LIBSMM_SMM_AA", "1")),
+        dest="aa",
+        help="A-access: direct/auto (0), shared (1), shared-bc (2), private (3)",
     )
     argparser.add_argument(
-        "-ck",
-        "--initial-ck",
-        action="store_true",
-        default=True if int(os.getenv("OPENCL_LIBSMM_SMM_CK", "0")) else False,
-        dest="ck",
-        help="Initial bank-conflict flag (K-dimension)",
+        "-ab",
+        "--initial-ab",
+        type=int,
+        default=int(os.getenv("OPENCL_LIBSMM_SMM_AB", "0")),
+        dest="ab",
+        help="B-access: direct/auto (0), shared (1), shared-bc (2), private (3)",
     )
     argparser.add_argument(
         "-bs",
@@ -382,7 +364,7 @@ if __name__ == "__main__":
         default=int(os.getenv("OPENCL_LIBSMM_SMM_BS", "24")),
         nargs="?",
         dest="bs",
-        help="Initial (mini-)batch size (BS)",
+        help="Minibatch size (BS)",
     )
     argparser.add_argument(
         "-mb",
@@ -440,8 +422,9 @@ if __name__ == "__main__":
     argparser.add_argument(
         "-u",
         "--update-jsons",
-        action="store_true",
-        default=False,
+        type=str,
+        default="",
+        nargs="?",
         dest="update",
         help="Update JSONs (device), and terminate",
     )

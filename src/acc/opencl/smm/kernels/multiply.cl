@@ -178,14 +178,16 @@ kernel void FN(global T *restrict cdata,
 #if defined(SHARED_B)
     UNROLL(SK)
     for (int k = 0; k < SK; ++k) {
-# if (SWG != SN)
+# if (SM != SN || SWG != SN)
 #   if defined(__NV_CL_C_VERSION)
       UNROLL(BN)
 #   endif
-      for (int n = n0; n < n1; ++n) bkn[k][n] = b[SN*k+n];
+      for (int n = n0; n < n1; ++n) {
 # else
-      bkn[k][idx] = b[SN*k+idx];
+      { const int n = idx;
 # endif
+        bkn[k][n] = b[SN*k+n];
+      }
     }
 #elif defined(PRIVATE_B)
 # if defined(TRACK_B) && (1 < BS)

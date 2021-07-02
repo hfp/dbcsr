@@ -123,11 +123,11 @@ else
   LDFLAGS += -lOpenCL
 endif
 
-.PHONY: all
-all: ../dbcsr_acc.a ../dbcsr_acc_smm.a bench test
-
 .PHONY: bench
 bench: ../acc_bench_smm ../acc_bench_trans
+
+.PHONY: all
+all: ../dbcsr_acc.a ../dbcsr_acc_smm.a bench test
 
 .PHONY: test
 test: ../dbcsr_acc_test

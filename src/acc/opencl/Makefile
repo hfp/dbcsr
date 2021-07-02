@@ -9,8 +9,10 @@ KERNEL := $(wildcard smm/kernels/*.cl)
 
 INCALL := $(INCACC) $(INCSMM)
 
-LIBXSMMROOT ?= $(wildcard ../../../../libxsmm)
-LIBXSMMROOT ?= $(wildcard $(HOME)/libxsmm)
+LIBXSMMROOT := $(wildcard ../../../../libxsmm)
+ifneq (,$(LIBXSMMROOT))
+  LIBXSMMROOT := $(wildcard $(HOME)/libxsmm)
+endif
 UNAME := $(shell uname)
 INTEL ?= 0
 DEV ?= 0

@@ -195,13 +195,14 @@ class SmmTuner(MeasurementInterface):
                         data = json.load(file)
                         device = data["DEVICE"] if "DEVICE" in data else ""
                         if device != self.device:
+                            print("Updated {} to {}.".format(filename, self.device))
                             data.update({"DEVICE": self.device})
                             file.close()
-                            with open(filename, "w") as file:
-                                json.dump(data, file, sort_keys=True)
-                                file.write("\n")
-                                print("Updated {} to {}.".format(filename, self.device))
-                                updated = True
+                            updated = True
+                        # rewrite JSON (in any case) with keys in order
+                        with open(filename, "w") as file:
+                            json.dump(data, file, sort_keys=True)
+                            file.write("\n")
                 except (json.JSONDecodeError, KeyError):
                     print("Failed to update {}.".format(filename))
             if not updated:

@@ -221,7 +221,7 @@ class SmmTuner(MeasurementInterface):
                     device = data["DEVICE"] if "DEVICE" in data else self.device
                     key = (device, data["TYPEID"], data["M"], data["N"], data["K"])
                     value = (data["GFLOPS"], data["BS"], data["BM"], data["BN"]) + (
-                        data["AA"] if "AA" in data else 1,
+                        data["AA"] if "AA" in data else 0,
                         data["AB"] if "AB" in data else 0,
                         filename,
                     )
@@ -346,9 +346,9 @@ if __name__ == "__main__":
         "-aa",
         "--initial-aa",
         type=int,
-        default=int(os.getenv("OPENCL_LIBSMM_SMM_AA", "1")),
+        default=int(os.getenv("OPENCL_LIBSMM_SMM_AA", "0")),
         dest="aa",
-        help="A-access: direct/auto (0), shared (1), shared-bc (2), private (3)",
+        help="A-access: auto (0), shared (1), shared-bc (2), private (3)",
     )
     argparser.add_argument(
         "-ab",
@@ -356,7 +356,7 @@ if __name__ == "__main__":
         type=int,
         default=int(os.getenv("OPENCL_LIBSMM_SMM_AB", "0")),
         dest="ab",
-        help="B-access: direct/auto (0), shared (1), shared-bc (2), private (3)",
+        help="B-access: auto (0), shared (1), shared-bc (2), private (3)",
     )
     argparser.add_argument(
         "-bs",

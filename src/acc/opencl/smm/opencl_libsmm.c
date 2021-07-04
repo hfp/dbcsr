@@ -953,7 +953,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
             const int cl_intel_0x4905 = (cl_intel && EXIT_SUCCESS == c_dbcsr_acc_opencl_device_name(active_device, "0x4905"));
             const int cl_nonv = (cl_intel || EXIT_SUCCESS != c_dbcsr_acc_opencl_device_vendor(active_device, "nvidia"));
             const int aa = ((NULL == env_aa || '\0' == *env_aa || '0' == *env_aa)
-              ? (NULL == config ? 1/*default*/ : config->aa) : LIBXSMM_CLMP(atoi(env_aa), 0, 3));
+              ? (NULL == config ? 0/*default*/ : config->aa) : LIBXSMM_CLMP(atoi(env_aa), 0, 3));
             const int ab = ((NULL == env_ab || '\0' == *env_ab || '0' == *env_ab)
               ? (NULL == config ? 0/*default*/ : config->ab) : LIBXSMM_CLMP(atoi(env_ab), 0, 3));
             int max_wgsize, wgsize, bs, bm, bn, nbm, nbn;

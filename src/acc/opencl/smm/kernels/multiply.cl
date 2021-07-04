@@ -119,7 +119,7 @@ kernel void FN(global T *restrict cdata,
 # endif
 #endif
 #if defined(SHARED_B)
-# if (1 < SHARED_A)
+# if (1 < SHARED_B)
   local T bkn[SK][SN+1];
 # else
   local T bkn[SK][SN];

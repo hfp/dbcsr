@@ -27,10 +27,10 @@
 # define PRIVATE_B
 #endif
 #if !defined(SHARED_A) && !defined(PRIVATE_A) && 1
-# define SHARED_A
+# define SHARED_A ((SK % 16) ? 1 : 2)
 #endif
 #if !defined(SHARED_B) && !defined(PRIVATE_B) && 1
-# define SHARED_B
+# define SHARED_B ((SN % 16) ? 1 : 2)
 #endif
 #if !defined(TRACK_B) && defined(PRIVATE_B) && 0
 # define TRACK_B

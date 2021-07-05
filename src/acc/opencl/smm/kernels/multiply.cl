@@ -12,13 +12,16 @@
 # define UNROLL(N)
 #endif
 
-#define BMN ((SM + SN - 1) / SN)
 /* number of M-blocks */
 #define NBM ((SM + BM - 1) / BM)
 /* number of N-blocks */
 #define NBN ((SN + BN - 1) / BN)
 /* size of workgroup (WG) */
 #define SWG (NBM * NBN)
+
+/* custom workshare using SWG (or SN) */
+#define BS3 ((3 * BS + SWG - 1) / SWG)
+#define BMN ((SM + SN - 1) / SN)
 
 #if !defined(PRIVATE_A) && (SWG != SN) && 1
 # define PRIVATE_A
@@ -32,11 +35,21 @@
 #if !defined(SHARED_B) && !defined(PRIVATE_B) && 1
 # define SHARED_B ((SN % 16) ? 1 : 2)
 #endif
-#if !defined(TRACK_B) && defined(PRIVATE_B) && 0
-# define TRACK_B
+#if !defined(SHARED_S) && (1 < BS) && !defined(INTEL) && 1
+# define SHARED_S
 #endif
-#if !defined(TRACK_C) && 1
+#if !defined(TRACK_B) && (1 < BS) && 0
+# if defined(PRIVATE_B)
+#   define TRACK_B
+# endif
+#endif
+#if !defined(TRACK_C) && (1 < BS) && 1
 # define TRACK_C
+#endif
+#if defined(SHARED_S)
+# define IDXBASE 0
+#else
+# define IDXBASE 1
 #endif
 
 
@@ -99,18 +112,12 @@ kernel void FN(global T *restrict cdata,
 #endif
 {
   const int gid = get_group_id(0), idx = get_local_id(0);
-  GLOBAL const int *restrict params = param_stack + gid * (3 * BS);
-#if (1 < BS)
-# if defined(TRACK_B)
-  int b1 = -1;
-# endif
+  GLOBAL const int *restrict param_base = param_stack + gid * (3 * BS);
+#if defined(SHARED_S)
+  local int params[3*BS];
 #else
-  GLOBAL const T *const restrict a = adata + params[0] - 1;
-  GLOBAL const T *const restrict b = bdata + params[1] - 1;
+  GLOBAL const int *restrict params = param_base;
 #endif
-  int c0 = params[2] - 1;
-  global T *restrict c = cdata + c0;
-
 #if defined(SHARED_A)
 # if (1 < SHARED_A)
   local T amk[SM][SK+1];
@@ -148,20 +155,34 @@ kernel void FN(global T *restrict cdata,
   const int m0 = idx * BMN, m1 = min(m0 + BMN, SM);
 # endif
 #endif
+#if defined(TRACK_B)
+  int b1 = -1;
+#endif
 
   /* intra-kernel mini-batch of SMMs */
 #if (1 < BS)
   const int batchsize = min(BS, stack_size - BS * gid);
+  global T *restrict c;
+  int c0, i;
+# if defined(SHARED_S)
+  for (i = idx; i < (3 * batchsize); i += BS3) {
+    params[i] = param_base[i] - 1;
+  }
+  barrier(CLK_LOCAL_MEM_FENCE);
+# endif
+  c0 = params[2] - IDXBASE;
+  c = cdata + c0;
   UNROLL(1)
-  for (int i = 0; i < batchsize; ++i) {
-    const int c1 = (i < (batchsize - 1) ? (params[5] - 1) : -1);
-    const int a0 = params[0] - 1, b0 = params[1] - 1;
-    GLOBAL const T *const restrict a = adata + a0;
-    GLOBAL const T *const restrict b = bdata + b0;
-    params += 3; /* next set of indexes */
+  for (i = 0; i < batchsize; ++i) {
+    const int a0 = params[3*i] - IDXBASE, b0 = params[3*i+1] - IDXBASE;
+    const int c1 = ((i + 1) < batchsize ? (params[3*i+5] - IDXBASE) : -1);
 #else
   {
+    const int a0 = params[0] - IDXBASE, b0 = params[1] - IDXBASE;
+    global T *restrict c = cdata + params[2] - IDXBASE;
 #endif
+    GLOBAL const T *const restrict a = adata + a0;
+    GLOBAL const T *const restrict b = bdata + b0;
 #if defined(SHARED_A)
     /* transpose A-matrix into local/shared buffer */
 # if (SM != SN || SWG != SN)

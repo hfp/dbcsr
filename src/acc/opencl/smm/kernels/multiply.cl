@@ -23,7 +23,7 @@
 #if !defined(PRIVATE_A) && (SWG != SN) && 1
 # define PRIVATE_A
 #endif
-#if !defined(PRIVATE_B) && 0
+#if !defined(PRIVATE_B) && defined(INTEL) && 1
 # define PRIVATE_B
 #endif
 #if !defined(SHARED_A) && !defined(PRIVATE_A) && 1

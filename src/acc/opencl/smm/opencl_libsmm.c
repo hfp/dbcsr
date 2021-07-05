@@ -347,11 +347,16 @@ int libsmm_acc_init(void)
             if (NULL != next && next < (line + ACC_OPENCL_BUFFERSIZE)) {
               const int len = next - line;
               memcpy(buffer, line, len); buffer[len] = '\0';
-              result = opencl_libsmm_read_params(buffer, &key, &config, &perfest, NULL);
-              if (EXIT_SUCCESS == result && NULL == OPENCL_LIBSMM_REGISTER(
-                &key, sizeof(key), sizeof(config), &config))
-              {
-                result = EXIT_FAILURE; break;
+              if (EXIT_SUCCESS == opencl_libsmm_read_params(buffer, &key, &config, &perfest, NULL)) {
+                if (NULL == OPENCL_LIBSMM_REGISTER(&key, sizeof(key), sizeof(config), &config)) {
+                  result = EXIT_FAILURE; break;
+                }
+              }
+              else {
+                if (0 != c_dbcsr_acc_opencl_config.verbosity) {
+                  fprintf(stderr, "WARNING LIBSMM: failed to load tuned parameters!\n");
+                }
+                break;
               }
               line = ++next;
             }

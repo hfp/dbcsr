@@ -230,6 +230,7 @@ class SmmTuner(MeasurementInterface):
                     value = (data["GFLOPS"], data["BS"], data["BM"], data["BN"]) + (
                         data["AA"] if "AA" in data else 0,
                         data["AB"] if "AB" in data else 0,
+                        data["AP"] if "AP" in data else 0,
                         filename,
                     )
                     if key not in merged:
@@ -252,7 +253,7 @@ class SmmTuner(MeasurementInterface):
                             self.args.csvsep.join(["DEVICE", "TYPEID", "M", "N", "K"]),
                             self.args.csvsep,  # separator for value-part
                             self.args.csvsep.join(  # value-part
-                                ["GFLOPS", "BS", "BM", "BN", "AA", "AB"]
+                                ["GFLOPS", "BS", "BM", "BN", "AA", "AB", "AP"]
                             ),
                         )
                     )

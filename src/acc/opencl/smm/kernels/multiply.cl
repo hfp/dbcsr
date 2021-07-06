@@ -19,7 +19,7 @@
 /* size of workgroup (WG) */
 #define SWG (NBM * NBN)
 
-#if !defined(SHARED_A) && (SWG == SN) && 1
+#if !defined(SHARED_A) && 1
 # define SHARED_A ((SK % 16) ? 1 : 2)
 #endif
 #if !defined(SHARED_B) && !defined(INTEL) && 1

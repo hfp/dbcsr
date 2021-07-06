@@ -19,36 +19,36 @@
 /* size of workgroup (WG) */
 #define SWG (NBM * NBN)
 
-#if !defined(PRIVATE_A) && (SWG != SN) && 1
-# define PRIVATE_A
-#endif
-#if !defined(PRIVATE_B) && defined(INTEL) && 1
-# define PRIVATE_B
-#endif
-#if !defined(PRIVATE_C) && (1 < BS) && 1
-# define PRIVATE_C
-#endif
-#if !defined(SHARED_A) && !defined(PRIVATE_A) && 1
+#if !defined(SHARED_A) && (SWG == SN) && 1
 # define SHARED_A ((SK % 16) ? 1 : 2)
 #endif
-#if !defined(SHARED_B) && !defined(PRIVATE_B) && 1
+#if !defined(SHARED_B) && !defined(INTEL) && 1
 # define SHARED_B ((SN % 16) ? 1 : 2)
 #endif
-#if !defined(SHARED_C) && (1 < BS) && !defined(PRIVATE_C) && 1
+#if !defined(SHARED_C) && 0
 # define SHARED_C ((SN % 16) ? 1 : 2)
 #endif
-#if !defined(SHARED_S) && (1 < BS) && !defined(INTEL) && 1
+#if !defined(SHARED_S) && !defined(INTEL) && 1
 # define SHARED_S
 #endif
+#if !defined(PRIVATE_A) && !defined(SHARED_A)
+# define PRIVATE_A
+#endif
+#if !defined(PRIVATE_B) && !defined(SHARED_B)
+# define PRIVATE_B
+#endif
+#if !defined(PRIVATE_C) && !defined(SHARED_C)
+# define PRIVATE_C
+#endif
 #if !defined(TRACK_B) && (1 < BS) && 0
-# if defined(PRIVATE_B)
+# if defined(PRIVATE_B) && !defined(SHARED_B)
 #   define TRACK_B
 # endif
 #endif
 #if !defined(TRACK_C) && (1 < BS) && 1
 # define TRACK_C
 #endif
-#if defined(SHARED_S)
+#if defined(SHARED_S) && (1 < BS)
 # define IDXBASE 0
 #else
 # define IDXBASE 1
@@ -115,7 +115,7 @@ kernel void FN(global T *restrict cdata,
 {
   const int gid = get_group_id(0), idx = get_local_id(0);
   GLOBAL const int *restrict param_base = param_stack + gid * (3 * BS);
-#if defined(SHARED_S)
+#if defined(SHARED_S) && (1 < BS)
   local int params[3*BS];
 #else
   GLOBAL const int *restrict params = param_base;
@@ -135,22 +135,22 @@ kernel void FN(global T *restrict cdata,
 # endif
 #endif
 #if (SWG != SN)
-# if defined(PRIVATE_A)
+# if defined(PRIVATE_A) && !defined(SHARED_A)
   T amk[SK];
 # endif
-# if defined(PRIVATE_B)
+# if defined(PRIVATE_B) && !defined(SHARED_B)
   T bkn[SK][BN];
 # endif
-# if defined(PRIVATE_C)
+# if defined(PRIVATE_C) && !defined(SHARED_C) && (1 < BS)
   T cmn[BM][BN] = {{ 0 }};
 # endif
   const int m0 = (idx / NBN) * BM, m1 = min(m0 + BM, SM);
   const int n0 = (idx % NBN) * BN, n1 = min(n0 + BN, SN);
 #else
-# if defined(PRIVATE_B)
+# if defined(PRIVATE_B) && !defined(SHARED_B)
   T bkn[SK];
 # endif
-# if defined(PRIVATE_C)
+# if defined(PRIVATE_C) && !defined(SHARED_C) && (1 < BS)
   T cmn[SM] = { 0 };
 # endif
 #endif
@@ -258,7 +258,7 @@ kernel void FN(global T *restrict cdata,
 #if (SWG != SN)
     /*UNROLL(BM)*/
     for (int m = m0; m < m1; ++m) {
-# if defined(PRIVATE_A)
+# if defined(PRIVATE_A) && !defined(SHARED_A)
       UNROLL(SK)
       for (int k = 0; k < SK; ++k) amk[k] = a[SM*k+m];
 # endif

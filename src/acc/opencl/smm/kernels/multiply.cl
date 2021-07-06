@@ -16,6 +16,13 @@
 #else
 # define BC 2
 #endif
+#if (1 == TN)
+# define ZERO 0.f
+#elif (3 == TN)
+# define ZERO 0.0
+#else
+# define ZERO 0
+#endif
 
 /* number of M-blocks */
 #define NBM ((SM + BM - 1) / BM)
@@ -174,18 +181,10 @@ kernel void FN(global T *restrict cdata,
 #   else
   local T cmn[SM][SN];
 #   endif
-#   if (SWG != SN)
-  for (int m = m0; m < m1; ++m) {
-    for (int n = n0; n < n1; ++n) {
-      cmn[m][n] = 0; /* init */
-    }
+  for (int m = idx; m < SM; m += SWG) {
+    UNROLL(SN)
+    for (int n = 0; n < SN; ++n) cmn[m][n] = ZERO;
   }
-#   else
-  UNROLL(SM)
-  for (int m = 0; m < SM; ++m) {
-    cmn[m][idx] = 0;
-  }
-#   endif
 # endif
 # if defined(SHARED_S)
   for (i = idx; i < (3 * batchsize); i += SWG) {
@@ -269,7 +268,7 @@ kernel void FN(global T *restrict cdata,
 # endif
       /*UNROLL(BN)*/
       for (int n = n0; n < n1; ++n) {
-        T r = 0;
+        T r = ZERO;
         UNROLL(SK)
         for (int k = 0; k < SK; ++k) r = FMA(
 # if defined(SHARED_A)
@@ -300,7 +299,7 @@ kernel void FN(global T *restrict cdata,
 # if (1 < BS)
       T r = cmn[m];
 # else
-      T r = 0;
+      T r = ZERO;
 # endif
       UNROLL(SK)
       for (int k = 0; k < SK; ++k) r = FMA(
@@ -338,7 +337,7 @@ kernel void FN(global T *restrict cdata,
           const int gm = m + m0, gn = n + n0;
           if (gm < SM && gn < SN && 0 != cmn[m][n]) {
             ATOMIC_ADD_GLOBAL(&c[SM*gn+gm], cmn[m][n]);
-            cmn[m][n] = 0; /* reset */
+            cmn[m][n] = ZERO; /* reset */
           }
         }
       }
@@ -349,7 +348,7 @@ kernel void FN(global T *restrict cdata,
         /*if (0 != cmn[m] && 0 != cmn[m+1])*/ {
           const float2 r2 = (float2)(cmn[m], cmn[m+1]);
           ATOMIC_ADD2_GLOBAL((global volatile float2*)(c + SM * idx + m), r2);
-          cmn[m] = cmn[m+1] = 0; /* reset */
+          cmn[m] = cmn[m+1] = ZERO; /* reset */
         }
       }
 #   else
@@ -357,7 +356,7 @@ kernel void FN(global T *restrict cdata,
       for (int m = 0; m < SM; ++m) {
         if (0 != cmn[m]) {
           ATOMIC_ADD_GLOBAL(&c[SM*idx+m], cmn[m]);
-          cmn[m] = 0; /* reset */
+          cmn[m] = ZERO; /* reset */
         }
       }
 #   endif

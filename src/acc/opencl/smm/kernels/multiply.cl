@@ -20,7 +20,6 @@
 #define SWG (NBM * NBN)
 
 /* custom workshare */
-#define BS3 ((3 * BS + SWG - 1) / SWG)
 #define BX ((SN + SWG - 1) / SWG)
 #define BY ((SM + SWG - 1) / SWG)
 
@@ -192,7 +191,7 @@ kernel void FN(global T *restrict cdata,
 #   endif
 # endif
 # if defined(SHARED_S)
-  for (i = idx; i < (3 * batchsize); i += BS3) {
+  for (i = idx; i < (3 * batchsize); i += SWG) {
     params[i] = param_base[i] - 1;
   }
 # endif

@@ -63,7 +63,7 @@ class SmmTuner(MeasurementInterface):
                     {"float": "S", "double": "D"}.get(self.typename, ""),
                     "\\s+bs=([0-9]+)\\s+bm=([0-9]+)\\s+bn=([0-9]+)",
                     "\\s+aa=([0-9]+)\\s+ab=([0-9]+)\\s+ac=([0-9]+)",
-                    "\\s+ap=([0-9]+\\s+gen=",
+                    "\\s+ap=([0-9]+)\\s+gen=",
                 ),
                 str(run_result["stderr"]),
             )

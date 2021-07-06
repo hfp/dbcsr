@@ -126,11 +126,11 @@ kernel void FN(global T *restrict cdata,
 #endif
 {
   const int gid = get_group_id(0), idx = get_local_id(0);
-  GLOBAL const int *restrict param_base = param_stack + gid * (3 * BS);
+  GLOBAL const int *restrict pbase = param_stack + gid * (3 * BS);
 #if defined(SHARED_S) && (1 < BS)
   local int params[3*BS];
 #else
-  GLOBAL const int *restrict params = param_base;
+  GLOBAL const int *restrict params = pbase;
 #endif
 #if defined(SHARED_A)
 # if (1 < SHARED_A)
@@ -187,9 +187,7 @@ kernel void FN(global T *restrict cdata,
   }
 # endif
 # if defined(SHARED_S)
-  for (i = idx; i < (3 * batchsize); i += SWG) {
-    params[i] = param_base[i] - 1;
-  }
+  for (i = idx; i < (3 * batchsize); i += SWG) params[i] = pbase[i] - 1;
 # endif
 # if defined(SHARED_C) || defined(SHARED_S)
   barrier(CLK_LOCAL_MEM_FENCE);

@@ -282,9 +282,13 @@ kernel void FN(global T *restrict cdata,
 # endif
           r);
 # if (1 < BS)
+#   if defined(SHARED_C)
+        cmn[m][n] += r;
+#   else
         cmn[m-m0][n-n0] += r;
+#   endif
 # else
-        if (0 != r) ATOMIC_ADD_GLOBAL(&c[SM*n+m], r);
+        if (ZERO != r) ATOMIC_ADD_GLOBAL(&c[SM*n+m], r);
 # endif
       }
     }
@@ -292,7 +296,11 @@ kernel void FN(global T *restrict cdata,
     UNROLL(SM)
     for (int m = 0; m < SM; ++m) {
 # if (1 < BS)
+#   if defined(SHARED_C)
+      T r = cmn[m][idx];
+#   else
       T r = cmn[m];
+#   endif
 # else
       T r = ZERO;
 # endif
@@ -312,9 +320,13 @@ kernel void FN(global T *restrict cdata,
 # endif
         r);
 # if (1 < BS)
+#   if defined(SHARED_C)
+      cmn[m][idx] = r;
+#   else
       cmn[m] = r;
+#   endif
 # else
-      if (0 != r) ATOMIC_ADD_GLOBAL(&c[SM*idx+m], r);
+      if (ZERO != r) ATOMIC_ADD_GLOBAL(&c[SM*idx+m], r);
 # endif
     }
 #endif
@@ -330,9 +342,14 @@ kernel void FN(global T *restrict cdata,
         UNROLL(BN)
         for (int n = 0; n < BN; ++n) {
           const int gm = m + m0, gn = n + n0;
-          if (gm < SM && gn < SN && 0 != cmn[m][n]) {
-            ATOMIC_ADD_GLOBAL(&c[SM*gn+gm], cmn[m][n]);
-            cmn[m][n] = ZERO; /* reset */
+#   if defined(SHARED_C)
+          local T *restrict ci = &cmn[gm][gn];
+#   else
+          private T *restrict ci = &cmn[m][n];
+#   endif
+          if (gm < SM && gn < SN && ZERO != *ci) {
+            ATOMIC_ADD_GLOBAL(&c[SM*gn+gm], *ci);
+            *ci = ZERO; /* reset */
           }
         }
       }
@@ -340,18 +357,30 @@ kernel void FN(global T *restrict cdata,
 #   if defined(ATOMIC_ADD2_GLOBAL)
       UNROLL(SM)
       for (int m = 0; m < SM; m += 2) {
-        /*if (0 != cmn[m] && 0 != cmn[m+1])*/ {
-          const float2 r2 = (float2)(cmn[m], cmn[m+1]);
+#     if defined(SHARED_C)
+        local T *restrict c0 = &cmn[m+0][idx];
+        local T *restrict c1 = &cmn[m+1][idx];
+#     else
+        private T *restrict c0 = &cmn[m+0];
+        private T *restrict c1 = &cmn[m+1];
+#     endif
+        /*if (ZERO != *c0 && ZERO != *c1)*/ {
+          const float2 r2 = (float2)(*c0, *c1);
           ATOMIC_ADD2_GLOBAL((global volatile float2*)(c + SM * idx + m), r2);
-          cmn[m] = cmn[m+1] = ZERO; /* reset */
+          *c0 = *c1 = ZERO; /* reset */
         }
       }
 #   else
       UNROLL(SM)
       for (int m = 0; m < SM; ++m) {
-        if (0 != cmn[m]) {
-          ATOMIC_ADD_GLOBAL(&c[SM*idx+m], cmn[m]);
-          cmn[m] = ZERO; /* reset */
+#     if defined(SHARED_C)
+        local T *restrict ci = &cmn[m][idx];
+#     else
+        private T *restrict ci = cmn + m;
+#     endif
+        if (ZERO != *ci) {
+          ATOMIC_ADD_GLOBAL(&c[SM*idx+m], *ci);
+          *ci = ZERO; /* reset */
         }
       }
 #   endif

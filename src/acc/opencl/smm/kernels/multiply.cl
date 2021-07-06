@@ -19,9 +19,9 @@
 /* size of workgroup (WG) */
 #define SWG (NBM * NBN)
 
-/* custom workshare using SWG (or SN) */
+/* custom workshare */
 #define BS3 ((3 * BS + SWG - 1) / SWG)
-#define BMN ((SM + SN - 1) / SN)
+#define BMN ((SM + SWG - 1) / SWG)
 
 #if !defined(PRIVATE_A) && (SWG != SN) && 1
 # define PRIVATE_A
@@ -150,6 +150,7 @@ kernel void FN(global T *restrict cdata,
 # endif
   const int m0 = (idx / NBN) * BM, m1 = min(m0 + BM, SM);
   const int n0 = (idx % NBN) * BN, n1 = min(n0 + BN, SN);
+  const int y0 = idx * BMN, y1 = min(y0 + BMN, SM);
 #else
 # if defined(PRIVATE_B)
   T bkn[SK];
@@ -158,7 +159,7 @@ kernel void FN(global T *restrict cdata,
   T cmn[SM] = { 0 };
 # endif
 # if (SM != SN)
-  const int m0 = idx * BMN, m1 = min(m0 + BMN, SM);
+  const int y0 = idx * BMN, y1 = min(y0 + BMN, SM);
 # endif
 #endif
 #if defined(TRACK_B)
@@ -214,7 +215,7 @@ kernel void FN(global T *restrict cdata,
     /* transpose A-matrix into local/shared buffer */
 # if (SM != SN || SWG != SN)
     UNROLL(BMN)
-    for (int m = m0; m < m1; ++m) {
+    for (int m = y0; m < y1; ++m) {
 # else
     { const int m = idx;
 # endif

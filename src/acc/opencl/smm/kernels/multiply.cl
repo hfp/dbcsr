@@ -212,8 +212,7 @@ kernel void FN(global T *restrict cdata,
 # if (SM != SN || SWG != SN)
       for (; m < SM; m += SWG)
 # endif
-      {
-        UNROLL(SK)
+      { UNROLL(SK)
         for (int k = 0; k < SK; ++k) amk[m][k] = a[SM*k+m];
       }
     }
@@ -226,9 +225,7 @@ kernel void FN(global T *restrict cdata,
 # if (SM != SN || SWG != SN)
       for (; n < SN; n += SWG)
 # endif
-      {
-        bkn[k][n] = b[SN*k+n];
-      }
+      bkn[k][n] = b[SN*k+n];
     }
 #elif defined(PRIVATE_B)
 # if defined(TRACK_B) && (1 < BS)

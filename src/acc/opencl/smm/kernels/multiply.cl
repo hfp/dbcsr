@@ -29,11 +29,17 @@
 #if !defined(PRIVATE_B) && defined(INTEL) && 1
 # define PRIVATE_B
 #endif
+#if !defined(PRIVATE_C) && (1 < BS) && 1
+# define PRIVATE_C
+#endif
 #if !defined(SHARED_A) && !defined(PRIVATE_A) && 1
 # define SHARED_A ((SK % 16) ? 1 : 2)
 #endif
 #if !defined(SHARED_B) && !defined(PRIVATE_B) && 1
 # define SHARED_B ((SN % 16) ? 1 : 2)
+#endif
+#if !defined(SHARED_C) && (1 < BS) && !defined(PRIVATE_C) && 1
+# define SHARED_C ((SN % 16) ? 1 : 2)
 #endif
 #if !defined(SHARED_S) && (1 < BS) && !defined(INTEL) && 1
 # define SHARED_S
@@ -139,7 +145,7 @@ kernel void FN(global T *restrict cdata,
 # if defined(PRIVATE_B)
   T bkn[SK][BN];
 # endif
-# if (1 < BS)
+# if defined(PRIVATE_C)
   T cmn[BM][BN] = {{ 0 }};
 # endif
   const int m0 = (idx / NBN) * BM, m1 = min(m0 + BM, SM);
@@ -148,7 +154,7 @@ kernel void FN(global T *restrict cdata,
 # if defined(PRIVATE_B)
   T bkn[SK];
 # endif
-# if (1 < BS)
+# if defined(PRIVATE_C)
   T cmn[SM] = { 0 };
 # endif
 # if (SM != SN)
@@ -164,10 +170,31 @@ kernel void FN(global T *restrict cdata,
   const int batchsize = min(BS, stack_size - BS * gid);
   global T *restrict c;
   int c0, i;
+# if defined(SHARED_C)
+#   if (1 < SHARED_C)
+  local T cmn[SM][SN+1];
+#   else
+  local T cmn[SM][SN];
+#   endif
+#   if (SWG != SN)
+  for (int m = m0; m < m1; ++m) {
+    for (int n = n0; n < n1; ++n) {
+      cmn[m][n] = 0; /* init */
+    }
+  }
+#   else
+  UNROLL(SM)
+  for (int m = 0; m < SM; ++m) {
+    cmn[m][idx] = 0;
+  }
+#   endif
+# endif
 # if defined(SHARED_S)
   for (i = idx; i < (3 * batchsize); i += BS3) {
     params[i] = param_base[i] - 1;
   }
+# endif
+# if defined(SHARED_C) || defined(SHARED_S)
   barrier(CLK_LOCAL_MEM_FENCE);
 # endif
   c0 = params[2] - IDXBASE;

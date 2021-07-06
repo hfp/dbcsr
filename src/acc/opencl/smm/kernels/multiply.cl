@@ -19,10 +19,6 @@
 /* size of workgroup (WG) */
 #define SWG (NBM * NBN)
 
-/* custom workshare */
-#define BX ((SN + SWG - 1) / SWG)
-#define BY ((SM + SWG - 1) / SWG)
-
 #if !defined(PRIVATE_A) && (SWG != SN) && 1
 # define PRIVATE_A
 #endif
@@ -158,10 +154,6 @@ kernel void FN(global T *restrict cdata,
   T cmn[SM] = { 0 };
 # endif
 #endif
-#if (SWG != SN || SM != SN)
-  const int x0 = idx * BX, x1 = min(x0 + BX, SN);
-  const int y0 = idx * BY, y1 = min(y0 + BY, SM);
-#endif
 #if defined(TRACK_B)
   int b1 = -1;
 #endif
@@ -213,29 +205,26 @@ kernel void FN(global T *restrict cdata,
     GLOBAL const T *const restrict b = bdata + b0;
 
 #if defined(SHARED_A)
-    /* transpose A-matrix into local/shared buffer */
+    { /* transpose A-matrix into local/shared buffer */
+      int m = idx;
 # if (SM != SN || SWG != SN)
-    UNROLL(BY)
-    for (int m = y0; m < y1; ++m) {
-# else
-    { const int m = idx;
+      for (; m < SM; m += SWG)
 # endif
-      UNROLL(SK)
-      for (int k = 0; k < SK; ++k) amk[m][k] = a[SM*k+m];
+      {
+        UNROLL(SK)
+        for (int k = 0; k < SK; ++k) amk[m][k] = a[SM*k+m];
+      }
     }
 #endif
 
 #if defined(SHARED_B)
     UNROLL(SK)
     for (int k = 0; k < SK; ++k) {
+      int n = idx;
 # if (SM != SN || SWG != SN)
-#   if defined(__NV_CL_C_VERSION)
-      UNROLL(BX)
-#   endif
-      for (int n = x0; n < x1; ++n) {
-# else
-      { const int n = idx;
+      for (; n < SN; n += SWG)
 # endif
+      {
         bkn[k][n] = b[SN*k+n];
       }
     }

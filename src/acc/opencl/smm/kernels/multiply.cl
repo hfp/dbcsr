@@ -346,23 +346,22 @@ kernel void FN(global T *restrict cdata,
 # endif
     { /* atomically commit private C-tile to global memory */
 # if (SWG != SN)
-      UNROLL(1)
-      for (int m = 0; m < BM; ++m) {
+      UNROLL(BM)
+      for (int bm = 0; bm < BM; ++bm) {
+        const int m = min(bm + m0, SM);
         UNROLL(BN)
-        for (int n = 0; n < BN; ++n) {
-          const int gm = m + m0, gn = n + n0;
+        for (int bn = 0; bn < BN; ++bn) {
+          const int n = min(bn + n0, SN);
 #   if defined(SHARED_C)
-          local T *restrict r = &cmn[gm][gn];
+          local T *restrict r = &cmn[m][n];
 #   else
-          private T *restrict r = &cmn[m][n];
+          private T *restrict r = &cmn[bm][bn];
 #   endif
-          if (
 #   if defined(ATOMIC_INC_NZ)
-            ZERO != *r &&
+          if (ZERO != *r)
 #   endif
-            gm < SM && gn < SN)
           {
-            ATOMIC_ADD_GLOBAL(&c[SM*gn+gm], *r);
+            ATOMIC_ADD_GLOBAL(&c[SM*n+m], *r);
             *r = ZERO; /* reset */
           }
         }

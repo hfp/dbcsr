@@ -63,7 +63,7 @@ class SmmTuner(MeasurementInterface):
                     {"float": "S", "double": "D"}.get(self.typename, ""),
                     "\\s+bs=([0-9]+)\\s+bm=([0-9]+)\\s+bn=([0-9]+)",
                     "\\s+aa=([0-9]+)\\s+ab=([0-9]+)\\s+ac=([0-9]+)",
-                    "\\s+ap=([0-9]+)\\s+gen=",
+                    "\\s+ap=([0-9]+)\\s+nz=([0-9]+)\\s+gen=",
                 ),
                 str(run_result["stderr"]),
             )
@@ -74,6 +74,7 @@ class SmmTuner(MeasurementInterface):
             self.ab = int(params.group(5)) if params and params.group(5) else None
             self.ac = int(params.group(6)) if params and params.group(6) else None
             self.ap = int(params.group(7)) if params and params.group(7) else None
+            self.nz = int(params.group(8)) if params and params.group(8) else None
         else:
             self.typename = self.typeid = self.device = None
         # consider to update and/or merge JSONS (update first)

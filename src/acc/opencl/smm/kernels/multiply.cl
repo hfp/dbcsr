@@ -177,7 +177,7 @@ kernel void FN(global T *restrict cdata,
 #if (1 < BS)
   const int batchsize = min(BS, stack_size - BS * gid);
   global T *restrict c;
-  int c0, c1, i;
+  int c0, i;
 # if defined(SHARED_C)
 #   if (1 < SHARED_C)
   local T cmn[SM][SN+1];
@@ -200,10 +200,7 @@ kernel void FN(global T *restrict cdata,
   UNROLL(1)
   for (i = 0; i < batchsize; ++i) {
     const int a0 = params[3*i] - IDXBASE, b0 = params[3*i+1] - IDXBASE;
-    if ((i + 1) < batchsize) {
-      c1 = params[3*i+5] - IDXBASE;
-    }
-    else c1 = -1
+    const int c1 = ((i + 1) < batchsize ? (params[3*i+5] - IDXBASE) : -1);
 #else
   {
     const int a0 = params[0] - IDXBASE, b0 = params[1] - IDXBASE;

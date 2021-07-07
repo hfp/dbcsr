@@ -159,8 +159,7 @@ kernel void FN(global T *restrict cdata,
 # if defined(PRIVATE_C) && !defined(SHARED_C) && (1 < BS)
   T cmn[BM][BN] = {{ 0 }};
 # endif
-  const int m0 = (idx / NBN) * BM, m1 = min(m0 + BM, SM);
-  const int n0 = (idx % NBN) * BN, n1 = min(n0 + BN, SN);
+  const int m0 = (idx / NBN) * BM, n0 = (idx % NBN) * BN;
 #else
 # if defined(PRIVATE_B) && !defined(SHARED_B)
   T bkn[SK];
@@ -240,10 +239,11 @@ kernel void FN(global T *restrict cdata,
       UNROLL(SK)
       for (int k = 0; k < SK; ++k) {
 # if (SWG != SN)
-#   if defined(__NV_CL_C_VERSION)
         UNROLL(BN)
-#   endif
-        for (int n = n0; n < n1; ++n) bkn[k][n-n0] = b[SN*k+n];
+        for (int bn = 0; bn < BN; ++bn) {
+          const int n = min(bn + n0, SN);
+          bkn[k][bn] = b[SN*k+n];
+        }
 # else
         bkn[k] = b[SN*k+idx];
 # endif
@@ -256,16 +256,18 @@ kernel void FN(global T *restrict cdata,
     barrier(CLK_LOCAL_MEM_FENCE);
 #endif
 
-    /* calculate private result-tile */
+    /* calculate result-tile */
 #if (SWG != SN)
-    /*UNROLL(BM)*/
-    for (int m = m0; m < m1; ++m) {
+    UNROLL(BM)
+    for (int bm = 0; bm < BM; ++bm) {
+      const int m = min(bm + m0, SM);
 # if defined(PRIVATE_A) && !defined(SHARED_A)
       UNROLL(SK)
       for (int k = 0; k < SK; ++k) amk[k] = a[SM*k+m];
 # endif
-      /*UNROLL(BN)*/
-      for (int n = n0; n < n1; ++n) {
+      UNROLL(BN)
+      for (int bn = 0; bn < BN; ++bn) {
+        const int n = min(bn + n0, SN);
         T r = ZERO;
         UNROLL(SK)
         for (int k = 0; k < SK; ++k) r = FMA(
@@ -279,7 +281,7 @@ kernel void FN(global T *restrict cdata,
 # if defined(SHARED_B)
           bkn[k][n],
 # elif defined(PRIVATE_B)
-          bkn[k][n-n0],
+          bkn[k][bn],
 # else
           b[SN*k+n],
 # endif
@@ -288,7 +290,7 @@ kernel void FN(global T *restrict cdata,
 #   if defined(SHARED_C)
         cmn[m][n] += r;
 #   else
-        cmn[m-m0][n-n0] += r;
+        cmn[bm][bn] += r;
 #   endif
 # else
 #   if defined(ATOMIC_INC_NZ)

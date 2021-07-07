@@ -113,6 +113,8 @@ class SmmTuner(MeasurementInterface):
             params.append(IntegerParameter("AC", 0, 3))
         if not os.getenv("OPENCL_LIBSMM_SMM_AP"):
             params.append(IntegerParameter("AP", 0, 1))
+        if not os.getenv("OPENCL_LIBSMM_SMM_NZ"):
+            params.append(IntegerParameter("NZ", 0, 1))
         if not params:
             sys.tracebacklimit = 0
             raise RuntimeError(
@@ -148,6 +150,7 @@ class SmmTuner(MeasurementInterface):
                 "AB": self.ab if self.ab is not None else self.args.ab,
                 "AC": self.ac if self.ac is not None else self.args.ac,
                 "AP": self.ap if self.ap is not None else self.args.ap,
+                "NZ": self.nz if self.nz is not None else self.args.nz,
             }
         ]
 
@@ -166,6 +169,7 @@ class SmmTuner(MeasurementInterface):
             "OPENCL_LIBSMM_SMM_AB={}".format(config["AB"]),
             "OPENCL_LIBSMM_SMM_AC={}".format(config["AC"]),
             "OPENCL_LIBSMM_SMM_AP={}".format(config["AP"]),
+            "OPENCL_LIBSMM_SMM_NZ={}".format(config["NZ"]),
         ]
 
     def run(self, desired_result, input, limit):
@@ -237,6 +241,7 @@ class SmmTuner(MeasurementInterface):
                         data["AB"] if "AB" in data else 0,
                         data["AC"] if "AC" in data else 0,
                         data["AP"] if "AP" in data else 0,
+                        data["NZ"] if "NZ" in data else 1,
                         filename,
                     )
                     if key not in merged:
@@ -255,12 +260,12 @@ class SmmTuner(MeasurementInterface):
             if bool(merged):
                 with open(self.args.csvfile, "w") as file:
                     file.write(  # CSV header line with termination/newline
-                        "{}{}{}\n".format(  # key-part
+                        "{}{}{}{}{}\n".format(  # key-part
                             self.args.csvsep.join(["DEVICE", "TYPEID", "M", "N", "K"]),
                             self.args.csvsep,  # separator for value-part
-                            self.args.csvsep.join(  # value-part
-                                ["GFLOPS", "BS", "BM", "BN", "AA", "AB", "AC", "AP"]
-                            ),
+                            self.args.csvsep.join(["GFLOPS", "BS", "BM", "BN"]),
+                            self.args.csvsep,
+                            self.args.csvsep.join(["AA", "AB", "AC", "AP", "NZ"]),
                         )
                     )
                     for key, value in merged.items():  # CSV data lines
@@ -387,6 +392,14 @@ if __name__ == "__main__":
         default=int(os.getenv("OPENCL_LIBSMM_SMM_AP", "0")),
         dest="ap",
         help="Params: auto (0), shared (1)",
+    )
+    argparser.add_argument(
+        "-nz",
+        "--initial-nz",
+        type=int,
+        default=int(os.getenv("OPENCL_LIBSMM_SMM_NZ", "1")),
+        dest="nz",
+        help="Check atomic increment to be non-zero (1)",
     )
     argparser.add_argument(
         "-bs",

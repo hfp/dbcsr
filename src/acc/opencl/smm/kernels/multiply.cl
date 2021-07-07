@@ -60,6 +60,9 @@
 #if !defined(TRACK_C) && (1 < BS) && 1
 # define TRACK_C
 #endif
+#if !defined(ATOMIC_INC_NZ) && 1
+# define ATOMIC_INC_NZ
+#endif
 #if defined(SHARED_S) && (1 < BS)
 # define IDXBASE 0
 #else
@@ -174,7 +177,7 @@ kernel void FN(global T *restrict cdata,
 #if (1 < BS)
   const int batchsize = min(BS, stack_size - BS * gid);
   global T *restrict c;
-  int c0, i;
+  int c0, c1, i;
 # if defined(SHARED_C)
 #   if (1 < SHARED_C)
   local T cmn[SM][SN+1];
@@ -197,7 +200,10 @@ kernel void FN(global T *restrict cdata,
   UNROLL(1)
   for (i = 0; i < batchsize; ++i) {
     const int a0 = params[3*i] - IDXBASE, b0 = params[3*i+1] - IDXBASE;
-    const int c1 = ((i + 1) < batchsize ? (params[3*i+5] - IDXBASE) : -1);
+    if ((i + 1) < batchsize) {
+      c1 = params[3*i+5] - IDXBASE;
+    }
+    else c1 = -1
 #else
   {
     const int a0 = params[0] - IDXBASE, b0 = params[1] - IDXBASE;
@@ -288,7 +294,10 @@ kernel void FN(global T *restrict cdata,
         cmn[m-m0][n-n0] += r;
 #   endif
 # else
-        if (ZERO != r) ATOMIC_ADD_GLOBAL(&c[SM*n+m], r);
+#   if defined(ATOMIC_INC_NZ)
+        if (ZERO != r)
+#   endif
+        ATOMIC_ADD_GLOBAL(&c[SM*n+m], r);
 # endif
       }
     }
@@ -326,7 +335,10 @@ kernel void FN(global T *restrict cdata,
       cmn[m] = r;
 #   endif
 # else
-      if (ZERO != r) ATOMIC_ADD_GLOBAL(&c[SM*idx+m], r);
+#   if defined(ATOMIC_INC_NZ)
+      if (ZERO != r)
+#   endif
+      ATOMIC_ADD_GLOBAL(&c[SM*idx+m], r);
 # endif
     }
 #endif
@@ -347,7 +359,12 @@ kernel void FN(global T *restrict cdata,
 #   else
           private T *restrict r = &cmn[m][n];
 #   endif
-          if (gm < SM && gn < SN && ZERO != *r) {
+          if (
+#   if defined(ATOMIC_INC_NZ)
+            ZERO != *r &&
+#   endif
+            gm < SM && gn < SN)
+          {
             ATOMIC_ADD_GLOBAL(&c[SM*gn+gm], *r);
             *r = ZERO; /* reset */
           }
@@ -364,7 +381,10 @@ kernel void FN(global T *restrict cdata,
         private T *restrict r0 = &cmn[m+0];
         private T *restrict r1 = &cmn[m+1];
 #     endif
-        /*if (ZERO != *r0 && ZERO != *r1)*/ {
+#     if defined(ATOMIC_INC_NZ)
+        if (ZERO != *r0 && ZERO != *r1)
+#     endif
+        {
           const float2 r2 = (float2)(*r0, *r1);
           ATOMIC_ADD2_GLOBAL((global volatile float2*)(c + SM * idx + m), r2);
           *r0 = *r1 = ZERO; /* reset */
@@ -378,7 +398,10 @@ kernel void FN(global T *restrict cdata,
 #     else
         private T *restrict r = cmn + m;
 #     endif
-        if (ZERO != *r) {
+#     if defined(ATOMIC_INC_NZ)
+        if (ZERO != *r)
+#     endif
+        {
           ATOMIC_ADD_GLOBAL(&c[SM*idx+m], *r);
           *r = ZERO; /* reset */
         }

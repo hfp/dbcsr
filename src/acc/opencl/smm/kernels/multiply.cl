@@ -343,13 +343,13 @@ kernel void FN(global T *restrict cdata,
         for (int n = 0; n < BN; ++n) {
           const int gm = m + m0, gn = n + n0;
 #   if defined(SHARED_C)
-          local T *restrict ci = &cmn[gm][gn];
+          local T *restrict r = &cmn[gm][gn];
 #   else
-          private T *restrict ci = &cmn[m][n];
+          private T *restrict r = &cmn[m][n];
 #   endif
-          if (gm < SM && gn < SN && ZERO != *ci) {
-            ATOMIC_ADD_GLOBAL(&c[SM*gn+gm], *ci);
-            *ci = ZERO; /* reset */
+          if (gm < SM && gn < SN && ZERO != *r) {
+            ATOMIC_ADD_GLOBAL(&c[SM*gn+gm], *r);
+            *r = ZERO; /* reset */
           }
         }
       }
@@ -358,29 +358,29 @@ kernel void FN(global T *restrict cdata,
       UNROLL(SM)
       for (int m = 0; m < SM; m += 2) {
 #     if defined(SHARED_C)
-        local T *restrict c0 = &cmn[m+0][idx];
-        local T *restrict c1 = &cmn[m+1][idx];
+        local T *restrict r0 = &cmn[m+0][idx];
+        local T *restrict r1 = &cmn[m+1][idx];
 #     else
-        private T *restrict c0 = &cmn[m+0];
-        private T *restrict c1 = &cmn[m+1];
+        private T *restrict r0 = &cmn[m+0];
+        private T *restrict r1 = &cmn[m+1];
 #     endif
-        /*if (ZERO != *c0 && ZERO != *c1)*/ {
-          const float2 r2 = (float2)(*c0, *c1);
+        /*if (ZERO != *r0 && ZERO != *r1)*/ {
+          const float2 r2 = (float2)(*r0, *r1);
           ATOMIC_ADD2_GLOBAL((global volatile float2*)(c + SM * idx + m), r2);
-          *c0 = *c1 = ZERO; /* reset */
+          *r0 = *r1 = ZERO; /* reset */
         }
       }
 #   else
       UNROLL(SM)
       for (int m = 0; m < SM; ++m) {
 #     if defined(SHARED_C)
-        local T *restrict ci = &cmn[m][idx];
+        local T *restrict r = &cmn[m][idx];
 #     else
-        private T *restrict ci = cmn + m;
+        private T *restrict r = cmn + m;
 #     endif
-        if (ZERO != *ci) {
-          ATOMIC_ADD_GLOBAL(&c[SM*idx+m], *ci);
-          *ci = ZERO; /* reset */
+        if (ZERO != *r) {
+          ATOMIC_ADD_GLOBAL(&c[SM*idx+m], *r);
+          *r = ZERO; /* reset */
         }
       }
 #   endif

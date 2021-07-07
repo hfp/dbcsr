@@ -344,7 +344,7 @@ kernel void FN(global T *restrict cdata,
 # if defined(TRACK_C)
     if (c0 != c1)
 # endif
-    { /* atomically commit private C-tile to global memory */
+    { /* atomically commit C-tile to global memory */
 # if (SWG != SN)
       UNROLL(BM)
       for (int bm = 0; bm < BM; ++bm) {

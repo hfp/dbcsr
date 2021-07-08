@@ -120,7 +120,11 @@ else
     CFLAGS += -I$(CUDATOOLKIT_HOME)/include
     LDFLAGS += -L$(CUDATOOLKIT_HOME)/lib64
   endif
-  LDFLAGS += -lOpenCL
+  ifneq (,$(wildcard $(LIBOPENCL)))
+    LDFLAGS += $(LIBOPENCL)
+  else
+    LDFLAGS += -lOpenCL
+  endif
 endif
 
 .PHONY: bench

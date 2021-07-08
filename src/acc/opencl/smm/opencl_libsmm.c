@@ -1017,6 +1017,11 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
               }
               if (wgsize <= max_wgsize) { /* SMMs can be potentially handled by device */
                 const char *const cmem = (EXIT_SUCCESS != opencl_libsmm_use_cmem(active_device) ? "global" : "constant");
+#if !defined(NDEBUG)
+                const char *const flags_intel = "-DINTEL -gline-tables-only";
+#else
+                const char *const flags_intel = "-DINTEL";
+#endif
                 const char *const env_options = getenv("OPENCL_LIBSMM_SMM_BUILDOPTS");
                 const char *const env_atomics = getenv("OPENCL_LIBSMM_SMM_ATOMICS");
                 const char *atomic_expr = NULL, *atomic_expr2 = "";
@@ -1064,7 +1069,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                   "%s %s %s -cl-fast-relaxed-math -cl-no-signed-zeros -cl-denorms-are-zero -DFMA=fma -DGLOBAL=%s"
                   " -DFN=%s -DSM=%i -DSN=%i -DSK=%i -DBS=%i -DBM=%i -DBN=%i -DT=%s -DTN=%i"
                   " %s %s %s %s %s %s -D\"ATOMIC_ADD_GLOBAL(A,B)=%s\" %s",
-                  (NULL == env_options || '\0' == *env_options) ? "" : env_options, cl_intel ? "-DINTEL" : "",
+                  (NULL == env_options || '\0' == *env_options) ? "" : env_options, cl_intel ? flags_intel : "",
                   cl_std, cmem, fname, m_max, n_max, k_max, bs, bm, bn, tname, datatype,
                   0 == aa ? "" : (1 == aa ? "-DSHARED_A=1" : (2 == aa ? "-DSHARED_A=2" : "-DPRIVATE_A")),
                   0 == ab ? "" : (1 == ab ? "-DSHARED_B=1" : (2 == ab ? "-DSHARED_B=2" : "-DPRIVATE_B")),

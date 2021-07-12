@@ -150,7 +150,6 @@ FCFLAGS += -D__HIP
 CXXFLAGS += -D__HIP
 # OpenCL backend
 else ifeq (opencl,$(USE_ACCEL))
-# OBJ_SRC_FILES already includes all *.c files (OpenCL backend is C based)
 CFLAGS += -D__OPENCL
 LIBXSMMROOT := $(if $(LIBXSMMROOT),$(LIBXSMMROOT),$(wildcard ../../../libxsmm))
 LIBXSMMROOT := $(if $(LIBXSMMROOT),$(LIBXSMMROOT),$(wildcard $(HOME)/libxsmm))
@@ -180,7 +179,7 @@ LIBSMM_ACC_ABS_DIR := $(shell find $(SRCDIR) -type d -name "libsmm_acc")
 
 ALL_PKG_FILES := $(shell find $(SRCDIR) -name "PACKAGE")
 OBJ_SRC_FILES  = $(shell cd $(SRCDIR); find . ! -name "dbcsr_api_c.F" ! -name "dbcsr_tensor_api_c.F" -name "*.F")
-OBJ_SRC_FILES += $(shell cd $(SRCDIR); find . -path ../src/acc/opencl -prune -type f -name "*.c")
+OBJ_SRC_FILES += $(shell cd $(SRCDIR); find . -type f -name "*.c")
 
 # if compiling with GPU acceleration
 ifneq ($(ACC),)
@@ -194,9 +193,7 @@ ifneq ($(ACC),)
     # All *.cpp files belong to the accelerator backend common between CUDA/HIP
     OBJ_SRC_FILES += $(shell cd $(SRCDIR); find . -type f ! -name "acc_cuda.cpp" ! -name "acc_hip.cpp" -name "*.cpp")
     OBJ_SRC_FILES += $(LIBSMM_ACC_DIR)/../hip/acc_hip.cpp
-  else ifeq (opencl,$(USE_ACCEL))
-    # OpenCL backend: include *.c files in OBJ_SRC_FILES
-    OBJ_SRC_FILES += $(shell cd $(SRCDIR); find . -path ../src/acc/opencl -name "*.c")
+  # OpenCL backend: OBJ_SRC_FILES already includes all *.c files
   endif
 endif
 

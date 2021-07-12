@@ -30,9 +30,9 @@
 # FCFLAGS  => Fortran compilation flags
 # LDFLAGS  => Linker flags
 # LIBS     => Libraries
-# ACC      => ACC can be nvcc (CUDA), mpicc or g++ (HIP), or non-empty string (OpenCL)
+# ACC      => ACC can be nvcc (CUDA), mpicxx/mpicc or gcc/g++ (HIP), or mpicc/gcc non-empty string (OpenCL)
 # ACCFLAGS => ACC flags
-# USE_ACCEL => hip, cuda or non-empty string (OpenCL)
+# USE_ACCEL => hip, cuda, or opencl
 # GPUVER   =>
 #          - for CUDA, possible values correspond to NVIDIA GPUs:
 #            possible values are K20X, K40, K80, P100, V100
@@ -149,7 +149,7 @@ override ACCFLAGS += -D__HIP
 FCFLAGS += -D__HIP
 CXXFLAGS += -D__HIP
 # OpenCL backend
-else
+else ifeq (opencl,$(USE_ACCEL))
 # OBJ_SRC_FILES already includes all *.c files (OpenCL backend is C based)
 CFLAGS += -D__OPENCL
 LIBXSMMROOT := $(if $(LIBXSMMROOT),$(LIBXSMMROOT),$(wildcard ../../../libxsmm))
@@ -194,8 +194,8 @@ ifneq ($(ACC),)
     # All *.cpp files belong to the accelerator backend common between CUDA/HIP
     OBJ_SRC_FILES += $(shell cd $(SRCDIR); find . -type f ! -name "acc_cuda.cpp" ! -name "acc_hip.cpp" -name "*.cpp")
     OBJ_SRC_FILES += $(LIBSMM_ACC_DIR)/../hip/acc_hip.cpp
-  else
-    # OpenCL backend: include *.c files in OBJ_SRC_FILES 
+  else ifeq (opencl,$(USE_ACCEL))
+    # OpenCL backend: include *.c files in OBJ_SRC_FILES
     OBJ_SRC_FILES += $(shell cd $(SRCDIR); find . -path ../src/acc/opencl -name "*.c")
   endif
 endif
@@ -321,7 +321,7 @@ else ifeq (hip,$(USE_ACCEL))
 acc_hip.o: acc_hip.cpp acc_hip.h
 	$(ACC) -c $(ACCFLAGS) -I'$(SRCDIR)' $<
 # if compiling OpenCL backend
-else
+else ifeq (opencl,$(USE_ACCEL))
 OPENCL_KERNELS := $(wildcard $(LIBSMM_ACC_ABS_DIR)/../opencl/smm/kernels/*.cl)
 OPENCL_KRNLGEN := $(LIBSMM_ACC_ABS_DIR)/../opencl/acc_opencl.sh
 $(LIBSMM_ACC_ABS_DIR)/../opencl/smm/opencl_kernels.h: $(OPENCL_KRNLGEN) $(OPENCL_KERNELS)

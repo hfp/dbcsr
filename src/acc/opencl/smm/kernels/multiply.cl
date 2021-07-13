@@ -11,7 +11,7 @@
 #else
 # define UNROLL(N)
 #endif
-#if (defined(INTEL) && (0 != INTEL))
+#if (0 != INTEL)
 # define BC 1
 #else
 # define BC 2
@@ -34,13 +34,13 @@
 #if !defined(SHARED_A) && 1
 # define SHARED_A ((SK % 16) ? 1 : BC)
 #endif
-#if !defined(SHARED_B) && !(defined(INTEL) && (0 != INTEL)) && 1
+#if !defined(SHARED_B) && (0 == INTEL) && 1
 # define SHARED_B ((SN % 16) ? 1 : BC)
 #endif
-#if !defined(SHARED_C) && 0
+#if !defined(SHARED_C) && (0x20a == INTEL)
 # define SHARED_C ((SN % 16) ? 1 : BC)
 #endif
-#if !defined(SHARED_S) && !(defined(INTEL) && (0 != INTEL)) && 1
+#if !defined(SHARED_S) && (0 == INTEL) && 1
 # define SHARED_S
 #endif
 #if !defined(PRIVATE_A) && !defined(SHARED_A)

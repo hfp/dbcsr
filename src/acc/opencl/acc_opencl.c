@@ -466,9 +466,8 @@ int c_dbcsr_acc_opencl_device_name(cl_device_id device, const char* match)
     ACC_OPENCL_BUFFERSIZE, buffer, NULL),
     "retrieve device name", result);
   if (EXIT_SUCCESS == result) {
-    return (NULL != c_dbcsr_acc_opencl_stristr(buffer, match)
-      ? EXIT_SUCCESS
-      : EXIT_FAILURE);
+    const char *const p = c_dbcsr_acc_opencl_stristr(buffer, match);
+    return (NULL != p ? EXIT_SUCCESS : EXIT_FAILURE);
   }
   else ACC_OPENCL_RETURN(result);
 }
@@ -483,9 +482,8 @@ int c_dbcsr_acc_opencl_device_id(cl_device_id device, const char* format, int* i
     ACC_OPENCL_BUFFERSIZE, buffer, NULL),
     "retrieve device name", result);
   if (EXIT_SUCCESS == result) {
-    return (2 == sscanf(buffer, format, buffer, id)
-      ? EXIT_SUCCESS
-      : EXIT_FAILURE);
+    const int n = sscanf(buffer, format, buffer, id);
+    return (2 == n ? EXIT_SUCCESS : EXIT_FAILURE);
   }
   else {
     id = 0; ACC_OPENCL_RETURN(result);

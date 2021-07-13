@@ -961,12 +961,12 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
             default: assert(NULL == tname);
           }
           if (NULL != tname) {
-            int unified = 0;
+            int cl_intel_id = 0, unified = 0;
             const char *const env_aa = getenv("OPENCL_LIBSMM_SMM_AA"), *const env_ab = getenv("OPENCL_LIBSMM_SMM_AB");
             const char *const env_ac = getenv("OPENCL_LIBSMM_SMM_AC"), *const env_ap = getenv("OPENCL_LIBSMM_SMM_AP");
             const char *const env_nz = getenv("OPENCL_LIBSMM_SMM_NZ");
-            const int cl_intel = (EXIT_SUCCESS == c_dbcsr_acc_opencl_device_vendor(active_device, "intel"));
-            const int cl_intel_0x4905 = (cl_intel && EXIT_SUCCESS == c_dbcsr_acc_opencl_device_name(active_device, "0x4905"));
+            const int cl_intel = (EXIT_SUCCESS == c_dbcsr_acc_opencl_device_vendor(active_device, "intel")
+                               && EXIT_SUCCESS == c_dbcsr_acc_opencl_device_id(active_device, "%[^[][0x%xi]", &cl_intel_id));
             const int cl_nonv = (cl_intel || EXIT_SUCCESS != c_dbcsr_acc_opencl_device_vendor(active_device, "nvidia"));
             const int aa = ((NULL == env_aa || '\0' == *env_aa || '0' == *env_aa)
               ? (NULL == config ? 0/*default*/ : config->aa) : LIBXSMM_CLMP(atoi(env_aa), 0, 3));
@@ -1018,9 +1018,9 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
               if (wgsize <= max_wgsize) { /* SMMs can be potentially handled by device */
                 const char *const cmem = (EXIT_SUCCESS != opencl_libsmm_use_cmem(active_device) ? "global" : "constant");
 #if !defined(NDEBUG)
-                const char *const flags_intel = "-DINTEL -gline-tables-only";
+                const char *const flags_debug = cl_intel ? "-gline-tables-only" : "";
 #else
-                const char *const flags_intel = "-DINTEL";
+                const char *const flags_debug = "";
 #endif
                 const char *const env_options = getenv("OPENCL_LIBSMM_SMM_BUILDOPTS");
                 const char *const env_atomics = getenv("OPENCL_LIBSMM_SMM_ATOMICS");
@@ -1029,7 +1029,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                 if (NULL == env_atomics || '0' != *env_atomics) {
                   const char* extension[] = { "cl_khr_int64_base_atomics" };
                   if (NULL == env_atomics || '\0' == *env_atomics) { /* no request made */
-                    if (cl_intel && !cl_intel_0x4905 && 0 == unified && dbcsr_type_real_4 == datatype) {
+                    if (cl_intel && 0x4905 != cl_intel_id && 0 == unified && dbcsr_type_real_4 == datatype) {
                       atomic_ops = "-Dcl_intel_global_float_atomics";
                       atomic_expr = "atomic_add(A,B)";
                     }
@@ -1067,10 +1067,10 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                   NULL/*level_major*/, NULL/*level_minor*/, cl_std));
                 nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options),
                   "%s %s %s -cl-fast-relaxed-math -cl-no-signed-zeros -cl-denorms-are-zero -DFMA=fma -DGLOBAL=%s"
-                  " -DFN=%s -DSM=%i -DSN=%i -DSK=%i -DBS=%i -DBM=%i -DBN=%i -DT=%s -DTN=%i"
+                  " -DINTEL=%i -DFN=%s -DSM=%i -DSN=%i -DSK=%i -DBS=%i -DBM=%i -DBN=%i -DT=%s -DTN=%i"
                   " %s %s %s %s %s %s -D\"ATOMIC_ADD_GLOBAL(A,B)=%s\" %s",
-                  (NULL == env_options || '\0' == *env_options) ? "" : env_options, cl_intel ? flags_intel : "",
-                  cl_std, cmem, fname, m_max, n_max, k_max, bs, bm, bn, tname, datatype,
+                  (NULL == env_options || '\0' == *env_options) ? "" : env_options, cl_std, flags_debug,
+                  cmem, cl_intel_id, fname, m_max, n_max, k_max, bs, bm, bn, tname, datatype,
                   0 == aa ? "" : (1 == aa ? "-DSHARED_A=1" : (2 == aa ? "-DSHARED_A=2" : "-DPRIVATE_A")),
                   0 == ab ? "" : (1 == ab ? "-DSHARED_B=1" : (2 == ab ? "-DSHARED_B=2" : "-DPRIVATE_B")),
                   0 == ac ? "" : (1 == ac ? "-DSHARED_C=1" : (2 == ac ? "-DSHARED_C=2" : "-DPRIVATE_C")),
@@ -1087,7 +1087,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
               opencl_libsmm_smm_t new_config;
               memset(&new_config, 0, sizeof(new_config));
               result = c_dbcsr_acc_opencl_kernel(
-                (cl_intel && !cl_intel_0x4905 && 0 == unified && dbcsr_type_real_4 == datatype)
+                (cl_intel && 0x4905 != cl_intel_id && 0 == unified && dbcsr_type_real_4 == datatype)
                   ? ("#pragma OPENCL EXTENSION cl_intel_global_float_atomics: enable\n"
                      OPENCL_LIBSMM_STRING_MULTIPLY)
                   : (/*non-Intel device*/

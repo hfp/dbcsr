@@ -37,19 +37,19 @@
 #if !defined(SHARED_B) && (0 == INTEL) && 1
 # define SHARED_B ((SN % 16) ? 1 : BC)
 #endif
-#if !defined(SHARED_C) && (0x20a == INTEL)
+#if !defined(SHARED_C) && (0x20a == INTEL) && 1
 # define SHARED_C ((SN % 16) ? 1 : BC)
 #endif
 #if !defined(SHARED_S) && (0 == INTEL) && 1
 # define SHARED_S
 #endif
-#if !defined(PRIVATE_A) && !defined(SHARED_A)
+#if !defined(PRIVATE_A) && !defined(SHARED_A) && 1
 # define PRIVATE_A
 #endif
-#if !defined(PRIVATE_B) && !defined(SHARED_B)
+#if !defined(PRIVATE_B) && !defined(SHARED_B) && 1
 # define PRIVATE_B
 #endif
-#if !defined(PRIVATE_C) && !defined(SHARED_C)
+#if !defined(PRIVATE_C) && !defined(SHARED_C) && 1
 # define PRIVATE_C
 #endif
 #if !defined(TRACK_B) && (1 < BS) && 0

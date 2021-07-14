@@ -149,7 +149,7 @@ kernel void FN(global T *restrict cdata,
   local T bkn[SK][SN];
 # endif
 #endif
-#if (BM == SM || 1 != BN)
+#if (BM < SM || 1 != BN)
 # if defined(PRIVATE_A) && !defined(SHARED_A)
   T amk[SK];
 # endif
@@ -211,7 +211,7 @@ kernel void FN(global T *restrict cdata,
 #if defined(SHARED_A)
     { /* transpose A-matrix into local/shared buffer */
       int m = idx;
-# if (SM != SN || BM == SM || 1 != BN)
+# if (SM != SN || BM < SM || 1 != BN)
       for (; m < SM; m += SWG)
 # endif
       { UNROLL(SK)
@@ -224,7 +224,7 @@ kernel void FN(global T *restrict cdata,
     UNROLL(SK)
     for (int k = 0; k < SK; ++k) {
       int n = idx;
-# if (SM != SN || BM == SM || 1 != BN)
+# if (SM != SN || BM < SM || 1 != BN)
       for (; n < SN; n += SWG)
 # endif
       bkn[k][n] = b[SN*k+n];
@@ -238,7 +238,7 @@ kernel void FN(global T *restrict cdata,
 # endif
       UNROLL(SK)
       for (int k = 0; k < SK; ++k) {
-# if (BM == SM || 1 != BN)
+# if (BM < SM || 1 != BN)
         UNROLL(BN)
         for (int bn = 0; bn < BN; ++bn) {
           const int n = min(bn + n0, SN);
@@ -257,7 +257,7 @@ kernel void FN(global T *restrict cdata,
 #endif
 
     /* calculate result-tile */
-#if (BM == SM || 1 != BN)
+#if (BM < SM || 1 != BN)
     UNROLL(BM)
     for (int bm = 0; bm < BM; ++bm) {
       const int m = min(bm + m0, SM);
@@ -347,7 +347,7 @@ kernel void FN(global T *restrict cdata,
     if (c0 != c1)
 # endif
     { /* atomically commit C-tile to global memory */
-# if (BM == SM || 1 != BN)
+# if (BM < SM || 1 != BN)
       UNROLL(BM)
       for (int bm = 0; bm < BM; ++bm) {
         const int m = min(bm + m0, SM);

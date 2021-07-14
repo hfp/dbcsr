@@ -61,12 +61,6 @@
 #if !defined(OPENCL_LIBSMM_NLOCKS_SMM)
 # define OPENCL_LIBSMM_NLOCKS_SMM 16
 #endif
-#if !defined(OPENCL_LIBSMM_BM)
-# define OPENCL_LIBSMM_BM 1
-#endif
-#if !defined(OPENCL_LIBSMM_BN)
-# define OPENCL_LIBSMM_BN 1
-#endif
 
 /* approximate arithmetic intensity for SMMs like C += Ai * Bi (beta=1) */
 #define OPENCL_LIBSMM_AI(M, N, K, TYPESIZE) ( \
@@ -991,15 +985,15 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                 ? getenv("OPENCL_LIBSMM_SMM_BM") : getenv("OPENCL_LIBSMM_SMM_BLOCK_M"));
               const char *const env_blockn = (NULL == getenv("OPENCL_LIBSMM_SMM_BLOCK_N")
                 ? getenv("OPENCL_LIBSMM_SMM_BN") : getenv("OPENCL_LIBSMM_SMM_BLOCK_N"));
-              /* TODO: load parameters from file (auto-tuned) */
               const int batchsize = ((NULL == env_batchsize || '\0' == *env_batchsize || '0' == *env_batchsize)
                 ? (NULL == config ? 24/*default*/ : config->bs) : atoi(env_batchsize));
+              /* default: decompose C-matrix into column-vectors */
               const int blockm = ((NULL == env_blockm || '\0' == *env_blockm || '0' == *env_blockm)
                 ? (NULL == config ? m_max/*default*/ : config->bm) : atoi(env_blockm));
               const int blockn = ((NULL == env_blockn || '\0' == *env_blockn || '0' == *env_blockn)
                 ? (NULL == config ? 1/*default*/ : config->bn) : atoi(env_blockn));
-              bm = LIBXSMM_MIN(1 < blockm ? LIBXSMM_UP2(blockm, OPENCL_LIBSMM_BM) : 1, m_max);
-              bn = LIBXSMM_MIN(1 < blockn ? LIBXSMM_UP2(blockn, OPENCL_LIBSMM_BN) : 1, n_max);
+              bm = LIBXSMM_MIN(1 < blockm ? blockm : 1, m_max);
+              bn = LIBXSMM_MIN(1 < blockn ? blockn : 1, n_max);
               bs = LIBXSMM_MAX(batchsize, 1);
               nbm = (m_max + bm - 1) / bm;
               nbn = (n_max + bn - 1) / bn;

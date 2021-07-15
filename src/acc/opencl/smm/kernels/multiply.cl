@@ -28,8 +28,8 @@
 #define NBM ((SM + BM - 1) / BM)
 /* number of N-blocks */
 #define NBN ((SN + BN - 1) / BN)
-/* size of workgroup (WG) */
-#define SWG (NBM * NBN)
+/* number of blocks */
+#define NBK (NBM * NBN)
 
 #if !defined(SHARED_A) && 1
 # define SHARED_A ((SK % 16) ? 1 : BC)
@@ -166,7 +166,12 @@ kernel void FN(global T *restrict cdata,
 
   /* intra-kernel mini-batch of SMMs */
 #if (1 < BS)
-  const int batchsize = min(BS, stack_size - BS * gid);
+  const int batchsize = min(stack_size - BS * gid,
+# if (NBK < SWG)
+    idx < NBK ? BS : 0);
+# else
+    BS);
+# endif
   global T *restrict c;
   int c0, i;
 # if defined(SHARED_C)
@@ -177,7 +182,7 @@ kernel void FN(global T *restrict cdata,
   }
 # endif
 # if defined(SHARED_S)
-  for (i = idx; i < (3 * batchsize); i += SWG) params[i] = pbase[i] - 1;
+  for (i = idx; i < (3 * batchsize); i += NBK) params[i] = pbase[i] - 1;
 # endif
 # if defined(SHARED_C) || defined(SHARED_S)
   barrier(CLK_LOCAL_MEM_FENCE);
@@ -189,6 +194,9 @@ kernel void FN(global T *restrict cdata,
     const int a0 = params[3*i] - IDXBASE, b0 = params[3*i+1] - IDXBASE;
     const int c1 = ((i + 1) < batchsize ? (params[3*i+5] - IDXBASE) : -1);
 #else
+# if (SWG > NBK) && 0
+  if (idx < NBK)
+# endif
   {
     const int a0 = params[0] - IDXBASE, b0 = params[1] - IDXBASE;
     global T *restrict c = cdata + params[2] - IDXBASE;
@@ -199,8 +207,8 @@ kernel void FN(global T *restrict cdata,
 #if defined(SHARED_A)
     { /* transpose A-matrix into local/shared buffer */
       int m = idx;
-# if (SWG != SM)
-      for (; m < SM; m += SWG)
+# if (NBK != SM)
+      for (; m < SM; m += NBK)
 # endif
       { UNROLL(SK)
         for (int k = 0; k < SK; ++k) amk[m][k] = a[SM*k+m];
@@ -212,8 +220,8 @@ kernel void FN(global T *restrict cdata,
     UNROLL(SK)
     for (int k = 0; k < SK; ++k) {
       int n = idx;
-# if (SWG != SN)
-      for (; n < SN; n += SWG)
+# if (NBK != SN)
+      for (; n < SN; n += NBK)
 # endif
       bkn[k][n] = b[SN*k+n];
     }
@@ -242,6 +250,9 @@ kernel void FN(global T *restrict cdata,
 #if (defined(SHARED_A) || defined(SHARED_B)) && (1 < SWG)
     /* finish transpose/copy */
     barrier(CLK_LOCAL_MEM_FENCE);
+# if (NBK < SWG)
+    if (NBK <= idx) return;
+# endif
 #endif
 
     /* calculate result-tile */
@@ -400,4 +411,12 @@ kernel void FN(global T *restrict cdata,
     }
 #endif
   }
+#if (defined(SHARED_A) || defined(SHARED_B)) && (NBK < SWG) && 0
+# if (1 < BS)
+  if (NBK <= idx)
+# else
+  else
+# endif
+  barrier(CLK_LOCAL_MEM_FENCE);
+#endif
 }

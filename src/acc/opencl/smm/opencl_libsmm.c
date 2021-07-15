@@ -61,6 +61,9 @@
 #if !defined(OPENCL_LIBSMM_NLOCKS_SMM)
 # define OPENCL_LIBSMM_NLOCKS_SMM 16
 #endif
+#if !defined(OPENCL_LIBSMM_WGSPOT) && 1
+# define OPENCL_LIBSMM_WGSPOT
+#endif
 
 /* approximate arithmetic intensity for SMMs like C += Ai * Bi (beta=1) */
 #define OPENCL_LIBSMM_AI(M, N, K, TYPESIZE) ( \
@@ -619,12 +622,12 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
           const int blockm = ((NULL == env_blockm || '\0' == *env_blockm)
             ? m/*TODO*/ : atoi(env_blockm));
           const int bm = LIBXSMM_CLMP(blockm, 1, m);
-          int wgsize = 0, max_wgsize;
+          int wgsize = 0, wgsize_max;
           char cl_std[16];
           ACC_OPENCL_EXPECT(EXIT_SUCCESS, c_dbcsr_acc_opencl_device_level(active_device,
             NULL/*level_major*/, NULL/*level_minor*/, cl_std));
           result = c_dbcsr_acc_opencl_wgsize(active_device,
-            NULL/*kernel*/, &max_wgsize, NULL/*prefmult*/);
+            NULL/*kernel*/, &wgsize_max, NULL/*prefmult*/);
           if (EXIT_SUCCESS == result) {
             switch (datatype) {
               case dbcsr_type_real_8: {
@@ -637,7 +640,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
               } break;
               default: assert('\0' == *tname);
             }
-            wgsize = LIBXSMM_MIN((m == bm || 0 == (m % bm)) ? bm : m, max_wgsize);
+            wgsize = LIBXSMM_MIN((m == bm || 0 == (m % bm)) ? bm : m, wgsize_max);
             nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options), build_format,
               (NULL == env_options || '\0' == *env_options) ? "" : env_options,
               cl_std, cmem, inplace, fname, m, n, wgsize, tname);
@@ -649,11 +652,11 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
               build_options, fname, &new_config.kernel);
             if (EXIT_SUCCESS == result) {
               result = c_dbcsr_acc_opencl_wgsize(active_device,
-                new_config.kernel, &max_wgsize, NULL/*prefmult*/);
+                new_config.kernel, &wgsize_max, NULL/*prefmult*/);
               if (EXIT_SUCCESS == result) {
-                assert(0 < max_wgsize);
-                if (max_wgsize < wgsize) {
-                  wgsize = max_wgsize;
+                assert(0 < wgsize_max);
+                if (wgsize_max < wgsize) {
+                  wgsize = wgsize_max;
                   nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options), build_format,
                     (NULL == env_options || '\0' == *env_options) ? "" : env_options,
                     cl_std, cmem, inplace, fname, m, n, wgsize, tname);
@@ -971,11 +974,11 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
               ? (NULL == config ? 0/*default*/ : config->ap) : LIBXSMM_CLMP(atoi(env_ap), 0, 1));
             const int nz = ((NULL == env_nz || '\0' == *env_nz || '0' == *env_nz)
               ? (NULL == config ? 1/*default*/ : config->nz) : LIBXSMM_CLMP(atoi(env_nz), 0, 1));
-            int max_wgsize, wgsize, bs, bm, bn, nbm, nbn;
+            int wgsize_max, wgsize_prf, wgsize, bs, bm, bn, nbm, nbn;
             result = c_dbcsr_acc_opencl_info_devmem(active_device, NULL, NULL, NULL, &unified);
             if (EXIT_SUCCESS == result) {
               result = c_dbcsr_acc_opencl_wgsize(active_device,
-                NULL/*device-specific*/, &max_wgsize, NULL/*prefmult*/);
+                NULL/*device-specific*/, &wgsize_max, &wgsize_prf);
             }
             if (EXIT_SUCCESS == result) {
               const char *const env_batchsize = (NULL == getenv("OPENCL_LIBSMM_SMM_BATCHSIZE")
@@ -996,25 +999,33 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
               bs = LIBXSMM_MAX(batchsize, 1);
               nbm = (m_max + bm - 1) / bm;
               nbn = (n_max + bn - 1) / bn;
-              wgsize = nbm * nbn; /* default: n_max */
-              assert(1 <= bs && 0 < wgsize && 0 < max_wgsize);
+# if defined(OPENCL_LIBSMM_WGSPOT)
+              wgsize = LIBXSMM_UP2POT(nbm * nbn);
+# else
+              wgsize = nbm * nbn;
+# endif
+              assert(1 <= bs && 0 < wgsize && 0 < wgsize_max && 0 < wgsize_prf);
               /* limit WG-size to device's maximum WG-size */
-              while (max_wgsize < wgsize && (bm < m_max || bn < n_max)) {
+              while (wgsize_max < wgsize && (bm < m_max || bn < n_max)) {
                 if (bn < n_max) {
                   ++bn; nbn = (n_max + bn - 1) / bn;
                 }
                 else if (bm < m_max) {
                   ++bm; nbm = (m_max + bm - 1) / bm;
                 }
+# if defined(OPENCL_LIBSMM_WGSPOT)
+                wgsize = LIBXSMM_UP2POT(nbm * nbn);
+# else
                 wgsize = nbm * nbn;
+# endif
               }
-              if (wgsize <= max_wgsize) { /* SMMs can be potentially handled by device */
+              if (wgsize <= wgsize_max) { /* SMMs can be potentially handled by device */
                 const char *const cmem = (EXIT_SUCCESS != opencl_libsmm_use_cmem(active_device) ? "global" : "constant");
-#if !defined(NDEBUG)
+# if !defined(NDEBUG)
                 const char *const flags_debug = cl_intel ? "-gline-tables-only" : "";
-#else
+# else
                 const char *const flags_debug = "";
-#endif
+# endif
                 const char *const env_options = getenv("OPENCL_LIBSMM_SMM_BUILDOPTS");
                 const char *const env_atomics = getenv("OPENCL_LIBSMM_SMM_ATOMICS");
                 const char *atomic_expr = NULL, *atomic_expr2 = "";
@@ -1060,10 +1071,10 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                   NULL/*level_major*/, NULL/*level_minor*/, cl_std));
                 nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options),
                   "%s %s %s -cl-fast-relaxed-math -cl-no-signed-zeros -cl-denorms-are-zero -DFMA=fma -DGLOBAL=%s"
-                  " -DINTEL=%i -DFN=%s -DSM=%i -DSN=%i -DSK=%i -DBS=%i -DBM=%i -DBN=%i -DT=%s -DTN=%i"
+                  " -DINTEL=%i -DSWG=%i -DFN=%s -DSM=%i -DSN=%i -DSK=%i -DBS=%i -DBM=%i -DBN=%i -DT=%s -DTN=%i"
                   " %s %s %s %s %s %s -D\"ATOMIC_ADD_GLOBAL(A,B)=%s\" %s",
                   (NULL == env_options || '\0' == *env_options) ? "" : env_options, cl_std, flags_debug,
-                  cmem, cl_intel_id, fname, m_max, n_max, k_max, bs, bm, bn, tname, datatype,
+                  cmem, cl_intel_id, wgsize, fname, m_max, n_max, k_max, bs, bm, bn, tname, datatype,
                   0 == aa ? "" : (1 == aa ? "-DSHARED_A=1" : (2 == aa ? "-DSHARED_A=2" : "-DPRIVATE_A")),
                   0 == ab ? "" : (1 == ab ? "-DSHARED_B=1" : (2 == ab ? "-DSHARED_B=2" : "-DPRIVATE_B")),
                   0 == ac ? "" : (1 == ac ? "-DSHARED_C=1" : (2 == ac ? "-DSHARED_C=2" : "-DPRIVATE_C")),
@@ -1091,11 +1102,11 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                 build_options, fname, &new_config.kernel);
               if (EXIT_SUCCESS == result) {
                 result = c_dbcsr_acc_opencl_wgsize(active_device,
-                  new_config.kernel, &max_wgsize, NULL/*prefmult*/);
+                  new_config.kernel, &wgsize_max, NULL/*prefmult*/);
                 if (EXIT_SUCCESS == result) {
-                  assert(0 < wgsize && 0 < max_wgsize);
+                  assert(0 < wgsize && 0 < wgsize_max);
                   /* check planned WG-size against kernel-specific WG-size */
-                  if (wgsize <= max_wgsize) {
+                  if (wgsize <= wgsize_max) {
                     if (NULL == config) {
                       config = (opencl_libsmm_smm_t*)OPENCL_LIBSMM_REGISTER(
                         &key, sizeof(key), sizeof(new_config), &new_config);

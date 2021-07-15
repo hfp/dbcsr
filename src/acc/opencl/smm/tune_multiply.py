@@ -415,7 +415,7 @@ if __name__ == "__main__":
         "-mb",
         "--max-bs",
         type=int,
-        default=256,
+        default=128,
         nargs="?",
         dest="mb",
         help="Maximum (mini-)batch size (BS)",

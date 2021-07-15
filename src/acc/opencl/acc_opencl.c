@@ -682,7 +682,7 @@ int c_dbcsr_acc_opencl_wgsize(cl_device_id device, cl_kernel kernel,
       assert(value <= INT_MAX);
       *preferred_multiple = (int)value;
 #else
-      result = EXIT_FAILURE;
+      *preferred_multiple = 1;
 #endif
     }
   }

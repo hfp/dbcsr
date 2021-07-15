@@ -149,7 +149,7 @@ kernel void FN(global T *restrict cdata,
   local T bkn[SK][SN];
 # endif
 #endif
-#if (SWG != SN)
+#if (BM < SM || 1 != BN)
 # if defined(PRIVATE_A) && !defined(SHARED_A)
   T amk[SK];
 # endif
@@ -238,7 +238,7 @@ kernel void FN(global T *restrict cdata,
 # endif
       UNROLL(SK)
       for (int k = 0; k < SK; ++k) {
-# if (SWG != SN)
+# if (BM < SM || 1 != BN)
         UNROLL(BN)
         for (int bn = 0; bn < BN; ++bn) {
           const int n = min(bn + n0, SN);
@@ -257,7 +257,7 @@ kernel void FN(global T *restrict cdata,
 #endif
 
     /* calculate result-tile */
-#if (SWG != SN)
+#if (BM < SM || 1 != BN)
     UNROLL(BM)
     for (int bm = 0; bm < BM; ++bm) {
       const int m = min(bm + m0, SM);
@@ -347,7 +347,7 @@ kernel void FN(global T *restrict cdata,
     if (c0 != c1)
 # endif
     { /* atomically commit C-tile to global memory */
-# if (SWG != SN)
+# if (BM < SM || 1 != BN)
       UNROLL(BM)
       for (int bm = 0; bm < BM; ++bm) {
         const int m = min(bm + m0, SM);

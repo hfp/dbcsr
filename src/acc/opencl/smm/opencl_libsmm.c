@@ -64,6 +64,12 @@
 #if !defined(OPENCL_LIBSMM_WGSPOT) && 1
 # define OPENCL_LIBSMM_WGSPOT
 #endif
+#if !defined(OPENCL_LIBSMM_VLEN)
+# define OPENCL_LIBSMM_VLEN 32
+#endif
+#if !defined(OPENCL_LIBSMM_VMIN)
+# define OPENCL_LIBSMM_VMIN 8
+#endif
 
 /* approximate arithmetic intensity for SMMs like C += Ai * Bi (beta=1) */
 #define OPENCL_LIBSMM_AI(M, N, K, TYPESIZE) ( \
@@ -979,6 +985,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
             if (EXIT_SUCCESS == result) {
               result = c_dbcsr_acc_opencl_wgsize(active_device,
                 NULL/*device-specific*/, &wgsize_max, &wgsize_prf);
+              assert(0 < wgsize_prf);
             }
             if (EXIT_SUCCESS == result) {
               const char *const env_batchsize = (NULL == getenv("OPENCL_LIBSMM_SMM_BATCHSIZE")
@@ -999,10 +1006,18 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
               bs = LIBXSMM_MAX(batchsize, 1);
               nbm = (m_max + bm - 1) / bm;
               nbn = (n_max + bn - 1) / bn;
-# if defined(OPENCL_LIBSMM_WGSPOT)
-              wgsize = LIBXSMM_UP2POT(nbm * nbn);
-# else
               wgsize = nbm * nbn;
+# if  LIBXSMM_VERSION3(1, 16, 1) <= LIBXSMM_VERSION3(LIBXSMM_VERSION_MAJOR, \
+      LIBXSMM_VERSION_MINOR, LIBXSMM_VERSION_UPDATE) && 1598 <= LIBXSMM_VERSION_PATCH
+              {
+                const unsigned int limit = LIBXSMM_MAX(wgsize_prf, OPENCL_LIBSMM_VLEN);
+                wgsize_prf = (int)libxsmm_remainder(wgsize, OPENCL_LIBSMM_VMIN,
+                  &limit, NULL/*remainder*/);
+                if (wgsize_prf < (2 * wgsize)) wgsize = wgsize_prf; /* limit */
+              }
+# endif
+# if defined(OPENCL_LIBSMM_WGSPOT)
+              wgsize = LIBXSMM_UP2POT(wgsize);
 # endif
               assert(1 <= bs && 0 < wgsize && 0 < wgsize_max && 0 < wgsize_prf);
               /* limit WG-size to device's maximum WG-size */

@@ -136,18 +136,10 @@ kernel void FN(global T *restrict cdata,
   GLOBAL const int *restrict params = pbase;
 #endif
 #if defined(SHARED_A)
-# if (1 < SHARED_A)
-  local T amk[SM][SK+1];
-# else
-  local T amk[SM][SK];
-# endif
+  local T amk[SM][SK+SHARED_A-1];
 #endif
 #if defined(SHARED_B)
-# if (1 < SHARED_B)
-  local T bkn[SK][SN+1];
-# else
-  local T bkn[SK][SN];
-# endif
+  local T bkn[SK][SN+SHARED_B-1];
 #endif
 #if (BM < SM || 1 != BN)
 # if defined(PRIVATE_A) && !defined(SHARED_A)
@@ -178,11 +170,7 @@ kernel void FN(global T *restrict cdata,
   global T *restrict c;
   int c0, i;
 # if defined(SHARED_C)
-#   if (1 < SHARED_C)
-  local T cmn[SM][SN+1];
-#   else
-  local T cmn[SM][SN];
-#   endif
+  local T cmn[SM][SN+SHARED_C-1];
   for (int m = idx; m < SM; m += SWG) {
     UNROLL(SN)
     for (int n = 0; n < SN; ++n) cmn[m][n] = ZERO;

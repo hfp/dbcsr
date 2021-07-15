@@ -605,6 +605,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
         cl_device_id active_device;
         result = c_dbcsr_acc_opencl_device(stream, &active_device);
         if (EXIT_SUCCESS == result) {
+          const char *const build_format = "%s %s -DGLOBAL=%s -DINPLACE=%i -DFN=%s -DSM=%i -DSN=%i -DSWG=%i -DT=%s";
           const char *const cmem = (EXIT_SUCCESS != opencl_libsmm_use_cmem(active_device) ? "global" : "constant");
           const char *const env_options = getenv("OPENCL_LIBSMM_TRANS_BUILDOPTS"), *tname = "";
           const char *const env_inplace = getenv("OPENCL_LIBSMM_TRANS_INPLACE");
@@ -637,8 +638,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
               default: assert('\0' == *tname);
             }
             wgsize = LIBXSMM_MIN((m == bm || 0 == (m % bm)) ? bm : m, max_wgsize);
-            nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options), "%s %s"
-              " -DGLOBAL=%s -DINPLACE=%i -DFN=%s -DSM=%i -DSN=%i -DSWG=%i -DT=%s",
+            nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options), build_format,
               (NULL == env_options || '\0' == *env_options) ? "" : env_options,
               cl_std, cmem, inplace, fname, m, n, wgsize, tname);
           }
@@ -654,8 +654,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
                 assert(0 < max_wgsize);
                 if (max_wgsize < wgsize) {
                   wgsize = max_wgsize;
-                  nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options), "%s %s"
-                    " -DGLOBAL=%s -DINPLACE=%i -DFN=%s -DSM=%i -DSN=%i -DSWG=%i -DT=%s",
+                  nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options), build_format,
                     (NULL == env_options || '\0' == *env_options) ? "" : env_options,
                     cl_std, cmem, inplace, fname, m, n, wgsize, tname);
                   if (0 < nchar && (int)sizeof(build_options) > nchar) {
@@ -997,7 +996,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
               bs = LIBXSMM_MAX(batchsize, 1);
               nbm = (m_max + bm - 1) / bm;
               nbn = (n_max + bn - 1) / bn;
-              wgsize = nbm * nbn;
+              wgsize = nbm * nbn; /* default: n_max */
               assert(1 <= bs && 0 < wgsize && 0 < max_wgsize);
               /* limit WG-size to device's maximum WG-size */
               while (max_wgsize < wgsize && (bm < m_max || bn < n_max)) {

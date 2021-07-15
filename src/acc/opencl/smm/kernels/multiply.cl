@@ -211,7 +211,7 @@ kernel void FN(global T *restrict cdata,
 #if defined(SHARED_A)
     { /* transpose A-matrix into local/shared buffer */
       int m = idx;
-# if (SM != SN || SWG != SN)
+# if (SWG != SM)
       for (; m < SM; m += SWG)
 # endif
       { UNROLL(SK)
@@ -224,7 +224,7 @@ kernel void FN(global T *restrict cdata,
     UNROLL(SK)
     for (int k = 0; k < SK; ++k) {
       int n = idx;
-# if (SM != SN || SWG != SN)
+# if (SWG != SN)
       for (; n < SN; n += SWG)
 # endif
       bkn[k][n] = b[SN*k+n];

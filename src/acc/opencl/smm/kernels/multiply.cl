@@ -194,7 +194,7 @@ kernel void FN(global T *restrict cdata,
     const int a0 = params[3*i] - IDXBASE, b0 = params[3*i+1] - IDXBASE;
     const int c1 = ((i + 1) < batchsize ? (params[3*i+5] - IDXBASE) : -1);
 #else
-# if (SWG > NBK) && 0
+# if (SWG > NBK) && (0 == INTEL)
   if (idx < NBK)
 # endif
   {
@@ -250,7 +250,7 @@ kernel void FN(global T *restrict cdata,
 #if (defined(SHARED_A) || defined(SHARED_B)) && (1 < SWG)
     /* finish transpose/copy */
     barrier(CLK_LOCAL_MEM_FENCE);
-# if (NBK < SWG)
+# if (NBK < SWG) && (0 != INTEL)
     if (NBK <= idx) return;
 # endif
 #endif
@@ -411,12 +411,12 @@ kernel void FN(global T *restrict cdata,
     }
 #endif
   }
-#if (defined(SHARED_A) || defined(SHARED_B)) && (NBK < SWG) && 0
+#if (defined(SHARED_A) || defined(SHARED_B)) && (NBK < SWG) && (0 == INTEL)
 # if (1 < BS)
   if (NBK <= idx)
 # else
   else
-# endif
+#endif
   barrier(CLK_LOCAL_MEM_FENCE);
 #endif
 }

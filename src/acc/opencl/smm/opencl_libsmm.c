@@ -971,7 +971,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                                && EXIT_SUCCESS == c_dbcsr_acc_opencl_device_id(active_device, "%[^[][0x%xi]", &cl_intel_id));
             const int cl_nonv = (cl_intel || EXIT_SUCCESS != c_dbcsr_acc_opencl_device_vendor(active_device, "nvidia"));
             const int wg = ((NULL == env_wg || '\0' == *env_wg || '0' == *env_wg)
-              ? (NULL == config ? 1/*default*/ : config->wg) : LIBXSMM_CLMP(atoi(env_wg), 0, 2));
+              ? (NULL == config ? 0/*default*/ : config->wg) : LIBXSMM_CLMP(atoi(env_wg), 0, 2));
             const int nz = ((NULL == env_nz || '\0' == *env_nz || '0' == *env_nz)
               ? (NULL == config ? 1/*default*/ : config->nz) : LIBXSMM_CLMP(atoi(env_nz), 0, 1));
             const int ap = ((NULL == env_ap || '\0' == *env_ap || '0' == *env_ap)

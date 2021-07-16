@@ -249,7 +249,7 @@ class SmmTuner(MeasurementInterface):
                     device = data["DEVICE"] if "DEVICE" in data else self.device
                     key = (device, data["TYPEID"], data["M"], data["N"], data["K"])
                     value = (data["GFLOPS"], data["BS"], data["BM"], data["BN"]) + (
-                        data["WG"] if "WG" in data else 1,
+                        data["WG"] if "WG" in data else 0,
                         data["NZ"] if "NZ" in data else 1,
                         data["AP"] if "AP" in data else 0,
                         data["AA"] if "AA" in data else 0,
@@ -378,7 +378,7 @@ if __name__ == "__main__":
         "-wg",
         "--initial-wg",
         type=int,
-        default=int(os.getenv("OPENCL_LIBSMM_SMM_WG", "1")),
+        default=int(os.getenv("OPENCL_LIBSMM_SMM_WG", "0")),
         dest="wg",
         help="Size of WG: tight (0), round-up (1), PoT (2)",
     )

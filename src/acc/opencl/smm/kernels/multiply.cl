@@ -166,12 +166,7 @@ kernel void FN(global T *restrict cdata,
 
   /* intra-kernel mini-batch of SMMs */
 #if (1 < BS)
-  const int batchsize = min(stack_size - BS * gid,
-# if (NBK < SWG)
-    idx < NBK ? BS : 0);
-# else
-    BS);
-# endif
+  const int batchsize = min(BS, stack_size - BS * gid);
   global T *restrict c;
   int c0, i;
 # if defined(SHARED_C)
@@ -182,7 +177,7 @@ kernel void FN(global T *restrict cdata,
   }
 # endif
 # if defined(SHARED_S)
-  for (i = idx; i < (3 * batchsize); i += NBK) params[i] = pbase[i] - 1;
+  for (i = idx; i < (3 * batchsize); i += SWG) params[i] = pbase[i] - 1;
 # endif
 # if defined(SHARED_C) || defined(SHARED_S)
   barrier(CLK_LOCAL_MEM_FENCE);

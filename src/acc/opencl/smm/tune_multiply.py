@@ -36,6 +36,7 @@ class SmmTuner(MeasurementInterface):
         self.args.bs = max(min(self.args.bs, self.args.mb), 1)
         self.args.bm = [max(self.args.bm, 1), self.args.m][0 == self.args.bm]
         self.args.bn = [max(self.args.bn, 1), 1][0 == self.args.bn]
+        self.config = None
         self.gflops = 0
         self.exepath = "../.."
         self.exename = "acc_bench_smm"
@@ -292,7 +293,7 @@ class SmmTuner(MeasurementInterface):
 
     def save_final_config(self, configuration):
         """Called at termination"""
-        if 0 < self.gflops:
+        if 0 < self.gflops and configuration:
             filename = "tune_multiply-{}-{}x{}x{}-{}gflops.json".format(
                 self.typename, self.args.m, self.args.n, self.args.k, round(self.gflops)
             )

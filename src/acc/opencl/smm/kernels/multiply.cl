@@ -196,6 +196,17 @@ kernel void FN(global T *restrict cdata,
     GLOBAL const T *const restrict a = adata + a0;
     GLOBAL const T *const restrict b = bdata + b0;
 
+#if (defined(SHARED_A) || defined(SHARED_B)) && (NBK < SWG)
+    if (NBK <= idx) {
+      barrier(CLK_LOCAL_MEM_FENCE);
+# if (1 < BS)
+      continue;
+# else
+      return;
+# endif
+    }
+#endif
+
 #if defined(SHARED_A)
     { /* transpose A-matrix into local/shared buffer */
       int m = idx;
@@ -242,9 +253,6 @@ kernel void FN(global T *restrict cdata,
 #if (defined(SHARED_A) || defined(SHARED_B)) && (1 < SWG)
     /* finish transpose/copy */
     barrier(CLK_LOCAL_MEM_FENCE);
-# if (NBK < SWG)
-    if (NBK <= idx) return;
-# endif
 #endif
 
     /* calculate result-tile */

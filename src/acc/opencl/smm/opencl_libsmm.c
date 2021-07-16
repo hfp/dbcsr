@@ -61,9 +61,6 @@
 #if !defined(OPENCL_LIBSMM_NLOCKS_SMM)
 # define OPENCL_LIBSMM_NLOCKS_SMM 16
 #endif
-#if !defined(OPENCL_LIBSMM_WGSPOT) && 1
-# define OPENCL_LIBSMM_WGSPOT
-#endif
 #if !defined(OPENCL_LIBSMM_VLEN)
 # define OPENCL_LIBSMM_VLEN 32
 #endif
@@ -155,7 +152,7 @@ int opencl_libsmm_read_params(char* parambuf,
   opencl_libsmm_perfest_t* perfest, char* const* device)
 {
   const char* s = strtok(parambuf, OPENCL_LIBSMM_PARAMS_DELIMS);
-  const int max_consumed = 13 + (NULL == device ? 0 : 1);
+  const int max_consumed = 14 + (NULL == device ? 0 : 1);
   int result = EXIT_SUCCESS, consumed = 0, i;
   int t = (NULL == device ? 1 : 0);
   double gflops;
@@ -191,19 +188,22 @@ int opencl_libsmm_read_params(char* parambuf,
         value->bn = i; ++consumed;
       } break;
       case 9: if (1 == sscanf(s, "%i", &i)) {
-        value->aa = i; ++consumed;
+        value->wg = i; ++consumed;
       } break;
       case 10: if (1 == sscanf(s, "%i", &i)) {
-        value->ab = i; ++consumed;
+        value->nz = i; ++consumed;
       } break;
       case 11: if (1 == sscanf(s, "%i", &i)) {
-        value->ac = i; ++consumed;
-      } break;
-      case 12: if (1 == sscanf(s, "%i", &i)) {
         value->ap = i; ++consumed;
       } break;
+      case 12: if (1 == sscanf(s, "%i", &i)) {
+        value->aa = i; ++consumed;
+      } break;
       case 13: if (1 == sscanf(s, "%i", &i)) {
-        value->nz = i; ++consumed;
+        value->ab = i; ++consumed;
+      } break;
+      case 14: if (1 == sscanf(s, "%i", &i)) {
+        value->ac = i; ++consumed;
       } break;
     }
   }
@@ -964,22 +964,24 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
           }
           if (NULL != tname) {
             int cl_intel_id = 0, unified = 0;
-            const char *const env_aa = getenv("OPENCL_LIBSMM_SMM_AA"), *const env_ab = getenv("OPENCL_LIBSMM_SMM_AB");
-            const char *const env_ac = getenv("OPENCL_LIBSMM_SMM_AC"), *const env_ap = getenv("OPENCL_LIBSMM_SMM_AP");
-            const char *const env_nz = getenv("OPENCL_LIBSMM_SMM_NZ");
+            const char *const env_wg = getenv("OPENCL_LIBSMM_SMM_WG"), *const env_nz = getenv("OPENCL_LIBSMM_SMM_NZ");
+            const char *const env_ap = getenv("OPENCL_LIBSMM_SMM_AP"), *const env_aa = getenv("OPENCL_LIBSMM_SMM_AA");
+            const char *const env_ab = getenv("OPENCL_LIBSMM_SMM_AB"), *const env_ac = getenv("OPENCL_LIBSMM_SMM_AC");
             const int cl_intel = (EXIT_SUCCESS == c_dbcsr_acc_opencl_device_vendor(active_device, "intel")
                                && EXIT_SUCCESS == c_dbcsr_acc_opencl_device_id(active_device, "%[^[][0x%xi]", &cl_intel_id));
             const int cl_nonv = (cl_intel || EXIT_SUCCESS != c_dbcsr_acc_opencl_device_vendor(active_device, "nvidia"));
+            const int wg = ((NULL == env_wg || '\0' == *env_wg || '0' == *env_wg)
+              ? (NULL == config ? 1/*default*/ : config->wg) : LIBXSMM_CLMP(atoi(env_wg), 0, 2));
+            const int nz = ((NULL == env_nz || '\0' == *env_nz || '0' == *env_nz)
+              ? (NULL == config ? 1/*default*/ : config->nz) : LIBXSMM_CLMP(atoi(env_nz), 0, 1));
+            const int ap = ((NULL == env_ap || '\0' == *env_ap || '0' == *env_ap)
+              ? (NULL == config ? 0/*default*/ : config->ap) : LIBXSMM_CLMP(atoi(env_ap), 0, 1));
             const int aa = ((NULL == env_aa || '\0' == *env_aa || '0' == *env_aa)
               ? (NULL == config ? 0/*default*/ : config->aa) : LIBXSMM_CLMP(atoi(env_aa), 0, 3));
             const int ab = ((NULL == env_ab || '\0' == *env_ab || '0' == *env_ab)
               ? (NULL == config ? 0/*default*/ : config->ab) : LIBXSMM_CLMP(atoi(env_ab), 0, 3));
             const int ac = ((NULL == env_ac || '\0' == *env_ac || '0' == *env_ac)
               ? (NULL == config ? 0/*default*/ : config->ac) : LIBXSMM_CLMP(atoi(env_ac), 0, 3));
-            const int ap = ((NULL == env_ap || '\0' == *env_ap || '0' == *env_ap)
-              ? (NULL == config ? 0/*default*/ : config->ap) : LIBXSMM_CLMP(atoi(env_ap), 0, 1));
-            const int nz = ((NULL == env_nz || '\0' == *env_nz || '0' == *env_nz)
-              ? (NULL == config ? 1/*default*/ : config->nz) : LIBXSMM_CLMP(atoi(env_nz), 0, 1));
             int wgsize_max, wgsize_prf, wgsize, bs, bm, bn, nbm, nbn;
             result = c_dbcsr_acc_opencl_info_devmem(active_device, NULL, NULL, NULL, &unified);
             if (EXIT_SUCCESS == result) {
@@ -1009,16 +1011,16 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
               wgsize = nbm * nbn;
 # if  LIBXSMM_VERSION3(1, 16, 1) <= LIBXSMM_VERSION3(LIBXSMM_VERSION_MAJOR, \
       LIBXSMM_VERSION_MINOR, LIBXSMM_VERSION_UPDATE) && 1598 <= LIBXSMM_VERSION_PATCH
-              {
+              if (1 <= wg) {
                 const unsigned int limit = LIBXSMM_MAX(wgsize_prf, OPENCL_LIBSMM_VLEN);
                 wgsize_prf = (int)libxsmm_remainder(wgsize, OPENCL_LIBSMM_VMIN,
                   &limit, NULL/*remainder*/);
-                if (wgsize_prf < (2 * wgsize)) wgsize = wgsize_prf; /* limit */
               }
+              else
 # endif
-# if defined(OPENCL_LIBSMM_WGSPOT)
-              wgsize = LIBXSMM_UP2POT(wgsize);
-# endif
+              wgsize_prf = wgsize;
+              if (2 <= wg) wgsize_prf = LIBXSMM_UP2POT(wgsize_prf);
+              if (wgsize_prf < (2 * wgsize)) wgsize = wgsize_prf; /* limit */
               assert(1 <= bs && 0 < wgsize && 0 < wgsize_max && 0 < wgsize_prf);
               /* limit WG-size to device's maximum WG-size */
               while (wgsize_max < wgsize && (bm < m_max || bn < n_max)) {
@@ -1028,11 +1030,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                 else if (bm < m_max) {
                   ++bm; nbm = (m_max + bm - 1) / bm;
                 }
-# if defined(OPENCL_LIBSMM_WGSPOT)
-                wgsize = LIBXSMM_UP2POT(nbm * nbn);
-# else
-                wgsize = nbm * nbn;
-# endif
+                wgsize = (2 > wg ? (nbm * nbn) : ((int)LIBXSMM_UP2POT(nbm * nbn)));
               }
               if (wgsize <= wgsize_max) { /* SMMs can be potentially handled by device */
                 const char *const cmem = (EXIT_SUCCESS != opencl_libsmm_use_cmem(active_device) ? "global" : "constant");
@@ -1129,16 +1127,16 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                     if (NULL != config) {
                       config->wgsize = (size_t)wgsize;
                       config->bs = bs; config->bm = bm; config->bn = bn;
+                      config->wg = wg; config->nz = nz; config->ap = ap;
                       config->aa = aa; config->ab = ab; config->ac = ac;
-                      config->ap = ap; config->nz = nz;
                       config->kernel = new_config.kernel;
 # if !defined(OPENCL_LIBSMM_DEBUG_SMM)
                       if (2 <= c_dbcsr_acc_opencl_config.verbosity || 0 > c_dbcsr_acc_opencl_config.verbosity) {
                         duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
                         fprintf(stderr, "INFO ACC/OpenCL: %ix%ix%i %sSMM-kernel "
-                          "bs=%i bm=%i bn=%i aa=%i ab=%i ac=%i ap=%i nz=%i gen=%.1f ms\n", m_max, n_max, k_max,
+                          "bs=%i bm=%i bn=%i wg=%i nz=%i ap=%i aa=%i ab=%i ac=%i gen=%.1f ms\n", m_max, n_max, k_max,
                           dbcsr_type_real_8 == datatype ? "D" : (dbcsr_type_real_4 == datatype ? "S" : ""),
-                          bs, bm, bn, aa, ab, ac, ap, nz, 1000.0 * duration);
+                          bs, bm, bn, wg, nz, ap, aa, ab, ac, 1000.0 * duration);
                       }
 # endif
                     }
@@ -1172,11 +1170,12 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
           && 0 < config->bm && config->bm <= m_max
           && 0 < config->bn && config->bn <= n_max
           && 1 <= config->bs && 0 < config->wgsize
+          && 0 <= config->wg && 2 >= config->wg
+          && 0 <= config->nz && 1 >= config->nz
+          && 0 <= config->ap && 1 >= config->ap
           && 0 <= config->aa && 3 >= config->aa
           && 0 <= config->ab && 3 >= config->ab
-          && 0 <= config->ac && 3 >= config->ac
-          && 0 <= config->ap && 1 >= config->ap
-          && 0 <= config->nz && 1 >= config->nz));
+          && 0 <= config->ac && 3 >= config->ac));
       if (EXIT_SUCCESS == result) {
         cl_event event, *const perf_event = ((0 <= c_dbcsr_acc_opencl_config.verbosity
           && 3 > c_dbcsr_acc_opencl_config.verbosity) ? NULL : &event);

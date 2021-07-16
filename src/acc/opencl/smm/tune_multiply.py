@@ -41,8 +41,12 @@ class SmmTuner(MeasurementInterface):
         self.exepath = "../.."
         self.exename = "acc_bench_smm"
         # verbosity level to capture device name and tuned parameters
-        run_result = self.launch(["ACC_OPENCL_VERBOSE=2", "CHECK=0"], 1, 1)
-        if 0 == run_result["returncode"]:
+        run_result = (
+            self.launch(["ACC_OPENCL_VERBOSE=2", "CHECK=0"], 1, 1)
+            if not self.args.merge
+            else None
+        )
+        if run_result and 0 == run_result["returncode"]:
             typename = re.search(
                 "typename \\(id=([0-9]+)\\):\\s+(\\w+)", str(run_result["stdout"])
             )

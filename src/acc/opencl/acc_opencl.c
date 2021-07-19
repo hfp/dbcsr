@@ -190,7 +190,7 @@ int c_dbcsr_acc_init(void)
               CL_DEVICE_PARTITION_BY_AFFINITY_DOMAIN, CL_DEVICE_AFFINITY_DOMAIN_NUMA, /*terminator*/0
             };
 #endif
-            cl_uint j = 0, n;
+            cl_uint j = 0, n = 0;
             for (; j < ndevices; ++j) {
 #if defined(CL_VERSION_1_2)
               if ( (NULL != env_device_split && '0' == *env_device_split)
@@ -202,18 +202,22 @@ int c_dbcsr_acc_init(void)
                 ++c_dbcsr_acc_opencl_ndevices;
               }
 #if defined(CL_VERSION_1_2)
-              else { /* create subdevices */
+              else if (1 < n) { /* create subdevices */
                 if (ACC_OPENCL_DEVICES_MAXCOUNT < (c_dbcsr_acc_opencl_ndevices + n)) {
                   n = ACC_OPENCL_DEVICES_MAXCOUNT - (cl_uint)c_dbcsr_acc_opencl_ndevices;
                 }
-                ACC_OPENCL_CHECK(clCreateSubDevices(devices[j], properties, n,
-                  c_dbcsr_acc_opencl_devices + c_dbcsr_acc_opencl_ndevices, NULL),
-                  "split device into subdevices", result);
-                if (EXIT_SUCCESS == result) {
+                if (EXIT_SUCCESS == clCreateSubDevices(devices[j], properties, n,
+                  c_dbcsr_acc_opencl_devices + c_dbcsr_acc_opencl_ndevices, NULL))
+                {
                   ACC_OPENCL_CHECK(clReleaseDevice(devices[j]), "release device", result);
                   c_dbcsr_acc_opencl_ndevices += n;
                 }
                 else break;
+              }
+              else {
+                assert(1 == n);
+                c_dbcsr_acc_opencl_devices[c_dbcsr_acc_opencl_ndevices] = devices[j];
+                ++c_dbcsr_acc_opencl_ndevices;
               }
 #endif
             }
@@ -494,13 +498,17 @@ int c_dbcsr_acc_opencl_device_id(cl_device_id device, const char* format, int* i
 int c_dbcsr_acc_opencl_device_level(cl_device_id device,
   int* level_major, int* level_minor, char cl_std[16])
 {
-  char buffer[ACC_OPENCL_BUFFERSIZE];
+  char buffer[ACC_OPENCL_BUFFERSIZE], skip[ACC_OPENCL_BUFFERSIZE];
+#if 0
   cl_int result = clGetDeviceInfo(device, CL_DEVICE_VERSION, ACC_OPENCL_BUFFERSIZE, buffer, NULL);
+#else
+  cl_int result = clGetDeviceInfo(device, CL_DEVICE_OPENCL_C_VERSION, ACC_OPENCL_BUFFERSIZE, buffer, NULL);
+#endif
   assert(NULL != device && (NULL != level_major || NULL != level_minor || NULL != cl_std));
   if (CL_SUCCESS == result) {
     unsigned int level[2];
     /* input: "OpenCL <level_major>.<level_minor> ..." */
-    if (2 == sscanf(buffer, "%*s %u.%u", level, level + 1)) {
+    if (3 == sscanf(buffer, "%[^0123456789]%u.%u", skip, level, level + 1)) {
       if (NULL != level_major) *level_major = (int)level[0];
       if (NULL != level_minor) *level_minor = (int)level[1];
       if (NULL != cl_std) {

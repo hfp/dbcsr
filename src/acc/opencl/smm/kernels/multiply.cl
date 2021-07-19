@@ -24,13 +24,6 @@
 # define ZERO 0
 #endif
 
-/* number of M-blocks */
-#define NBM ((SM + BM - 1) / BM)
-/* number of N-blocks */
-#define NBN ((SN + BN - 1) / BN)
-/* number of blocks */
-#define NBK (NBM * NBN)
-
 #if !defined(SHARED_A) && 1
 # define SHARED_A ((SK % 16) ? 1 : BC)
 #endif
@@ -68,6 +61,10 @@
 #else
 # define IDXBASE 1
 #endif
+
+#define NBM ((SM + BM - 1) / BM)
+#define NBN ((SN + BN - 1) / BN)
+#define NBK (NBM * NBN)
 
 
 #if !defined(cl_intel_global_float_atomics)

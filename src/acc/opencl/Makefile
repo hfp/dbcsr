@@ -68,13 +68,13 @@ else
 endif
 
 ifneq (0,$(DBG))
+  CPPFLAGS += -CC
   ifeq (,$(DBG))
     CFLAGS += -O2
   else
     ifneq (1,$(DBG))
       CFLAGS += -D_DEBUG
     endif
-    CPPFLAGS += -CC
     CFLAGS += -O0
   endif
 else

@@ -32,7 +32,7 @@ if [ "${BASENAME}" ] && [ "${SED}" ] && [ "${RM}" ]; then
     -h|--help)
       shift $#;;
     -c|-d|--debug|--comments)
-      CPPFLAGS+=" -C"
+      CPPFLAGS+=" -CC"
       shift;;
     *) break;;
     esac

@@ -53,7 +53,7 @@
 #if !defined(TRACK_C) && (1 < BS) && 1
 # define TRACK_C
 #endif
-#if !defined(ATOMIC_INC_NZ) && 1
+#if !defined(ATOMIC_INC_NZ) && 0
 # define ATOMIC_INC_NZ
 #endif
 #if defined(SHARED_S) && (1 < BS)

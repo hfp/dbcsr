@@ -250,7 +250,7 @@ class SmmTuner(MeasurementInterface):
                     key = (device, data["TYPEID"], data["M"], data["N"], data["K"])
                     value = (data["GFLOPS"], data["BS"], data["BM"], data["BN"]) + (
                         data["WG"] if "WG" in data else 0,
-                        data["NZ"] if "NZ" in data else 1,
+                        data["NZ"] if "NZ" in data else 0,
                         data["AP"] if "AP" in data else 0,
                         data["AA"] if "AA" in data else 0,
                         data["AB"] if "AB" in data else 0,
@@ -386,7 +386,7 @@ if __name__ == "__main__":
         "-nz",
         "--initial-nz",
         type=int,
-        default=int(os.getenv("OPENCL_LIBSMM_SMM_NZ", "1")),
+        default=int(os.getenv("OPENCL_LIBSMM_SMM_NZ", "0")),
         dest="nz",
         help="Check atomic increment to be non-zero (1)",
     )

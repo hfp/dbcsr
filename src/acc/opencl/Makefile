@@ -74,6 +74,7 @@ ifneq (0,$(DBG))
     ifneq (1,$(DBG))
       CFLAGS += -D_DEBUG
     endif
+    CPPFLAGS += -CC
     CFLAGS += -O0
   endif
 else
@@ -137,7 +138,7 @@ all: ../dbcsr_acc.a ../dbcsr_acc_smm.a bench test
 test: ../dbcsr_acc_test
 
 smm/opencl_kernels.h: acc_opencl.sh $(KERNEL)
-	./acc_opencl.sh $(KERNEL) $(PARAMS) $@
+	CPPFLAGS=$(CPPFLAGS) ./acc_opencl.sh $(KERNEL) $(PARAMS) $@
 
 ../dbcsr_acc.a: $(OBJACC)
 	$(AR) -rs $@ $^

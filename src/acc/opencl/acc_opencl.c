@@ -770,7 +770,7 @@ int c_dbcsr_acc_opencl_kernel(const char* source,
                     fclose(file_src);
                     if (EXIT_SUCCESS == result) {
                       nchar = ACC_OPENCL_SNPRINTF(buffer, sizeof(buffer), ACC_OPENCL_CPPBIN
-                        " -P -CC -D__OPENCL_VERSION__=%u %s %s > %s.cl", CL_TARGET_OPENCL_VERSION,
+                        " -P -CC -nostdinc -D__OPENCL_VERSION__=%u %s %s > %s.cl", CL_TARGET_OPENCL_VERSION,
                         NULL != build_params ? build_params : "", name_src, kernel_name);
                       if (0 < nchar && (int)sizeof(buffer) > nchar) {
                         result = system(buffer);

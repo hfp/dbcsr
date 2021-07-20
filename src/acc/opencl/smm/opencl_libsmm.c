@@ -46,9 +46,6 @@
 #if !defined(OPENCL_LIBSMM_DEBUG_EXIT) && defined(OPENCL_LIBSMM_DEBUG) && 1
 # define OPENCL_LIBSMM_DEBUG_EXIT
 #endif
-#if !defined(OPENCL_LIBSMM_KERNELNAME_MAXSIZE)
-# define OPENCL_LIBSMM_KERNELNAME_MAXSIZE 48
-#endif
 #if !defined(OPENCL_LIBSMM_KERNELNAME_TRANS)
 # define OPENCL_LIBSMM_KERNELNAME_TRANS "trans"
 #endif
@@ -492,7 +489,7 @@ int libsmm_acc_finalize(void)
       const cl_kernel kernel = *(const cl_kernel*)regentry;
       if (NULL != kernel) {
         if (3 == c_dbcsr_acc_opencl_config.verbosity) {
-          char fname[OPENCL_LIBSMM_KERNELNAME_MAXSIZE];
+          char fname[ACC_OPENCL_KERNELNAME_MAXSIZE];
           ACC_OPENCL_CHECK(clGetKernelInfo(kernel, CL_KERNEL_FUNCTION_NAME,
             ACC_OPENCL_BUFFERSIZE, fname, NULL), "retrieve function name", result);
           if (EXIT_SUCCESS == result) {
@@ -607,7 +604,7 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
     config = (opencl_libsmm_trans_t*)OPENCL_LIBSMM_DISPATCH(&key, sizeof(key));
     if (NULL == config) {
       char build_options[ACC_OPENCL_BUFFERSIZE], build_params[ACC_OPENCL_BUFFERSIZE];
-      char fname[OPENCL_LIBSMM_KERNELNAME_MAXSIZE];
+      char fname[ACC_OPENCL_KERNELNAME_MAXSIZE];
       int nchar = ACC_OPENCL_SNPRINTF(fname, sizeof(fname),
         /* kernel name are meant to be unambiguous (BLAS-typeprefix and kernelsize) */
         "x" OPENCL_LIBSMM_KERNELNAME_TRANS "%ix%i", m, n);
@@ -940,7 +937,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
       config = (opencl_libsmm_smm_t*)OPENCL_LIBSMM_DISPATCH(&key, sizeof(key));
       if (NULL == config || NULL == config->kernel) {
         char build_options[ACC_OPENCL_BUFFERSIZE], build_params[ACC_OPENCL_BUFFERSIZE];
-        char fname[OPENCL_LIBSMM_KERNELNAME_MAXSIZE];
+        char fname[ACC_OPENCL_KERNELNAME_MAXSIZE];
         int nchar = ACC_OPENCL_SNPRINTF(fname, sizeof(fname),
           /* kernel name are meant to be unambiguous (BLAS-typeprefix and kernelsize) */
           "x" OPENCL_LIBSMM_KERNELNAME_SMM "%ix%ix%i", m_max, n_max, k_max);

@@ -192,6 +192,8 @@ typedef struct c_dbcsr_acc_opencl_config_t {
   cl_bool svm_interop;
   /** Runtime verbosity (output on stderr). */
   cl_int verbosity;
+  /** Dump level (debug). */
+  cl_int dump;
 } c_dbcsr_acc_opencl_config_t;
 
 extern c_dbcsr_acc_opencl_config_t c_dbcsr_acc_opencl_config;
@@ -238,11 +240,14 @@ int c_dbcsr_acc_opencl_set_active_device(int device_id, cl_device_id* device);
 /** Get preferred multiple and max. size of workgroup (kernel- or device-specific). */
 int c_dbcsr_acc_opencl_wgsize(cl_device_id device, cl_kernel kernel,
   int* max_value, int* preferred_multiple);
-/** Build kernel function with given name from source using given build_options. */
-int c_dbcsr_acc_opencl_kernel(const char* source, const char* build_options,
+/**
+ * Build kernel from source with given kernel_name, build_params and build_options.
+ * The build_params are meant to instantiate the kernel (-D) whereas build_options
+ * are are meant to be compiler-flags.
+ */
+int c_dbcsr_acc_opencl_kernel(const char* source,
+  const char* build_options, const char* build_params,
   const char* kernel_name, cl_kernel* kernel);
-/** Dump binary code of the given program. */
-int c_dbcsr_acc_opencl_dump(const char* basename, cl_program program);
 /** Create command queue (stream). */
 int c_dbcsr_acc_opencl_stream_create(cl_command_queue* stream_p, const char* name,
   const ACC_OPENCL_COMMAND_QUEUE_PROPERTIES* properties);

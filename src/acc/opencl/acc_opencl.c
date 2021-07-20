@@ -25,8 +25,8 @@
 # include "../acc_libsmm.h"
 #endif
 
-#if !defined(ACC_OPENCL_EXTLINE)
-# define ACC_OPENCL_EXTLINE
+#if !defined(ACC_OPENCL_CPPBIN)
+# define ACC_OPENCL_CPPBIN "/usr/bin/cpp"
 #endif
 #if !defined(ACC_OPENCL_DELIMS)
 # define ACC_OPENCL_DELIMS " \t;,:"
@@ -698,47 +698,14 @@ int c_dbcsr_acc_opencl_wgsize(cl_device_id device, cl_kernel kernel,
 }
 
 
-int c_dbcsr_acc_opencl_dump(const char* basename, cl_program program)
-{
-  cl_int result;
-  unsigned char* binary = NULL;
-  size_t size;
-  assert(NULL != basename && NULL != program);
-  binary = (unsigned char*)(CL_SUCCESS == clGetProgramInfo(program,
-      CL_PROGRAM_BINARY_SIZES, sizeof(size_t), &size, NULL)
-    ? malloc(size) : NULL);
-  if (NULL != binary) {
-    result = clGetProgramInfo(program, CL_PROGRAM_BINARIES,
-      sizeof(unsigned char*), &binary, NULL);
-    if (CL_SUCCESS == result) {
-      char buffer[ACC_OPENCL_BUFFERSIZE];
-      const int nchar = ACC_OPENCL_SNPRINTF(buffer, sizeof(buffer),
-        "%s.dump", basename);
-      FILE *const file = (0 < nchar && (int)sizeof(buffer) > nchar)
-        ? fopen(buffer, "wb") : NULL;
-      if (NULL != file) {
-        result = (size == fwrite(binary, 1, size, file)
-          ? EXIT_SUCCESS : EXIT_FAILURE);
-        fclose(file);
-      }
-      else result = EXIT_FAILURE;
-    }
-    else {
-      ACC_OPENCL_ERROR("query program binary", result);
-    }
-    free(binary);
-  }
-  else result = EXIT_FAILURE;
-  ACC_OPENCL_RETURN(result);
-}
-
-
-int c_dbcsr_acc_opencl_kernel(const char* source, const char* build_options,
+int c_dbcsr_acc_opencl_kernel(const char* source,
+  const char* build_options, const char* build_params,
   const char* kernel_name, cl_kernel* kernel)
 {
   char buffer[ACC_OPENCL_BUFFERSIZE] = "";
   cl_int result;
-  assert(NULL != kernel);
+  assert(NULL != source && NULL != kernel);
+  assert(NULL != kernel_name && '\0' != *kernel_name);
   if (NULL != c_dbcsr_acc_opencl_context) {
     const cl_program program = clCreateProgramWithSource(
       c_dbcsr_acc_opencl_context, 1/*nlines*/, &source, NULL, &result);
@@ -747,17 +714,61 @@ int c_dbcsr_acc_opencl_kernel(const char* source, const char* build_options,
       assert(CL_SUCCESS == result);
       result = c_dbcsr_acc_opencl_device(NULL/*stream*/, &active_id);
       if (EXIT_SUCCESS == result) {
-        result = clBuildProgram(program,
-          1/*num_devices*/, &active_id, build_options,
-          NULL/*callback*/, NULL/*user_data*/);
+        int nchar = ACC_OPENCL_SNPRINTF(buffer, sizeof(buffer), "%s %s",
+          NULL != build_options ? build_options : "",
+          NULL != build_params ? build_params : "");
+        result = clBuildProgram(program, 1/*num_devices*/, &active_id,
+          buffer, NULL/*callback*/, NULL/*user_data*/);
+        buffer[0] = '\0'; /* reset to empty */
         if (CL_SUCCESS == result) {
           *kernel = clCreateKernel(program, kernel_name, &result);
           if (CL_SUCCESS == result) {
             const char *const env_dump = getenv("ACC_OPENCL_DUMP");
-            const int dump = (NULL == env_dump ? 0 : atoi(env_dump));
+            c_dbcsr_acc_opencl_config.dump = (NULL == env_dump ? 0 : atoi(env_dump));
             assert(NULL != *kernel);
-            if (0 != dump) {
-              result = c_dbcsr_acc_opencl_dump(kernel_name, program);
+            if (0 != c_dbcsr_acc_opencl_config.dump) { /* dump program into file */
+              unsigned char* binary = NULL;
+              size_t size;
+              binary = (unsigned char*)(CL_SUCCESS == clGetProgramInfo(program,
+                  CL_PROGRAM_BINARY_SIZES, sizeof(size_t), &size, NULL)
+                ? malloc(size) : NULL);
+              if (NULL != binary) {
+                result = clGetProgramInfo(program, CL_PROGRAM_BINARIES,
+                  sizeof(unsigned char*), &binary, NULL);
+                if (CL_SUCCESS == result) {
+                  FILE* file;
+                  nchar = ACC_OPENCL_SNPRINTF(buffer, sizeof(buffer), "%s.dump", kernel_name);
+                  file = (0 < nchar && (int)sizeof(buffer) > nchar) ? fopen(buffer, "wb") : NULL;
+                  buffer[0] = '\0'; /* reset to empty */
+                  if (NULL != file) {
+                    result = (size == fwrite(binary, 1, size, file) ? EXIT_SUCCESS : EXIT_FAILURE);
+                    fclose(file);
+                  }
+                  else result = EXIT_FAILURE;
+                }
+                else {
+                  ACC_OPENCL_ERROR("query program binary", result);
+                }
+                free(binary);
+              }
+              else result = EXIT_FAILURE;
+            }
+            if ((2 <= c_dbcsr_acc_opencl_config.dump || 0 > c_dbcsr_acc_opencl_config.dump)
+              && EXIT_SUCCESS == result) /* consider dumping preprocessed kernel (cpp) */
+            {
+              FILE *const file = fopen(ACC_OPENCL_CPPBIN, "rb");
+              if (NULL != file) {
+                nchar = ACC_OPENCL_SNPRINTF(buffer, sizeof(buffer),
+                  ACC_OPENCL_CPPBIN " -D__OPENCL_VERSION__=%u %s",
+                  CL_TARGET_OPENCL_VERSION, NULL != build_params ? build_params : "");
+                if (0 < nchar && (int)sizeof(buffer) > nchar) {
+                  result = system(buffer);
+                }
+                else result = EXIT_FAILURE;
+                buffer[0] = '\0'; /* reset to empty */
+                fclose(file);
+              }
+              else result = EXIT_FAILURE;
             }
           }
           else {

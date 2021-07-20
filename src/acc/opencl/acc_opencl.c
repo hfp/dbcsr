@@ -759,14 +759,15 @@ int c_dbcsr_acc_opencl_kernel(const char* source,
               char name_src[ACC_OPENCL_KERNELNAME_MAXSIZE*2];
               nchar = ACC_OPENCL_SNPRINTF(name_src, sizeof(name_src), "/tmp/.%s.cl", kernel_name);
               if (0 < nchar && (int)sizeof(name_src) > nchar) {
-                FILE *const file_src = fopen(name_src, "w");
-                if (NULL != file_src) {
-                  FILE *const file_cpp = fopen(ACC_OPENCL_CPPBIN, "rb");
-                  if (NULL != file_cpp) {
+                FILE *const file_cpp = fopen(ACC_OPENCL_CPPBIN, "rb");
+                if (NULL != file_cpp) {
+                  FILE *const file_src = fopen(name_src, "w");
+                  fclose(file_cpp); /* file only used as an existence-check */
+                  if (NULL != file_src) {
                     const size_t size_src = strlen(source);
-                    fclose(file_cpp); /* file only used as an existence-check */
                     result = (size_src == fwrite(source, 1, size_src, file_src)
                       ? EXIT_SUCCESS : EXIT_FAILURE);
+                    fclose(file_src);
                     if (EXIT_SUCCESS == result) {
                       nchar = ACC_OPENCL_SNPRINTF(buffer, sizeof(buffer), ACC_OPENCL_CPPBIN
                         " -D__OPENCL_VERSION__=%u %s %s > %s.cl", CL_TARGET_OPENCL_VERSION,
@@ -777,10 +778,9 @@ int c_dbcsr_acc_opencl_kernel(const char* source,
                       else result = EXIT_FAILURE;
                       buffer[0] = '\0'; /* reset to empty */
                     }
+                    remove(name_src);
                   }
                   else result = EXIT_FAILURE;
-                  fclose(file_src);
-                  remove(name_src);
                 }
                 else result = EXIT_FAILURE;
               }

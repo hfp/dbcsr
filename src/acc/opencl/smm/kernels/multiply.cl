@@ -60,6 +60,9 @@
 #if !defined(ATOMIC_INC_NZ) && 0
 # define ATOMIC_INC_NZ
 #endif
+#if !defined(ALLOW_OOB) && 1
+# define ALLOW_OOB
+#endif
 #if defined(SHARED_S) && (1 < BS)
 # define IDXBASE 0
 #else
@@ -255,14 +258,22 @@ kernel void FN(global T *restrict cdata,
 #if (BM < SM || 1 != BN)
     UNROLL(BM)
     for (int bm = 0; bm < BM; ++bm) {
+# if defined(ALLOW_OOB) || !(SM % BM)
+      const int m = bm + m0;
+# else
       const int m = min(bm + m0, SM);
+# endif
 # if defined(PRIVATE_A) && !defined(SHARED_A)
       UNROLL(SK)
       for (int k = 0; k < SK; ++k) amk[k] = a[SM*k+m];
 # endif
       UNROLL(BN)
       for (int bn = 0; bn < BN; ++bn) {
+# if defined(ALLOW_OOB) || !(SN % BN)
+        const int n = bn + n0;
+# else
         const int n = min(bn + n0, SN);
+# endif
         T r = ZERO;
         UNROLL(SK)
         for (int k = 0; k < SK; ++k) r = FMA(

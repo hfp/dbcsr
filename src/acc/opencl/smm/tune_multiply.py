@@ -132,7 +132,7 @@ class SmmTuner(MeasurementInterface):
         for param in params:
             manipulator.add_parameter(param)
         # register signal handler (CTRL-C)
-        signal(SIGINT, self.handle_sigint)
+        self.default_sigint = signal(SIGINT, self.handle_sigint)
         return manipulator
 
     def launch(self, envs, nrep=None, size=None, verbose=None):
@@ -339,6 +339,7 @@ class SmmTuner(MeasurementInterface):
 
     def handle_sigint(self, signum, frame):
         """Handle SIGINT or CTRL-C"""
+        signal(SIGINT, self.default_sigint)
         print(
             "\nWARNING: tuning {}x{}x{}-kernel was interrupted".format(
                 self.args.m, self.args.n, self.args.k

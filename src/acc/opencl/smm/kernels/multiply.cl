@@ -179,6 +179,9 @@ kernel void FN(global T *restrict cdata,
 # if defined(SHARED_C) || defined(SHARED_S)
   barrier(CLK_LOCAL_MEM_FENCE);
 # endif
+# if (defined(SHARED_A) || defined(SHARED_B)) && (NBK < SWG)
+  if (NBK <= idx) return;
+# endif
   c0 = params[2] - IDXBASE;
   c = cdata + c0;
   UNROLL(1)
@@ -186,16 +189,15 @@ kernel void FN(global T *restrict cdata,
     const int a0 = params[3*i] - IDXBASE, b0 = params[3*i+1] - IDXBASE;
     const int c1 = ((i + 1) < batchsize ? (params[3*i+5] - IDXBASE) : -1);
 #else
+# if (defined(SHARED_A) || defined(SHARED_B)) && (NBK < SWG)
+  if (NBK > idx)
+# endif
   {
     const int a0 = params[0] - IDXBASE, b0 = params[1] - IDXBASE;
     global T *restrict c = cdata + params[2] - IDXBASE;
 #endif
     GLOBAL const T *const restrict a = adata + a0;
     GLOBAL const T *const restrict b = bdata + b0;
-
-#if (defined(SHARED_A) || defined(SHARED_B)) && (NBK < SWG)
-    if (NBK <= idx) return;
-#endif
 
 #if defined(SHARED_A)
     { /* transpose A-matrix into local/shared buffer */

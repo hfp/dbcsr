@@ -345,17 +345,19 @@ kernel void FN(global T *restrict cdata,
 # if (BM < SM || 1 != BN)
       UNROLL(BM)
       for (int bm = 0; bm < BM; ++bm) {
-        const int m = min(bm + m0, SM);
+        const int m = bm + m0;
         UNROLL(BN)
         for (int bn = 0; bn < BN; ++bn) {
-          const int n = min(bn + n0, SN);
+          const int n = bn + n0;
 #   if defined(SHARED_C)
           local T *restrict r = &cmn[m][n];
 #   else
           private T *restrict r = &cmn[bm][bn];
 #   endif
 #   if defined(ATOMIC_INC_NZ)
-          if (ZERO != *r)
+          if (m < SM && n < SN && ZERO != *r)
+#   else
+          if (m < SM && n < SN)
 #   endif
           {
             ATOMIC_ADD_GLOBAL(&c[SM*n+m], *r);

@@ -365,10 +365,15 @@ kernel void FN(global T *restrict cdata,
 #   else
           private T *restrict r = &cmn[bm][bn];
 #   endif
-#   if defined(ATOMIC_INC_NZ)
-          if (m < SM && n < SN && ZERO != *r)
-#   else
+#   if (SM % BM) && (SN % BN)
           if (m < SM && n < SN)
+#   elif (SM % BM)
+          if (m < SM)
+#   elif (SN % BN)
+          if (n < SN)
+#   endif
+#   if defined(ATOMIC_INC_NZ)
+          if (ZERO != *r)
 #   endif
           {
             ATOMIC_ADD_GLOBAL(&c[SM*n+m], *r);

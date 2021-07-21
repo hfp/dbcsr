@@ -323,6 +323,10 @@ int c_dbcsr_acc_init(void)
             c_dbcsr_acc_opencl_config.svm_interop = CL_FALSE;
 #endif
           }
+          if (EXIT_SUCCESS == result) {
+            const char *const env_dump = getenv("ACC_OPENCL_DUMP");
+            c_dbcsr_acc_opencl_config.dump = (NULL == env_dump ? 0 : atoi(env_dump));
+          }
         }
       }
       else { /* mark as initialized */
@@ -703,12 +707,47 @@ int c_dbcsr_acc_opencl_kernel(const char* source,
   const char* kernel_name, cl_kernel* kernel)
 {
   char buffer[ACC_OPENCL_BUFFERSIZE] = "";
-  cl_int result;
+  cl_int result = EXIT_SUCCESS;
   assert(NULL != source && NULL != kernel);
   assert(NULL != kernel_name && '\0' != *kernel_name);
   if (NULL != c_dbcsr_acc_opencl_context) {
-    const cl_program program = clCreateProgramWithSource(
-      c_dbcsr_acc_opencl_context, 1/*nlines*/, &source, NULL, &result);
+    cl_program program = NULL;
+    /* consider preprocessing kernel-source for analysis (cpp) */
+    if (2 <= c_dbcsr_acc_opencl_config.dump || 0 > c_dbcsr_acc_opencl_config.dump) {
+      char name_src[ACC_OPENCL_KERNELNAME_MAXSIZE*2];
+      int nchar = ACC_OPENCL_SNPRINTF(name_src, sizeof(name_src), "/tmp/.%s.cl", kernel_name);
+      if (0 < nchar && (int)sizeof(name_src) > nchar) {
+        FILE *const file_cpp = fopen(ACC_OPENCL_CPPBIN, "rb");
+        if (NULL != file_cpp) {
+          FILE *const file_src = fopen(name_src, "w");
+          fclose(file_cpp); /* file only used as an existence-check */
+          if (NULL != file_src) {
+            const size_t size_src = strlen(source);
+            result = (size_src == fwrite(source, 1, size_src, file_src)
+              ? EXIT_SUCCESS : EXIT_FAILURE);
+            fclose(file_src);
+            if (EXIT_SUCCESS == result) {
+              nchar = ACC_OPENCL_SNPRINTF(buffer, sizeof(buffer), ACC_OPENCL_CPPBIN
+                " -P -CC -nostdinc -D__OPENCL_VERSION__=%u %s %s -o %s.cl", CL_TARGET_OPENCL_VERSION,
+                NULL != build_params ? build_params : "", name_src, kernel_name);
+              if (0 < nchar && (int)sizeof(buffer) > nchar) {
+                result = system(buffer);
+                if (EXIT_SUCCESS == result) build_params = NULL; /* consumed */
+              }
+              else result = EXIT_FAILURE;
+              buffer[0] = '\0'; /* reset to empty */
+            }
+            remove(name_src);
+          }
+          else result = EXIT_FAILURE;
+        }
+        else result = EXIT_FAILURE;
+      }
+    }
+    if (NULL == program) {
+      program = clCreateProgramWithSource(
+        c_dbcsr_acc_opencl_context, 1/*nlines*/, &source, NULL, &result);
+    }
     if (NULL != program) {
       cl_device_id active_id = NULL;
       assert(CL_SUCCESS == result);
@@ -723,8 +762,6 @@ int c_dbcsr_acc_opencl_kernel(const char* source,
         if (CL_SUCCESS == result) {
           *kernel = clCreateKernel(program, kernel_name, &result);
           if (CL_SUCCESS == result) {
-            const char *const env_dump = getenv("ACC_OPENCL_DUMP");
-            c_dbcsr_acc_opencl_config.dump = (NULL == env_dump ? 0 : atoi(env_dump));
             assert(NULL != *kernel);
             if (0 != c_dbcsr_acc_opencl_config.dump) { /* dump program into file */
               unsigned char* binary = NULL;
@@ -752,38 +789,6 @@ int c_dbcsr_acc_opencl_kernel(const char* source,
                 free(binary);
               }
               else result = EXIT_FAILURE;
-            }
-            if ((2 <= c_dbcsr_acc_opencl_config.dump || 0 > c_dbcsr_acc_opencl_config.dump)
-              && EXIT_SUCCESS == result) /* consider dumping preprocessed kernel (cpp) */
-            {
-              char name_src[ACC_OPENCL_KERNELNAME_MAXSIZE*2];
-              nchar = ACC_OPENCL_SNPRINTF(name_src, sizeof(name_src), "/tmp/.%s.cl", kernel_name);
-              if (0 < nchar && (int)sizeof(name_src) > nchar) {
-                FILE *const file_cpp = fopen(ACC_OPENCL_CPPBIN, "rb");
-                if (NULL != file_cpp) {
-                  FILE *const file_src = fopen(name_src, "w");
-                  fclose(file_cpp); /* file only used as an existence-check */
-                  if (NULL != file_src) {
-                    const size_t size_src = strlen(source);
-                    result = (size_src == fwrite(source, 1, size_src, file_src)
-                      ? EXIT_SUCCESS : EXIT_FAILURE);
-                    fclose(file_src);
-                    if (EXIT_SUCCESS == result) {
-                      nchar = ACC_OPENCL_SNPRINTF(buffer, sizeof(buffer), ACC_OPENCL_CPPBIN
-                        " -P -CC -nostdinc -D__OPENCL_VERSION__=%u %s %s -o %s.cl", CL_TARGET_OPENCL_VERSION,
-                        NULL != build_params ? build_params : "", name_src, kernel_name);
-                      if (0 < nchar && (int)sizeof(buffer) > nchar) {
-                        result = system(buffer);
-                      }
-                      else result = EXIT_FAILURE;
-                      buffer[0] = '\0'; /* reset to empty */
-                    }
-                    remove(name_src);
-                  }
-                  else result = EXIT_FAILURE;
-                }
-                else result = EXIT_FAILURE;
-              }
             }
           }
           else {

@@ -239,7 +239,11 @@ kernel void FN(global T *restrict cdata,
 # if (BM < SM || 1 != BN)
         UNROLL(BN)
         for (int bn = 0; bn < BN; ++bn) {
+#   if defined(ALLOW_OOB) || !(SN % BN)
+          const int n = bn + n0;
+#   else
           const int n = min(bn + n0, SN);
+#   endif
           bkn[k][bn] = b[SN*k+n];
         }
 # else

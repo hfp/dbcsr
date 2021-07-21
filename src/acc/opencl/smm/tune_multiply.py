@@ -40,9 +40,8 @@ class SmmTuner(MeasurementInterface):
         self.gflops = 0
         self.exepath = "../.."
         self.exename = "acc_bench_smm"
-        # verbosity level to capture device name and tuned parameters
-        run_result = (
-            self.launch(["ACC_OPENCL_VERBOSE=2", "CHECK=0"], 1, 1)
+        run_result = (  # verbosity to capture device name and tuned parameters
+            self.launch(["ACC_OPENCL_VERBOSE=2", "CHECK=0"], nrep=1, size=1)
             if not self.args.merge
             else None
         )
@@ -136,15 +135,19 @@ class SmmTuner(MeasurementInterface):
         signal(SIGINT, self.handle_sigint)
         return manipulator
 
-    def launch(self, envs, nrep=None, size=None):
+    def launch(self, envs, nrep=None, size=None, verbose=None):
         """Launch executable supplying environment and arguments"""
+        envstrs = " ".join(map(str, envs))
+        if verbose is not None and 0 != int(verbose):
+            print(envstrs.replace("OPENCL_LIBSMM_SMM_", "").replace(" CHECK=0", ""))
         return self.call_program(
             "OMP_PROC_BIND=TRUE {} {} {} {}".format(
-                " ".join(map(str, envs)),  # environment variables
+                envstrs,  # environment variables
                 "{}/{}".format(self.exepath, self.exename),
                 # executable's arguments
                 "{} {}".format(
-                    self.args.r if None else nrep, self.args.s if None else size
+                    self.args.r if nrep is None else nrep,
+                    self.args.s if size is None else size,
                 ),
                 "{} {} {}".format(self.args.m, self.args.n, self.args.k),
             )
@@ -188,7 +191,8 @@ class SmmTuner(MeasurementInterface):
         """Run a configuration and return performance"""
         config = desired_result.configuration.data
         run_result = self.launch(
-            self.environment(config) + ["CHECK={}".format(self.args.check)]
+            self.environment(config) + ["CHECK={}".format(self.args.check)],
+            verbose=self.args.verbose,
         )
         if 0 == run_result["returncode"]:
             performance = re.search(
@@ -459,7 +463,7 @@ if __name__ == "__main__":
         help='Size of batch ("stacksize")',
     )
     argparser.add_argument(
-        "-c",
+        "-e",
         "--csv-separator",
         type=(lambda c: c if isinstance(c, str) and 1 == len(c) else False),
         default=";",
@@ -494,13 +498,21 @@ if __name__ == "__main__":
         help="Update JSONs (device), and terminate",
     )
     argparser.add_argument(
-        "-v",
+        "-c",
         "--check",
         type=float,
         default=0,
         nargs="?",
         dest="check",
         help="Validate kernel (epsilon)",
+    )
+    argparser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        default=False,
+        dest="verbose",
+        help="Verbose output",
     )
     argparser.add_argument(
         "-p",

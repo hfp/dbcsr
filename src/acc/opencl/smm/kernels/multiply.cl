@@ -240,7 +240,7 @@ kernel void FN(global T *restrict cdata,
     }
 #endif
 
-#if (defined(SHARED_A) || defined(SHARED_B)) && (1 < SWG)
+#if (defined(SHARED_A) || defined(SHARED_B)) && (1 < NBK)
     /* finish transpose/copy */
     barrier(CLK_LOCAL_MEM_FENCE);
 #endif

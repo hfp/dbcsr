@@ -11,6 +11,10 @@
 #else
 # define UNROLL(N)
 #endif
+#if !defined(UNROLL_SM)
+# define UNROLL_SM UNROLL(SM)
+#endif
+
 #if (0 != INTEL)
 # define BC 1
 #else
@@ -292,7 +296,7 @@ kernel void FN(global T *restrict cdata,
       }
     }
 #else
-    UNROLL(SM)
+    UNROLL_SM
     for (int m = 0; m < SM; ++m) {
 # if (1 < BS)
 #   if defined(SHARED_C)

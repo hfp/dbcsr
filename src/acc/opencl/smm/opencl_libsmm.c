@@ -149,7 +149,7 @@ int opencl_libsmm_read_params(char* parambuf,
   opencl_libsmm_perfest_t* perfest, char* const* device)
 {
   const char* s = strtok(parambuf, OPENCL_LIBSMM_PARAMS_DELIMS);
-  const int max_consumed = 14 + (NULL == device ? 0 : 1);
+  const int max_consumed = 15 + (NULL == device ? 0 : 1);
   int result = EXIT_SUCCESS, consumed = 0, i;
   int t = (NULL == device ? 1 : 0);
   double gflops;
@@ -191,15 +191,18 @@ int opencl_libsmm_read_params(char* parambuf,
         value->nz = i; ++consumed;
       } break;
       case 11: if (1 == sscanf(s, "%i", &i)) {
-        value->ap = i; ++consumed;
+        value->lu = i; ++consumed;
       } break;
       case 12: if (1 == sscanf(s, "%i", &i)) {
-        value->aa = i; ++consumed;
+        value->ap = i; ++consumed;
       } break;
       case 13: if (1 == sscanf(s, "%i", &i)) {
-        value->ab = i; ++consumed;
+        value->aa = i; ++consumed;
       } break;
       case 14: if (1 == sscanf(s, "%i", &i)) {
+        value->ab = i; ++consumed;
+      } break;
+      case 15: if (1 == sscanf(s, "%i", &i)) {
         value->ac = i; ++consumed;
       } break;
     }
@@ -966,8 +969,9 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
           if (NULL != tname) {
             int cl_intel_id = 0, unified = 0;
             const char *const env_wg = getenv("OPENCL_LIBSMM_SMM_WG"), *const env_nz = getenv("OPENCL_LIBSMM_SMM_NZ");
-            const char *const env_ap = getenv("OPENCL_LIBSMM_SMM_AP"), *const env_aa = getenv("OPENCL_LIBSMM_SMM_AA");
-            const char *const env_ab = getenv("OPENCL_LIBSMM_SMM_AB"), *const env_ac = getenv("OPENCL_LIBSMM_SMM_AC");
+            const char *const env_lu = getenv("OPENCL_LIBSMM_SMM_LU"), *const env_ap = getenv("OPENCL_LIBSMM_SMM_AP");
+            const char *const env_aa = getenv("OPENCL_LIBSMM_SMM_AA"), *const env_ab = getenv("OPENCL_LIBSMM_SMM_AB");
+            const char *const env_ac = getenv("OPENCL_LIBSMM_SMM_AC");
             const int cl_intel = (EXIT_SUCCESS == c_dbcsr_acc_opencl_device_vendor(active_device, "intel")
                                && EXIT_SUCCESS == c_dbcsr_acc_opencl_device_id(active_device, "%[^[][0x%xi]", &cl_intel_id));
             const int cl_nonv = (cl_intel || EXIT_SUCCESS != c_dbcsr_acc_opencl_device_vendor(active_device, "nvidia"));
@@ -975,6 +979,8 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
               ? (NULL == config ? 0/*default*/ : config->wg) : LIBXSMM_CLMP(atoi(env_wg), 0, 2));
             const int nz = ((NULL == env_nz || '\0' == *env_nz || '0' == *env_nz)
               ? (NULL == config ? 0/*default*/ : config->nz) : LIBXSMM_CLMP(atoi(env_nz), 0, 1));
+            const int lu = ((NULL == env_lu || '\0' == *env_lu || '0' == *env_lu)
+              ? (NULL == config ? 0/*default*/ : config->lu) : LIBXSMM_CLMP(atoi(env_lu), 0, 1));
             const int ap = ((NULL == env_ap || '\0' == *env_ap || '0' == *env_ap)
               ? (NULL == config ? 0/*default*/ : config->ap) : LIBXSMM_CLMP(atoi(env_ap), 0, 1));
             const int aa = ((NULL == env_aa || '\0' == *env_aa || '0' == *env_aa)
@@ -1087,12 +1093,13 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                 nchar = ACC_OPENCL_SNPRINTF(build_params, sizeof(build_params),
                   "-DFMA=fma -DGLOBAL=%s -DINTEL=%i -DSWG=%i -DFN=%s "
                   "-DSM=%i -DSN=%i -DSK=%i -DBS=%i -DBM=%i -DBN=%i -DT=%s -DTN=%i "
-                  "%s %s %s %s %s %s -D\"ATOMIC_ADD_GLOBAL(A,B)=%s\" %s",
+                  "%s %s %s %s %s %s %s -D\"ATOMIC_ADD_GLOBAL(A,B)=%s\" %s",
                   cmem, cl_intel_id, wgsize, fname, m_max, n_max, k_max, bs, bm, bn, tname, datatype,
                   0 == aa ? "" : (1 == aa ? "-DSHARED_A=1" : (2 == aa ? "-DSHARED_A=2" : "-DPRIVATE_A")),
                   0 == ab ? "" : (1 == ab ? "-DSHARED_B=1" : (2 == ab ? "-DSHARED_B=2" : "-DPRIVATE_B")),
                   0 == ac ? "" : (1 == ac ? "-DSHARED_C=1" : (2 == ac ? "-DSHARED_C=2" : "-DPRIVATE_C")),
                   0 == ap ? "" : "-DSHARED_S", 0 == nz ? "" : "-DATOMIC_INC_NZ",
+                  0 == lu ? "" : "-D\"UNROLL_SM=UNROLL(1)\"",
                   atomic_ops, atomic_expr, atomic_expr2);
                 if (0 < nchar && (int)sizeof(build_params) > nchar) {
                   nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options),
@@ -1134,16 +1141,17 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
                     if (NULL != config) {
                       config->wgsize = (size_t)wgsize;
                       config->bs = bs; config->bm = bm; config->bn = bn;
-                      config->wg = wg; config->nz = nz; config->ap = ap;
-                      config->aa = aa; config->ab = ab; config->ac = ac;
+                      config->wg = wg; config->nz = nz; config->lu = lu;
+                      config->ap = ap; config->aa = aa; config->ab = ab;
+                      config->ac = ac;
                       config->kernel = new_config.kernel;
 # if !defined(OPENCL_LIBSMM_DEBUG_SMM)
                       if (2 <= c_dbcsr_acc_opencl_config.verbosity || 0 > c_dbcsr_acc_opencl_config.verbosity) {
                         duration = libxsmm_timer_duration(start, libxsmm_timer_tick());
                         fprintf(stderr, "INFO ACC/OpenCL: %ix%ix%i %sSMM-kernel "
-                          "bs=%i bm=%i bn=%i wg=%i nz=%i ap=%i aa=%i ab=%i ac=%i gen=%.1f ms\n", m_max, n_max, k_max,
+                          "bs=%i bm=%i bn=%i wg=%i nz=%i lu=%i ap=%i aa=%i ab=%i ac=%i gen=%.1f ms\n", m_max, n_max, k_max,
                           dbcsr_type_real_8 == datatype ? "D" : (dbcsr_type_real_4 == datatype ? "S" : ""),
-                          bs, bm, bn, wg, nz, ap, aa, ab, ac, 1000.0 * duration);
+                          bs, bm, bn, wg, nz, lu, ap, aa, ab, ac, 1000.0 * duration);
                       }
 # endif
                     }
@@ -1179,6 +1187,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
           && 1 <= config->bs && 0 < config->wgsize
           && 0 <= config->wg && 2 >= config->wg
           && 0 <= config->nz && 1 >= config->nz
+          && 0 <= config->lu && 1 >= config->lu
           && 0 <= config->ap && 1 >= config->ap
           && 0 <= config->aa && 3 >= config->aa
           && 0 <= config->ab && 3 >= config->ab

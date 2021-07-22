@@ -713,7 +713,7 @@ int c_dbcsr_acc_opencl_kernel(const char source[],
   if (NULL != c_dbcsr_acc_opencl_context) {
     cl_program program = NULL;
     /* consider preprocessing kernel for analysis (cpp); failure does not matter (result) */
-    if (2 <= c_dbcsr_acc_opencl_config.dump || 0 > c_dbcsr_acc_opencl_config.dump) {
+    if (0 != c_dbcsr_acc_opencl_config.dump) {
       char name_src[ACC_OPENCL_KERNELNAME_MAXSIZE*2];
       int nchar = ACC_OPENCL_SNPRINTF(name_src, sizeof(name_src), "/tmp/.%s.cl", kernel_name);
       if (0 < nchar && (int)sizeof(name_src) > nchar) {
@@ -735,20 +735,21 @@ int c_dbcsr_acc_opencl_kernel(const char source[],
                     if (NULL != file) {
                       const long int size = (EXIT_SUCCESS == fseek(
                         file, 0/*offset*/, SEEK_END) ? ftell(file) : 0);
-                      char *const src = (char*)malloc(size + 1/*terminator*/);
-                      if (NULL != src && (size_t)size == fread(
-                        src, 1/*sizeof(char)*/, size/*count*/, file))
-                      {
-                        src[size] = '\0';
-                        program = clCreateProgramWithSource(
-                          c_dbcsr_acc_opencl_context, 1/*nlines*/, (const char**)&src, NULL, &result);
-                        if (NULL != program) {
-                          assert(CL_SUCCESS == result);
-                          build_params = NULL; /* consumed */
+                      char *const src = (char*)(EXIT_SUCCESS == fseek(
+                        file, 0/*offset*/, SEEK_SET) ? malloc(size + 1/*terminator*/) : NULL);
+                      if (NULL != src) {
+                        if ((size_t)size == fread(src, 1/*sizeof(char)*/, size/*count*/, file)) {
+                          src[size] = '\0';
+                          program = clCreateProgramWithSource(
+                            c_dbcsr_acc_opencl_context, 1/*nlines*/, (const char**)&src, NULL, &result);
+                          if (NULL != program) {
+                            assert(CL_SUCCESS == result);
+                            build_params = NULL; /* consumed */
+                          }
                         }
+                        free(src);
                       }
                       fclose(file);
-                      free(src);
                     }
                   }
                 }
@@ -779,7 +780,7 @@ int c_dbcsr_acc_opencl_kernel(const char source[],
           *kernel = clCreateKernel(program, kernel_name, &result);
           if (CL_SUCCESS == result) {
             assert(NULL != *kernel);
-            if (0 != c_dbcsr_acc_opencl_config.dump) { /* dump program into file */
+            if (2 <= c_dbcsr_acc_opencl_config.dump || 0 > c_dbcsr_acc_opencl_config.dump) {
               unsigned char* binary = NULL;
               size_t size;
               binary = (unsigned char*)(CL_SUCCESS == clGetProgramInfo(program,

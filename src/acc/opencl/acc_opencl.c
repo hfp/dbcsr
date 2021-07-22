@@ -740,12 +740,8 @@ int c_dbcsr_acc_opencl_kernel(const char source[],
                       if (NULL != src) {
                         if ((size_t)size == fread(src, 1/*sizeof(char)*/, size/*count*/, file)) {
                           src[size] = '\0';
-                          program = clCreateProgramWithSource(
-                            c_dbcsr_acc_opencl_context, 1/*nlines*/, (const char**)&src, NULL, &result);
-                          if (NULL != program) {
-                            assert(CL_SUCCESS == result);
-                            build_params = NULL; /* consumed */
-                          }
+                          program = clCreateProgramWithSource(c_dbcsr_acc_opencl_context,
+                            1/*nlines*/, (const char**)&src, NULL, &result);
                         }
                         free(src);
                       }
@@ -762,8 +758,8 @@ int c_dbcsr_acc_opencl_kernel(const char source[],
       }
     }
     if (NULL == program) {
-      program = clCreateProgramWithSource(
-        c_dbcsr_acc_opencl_context, 1/*nlines*/, &source, NULL, &result);
+      program = clCreateProgramWithSource(c_dbcsr_acc_opencl_context,
+        1/*nlines*/, &source, NULL, &result);
     }
     if (NULL != program) {
       cl_device_id active_id = NULL;

@@ -277,7 +277,15 @@ kernel void FN(global T *restrict cdata,
 # else
         const int n = min(bn + n0, SN);
 # endif
+# if (1 < BS)
+#   if defined(SHARED_C)
+        T r = cmn[m][n];
+#   else
+        T r = cmn[bm][bn];
+#   endif
+# else
         T r = ZERO;
+# endif
         UNROLL(SK)
         for (int k = 0; k < SK; ++k) r = FMA(
 # if defined(SHARED_A)
@@ -297,9 +305,9 @@ kernel void FN(global T *restrict cdata,
           r);
 # if (1 < BS)
 #   if defined(SHARED_C)
-        cmn[m][n] += r;
+        cmn[m][n] = r;
 #   else
-        cmn[bm][bn] += r;
+        cmn[bm][bn] = r;
 #   endif
 # else
 #   if defined(ATOMIC_INC_NZ)

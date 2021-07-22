@@ -1118,7 +1118,7 @@ int libsmm_acc_process(const int* host_param_stack, const int* dev_param_stack, 
               opencl_libsmm_smm_t new_config;
               memset(&new_config, 0, sizeof(new_config));
               result = c_dbcsr_acc_opencl_kernel(
-                (cl_intel && 0x4905 != cl_intel_id && 0 == unified && dbcsr_type_real_4 == datatype)
+                (NULL != strstr(atomic_ops, "cl_intel_global_float_atomics"))
                   ? ("#pragma OPENCL EXTENSION cl_intel_global_float_atomics: enable\n"
                      OPENCL_LIBSMM_STRING_MULTIPLY)
                   : (/*non-Intel device*/

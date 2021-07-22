@@ -223,15 +223,15 @@ int c_dbcsr_acc_opencl_info_devmem(cl_device_id device,
   size_t* mem_free, size_t* mem_total, size_t* mem_local,
   int* mem_unified);
 /** Return the pointer to the 1st match of "b" in "a", or NULL (no match). */
-const char* c_dbcsr_acc_opencl_stristr(const char* a, const char* b);
+const char* c_dbcsr_acc_opencl_stristr(const char a[], const char b[]);
 /** Get active device (can be thread/queue-specific). */
 int c_dbcsr_acc_opencl_device(void* stream, cl_device_id* device);
 /** Confirm the vendor of the given device. */
-int c_dbcsr_acc_opencl_device_vendor(cl_device_id device, const char* vendor);
+int c_dbcsr_acc_opencl_device_vendor(cl_device_id device, const char vendor[]);
 /** Confirm that match is matching the name of the given device. */
-int c_dbcsr_acc_opencl_device_name(cl_device_id device, const char* match);
+int c_dbcsr_acc_opencl_device_name(cl_device_id device, const char match[]);
 /** Capture an id out of the device-name according to the given format (scanf). */
-int c_dbcsr_acc_opencl_device_id(cl_device_id device, const char* format, int* id);
+int c_dbcsr_acc_opencl_device_id(cl_device_id device, const char format[], int* id);
 /** Return the OpenCL support level for the given device. */
 int c_dbcsr_acc_opencl_device_level(cl_device_id device,
   int* level_major, int* level_minor, char cl_std[16]);
@@ -248,11 +248,11 @@ int c_dbcsr_acc_opencl_wgsize(cl_device_id device, cl_kernel kernel,
  * The build_params are meant to instantiate the kernel (-D) whereas build_options
  * are are meant to be compiler-flags.
  */
-int c_dbcsr_acc_opencl_kernel(const char* source,
-  const char* build_options, const char* build_params,
-  const char* kernel_name, cl_kernel* kernel);
+int c_dbcsr_acc_opencl_kernel(const char source[],
+  const char build_options[], const char build_params[],
+  const char kernel_name[], cl_kernel* kernel);
 /** Create command queue (stream). */
-int c_dbcsr_acc_opencl_stream_create(cl_command_queue* stream_p, const char* name,
+int c_dbcsr_acc_opencl_stream_create(cl_command_queue* stream_p, const char name[],
   const ACC_OPENCL_COMMAND_QUEUE_PROPERTIES* properties);
 /** Enqueue barrier (see c_dbcsr_acc_opencl_config.record_event). */
 int c_dbcsr_acc_opencl_enqueue_barrier(void* event, void* stream);

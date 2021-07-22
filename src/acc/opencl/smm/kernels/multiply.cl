@@ -363,11 +363,6 @@ kernel void FN(global T *restrict cdata,
         UNROLL(BN)
         for (int bn = 0; bn < BN; ++bn) {
           const int n = bn + n0;
-#   if defined(SHARED_C)
-          local T *restrict r = &cmn[m][n];
-#   else
-          private T *restrict r = &cmn[bm][bn];
-#   endif
 #   if (SM % BM) && (SN % BN)
           if (m < SM && n < SN)
 #   elif (SM % BM)
@@ -375,12 +370,19 @@ kernel void FN(global T *restrict cdata,
 #   elif (SN % BN)
           if (n < SN)
 #   endif
-#   if defined(ATOMIC_INC_NZ)
-          if (ZERO != *r)
-#   endif
           {
-            ATOMIC_ADD_GLOBAL(&c[SM*n+m], *r);
-            *r = ZERO; /* reset */
+#   if defined(SHARED_C)
+            local T *restrict r = &cmn[m][n];
+#   else
+            private T *restrict r = &cmn[bm][bn];
+#   endif
+#   if defined(ATOMIC_INC_NZ)
+            if (ZERO != *r)
+#   endif
+            {
+              ATOMIC_ADD_GLOBAL(&c[SM*n+m], *r);
+              *r = ZERO; /* reset */
+            }
           }
         }
       }

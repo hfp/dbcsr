@@ -43,6 +43,8 @@ class SmmTuner(MeasurementInterface):
         run_result = (  # verbosity to capture device name and tuned parameters
             self.launch(["ACC_OPENCL_VERBOSE=2", "CHECK=0"], nrep=1, size=1)
             if not self.args.merge
+            and self.args.update is not None
+            and "" != self.args.update
             else None
         )
         if run_result and 0 == run_result["returncode"]:

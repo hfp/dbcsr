@@ -207,14 +207,13 @@ kernel void FN(global T *restrict cdata,
     GLOBAL const T *const restrict b = bdata + b0;
 
 #if defined(SHARED_A)
-    { /* transpose A-matrix into local/shared buffer */
-      int m = idx;
+    /* transpose A-matrix into local/shared buffer */
+    int m = idx;
 # if (NBK != SM)
-      for (; m < SM; m += NBK)
+    for (; m < SM; m += NBK)
 # endif
-      { UNROLL(SK)
-        for (int k = 0; k < SK; ++k) amk[m][k] = a[SM*k+m];
-      }
+    { UNROLL(SK)
+      for (int k = 0; k < SK; ++k) amk[m][k] = a[SM*k+m];
     }
 #endif
 

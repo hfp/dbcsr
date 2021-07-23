@@ -258,60 +258,62 @@ kernel void FN(global T *restrict cdata,
     /* calculate result-tile using general tiles */
     UNROLL(BM)
     for (int bm = 0; bm < BM; ++bm) {
-# if (SM % BM)
-      const int m = min(bm + m0, SM - 1);
-# else
       const int m = bm + m0;
+# if (SM % BM)
+      if (m < SM)
 # endif
+      {
 # if defined(PRIVATE_A) && !defined(SHARED_A)
-      UNROLL(SK)
-      for (int k = 0; k < SK; ++k) amk[k] = a[SM*k+m];
+        UNROLL(SK)
+        for (int k = 0; k < SK; ++k) amk[k] = a[SM*k+m];
 # endif
-      UNROLL(BN)
-      for (int bn = 0; bn < BN; ++bn) {
+        UNROLL(BN)
+        for (int bn = 0; bn < BN; ++bn) {
+          const int n = bn + n0;
 # if (SN % BN)
-        const int n = min(bn + n0, SN - 1);
-# else
-        const int n = bn + n0;
+          if (n < SN)
 # endif
+          {
 # if (1 < BS)
 #   if defined(SHARED_C)
-        T r = cmn[m][n];
+            T r = cmn[m][n];
 #   else
-        T r = cmn[bm][bn];
+            T r = cmn[bm][bn];
 #   endif
 # else
-        T r = ZERO;
+            T r = ZERO;
 # endif
-        UNROLL(SK)
-        for (int k = 0; k < SK; ++k) r = FMA(
+            UNROLL(SK)
+            for (int k = 0; k < SK; ++k) r = FMA(
 # if defined(SHARED_A)
-          amk[m][k],
+              amk[m][k],
 # elif defined(PRIVATE_A)
-          amk[k],
+              amk[k],
 # else
-          a[SM*k+m],
+              a[SM*k+m],
 # endif
 # if defined(SHARED_B)
-          bkn[k][n],
+              bkn[k][n],
 # elif defined(PRIVATE_B)
-          bkn[k][bn],
+              bkn[k][bn],
 # else
-          b[SN*k+n],
+              b[SN*k+n],
 # endif
-          r);
+              r);
 # if (1 < BS)
 #   if defined(SHARED_C)
-        cmn[m][n] = r;
+            cmn[m][n] = r;
 #   else
-        cmn[bm][bn] = r;
+            cmn[bm][bn] = r;
 #   endif
 # else
 #   if defined(ATOMIC_INC_NZ)
-        if (ZERO != r)
+            if (ZERO != r)
 #   endif
-        ATOMIC_ADD_GLOBAL(&c[SM*n+m], r);
+            ATOMIC_ADD_GLOBAL(&c[SM*n+m], r);
 # endif
+          }
+        }
       }
     }
 #else
@@ -361,38 +363,40 @@ kernel void FN(global T *restrict cdata,
 # if defined(TRACK_C)
     if (c0 != c1)
 # endif
-    { /* atomically commit C-tile to global memory */
 # if (BM < SM || 1 != BN)
+    { /* atomically commit C-tile to global memory */
       UNROLL(BM)
       for (int bm = 0; bm < BM; ++bm) {
         const int m = bm + m0;
-        UNROLL(BN)
-        for (int bn = 0; bn < BN; ++bn) {
-          const int n = bn + n0;
-#   if (SM % BM) && (SN % BN)
-          if (m < SM && n < SN)
-#   elif (SM % BM)
-          if (m < SM)
-#   elif (SN % BN)
-          if (n < SN)
+#   if (SM % BM)
+        if (m < SM)
 #   endif
-          {
-#   if defined(SHARED_C)
-            local T *restrict r = &cmn[m][n];
-#   else
-            private T *restrict r = &cmn[bm][bn];
-#   endif
-#   if defined(ATOMIC_INC_NZ)
-            if (ZERO != *r)
+        {
+          UNROLL(BN)
+          for (int bn = 0; bn < BN; ++bn) {
+            const int n = bn + n0;
+#   if (SN % BN)
+            if (n < SN)
 #   endif
             {
-              ATOMIC_ADD_GLOBAL(&c[SM*n+m], *r);
-              *r = ZERO; /* reset */
+#   if defined(SHARED_C)
+              local T *restrict r = &cmn[m][n];
+#   else
+              private T *restrict r = &cmn[bm][bn];
+#   endif
+#   if defined(ATOMIC_INC_NZ)
+              if (ZERO != *r)
+#   endif
+              {
+                ATOMIC_ADD_GLOBAL(&c[SM*n+m], *r);
+                *r = ZERO; /* reset */
+              }
             }
           }
         }
       }
 # else
+    { /* atomically commit C-column to global memory */
 #   if defined(ATOMIC_ADD2_GLOBAL)
       UNROLL(SM)
       for (int m = 0; m < SM; m += 2) {

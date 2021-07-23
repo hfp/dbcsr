@@ -236,7 +236,7 @@ kernel void FN(global T *restrict cdata,
         UNROLL(BN)
         for (int bn = 0; bn < BN; ++bn) {
 #   if (SN % BN)
-          const int n = min(bn + n0, SN);
+          const int n = min(bn + n0, SN - 1);
 #   else
           const int n = bn + n0;
 #   endif
@@ -259,7 +259,7 @@ kernel void FN(global T *restrict cdata,
     UNROLL(BM)
     for (int bm = 0; bm < BM; ++bm) {
 # if (SM % BM)
-      const int m = min(bm + m0, SM);
+      const int m = min(bm + m0, SM - 1);
 # else
       const int m = bm + m0;
 # endif
@@ -270,7 +270,7 @@ kernel void FN(global T *restrict cdata,
       UNROLL(BN)
       for (int bn = 0; bn < BN; ++bn) {
 # if (SN % BN)
-        const int n = min(bn + n0, SN);
+        const int n = min(bn + n0, SN - 1);
 # else
         const int n = bn + n0;
 # endif

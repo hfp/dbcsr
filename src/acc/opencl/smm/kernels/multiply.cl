@@ -254,8 +254,8 @@ kernel void FN(global T *restrict cdata,
     barrier(CLK_LOCAL_MEM_FENCE);
 #endif
 
-    /* calculate result-tile */
 #if (BM < SM || 1 != BN)
+    /* calculate result-tile using general tiles */
     UNROLL(BM)
     for (int bm = 0; bm < BM; ++bm) {
 # if (SM % BM)
@@ -315,6 +315,7 @@ kernel void FN(global T *restrict cdata,
       }
     }
 #else
+    /* calculate result-tile using columns */
     UNROLL_SM
     for (int m = 0; m < SM; ++m) {
 # if (1 < BS)

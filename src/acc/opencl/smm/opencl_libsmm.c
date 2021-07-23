@@ -645,9 +645,10 @@ int libsmm_acc_transpose(const int* dev_trs_stack, int offset, int stack_size,
               default: assert('\0' == *tname);
             }
             wgsize = LIBXSMM_MIN((m == bm || 0 == (m % bm)) ? bm : m, wgsize_max);
-            nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options), "%s",
+            nchar = ACC_OPENCL_SNPRINTF(build_options, sizeof(build_options),
+              "%s" /* can finally be an empty string hence "<=" (nchar) */,
               (NULL == env_options || '\0' == *env_options) ? "" : env_options);
-            if (0 < nchar && (int)sizeof(build_options) > nchar) {
+            if (0 <=/*<*/ nchar && (int)sizeof(build_options) > nchar) {
               nchar = ACC_OPENCL_SNPRINTF(build_params, sizeof(build_params),
                 param_format, cmem, inplace, fname, m, n, wgsize, tname);
             }

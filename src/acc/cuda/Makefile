@@ -166,7 +166,7 @@ ifneq (,$(LIBXSMMROOT))
       endif
       LDFLAGS += $(LIBXSMMROOT)/lib/libxsmm.a
     else
-      CFLAGS_XSMM += -DLIBXSMM_HEADERONLY
+      CFLAGS_XSMM += -DLIBXSMM_DEFAULT_CONFIG
     endif
     LDFLAGS += $(LIBXSMMROOT)/lib/libxsmmnoblas.a
   else

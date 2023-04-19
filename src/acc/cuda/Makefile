@@ -27,7 +27,7 @@ ifeq (,$(LIBXSMMROOT))
   LIBXSMMROOT := $(wildcard $(HOME)/libxsmm)
 endif
 UNAME := $(shell uname)
-HEADERONLY ?= 1
+HEADERONLY ?= 0
 STATIC ?= 1
 INTEL ?= 0
 DEV ?= 0
@@ -165,7 +165,8 @@ ifneq (,$(LIBXSMMROOT))
         LDFLAGS += $(LIBXSMMROOT)/lib/libxsmmext.a
       endif
       LDFLAGS += $(LIBXSMMROOT)/lib/libxsmm.a
-      CFLAGS_XSMM += -DLIBXSMM_LINKLIB
+    else
+      CFLAGS_XSMM += -DLIBXSMM_HEADERONLY
     endif
     LDFLAGS += $(LIBXSMMROOT)/lib/libxsmmnoblas.a
   else

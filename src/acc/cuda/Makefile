@@ -206,7 +206,7 @@ ifneq (,$(CUDA_PATH))
 endif
 
 # Collect all paths in LD_LIBRARY_PATH and LD_LIBRARY_PATH/stubs, and append to LDFLAGS
-LD_LIBRARY_DIRS := $(wildcard $(subst :, ,$(LD_LIBRARY_DIRS)))
+LD_LIBRARY_DIRS := $(wildcard $(subst :, ,$(LD_LIBRARY_PATH)))
 LD_LIBSTUB_PATH := $(wildcard $(patsubst %,%/stubs,$(LD_LIBRARY_DIRS)))
 LIBPATHS := $(foreach DIR,$(LD_LIBRARY_DIRS),$(if $(filter -L$(DIR),$(LDFLAGS)),$(NULL),-L$(DIR)))
 LIBSTUBS := $(foreach DIR,$(LD_LIBSTUB_PATH),$(if $(filter -L$(DIR),$(LDFLAGS)),$(NULL),-L$(DIR)))

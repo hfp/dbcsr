@@ -194,8 +194,9 @@ ifneq (,$(LIBXSMMROOT))
 endif
 
 ifneq (,$(CUDA_PATH))
-  LDFLAGS += -L$(CUDA_PATH)/lib64/stubs -Wl,-rpath=$(CUDA_PATH)/lib64/stubs
-  LDFLAGS += -L$(CUDA_PATH)/lib64 -Wl,-rpath=$(CUDA_PATH)/lib64
+  CUDA_LIBDIR := $(if $(wildcard $(CUDA_PATH)/lib64),lib64,lib)
+  LDFLAGS += -L$(CUDA_PATH)/$(CUDA_LIBDIR)/stubs -Wl,-rpath=$(CUDA_PATH)/$(CUDA_LIBDIR)/stubs
+  LDFLAGS += -L$(CUDA_PATH)/$(CUDA_LIBDIR) -Wl,-rpath=$(CUDA_PATH)/$(CUDA_LIBDIR)
   CUDAINC := $(strip $(lastword $(sort $(wildcard $(CUDA_PATH)/../cuda/*/targets/x86_64-linux/include/cuda.h))))
   ifneq (,$(CUDAINC))
     CFLAGS += -I$(abspath $(dir $(CUDAINC)))

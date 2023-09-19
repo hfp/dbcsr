@@ -1,8 +1,8 @@
-# ACCelerator Interfaces
+# ACCelerator Interface
 
 ## Overview
 
-This folder contains the ISO_C_BINDING based Fortran code of DBCSR's [ACC-backend interface](https://github.com/cp2k/dbcsr/blob/develop/src/acc/acc.h) and [LIBSMM/ACC-interface](https://github.com/cp2k/dbcsr/blob/develop/src/acc/acc_libsmm.h). It also contains the CUDA (for Nvidia GPUs), the HIP (for AMD GPUs), and the OpenCL accelerator backends.
+The accelerator interface (ACC) consists of ISO_C_BINDING based Fortran code of DBCSR's [ACC-backend interface](https://github.com/cp2k/dbcsr/blob/develop/src/acc/acc.h) and [LIBSMM/ACC-interface](https://github.com/cp2k/dbcsr/blob/develop/src/acc/acc_libsmm.h). It also contains the CUDA (for Nvidia GPUs), the HIP (for AMD GPUs), and the OpenCL accelerator backends.
 
 Further, two stand-alone sample codes are given exercising both interfaces (benchmarks).
 
@@ -17,7 +17,7 @@ The code for both the OpenCL backends is enabled with a build-time macro (`__OPE
 
 ## Benchmarks
 
-Two stand-alone drivers (only depending on above mentioned interfaces) can be built locally and in a rather self-contained fashion, i.e., no DBCSR library is needed (except runtime libraries such as CUDA, HIP, OpenCL/LIBXSMM). For OpenCL, a folder `libxsmm` parallel to DBCSR's root directory (`dbcsr`) is expected to be present and prebuilt (`make` in LIBXSMM's root directory is enough). To build the driver code, change into the respective backend folder (`cuda` or `opencl`), and invoke `make` (`DBG=0|1|2`, and a few other key-value pairs are optional). When building the code is completed, change back into the parent folder and invoke either `acc_bench_trans` or `acc_bench_smm`.
+Two stand-alone drivers (only depending on above mentioned interfaces) can be built locally and in a rather self-contained fashion, i.e., no DBCSR library is needed (except runtime libraries such as CUDA, HIP, OpenCL/LIBXSMM). For OpenCL, a folder `libxsmm` parallel to DBCSR's root directory (`dbcsr`) is expected to be present and prebuilt (`make` in LIBXSMM's root directory is enough). To build the driver code, change into the respective backend folder (`cuda` or `opencl`), and invoke `make` (`DBG=0|1|2`, and other optional key-value pairs).
 
 **NOTE**: To activate a certain device, an environment variable `DEVICE` can be used. For example, `DEVICE=1 ./acc_bench_trans` activates the second device (at least two devices must be discovered).
 
@@ -37,18 +37,16 @@ For timing, comparison (host code), and validation, LIBXSMM is required. The dri
 
 ```bash
 cd cuda
-make DBG=0 WITH_GPU=P100
-cd ..
+make WITH_GPU=P100
+../acc_bench_smm
 ```
 
 For the OpenCL backend:
 
 ```bash
 cd opencl
-make DBG=0
-cd ..
+make
+../acc_bench_smm
 ```
 
-In either of the above cases, `acc_bench_trans` and `acc_bench_smm` are built using the respective backends.
-Both driver codes can be instantiated for at least double- and single-precision using a build-time macro (`ELEM_TYPE`).
-Several build-time settings can be made on the build-line (`-D`) or inside of the source files (`acc_bench_trans.c` or `acc_bench_smm.c`).
+In either of the above cases, `acc_bench_trans` and `acc_bench_smm` are built using the respective backends. Both driver codes can be instantiated for double-precision (default) or single-precision using a build-time macro (`make ELEM_TYPE=float` or `-DELEM_TYPE=float` in general).

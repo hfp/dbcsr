@@ -1,15 +1,22 @@
+# =================================== OpenMP
+if (USE_OPENMP)
+  set(NUM_THREADS ${TEST_OMP_THREADS})
+else ()
+  set(NUM_THREADS 1)
+endif ()
+
 # =================================== MPI
 if (USE_MPI)
   if (TEST_MPI_RANKS STREQUAL "auto")
     include(ProcessorCount)
     ProcessorCount(nproc)
-    math(EXPR num_ranks "(${nproc}+${TEST_OMP_THREADS}-1)/${TEST_OMP_THREADS}"
-    )# get 1/$TEST_OMP_THREADS the number of procs (rounded up)
+    math(EXPR num_ranks "(${nproc}+${NUM_THREADS}-1)/${NUM_THREADS}"
+    )# get 1/$NUM_THREADS the number of procs (rounded up)
   else ()
     set(num_ranks ${TEST_MPI_RANKS})
   endif ()
   message(
-    "Tests will run with ${num_ranks} MPI ranks and ${TEST_OMP_THREADS} OpenMP threads each"
+    "Tests will run with ${num_ranks} MPI ranks and ${NUM_THREADS} OpenMP threads each"
   )
 endif ()
 
@@ -45,9 +52,8 @@ foreach (dbcsr_perf_test ${DBCSR_PERF_TESTS})
              COMMAND $<TARGET_FILE:dbcsr_perf>
                      "${CMAKE_CURRENT_SOURCE_DIR}/${dbcsr_perf_test}")
   endif ()
-  set_tests_properties(
-    dbcsr_perf:${dbcsr_perf_test}
-    PROPERTIES ENVIRONMENT OMP_NUM_THREADS=${TEST_OMP_THREADS})
+  set_tests_properties(dbcsr_perf:${dbcsr_perf_test}
+                       PROPERTIES ENVIRONMENT OMP_NUM_THREADS=${NUM_THREADS})
 endforeach ()
 
 # =================================== DBCSR CORRECTNESS TESTS Define all the
@@ -125,8 +131,8 @@ foreach (dbcsr_test ${DBCSR_TESTS_FTN})
   endif ()
   if (OpenMP_FOUND)
     target_link_libraries(${dbcsr_test} OpenMP::OpenMP_Fortran)
-    set_tests_properties(
-      ${dbcsr_test} PROPERTIES ENVIRONMENT OMP_NUM_THREADS=${TEST_OMP_THREADS})
+    set_tests_properties(${dbcsr_test}
+                         PROPERTIES ENVIRONMENT OMP_NUM_THREADS=${NUM_THREADS})
   endif ()
 endforeach ()
 
@@ -158,7 +164,7 @@ if (WITH_C_API)
     if (OpenMP_FOUND)
       set_tests_properties(
         ${dbcsr_test_cpp_name} PROPERTIES ENVIRONMENT
-                                          OMP_NUM_THREADS=${TEST_OMP_THREADS})
+                                          OMP_NUM_THREADS=${NUM_THREADS})
     endif ()
   endforeach ()
 endif ()
@@ -175,7 +181,7 @@ if (NOT USE_MPI)
     if (OpenMP_FOUND)
       set_tests_properties(
         ${dbcsr_test_backend} PROPERTIES ENVIRONMENT
-                                         OMP_NUM_THREADS=${TEST_OMP_THREADS})
+                                         OMP_NUM_THREADS=${NUM_THREADS})
     endif ()
   endforeach ()
 endif ()

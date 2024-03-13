@@ -21,8 +21,8 @@
 #include <math.h>
 
 // for debug purpose
-#if defined(__HIP_PLATFORM_NVCC__)
-static const int verbose_print = 1;
+#if defined(__HIP_PLATFORM_NVCC__) && !defined(ACC_DEV_PRINT_VERBOSE) && 0
+#  define ACC_DEV_PRINT_VERBOSE
 #endif
 
 /****************************************************************************/
@@ -49,10 +49,8 @@ extern "C" int c_dbcsr_acc_set_active_device(int device_id) {
   // establish context
   ACC_API_CALL(Free, (0));
 
-#if defined(__HIP_PLATFORM_NVCC__)
-  if (verbose_print) {
-    ACC_API_CALL(DeviceSetLimit, (ACC(LimitPrintfFifoSize), (size_t)1000000000));
-  }
+#if defined(__HIP_PLATFORM_NVCC__) && defined(ACC_DEV_PRINT_VERBOSE)
+  ACC_API_CALL(DeviceSetLimit, (ACC(LimitPrintfFifoSize), (size_t)1000000000));
 #endif
 
   return 0;

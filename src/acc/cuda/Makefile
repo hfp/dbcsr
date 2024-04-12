@@ -22,7 +22,7 @@ OBJSMM := $(SRCSMM:.cpp=.o)
 
 INCALL := $(INCACC) $(INCSMM)
 
-LIBXSMMROOT := $(wildcard $(ACCDIR)/../../../libxsmm)
+LIBXSMMROOT := $(wildcard $(ACCDIR)/../../../../../libxsmm)
 ifeq (,$(LIBXSMMROOT))
   LIBXSMMROOT := $(wildcard $(HOME)/libxsmm)
 endif

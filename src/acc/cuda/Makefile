@@ -33,6 +33,9 @@ INTEL ?= 0
 GNU ?= 0
 DEV ?= 0
 
+# C++ baseline standard
+CXXSTD ?= -std=c++14
+
 # select from set of predefined triplet specifications
 SPECID ?= 0
 # limit shape in tests (zero or negative for unlimited)
@@ -211,7 +214,7 @@ LD_LIBSTUB_PATH := $(wildcard $(patsubst %,%/stubs,$(LD_LIBRARY_DIRS)))
 LIBPATHS := $(foreach DIR,$(LD_LIBRARY_DIRS),$(if $(filter -L$(DIR),$(LDFLAGS)),$(NULL),-L$(DIR)))
 LIBSTUBS := $(foreach DIR,$(LD_LIBSTUB_PATH),$(if $(filter -L$(DIR),$(LDFLAGS)),$(NULL),-L$(DIR)))
 LDFLAGS += $(LIBPATHS) $(LIBSTUBS) -lcudart -lcublas -lnvrtc -lcuda
-CXXFLAGS += -std=c++11 $(CFLAGS)
+CXXFLAGS += $(CXXSTD) $(CFLAGS)
 
 .PHONY: bench
 bench: $(ACCDIR)/acc_bench_smm $(ACCDIR)/acc_bench_trans

@@ -299,15 +299,16 @@ libsmm: $(ACCDIR)/dbcsr_acc_smm.a
 $(ACCDIR)/dbcsr_acc_smm.a: $(OBJSMM)
 	$(AR) -rs $@ $^
 
-%.o: %.cu $(INCALL) $(MAKDIR)/Makefile
-	$(NVCC) $(DFLAGS) -allow-unsupported-compiler --compiler-options="$(CXXFLAGS) $(CFLAGS_XSMM)" -c $< -o $@
-
 %.o: %.cpp $(INCALL) $(MAKDIR)/Makefile
 	$(CXX) $(DFLAGS) $(CXXFLAGS) $(CFLAGS_XSMM) -c $< -o $@
 
+%.o: %.cu $(INCALL) $(MAKDIR)/Makefile
+	$(NVCC) $(DFLAGS) -allow-unsupported-compiler $(CXXSTD) \
+		--compiler-options="$(filter-out $(CXXSTD),$(CXXFLAGS)) $(CFLAGS_XSMM)" -c $< -o $@
+
 $(ACCDIR)/cuda_hip/calculate_norms.o: $(ACCDIR)/cuda_hip/calculate_norms.cpp $(INCALL) $(MAKDIR)/Makefile
-	$(NVCC) $(DFLAGS) -x cu -allow-unsupported-compiler \
-		--compiler-options="$(filter-out -pedantic,$(CXXFLAGS)) $(CFLAGS_XSMM)" -c $< -o $@
+	$(NVCC) $(DFLAGS) -allow-unsupported-compiler $(CXXSTD) -x cu \
+		--compiler-options="$(filter-out $(CXXSTD) -pedantic,$(CXXFLAGS)) $(CFLAGS_XSMM)" -c $< -o $@
 
 $(MAKDIR)/acc_bench_smm.o: $(ACCDIR)/acc_bench_smm.c $(MAKDIR)/Makefile
 ifneq (0,$(LIBXSMM))

@@ -910,7 +910,7 @@ CONTAINS
          ! (needed when there are multiple work matrices but we are not
          ! in an OpenMP parallel section.)
          !
-         ! A parallel section is created is used when the matrix has
+         ! A parallel section is created and used when the matrix has
          ! more work matrices. It's a shortcut when the finalize is
          ! called from a non-parallel environment whereas the matrix was
          ! built/modified in a parallel environment
@@ -919,20 +919,14 @@ CONTAINS
 !$       IF (.NOT. OMP_IN_PARALLEL()) THEN
 !$          IF (nwms .GT. 1) spawn = .TRUE.
 !$       END IF
-         IF (spawn) THEN
-!$OMP           PARALLEL IF (spawn) &
-!$OMP                    DEFAULT (NONE) &
-!$OMP                    SHARED (matrix, old_row_p, old_col_i, old_blk_p,&
-!$OMP                            start_offset, sort_data)
-            CALL dbcsr_merge_all(matrix, &
-                                 old_row_p, old_col_i, old_blk_p, &
-                                 sort_data=sort_data)
-!$OMP           END PARALLEL
-         ELSE
-            CALL dbcsr_merge_all(matrix, &
-                                 old_row_p, old_col_i, old_blk_p, &
-                                 sort_data=sort_data)
-         END IF
+!$OMP    PARALLEL IF (spawn) &
+!$OMP             DEFAULT (NONE) &
+!$OMP             SHARED (matrix, old_row_p, old_col_i, old_blk_p,&
+!$OMP                     start_offset, sort_data)
+         CALL dbcsr_merge_all(matrix, &
+                              old_row_p, old_col_i, old_blk_p, &
+                              sort_data=sort_data)
+!$OMP    END PARALLEL
       END IF
 !$OMP BARRIER
 !$OMP MASTER
@@ -1466,8 +1460,8 @@ CONTAINS
       ALLOCATE (all_blk_p(nwms))
       ALLOCATE (all_data_sizes(0:nwms))
       ALLOCATE (all_data_offsets(nwms))
-      IF (sort_data) ALLOCATE (all_data_areas(0:nwms))
       IF (sort_data) THEN
+         ALLOCATE (all_data_areas(0:nwms))
          CALL dbcsr_data_init(all_data_areas(0))
          all_data_areas(0) = matrix%data_area
 !$OMP        CRITICAL (crit_data)

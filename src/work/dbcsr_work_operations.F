@@ -919,14 +919,20 @@ CONTAINS
 !$       IF (.NOT. OMP_IN_PARALLEL()) THEN
 !$          IF (nwms .GT. 1) spawn = .TRUE.
 !$       END IF
-!$OMP    PARALLEL IF (spawn) &
-!$OMP             DEFAULT (NONE) &
-!$OMP             SHARED (matrix, old_row_p, old_col_i, old_blk_p,&
-!$OMP                     start_offset, sort_data)
-         CALL dbcsr_merge_all(matrix, &
-                              old_row_p, old_col_i, old_blk_p, &
-                              sort_data=sort_data)
-!$OMP    END PARALLEL
+         IF (spawn) THEN
+!$OMP           PARALLEL IF (spawn) &
+!$OMP                    DEFAULT (NONE) &
+!$OMP                    SHARED (matrix, old_row_p, old_col_i, old_blk_p,&
+!$OMP                            start_offset, sort_data)
+            CALL dbcsr_merge_all(matrix, &
+                                 old_row_p, old_col_i, old_blk_p, &
+                                 sort_data=sort_data)
+!$OMP           END PARALLEL
+         ELSE
+            CALL dbcsr_merge_all(matrix, &
+                                 old_row_p, old_col_i, old_blk_p, &
+                                 sort_data=sort_data)
+         END IF
       END IF
 !$OMP BARRIER
 !$OMP MASTER

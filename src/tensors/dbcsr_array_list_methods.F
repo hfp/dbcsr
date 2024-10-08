@@ -21,9 +21,9 @@ MODULE dbcsr_array_list_methods
 #include "base/dbcsr_base_uses.f90"
 #if TO_VERSION(1, 11) <= TO_VERSION(LIBXSMM_CONFIG_VERSION_MAJOR, LIBXSMM_CONFIG_VERSION_MINOR)
    USE libxsmm, ONLY: libxsmm_diff
-#  define PURE_ARRAY_EQUALITY
+#  define PURE_ARRAY_EQ
 #else
-#  define PURE_ARRAY_EQUALITY PURE
+#  define PURE_ARRAY_EQ PURE
 #endif
 
    IMPLICIT NONE

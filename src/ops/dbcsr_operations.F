@@ -336,7 +336,26 @@ CONTAINS
 !$OMP       END PARALLEL WORKSHARE
          END SELECT
 !$    ELSE
-#endif
+         SELECT CASE (dbcsr_get_data_type(matrix_a))
+         CASE (dbcsr_type_complex_4)
+!$OMP       WORKSHARE
+            matrix_a%data_area%d%c_sp = (0.0, 0.0)
+!$OMP       END WORKSHARE
+         CASE (dbcsr_type_complex_8)
+!$OMP       WORKSHARE
+            matrix_a%data_area%d%c_dp = (0.0_dp, 0.0_dp)
+!$OMP       END WORKSHARE
+         CASE (dbcsr_type_real_4)
+!$OMP       WORKSHARE
+            matrix_a%data_area%d%r_sp = 0.0
+!$OMP       END WORKSHARE
+         CASE (dbcsr_type_real_8)
+!$OMP       WORKSHARE
+            matrix_a%data_area%d%r_dp = 0.0_dp
+!$OMP       END WORKSHARE
+         END SELECT
+!$    END IF
+#else
          SELECT CASE (dbcsr_get_data_type(matrix_a))
          CASE (dbcsr_type_complex_4)
             matrix_a%data_area%d%c_sp = (0.0, 0.0)
@@ -347,8 +366,6 @@ CONTAINS
          CASE (dbcsr_type_real_8)
             matrix_a%data_area%d%r_dp = 0.0_dp
          END SELECT
-#if !defined(__DBCSR_DISABLE_WORKSHARE)
-!$    END IF
 #endif
       CALL timestop(handle)
    END SUBROUTINE dbcsr_zero

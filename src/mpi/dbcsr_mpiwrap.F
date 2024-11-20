@@ -5190,9 +5190,11 @@ CONTAINS
                   base(:) = win_data(disp_aint + 1:disp_aint + len)
 !$OMP             END PARALLEL WORKSHARE
 !$             ELSE
+!$OMP             WORKSHARE
 #endif
                   base(:) = win_data(disp_aint + 1:disp_aint + len)
 #if !defined(__DBCSR_DISABLE_WORKSHARE)
+!$OMP             END WORKSHARE
 !$             END IF
 #endif
                request = mp_request_null

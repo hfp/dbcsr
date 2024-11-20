@@ -302,9 +302,11 @@ CONTAINS
             dst(:) = src(:)
 !$OMP       END PARALLEL WORKSHARE
 !$       ELSE
+!$OMP       WORKSHARE
 #endif
             dst(:) = src(:)
 #if !defined(__DBCSR_DISABLE_WORKSHARE)
+!$OMP       END WORKSHARE
 !$       END IF
 #endif
       END SUBROUTINE mem_copy_${nametype1}$
@@ -322,9 +324,11 @@ CONTAINS
             dst(:) = ${zero1}$
 !$OMP       END PARALLEL WORKSHARE
 !$       ELSE
+!$OMP       WORKSHARE
 #endif
             dst(:) = ${zero1}$
 #if !defined(__DBCSR_DISABLE_WORKSHARE)
+!$OMP       END WORKSHARE
 !$       END IF
 #endif
       END SUBROUTINE mem_zero_${nametype1}$

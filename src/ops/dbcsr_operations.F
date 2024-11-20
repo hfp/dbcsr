@@ -356,16 +356,16 @@ CONTAINS
          END SELECT
 !$    END IF
 #else
-         SELECT CASE (dbcsr_get_data_type(matrix_a))
-         CASE (dbcsr_type_complex_4)
-            matrix_a%data_area%d%c_sp = (0.0, 0.0)
-         CASE (dbcsr_type_complex_8)
-            matrix_a%data_area%d%c_dp = (0.0_dp, 0.0_dp)
-         CASE (dbcsr_type_real_4)
-            matrix_a%data_area%d%r_sp = 0.0
-         CASE (dbcsr_type_real_8)
-            matrix_a%data_area%d%r_dp = 0.0_dp
-         END SELECT
+      SELECT CASE (dbcsr_get_data_type(matrix_a))
+      CASE (dbcsr_type_complex_4)
+         matrix_a%data_area%d%c_sp = (0.0, 0.0)
+      CASE (dbcsr_type_complex_8)
+         matrix_a%data_area%d%c_dp = (0.0_dp, 0.0_dp)
+      CASE (dbcsr_type_real_4)
+         matrix_a%data_area%d%r_sp = 0.0
+      CASE (dbcsr_type_real_8)
+         matrix_a%data_area%d%r_dp = 0.0_dp
+      END SELECT
 #endif
       CALL timestop(handle)
    END SUBROUTINE dbcsr_zero

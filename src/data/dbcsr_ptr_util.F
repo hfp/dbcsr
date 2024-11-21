@@ -28,7 +28,7 @@ MODULE dbcsr_ptr_util
                             mp_deallocate
 #include "base/dbcsr_base_uses.f90"
 
-!$ USE OMP_LIB, ONLY: omp_in_parallel
+!$ USE OMP_LIB, ONLY: omp_get_level
 
    IMPLICIT NONE
 
@@ -297,7 +297,7 @@ CONTAINS
          ${type1}$, DIMENSION(1:n), INTENT(IN)  :: src
         !! source memory
 #if !defined(__DBCSR_DISABLE_WORKSHARE)
-!$       IF (.NOT. omp_in_parallel()) THEN
+!$       IF (0 == omp_get_level()) THEN
 !$OMP       PARALLEL WORKSHARE DEFAULT(none) SHARED(dst,src)
             dst(:) = src(:)
 !$OMP       END PARALLEL WORKSHARE
@@ -319,7 +319,7 @@ CONTAINS
          ${type1}$, DIMENSION(1:n), INTENT(OUT) :: dst
         !! destination memory
 #if !defined(__DBCSR_DISABLE_WORKSHARE)
-!$       IF (.NOT. omp_in_parallel()) THEN
+!$       IF (0 == omp_get_level()) THEN
 !$OMP       PARALLEL WORKSHARE DEFAULT(none) SHARED(dst)
             dst(:) = ${zero1}$
 !$OMP       END PARALLEL WORKSHARE

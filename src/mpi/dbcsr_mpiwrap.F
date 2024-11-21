@@ -95,7 +95,7 @@ MODULE dbcsr_mpiwrap
 #define MPI_STATUS_EXTRACT(X) (X)
 #endif
 
-!$ USE OMP_LIB, ONLY: omp_in_parallel
+!$ USE OMP_LIB, ONLY: omp_get_level
 
    IMPLICIT NONE
    PRIVATE
@@ -5185,7 +5185,7 @@ CONTAINS
 #endif
             IF (do_local_copy) THEN
 #if !defined(__DBCSR_DISABLE_WORKSHARE)
-!$             IF (.NOT. omp_in_parallel()) THEN
+!$             IF (0 == omp_get_level()) THEN
 !$OMP             PARALLEL WORKSHARE DEFAULT(none) SHARED(base,win_data,disp_aint,len)
                   base(:) = win_data(disp_aint + 1:disp_aint + len)
 !$OMP             END PARALLEL WORKSHARE

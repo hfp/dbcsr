@@ -94,7 +94,7 @@ MODULE dbcsr_operations
                             mp_sum
 #include "base/dbcsr_base_uses.f90"
 
-!$ USE OMP_LIB, ONLY: omp_get_thread_num, omp_get_num_threads, omp_in_parallel
+!$ USE OMP_LIB, ONLY: omp_get_thread_num, omp_get_num_threads, omp_get_level
 
    IMPLICIT NONE
 
@@ -316,7 +316,7 @@ CONTAINS
 
       CALL timeset(routineN, handle)
 #if !defined(__DBCSR_DISABLE_WORKSHARE)
-!$    IF (.NOT. omp_in_parallel()) THEN
+!$    IF (0 == omp_get_level()) THEN
          SELECT CASE (dbcsr_get_data_type(matrix_a))
          CASE (dbcsr_type_complex_4)
 !$OMP       PARALLEL WORKSHARE DEFAULT(NONE) SHARED(matrix_a)

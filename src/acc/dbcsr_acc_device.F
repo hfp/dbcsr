@@ -13,7 +13,7 @@ MODULE dbcsr_acc_device
 #endif
 #include "base/dbcsr_base_uses.f90"
 
-!$ USE OMP_LIB, ONLY: omp_in_parallel
+!$ USE OMP_LIB, ONLY: omp_get_level
 
    IMPLICIT NONE
 
@@ -85,7 +85,7 @@ CONTAINS
 #if defined (__DBCSR_ACC)
       INTEGER :: istat
 
-!$    IF (.NOT. omp_in_parallel()) THEN
+!$    IF (0 == omp_get_level()) THEN
          istat = 0
 !$OMP    PARALLEL DEFAULT(NONE) SHARED(device_id) REDUCTION(MAX:istat)
          istat = acc_set_active_device_cu(device_id)

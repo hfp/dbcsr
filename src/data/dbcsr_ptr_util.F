@@ -294,13 +294,7 @@ CONTAINS
         !! destination memory
          ${type1}$, DIMENSION(1:n), INTENT(IN)  :: src
         !! source memory
-#if !defined(__DBCSR_DISABLE_WORKSHARE)
-!$OMP       WORKSHARE
-#endif
-            dst(:) = src(:)
-#if !defined(__DBCSR_DISABLE_WORKSHARE)
-!$OMP       END WORKSHARE
-#endif
+         dst(:) = src(:) ! avoid WORKSHARE
       END SUBROUTINE mem_copy_${nametype1}$
 
       SUBROUTINE mem_zero_${nametype1}$ (dst, n)
@@ -310,13 +304,7 @@ CONTAINS
         !! length of elements to zero
          ${type1}$, DIMENSION(1:n), INTENT(OUT) :: dst
         !! destination memory
-#if !defined(__DBCSR_DISABLE_WORKSHARE)
-!$OMP       WORKSHARE
-#endif
-            dst(:) = ${zero1}$
-#if !defined(__DBCSR_DISABLE_WORKSHARE)
-!$OMP       END WORKSHARE
-#endif
+         dst(:) = ${zero1}$ ! avoid WORKSHARE
       END SUBROUTINE mem_zero_${nametype1}$
 
       SUBROUTINE mem_alloc_${nametype1}$ (mem, n, mem_type)

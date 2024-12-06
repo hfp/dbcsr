@@ -94,7 +94,7 @@ MODULE dbcsr_operations
                             mp_sum
 #include "base/dbcsr_base_uses.f90"
 
-!$ USE OMP_LIB, ONLY: omp_get_thread_num, omp_get_num_threads, omp_get_level
+!$ USE OMP_LIB, ONLY: omp_get_thread_num, omp_get_num_threads
 
    IMPLICIT NONE
 
@@ -315,47 +315,6 @@ CONTAINS
       INTEGER                                            :: handle
 
       CALL timeset(routineN, handle)
-#if !defined(__DBCSR_DISABLE_WORKSHARE)
-!$    IF (0 == omp_get_level()) THEN
-         SELECT CASE (dbcsr_get_data_type(matrix_a))
-         CASE (dbcsr_type_complex_4)
-!$OMP       PARALLEL WORKSHARE DEFAULT(NONE) SHARED(matrix_a)
-            matrix_a%data_area%d%c_sp = (0.0, 0.0)
-!$OMP       END PARALLEL WORKSHARE
-         CASE (dbcsr_type_complex_8)
-!$OMP       PARALLEL WORKSHARE DEFAULT(NONE) SHARED(matrix_a)
-            matrix_a%data_area%d%c_dp = (0.0_dp, 0.0_dp)
-!$OMP       END PARALLEL WORKSHARE
-         CASE (dbcsr_type_real_4)
-!$OMP       PARALLEL WORKSHARE DEFAULT(NONE) SHARED(matrix_a)
-            matrix_a%data_area%d%r_sp = 0.0
-!$OMP       END PARALLEL WORKSHARE
-         CASE (dbcsr_type_real_8)
-!$OMP       PARALLEL WORKSHARE DEFAULT(NONE) SHARED(matrix_a)
-            matrix_a%data_area%d%r_dp = 0.0_dp
-!$OMP       END PARALLEL WORKSHARE
-         END SELECT
-!$    ELSE
-         SELECT CASE (dbcsr_get_data_type(matrix_a))
-         CASE (dbcsr_type_complex_4)
-!$OMP       WORKSHARE
-            matrix_a%data_area%d%c_sp = (0.0, 0.0)
-!$OMP       END WORKSHARE
-         CASE (dbcsr_type_complex_8)
-!$OMP       WORKSHARE
-            matrix_a%data_area%d%c_dp = (0.0_dp, 0.0_dp)
-!$OMP       END WORKSHARE
-         CASE (dbcsr_type_real_4)
-!$OMP       WORKSHARE
-            matrix_a%data_area%d%r_sp = 0.0
-!$OMP       END WORKSHARE
-         CASE (dbcsr_type_real_8)
-!$OMP       WORKSHARE
-            matrix_a%data_area%d%r_dp = 0.0_dp
-!$OMP       END WORKSHARE
-         END SELECT
-!$    END IF
-#else
       SELECT CASE (dbcsr_get_data_type(matrix_a))
       CASE (dbcsr_type_complex_4)
          matrix_a%data_area%d%c_sp = (0.0, 0.0)
@@ -366,7 +325,6 @@ CONTAINS
       CASE (dbcsr_type_real_8)
          matrix_a%data_area%d%r_dp = 0.0_dp
       END SELECT
-#endif
       CALL timestop(handle)
    END SUBROUTINE dbcsr_zero
 

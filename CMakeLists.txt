@@ -89,10 +89,10 @@ set(TEST_OMP_THREADS
     CACHE STRING "Number of OpenMP threads for testing")
 
 set(USE_SMM
-    "blas"
+    "auto"
     CACHE STRING
-          "Small Matrix Multiplication implementation to use (default: blas)")
-set_property(CACHE USE_SMM PROPERTY STRINGS blas libxsmm)
+          "Small Matrix Multiplication implementation to use (default: auto)")
+set_property(CACHE USE_SMM PROPERTY STRINGS auto blas libxsmm)
 
 set(USE_ACCEL
     ""
@@ -138,21 +138,8 @@ if (USE_OPENMP)
   find_package(OpenMP REQUIRED)
 endif ()
 
-if ((USE_ACCEL MATCHES "opencl") AND (NOT USE_SMM MATCHES "libxsmm"))
-  message(FATAL_ERROR "OpenCL requires USE_SMM=libxsmm")
-endif ()
-
-# =================================== SMM (Small Matrix-Matrix multiplication)
-if (USE_SMM MATCHES "blas")
-  message(STATUS "Using BLAS for Small Matrix Multiplication")
-elseif (USE_SMM MATCHES "libxsmm")
-  message(STATUS "Using libxsmm for Small Matrix Multiplication")
-else ()
-  message(FATAL_ERROR "Unknown SMM library specified")
-endif ()
-
 # =================================== LIBXSMM (rely on pkg-config)
-if (USE_SMM MATCHES "libxsmm")
+if (USE_SMM MATCHES "libxsmm" OR USE_SMM MATCHES "auto")
   find_package(PkgConfig REQUIRED)
   if (USE_OPENMP)
     if (NOT USE_SMM MATCHES "libxsmm-shared")
@@ -168,6 +155,18 @@ if (USE_SMM MATCHES "libxsmm")
   if (NOT LIBXSMM_FOUND)
     pkg_check_modules(LIBXSMM REQUIRED IMPORTED_TARGET GLOBAL libxsmmf)
   endif ()
+endif ()
+
+# =================================== SMM (Small Matrix-Matrix multiplication)
+if (USE_SMM MATCHES "blas" OR (USE_SMM MATCHES "auto" AND NOT LIBXSMM_FOUND))
+  if (USE_ACCEL MATCHES "opencl")
+    message(FATAL_ERROR "OpenCL requires USE_SMM=libxsmm")
+  endif ()
+  message(STATUS "Using BLAS for Small Matrix Multiplication")
+elseif (USE_SMM MATCHES "libxsmm" OR USE_SMM MATCHES "auto")
+  message(STATUS "Using libxsmm for Small Matrix Multiplication")
+else ()
+  message(FATAL_ERROR "Unknown SMM library specified")
 endif ()
 
 # =================================== BLAS & LAPACK, PkgConfig

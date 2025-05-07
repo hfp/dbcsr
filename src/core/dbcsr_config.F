@@ -147,7 +147,7 @@ MODULE dbcsr_config
 
 ! Convenient macro to define a configuration parameter
 #define SET_PARAMETER_DEFAULT(parameter_name, parameter_type, default_val) \
-   TYPE(parameter_type) :: parameter_name = parameter_type(name="parameter_name", val=default_val, defval=default_val)
+   TYPE(parameter_type) :: parameter_name = parameter_type(name=#parameter_name, val=default_val, defval=default_val)
 
    TYPE dbcsr_config_type
       TYPE(CONF_PAR_MM_DRIVER) :: MM_DRIVER = &

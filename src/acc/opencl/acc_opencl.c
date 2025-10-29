@@ -766,7 +766,7 @@ int c_dbcsr_acc_finalize(void) {
 
 int c_dbcsr_acc_opencl_use_cmem(const c_dbcsr_acc_opencl_device_t* devinfo) {
 #  if defined(ACC_OPENCL_CMEM)
-  return (0 != devinfo->size_maxalloc & devinfo->size_maxalloc <= devinfo->size_maxcmem) ? EXIT_SUCCESS : EXIT_FAILURE;
+  return (0 != devinfo->size_maxalloc && devinfo->size_maxalloc <= devinfo->size_maxcmem) ? EXIT_SUCCESS : EXIT_FAILURE;
 #  else
   return EXIT_FAILURE;
 #  endif

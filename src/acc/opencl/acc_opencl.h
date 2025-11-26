@@ -107,6 +107,17 @@
 #    define ACC_OPENCL_STREAM_PRIORITIES
 #  endif
 #endif
+#if !defined(ACC_OPENCL_USM) && defined(CL_VERSION_2_0) && 1
+#  if defined(__OFFLOAD_UNIFIED_MEMORY)
+/* Do not rely on an Intel extension for pointer arithmetic */
+#    define ACC_OPENCL_USM_LEVEL 2
+#  else
+/* Rely on OpenCL 2.0 (eventually mix-in an Intel ext.) */
+#    define ACC_OPENCL_USM_LEVEL 1
+#  endif
+#else
+#  define ACC_OPENCL_USM_LEVEL 0
+#endif
 /* Activate device by default */
 #if !defined(ACC_OPENCL_ACTIVATE) && 0
 #  define ACC_OPENCL_ACTIVATE 0
@@ -280,6 +291,7 @@ typedef struct c_dbcsr_acc_opencl_device_t {
   cl_int (*clEnqueueMemFillINTEL)(cl_command_queue, void*, const void*, size_t, size_t, cl_uint, const cl_event*, cl_event*);
   cl_int (*clEnqueueMemcpyINTEL)(cl_command_queue, cl_bool, void*, const void*, size_t, cl_uint, const cl_event*, cl_event*);
   void* (*clDeviceMemAllocINTEL)(cl_context, cl_device_id, const /*cl_mem_properties_intel*/ void*, size_t, cl_uint, cl_int*);
+  void* (*clSharedMemAllocINTEL)(cl_context, cl_device_id, const /*cl_mem_properties_intel*/ void*, size_t, cl_uint, cl_int*);
   cl_int (*clMemFreeINTEL)(cl_context, void*);
 } c_dbcsr_acc_opencl_device_t;
 

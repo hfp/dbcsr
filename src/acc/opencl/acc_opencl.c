@@ -1096,8 +1096,6 @@ int c_dbcsr_acc_opencl_set_active_device(ACC_OPENCL_LOCKTYPE* lock, int device_i
             CL_QUEUE_PROPERTIES, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE, 0 /* terminator */
           };
 #  endif
-          cl_platform_id platform = NULL;
-          cl_bitfield bitfield = 0;
           devinfo->intel = (EXIT_SUCCESS == c_dbcsr_acc_opencl_device_vendor(active_id, "intel", 0 /*use_platform_name*/));
           devinfo->nv = (EXIT_SUCCESS == c_dbcsr_acc_opencl_device_vendor(active_id, "nvidia", 0 /*use_platform_name*/));
           if (EXIT_SUCCESS != c_dbcsr_acc_opencl_device_name(active_id, devname, ACC_OPENCL_BUFFERSIZE, NULL /*platform*/,
@@ -1156,34 +1154,40 @@ int c_dbcsr_acc_opencl_set_active_device(ACC_OPENCL_LOCKTYPE* lock, int device_i
             if (0 != devinfo->wgsize[2]) devinfo->wgsize[2] = sgmin;
           }
           else devinfo->wgsize[2] = 0;
-#  if defined(ACC_OPENCL_XHINTS)
-          if (0 != (1 & c_dbcsr_acc_opencl_config.xhints) && 2 <= *devinfo->std_level && 0 != devinfo->intel &&
-              0 == devinfo->unified && 0 == c_dbcsr_acc_opencl_config.profile &&
-              EXIT_SUCCESS == clGetDeviceInfo(active_id, CL_DEVICE_PLATFORM, sizeof(cl_platform_id), &platform, NULL) &&
-              EXIT_SUCCESS == c_dbcsr_acc_opencl_device_vendor(active_id, "intel", 2 /*platform vendor*/) &&
-              EXIT_SUCCESS == clGetDeviceInfo(active_id, 0x4191 /*CL_DEVICE_DEVICE_MEM_CAPABILITIES_INTEL*/, sizeof(cl_bitfield),
-                                &bitfield, NULL) &&
-              0 != bitfield) /* cl_intel_unified_shared_memory extension */
+#  if defined(ACC_OPENCL_XHINTS) && (1 >= ACC_OPENCL_USM_LEVEL)
           {
-            void* ptr[8] = {NULL};
-            int i = 0, n = 0;
-            ptr[0] = clGetExtensionFunctionAddressForPlatform(platform, "clSetKernelArgMemPointerINTEL");
-            ptr[1] = clGetExtensionFunctionAddressForPlatform(platform, "clEnqueueMemFillINTEL");
-            ptr[2] = clGetExtensionFunctionAddressForPlatform(platform, "clEnqueueMemcpyINTEL");
-            ptr[3] = clGetExtensionFunctionAddressForPlatform(platform, "clDeviceMemAllocINTEL");
-            ptr[4] = clGetExtensionFunctionAddressForPlatform(platform, "clMemFreeINTEL");
-            for (; i < (int)(sizeof(ptr) / sizeof(*ptr)); ++i) {
-              if (NULL != ptr[i]) ++n;
-            }
-            if (5 == n) {
-              LIBXSMM_ASSIGN127(&devinfo->clSetKernelArgMemPointerINTEL, ptr + 0);
-              LIBXSMM_ASSIGN127(&devinfo->clEnqueueMemFillINTEL, ptr + 1);
-              LIBXSMM_ASSIGN127(&devinfo->clEnqueueMemcpyINTEL, ptr + 2);
-              LIBXSMM_ASSIGN127(&devinfo->clDeviceMemAllocINTEL, ptr + 3);
-              LIBXSMM_ASSIGN127(&devinfo->clMemFreeINTEL, ptr + 4);
-            }
-            else if (0 != n) {
-              fprintf(stderr, "WARN ACC/OpenCL: inconsistent state discovered!\n");
+            cl_platform_id platform = NULL;
+            cl_bitfield bitfield = 0;
+            if (0 != (1 & c_dbcsr_acc_opencl_config.xhints) && 2 <= *devinfo->std_level && 0 != devinfo->intel &&
+                0 == devinfo->unified && 0 == c_dbcsr_acc_opencl_config.profile &&
+                EXIT_SUCCESS == clGetDeviceInfo(active_id, CL_DEVICE_PLATFORM, sizeof(cl_platform_id), &platform, NULL) &&
+                EXIT_SUCCESS == c_dbcsr_acc_opencl_device_vendor(active_id, "intel", 2 /*platform vendor*/) &&
+                EXIT_SUCCESS == clGetDeviceInfo(active_id, 0x4191 /*CL_DEVICE_DEVICE_MEM_CAPABILITIES_INTEL*/, sizeof(cl_bitfield),
+                                  &bitfield, NULL) &&
+                0 != bitfield) /* cl_intel_unified_shared_memory extension */
+            {
+              void* ptr[8] = {NULL};
+              int i = 0, n = 0;
+              ptr[0] = clGetExtensionFunctionAddressForPlatform(platform, "clSetKernelArgMemPointerINTEL");
+              ptr[1] = clGetExtensionFunctionAddressForPlatform(platform, "clEnqueueMemFillINTEL");
+              ptr[2] = clGetExtensionFunctionAddressForPlatform(platform, "clEnqueueMemcpyINTEL");
+              ptr[3] = clGetExtensionFunctionAddressForPlatform(platform, "clDeviceMemAllocINTEL");
+              ptr[4] = clGetExtensionFunctionAddressForPlatform(platform, "clSharedMemAllocINTEL");
+              ptr[5] = clGetExtensionFunctionAddressForPlatform(platform, "clMemFreeINTEL");
+              for (; i < (int)(sizeof(ptr) / sizeof(*ptr)); ++i) {
+                if (NULL != ptr[i]) ++n;
+              }
+              if (6 == n) {
+                LIBXSMM_ASSIGN127(&devinfo->clSetKernelArgMemPointerINTEL, ptr + 0);
+                LIBXSMM_ASSIGN127(&devinfo->clEnqueueMemFillINTEL, ptr + 1);
+                LIBXSMM_ASSIGN127(&devinfo->clEnqueueMemcpyINTEL, ptr + 2);
+                LIBXSMM_ASSIGN127(&devinfo->clDeviceMemAllocINTEL, ptr + 3);
+                LIBXSMM_ASSIGN127(&devinfo->clSharedMemAllocINTEL, ptr + 4);
+                LIBXSMM_ASSIGN127(&devinfo->clMemFreeINTEL, ptr + 5);
+              }
+              else if (0 != n) {
+                fprintf(stderr, "WARN ACC/OpenCL: inconsistent state discovered!\n");
+              }
             }
           }
 #  endif
@@ -1766,10 +1770,22 @@ int c_dbcsr_acc_opencl_kernel(int source_is_file, const char source[], const cha
 
 
 int c_dbcsr_acc_opencl_set_kernel_ptr(cl_kernel kernel, cl_uint arg_index, const void* arg_value) {
+  int result = EXIT_FAILURE;
   assert(NULL != c_dbcsr_acc_opencl_config.device.context);
-  return (NULL != c_dbcsr_acc_opencl_config.device.clSetKernelArgMemPointerINTEL
-            ? c_dbcsr_acc_opencl_config.device.clSetKernelArgMemPointerINTEL(kernel, arg_index, arg_value)
-            : clSetKernelArg(kernel, arg_index, sizeof(cl_mem), &arg_value));
+#  if (1 >= ACC_OPENCL_USM_LEVEL)
+  if (NULL != c_dbcsr_acc_opencl_config.device.clSetKernelArgMemPointerINTEL) {
+    result = c_dbcsr_acc_opencl_config.device.clSetKernelArgMemPointerINTEL(kernel, arg_index, arg_value);
+  }
+  else
+#  endif
+  {
+#  if (0 != ACC_OPENCL_USM_LEVEL)
+    result = clSetKernelArgSVMPointer(kernel, arg_index, arg_value);
+#  else
+    result = clSetKernelArg(kernel, arg_index, sizeof(cl_mem), &arg_value);
+#  endif
+  }
+  ACC_OPENCL_RETURN(result);
 }
 
 

@@ -1155,16 +1155,16 @@ int c_dbcsr_acc_opencl_set_active_device(ACC_OPENCL_LOCKTYPE* lock, int device_i
           }
           else devinfo->wgsize[2] = 0;
 #  if defined(ACC_OPENCL_XHINTS) && (1 >= ACC_OPENCL_USM_LEVEL)
-          {
+          { /* cl_intel_unified_shared_memory extension */
             cl_platform_id platform = NULL;
             cl_bitfield bitfield = 0;
             if (0 != (1 & c_dbcsr_acc_opencl_config.xhints) && 2 <= *devinfo->std_level && 0 != devinfo->intel &&
-                0 == devinfo->unified && 0 == c_dbcsr_acc_opencl_config.profile &&
+                0 == c_dbcsr_acc_opencl_config.profile && /*0 == devinfo->unified &&*/
                 EXIT_SUCCESS == clGetDeviceInfo(active_id, CL_DEVICE_PLATFORM, sizeof(cl_platform_id), &platform, NULL) &&
                 EXIT_SUCCESS == c_dbcsr_acc_opencl_device_vendor(active_id, "intel", 2 /*platform vendor*/) &&
                 EXIT_SUCCESS == clGetDeviceInfo(active_id, 0x4191 /*CL_DEVICE_DEVICE_MEM_CAPABILITIES_INTEL*/, sizeof(cl_bitfield),
                                   &bitfield, NULL) &&
-                0 != bitfield) /* cl_intel_unified_shared_memory extension */
+                0 != bitfield)
             {
               void* ptr[8] = {NULL};
               int i = 0, n = 0;

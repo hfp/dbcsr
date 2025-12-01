@@ -170,7 +170,7 @@ void c_dbcsr_acc_opencl_configure(void) {
 #  endif
 #  if defined(ACC_OPENCL_XHINTS)
   const char* const env_xhints = (ACC_OPENCL_XHINTS);
-  const int xhints_default = 1 + 2 + 4 + 8;
+  const int xhints_default = 1 + 2 + 4;
 #  else
   const char* const env_xhints = NULL;
   const int xhints_default = 0;
@@ -1173,17 +1173,19 @@ int c_dbcsr_acc_opencl_set_active_device(ACC_OPENCL_LOCKTYPE* lock, int device_i
               ptr[2] = clGetExtensionFunctionAddressForPlatform(platform, "clEnqueueMemcpyINTEL");
               ptr[3] = clGetExtensionFunctionAddressForPlatform(platform, "clDeviceMemAllocINTEL");
               ptr[4] = clGetExtensionFunctionAddressForPlatform(platform, "clSharedMemAllocINTEL");
-              ptr[5] = clGetExtensionFunctionAddressForPlatform(platform, "clMemFreeINTEL");
+              ptr[5] = clGetExtensionFunctionAddressForPlatform(platform, "clHostMemAllocINTEL");
+              ptr[6] = clGetExtensionFunctionAddressForPlatform(platform, "clMemFreeINTEL");
               for (; i < (int)(sizeof(ptr) / sizeof(*ptr)); ++i) {
                 if (NULL != ptr[i]) ++n;
               }
-              if (6 == n) {
+              if (7 == n) {
                 LIBXSMM_ASSIGN127(&devinfo->clSetKernelArgMemPointerINTEL, ptr + 0);
                 LIBXSMM_ASSIGN127(&devinfo->clEnqueueMemFillINTEL, ptr + 1);
                 LIBXSMM_ASSIGN127(&devinfo->clEnqueueMemcpyINTEL, ptr + 2);
                 LIBXSMM_ASSIGN127(&devinfo->clDeviceMemAllocINTEL, ptr + 3);
                 LIBXSMM_ASSIGN127(&devinfo->clSharedMemAllocINTEL, ptr + 4);
-                LIBXSMM_ASSIGN127(&devinfo->clMemFreeINTEL, ptr + 5);
+                LIBXSMM_ASSIGN127(&devinfo->clHostMemAllocINTEL, ptr + 5);
+                LIBXSMM_ASSIGN127(&devinfo->clMemFreeINTEL, ptr + 6);
               }
               else if (0 != n) {
                 fprintf(stderr, "WARN ACC/OpenCL: inconsistent state discovered!\n");

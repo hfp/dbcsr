@@ -1191,6 +1191,20 @@ int c_dbcsr_acc_opencl_set_active_device(ACC_OPENCL_LOCKTYPE* lock, int device_i
             }
           }
 #  endif
+#  if (0 != ACC_OPENCL_USM_LEVEL)
+          { /* OpenCL 2.0 based SVM capabilities */
+            cl_device_svm_capabilities svmcaps = 0;
+            if (EXIT_SUCCESS ==
+                clGetDeviceInfo(active_id, CL_DEVICE_SVM_CAPABILITIES, sizeof(cl_device_svm_capabilities), &svmcaps, NULL))
+            {
+#    if (1 < ACC_OPENCL_USM_LEVEL) /* assume support even if not advertised */
+              devinfo->usm = (cl_int)svmcaps | CL_DEVICE_SVM_COARSE_GRAIN_BUFFER;
+#    else
+              devinfo->usm = (cl_int)svmcaps;
+#    endif
+            }
+          }
+#  endif
 #  if defined(ACC_OPENCL_CMDAGR)
           if (0 != devinfo->intel) { /* device vendor (above) can now be used */
             int result_cmdagr = EXIT_SUCCESS;
@@ -1770,20 +1784,26 @@ int c_dbcsr_acc_opencl_kernel(int source_is_file, const char source[], const cha
 
 
 int c_dbcsr_acc_opencl_set_kernel_ptr(cl_kernel kernel, cl_uint arg_index, const void* arg_value) {
+  c_dbcsr_acc_opencl_device_t* const devinfo = &c_dbcsr_acc_opencl_config.device;
   int result = EXIT_FAILURE;
-  assert(NULL != c_dbcsr_acc_opencl_config.device.context);
+  assert(NULL != devinfo->context);
 #  if (1 >= ACC_OPENCL_USM_LEVEL)
-  if (NULL != c_dbcsr_acc_opencl_config.device.clSetKernelArgMemPointerINTEL) {
-    result = c_dbcsr_acc_opencl_config.device.clSetKernelArgMemPointerINTEL(kernel, arg_index, arg_value);
+  if (NULL != devinfo->clSetKernelArgMemPointerINTEL) {
+    result = devinfo->clSetKernelArgMemPointerINTEL(kernel, arg_index, arg_value);
   }
   else
 #  endif
-  {
 #  if (0 != ACC_OPENCL_USM_LEVEL)
+    if (0 != devinfo->usm)
+  {
     result = clSetKernelArgSVMPointer(kernel, arg_index, arg_value);
-#  else
-    result = clSetKernelArg(kernel, arg_index, sizeof(cl_mem), &arg_value);
+  }
+  else
+#  elif defined(NDEBUG)
+  LIBXSMM_UNUSED(devinfo);
 #  endif
+  {
+    result = clSetKernelArg(kernel, arg_index, sizeof(cl_mem), &arg_value);
   }
   ACC_OPENCL_RETURN(result);
 }

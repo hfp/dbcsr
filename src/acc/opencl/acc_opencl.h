@@ -107,7 +107,7 @@
 #    define ACC_OPENCL_STREAM_PRIORITIES
 #  endif
 #endif
-#if !defined(ACC_OPENCL_USM) && defined(CL_VERSION_2_0) && 1
+#if !defined(ACC_OPENCL_USM_LEVEL) && defined(CL_VERSION_2_0) && 1
 #  if defined(__OFFLOAD_UNIFIED_MEMORY)
 /* Do not rely on an Intel extension for pointer arithmetic */
 #    define ACC_OPENCL_USM_LEVEL 2
@@ -280,8 +280,8 @@ typedef struct c_dbcsr_acc_opencl_device_t {
   cl_ulong size_maxalloc, size_maxcmem;
   /** Kind of device (GPU, CPU, or other). */
   cl_device_type type;
-  /** Whether host memory is unified. */
-  cl_int unified;
+  /** Whether host memory is unified, and SVM/USM capabilities. */
+  cl_int unified, usm;
   /** Device-UID. */
   cl_uint uid;
   /** Main vendor? */

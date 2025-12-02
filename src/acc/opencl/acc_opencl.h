@@ -384,6 +384,8 @@ int c_dbcsr_acc_opencl_info_devptr(
 const c_dbcsr_acc_opencl_stream_t* c_dbcsr_acc_opencl_stream(ACC_OPENCL_LOCKTYPE* lock, int thread_id);
 /** Determines default-stream (see c_dbcsr_acc_opencl_device_t::stream). */
 const c_dbcsr_acc_opencl_stream_t* c_dbcsr_acc_opencl_stream_default(void);
+int c_dbcsr_acc_opencl_host_mem_allocate(void** host_mem, size_t nbytes, void* stream);
+int c_dbcsr_acc_opencl_host_mem_deallocate(void* host_mem, void* stream);
 /** Like c_dbcsr_acc_memset_zero, but supporting an arbitrary value used as initialization pattern. */
 int c_dbcsr_acc_opencl_memset(void* dev_mem, int value, size_t offset, size_t nbytes, void* stream);
 /** Amount of device memory; local memory is only non-zero if separate from global. */

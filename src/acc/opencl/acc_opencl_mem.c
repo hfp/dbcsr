@@ -166,8 +166,8 @@ int c_dbcsr_acc_opencl_info_devptr(
 }
 
 
-int c_dbcsr_acc_opencl_host_mem_deallocate(void* host_ptr);
-int c_dbcsr_acc_opencl_host_mem_deallocate(void* host_ptr) {
+int c_dbcsr_acc_host_mem_deallocate_internal(void* host_ptr);
+int c_dbcsr_acc_host_mem_deallocate_internal(void* host_ptr) {
   const c_dbcsr_acc_opencl_device_t* const devinfo = &c_dbcsr_acc_opencl_config.device;
   int result = EXIT_FAILURE;
 #  if (1 >= ACC_OPENCL_USM_LEVEL)
@@ -186,7 +186,7 @@ int c_dbcsr_acc_opencl_host_mem_deallocate(void* host_ptr) {
 }
 
 
-int c_dbcsr_acc_host_mem_allocate(void** host_mem, size_t nbytes, void* stream) {
+int c_dbcsr_acc_opencl_host_mem_allocate(void** host_mem, size_t nbytes, void* stream) {
   int result = EXIT_SUCCESS;
 #  if defined(ACC_OPENCL_PROFILE_DBCSR)
   int routine_handle;
@@ -260,7 +260,7 @@ int c_dbcsr_acc_host_mem_allocate(void** host_mem, size_t nbytes, void* stream) 
     }
     if (EXIT_SUCCESS != result) {
       if (NULL != memory) ACC_OPENCL_EXPECT(EXIT_SUCCESS == clReleaseMemObject(memory));
-      if (NULL != host_ptr) c_dbcsr_acc_opencl_host_mem_deallocate(host_ptr);
+      if (NULL != host_ptr) c_dbcsr_acc_host_mem_deallocate_internal(host_ptr);
       *host_mem = NULL;
     }
   }
@@ -273,7 +273,17 @@ int c_dbcsr_acc_host_mem_allocate(void** host_mem, size_t nbytes, void* stream) 
 }
 
 
-int c_dbcsr_acc_host_mem_deallocate(void* host_mem, void* stream) {
+int c_dbcsr_acc_host_mem_allocate(void** host_mem, size_t nbytes, void* stream) {
+#  if (1 >= ACC_OPENCL_USM_LEVEL)
+  return c_dbcsr_acc_opencl_host_mem_allocate(host_mem, nbytes, stream);
+#  else
+  LIBXSMM_UNUSED(stream);
+  return c_dbcsr_acc_dev_mem_allocate(host_mem, nbytes);
+#  endif
+}
+
+
+int c_dbcsr_acc_opencl_host_mem_deallocate(void* host_mem, void* stream) {
   int result = EXIT_SUCCESS;
 #  if defined(ACC_OPENCL_PROFILE_DBCSR)
   int routine_handle;
@@ -290,7 +300,7 @@ int c_dbcsr_acc_host_mem_deallocate(void* host_mem, void* stream) {
       int result_release = EXIT_SUCCESS;
       void* host_ptr = NULL;
       if (EXIT_SUCCESS == clGetMemObjectInfo(info.memory, CL_MEM_HOST_PTR, sizeof(void*), &host_ptr, NULL) && NULL != host_ptr) {
-        c_dbcsr_acc_opencl_host_mem_deallocate(host_ptr);
+        c_dbcsr_acc_host_mem_deallocate_internal(host_ptr);
       }
       else {
         const c_dbcsr_acc_opencl_stream_t* const str = (NULL != stream ? ACC_OPENCL_STREAM(stream)
@@ -312,6 +322,16 @@ int c_dbcsr_acc_host_mem_deallocate(void* host_mem, void* stream) {
   if (0 != c_dbcsr_acc_opencl_config.profile) c_dbcsr_timestop(&routine_handle);
 #  endif
   ACC_OPENCL_RETURN(result);
+}
+
+
+int c_dbcsr_acc_host_mem_deallocate(void* host_mem, void* stream) {
+#  if (1 >= ACC_OPENCL_USM_LEVEL)
+  return c_dbcsr_acc_opencl_host_mem_deallocate(host_mem, stream);
+#  else
+  LIBXSMM_UNUSED(stream);
+  return c_dbcsr_acc_dev_mem_deallocate(host_mem);
+#  endif
 }
 
 

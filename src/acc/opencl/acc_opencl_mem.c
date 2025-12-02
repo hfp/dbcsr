@@ -22,9 +22,6 @@
 #  if !defined(ACC_OPENCL_MEM_ALIGNSCALE)
 #    define ACC_OPENCL_MEM_ALIGNSCALE 8
 #  endif
-#  if !defined(ACC_OPENCL_MEM_HOSTSVM) && 1
-#    define ACC_OPENCL_MEM_HOSTSVM
-#  endif
 #  if !defined(ACC_OPENCL_MEM_DEBUG) && 0
 #    if  && !defined(NDEBUG)
 #      define ACC_OPENCL_MEM_DEBUG
@@ -177,14 +174,14 @@ int c_dbcsr_acc_opencl_host_mem_deallocate(void* host_ptr) {
   if (NULL != devinfo->clMemFreeINTEL) {
     result = devinfo->clMemFreeINTEL(devinfo->context, host_ptr);
   }
+  else
 #  endif
-#  if (0 != ACC_OPENCL_USM_LEVEL) && defined(ACC_OPENCL_MEM_HOSTSVM)
-  else if (0 != c_dbcsr_acc_opencl_config.device.usm)
-  {
+  if (0 != c_dbcsr_acc_opencl_config.device.usm && 0 != devinfo->unified /*workaround*/) {
+#  if (0 != ACC_OPENCL_USM_LEVEL)
     clSVMFree(devinfo->context, host_ptr);
     result = EXIT_SUCCESS;
-  }
 #  endif
+  }
   ACC_OPENCL_RETURN(result);
 }
 
@@ -221,17 +218,17 @@ int c_dbcsr_acc_host_mem_allocate(void** host_mem, size_t nbytes, void* stream) 
       host_ptr = devinfo->clHostMemAllocINTEL(devinfo->context, NULL /*properties*/, nbytes, 0 /*alignment*/, &result);
       assert(NULL != host_ptr || EXIT_SUCCESS != result);
     }
+    else
 #  endif
-#  if (0 != ACC_OPENCL_USM_LEVEL) && defined(ACC_OPENCL_MEM_HOSTSVM)
-    else if (0 != devinfo->usm)
-    {
+    if (0 != devinfo->usm && 0 != devinfo->unified /*workaround*/) {
+#  if (0 != ACC_OPENCL_USM_LEVEL)
       const int svmmem_flags = (0 != ((CL_DEVICE_SVM_FINE_GRAIN_BUFFER | CL_DEVICE_SVM_FINE_GRAIN_SYSTEM) & devinfo->usm)
                                   ? CL_MEM_SVM_FINE_GRAIN_BUFFER
                                   : 0);
       host_ptr = clSVMAlloc(devinfo->context, CL_MEM_READ_WRITE | svmmem_flags, nbytes, 0 /*alignment*/);
       if (NULL == host_ptr) result = EXIT_FAILURE;
-    }
 #  endif
+    }
     if (EXIT_SUCCESS == result) {
       const int memflags = (NULL != host_ptr ? CL_MEM_USE_HOST_PTR : CL_MEM_ALLOC_HOST_PTR);
       memory = clCreateBuffer(

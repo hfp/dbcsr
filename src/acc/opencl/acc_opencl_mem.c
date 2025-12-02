@@ -62,9 +62,14 @@ void c_dbcsr_acc_opencl_pfree(const void* pointer, void* pool[], size_t* i) {
 
 
 c_dbcsr_acc_opencl_info_memptr_t* c_dbcsr_acc_opencl_info_hostptr(const void* memory) {
+#  if (0 == ACC_OPENCL_USM_LEVEL)
   assert(NULL == memory || sizeof(c_dbcsr_acc_opencl_info_memptr_t) <= (uintptr_t)memory);
   return (NULL != memory ? (c_dbcsr_acc_opencl_info_memptr_t*)((uintptr_t)memory - sizeof(c_dbcsr_acc_opencl_info_memptr_t))
                          : (c_dbcsr_acc_opencl_info_memptr_t*)NULL);
+#  else
+  LIBXSMM_UNUSED(memory);
+  return NULL;
+#  endif
 }
 
 
@@ -176,7 +181,7 @@ int c_dbcsr_acc_host_mem_deallocate_internal(void* host_ptr) {
   }
   else
 #  endif
-  if (0 != c_dbcsr_acc_opencl_config.device.usm && 0 != devinfo->unified /*workaround*/) {
+  if (0 != c_dbcsr_acc_opencl_config.device.usm) {
 #  if (0 != ACC_OPENCL_USM_LEVEL)
     clSVMFree(devinfo->context, host_ptr);
     result = EXIT_SUCCESS;
@@ -186,7 +191,7 @@ int c_dbcsr_acc_host_mem_deallocate_internal(void* host_ptr) {
 }
 
 
-int c_dbcsr_acc_opencl_host_mem_allocate(void** host_mem, size_t nbytes, void* stream) {
+int c_dbcsr_acc_host_mem_allocate(void** host_mem, size_t nbytes, void* stream) {
   int result = EXIT_SUCCESS;
 #  if defined(ACC_OPENCL_PROFILE_DBCSR)
   int routine_handle;
@@ -199,14 +204,8 @@ int c_dbcsr_acc_opencl_host_mem_allocate(void** host_mem, size_t nbytes, void* s
   assert(NULL != host_mem);
   if (0 != nbytes) {
     const c_dbcsr_acc_opencl_device_t* const devinfo = &c_dbcsr_acc_opencl_config.device;
-    const size_t size_meminfo = sizeof(c_dbcsr_acc_opencl_info_memptr_t);
-    int alignment = sizeof(void*);
     void* host_ptr = NULL;
     cl_mem memory = NULL;
-    if ((ACC_OPENCL_MEM_ALIGNSCALE * ACC_OPENCL_CACHELINE) <= nbytes) {
-      alignment = ((ACC_OPENCL_MEM_ALIGNSCALE * ACC_OPENCL_MAXALIGN) <= nbytes ? ACC_OPENCL_MAXALIGN : ACC_OPENCL_CACHELINE);
-    }
-    nbytes += alignment + size_meminfo - 1;
 #  if !defined(ACC_OPENCL_ACTIVATE)
     if (NULL == devinfo->context) {
       ACC_OPENCL_EXPECT(EXIT_SUCCESS == c_dbcsr_acc_opencl_set_active_device(
@@ -217,45 +216,55 @@ int c_dbcsr_acc_opencl_host_mem_allocate(void** host_mem, size_t nbytes, void* s
     if (NULL != devinfo->clHostMemAllocINTEL) {
       host_ptr = devinfo->clHostMemAllocINTEL(devinfo->context, NULL /*properties*/, nbytes, 0 /*alignment*/, &result);
       assert(NULL != host_ptr || EXIT_SUCCESS != result);
+      if (NULL != host_ptr) *host_mem = host_ptr;
     }
     else
 #  endif
-    if (0 != devinfo->usm && 0 != devinfo->unified /*workaround*/) {
+    if (0 != devinfo->usm) {
 #  if (0 != ACC_OPENCL_USM_LEVEL)
       const int svmmem_flags = (0 != ((CL_DEVICE_SVM_FINE_GRAIN_BUFFER | CL_DEVICE_SVM_FINE_GRAIN_SYSTEM) & devinfo->usm)
                                   ? CL_MEM_SVM_FINE_GRAIN_BUFFER
                                   : 0);
       host_ptr = clSVMAlloc(devinfo->context, CL_MEM_READ_WRITE | svmmem_flags, nbytes, 0 /*alignment*/);
-      if (NULL == host_ptr) result = EXIT_FAILURE;
+      if (NULL != host_ptr) *host_mem = host_ptr;
+      else result = EXIT_FAILURE;
 #  endif
     }
-    if (EXIT_SUCCESS == result) {
-      const int memflags = (NULL != host_ptr ? CL_MEM_USE_HOST_PTR : CL_MEM_ALLOC_HOST_PTR);
-      memory = clCreateBuffer(
-        devinfo->context, (cl_mem_flags)(CL_MEM_READ_WRITE | memflags), nbytes, host_ptr, &result);
-    }
-    if (EXIT_SUCCESS == result) {
-      void* mapped = host_ptr;
-      if (NULL == host_ptr) {
-        const c_dbcsr_acc_opencl_stream_t* const str = (NULL != stream ? ACC_OPENCL_STREAM(stream)
-                                                                       : c_dbcsr_acc_opencl_stream_default());
-        mapped = clEnqueueMapBuffer(str->queue, memory, CL_TRUE /*always block*/,
-#  if defined(ACC_OPENCL_XHINTS) && (defined(CL_VERSION_1_2) || defined(CL_MAP_WRITE_INVALIDATE_REGION))
-          (4 & c_dbcsr_acc_opencl_config.xhints) ? CL_MAP_WRITE_INVALIDATE_REGION :
-#  endif
-                                                 (CL_MAP_READ | CL_MAP_WRITE),
-          0 /*offset*/, nbytes, 0, NULL, NULL, &result);
+    else {
+      const size_t size_meminfo = sizeof(c_dbcsr_acc_opencl_info_memptr_t);
+      int alignment = sizeof(void*);
+      if ((ACC_OPENCL_MEM_ALIGNSCALE * ACC_OPENCL_CACHELINE) <= nbytes) {
+        alignment = ((ACC_OPENCL_MEM_ALIGNSCALE * ACC_OPENCL_MAXALIGN) <= nbytes ? ACC_OPENCL_MAXALIGN : ACC_OPENCL_CACHELINE);
       }
-      assert(EXIT_SUCCESS == result || NULL == mapped);
+      nbytes += alignment + size_meminfo - 1;
       if (EXIT_SUCCESS == result) {
-        const uintptr_t address = (uintptr_t)mapped;
-        const uintptr_t aligned = LIBXSMM_UP2(address + size_meminfo, alignment);
-        c_dbcsr_acc_opencl_info_memptr_t* const meminfo = (c_dbcsr_acc_opencl_info_memptr_t*)(aligned - size_meminfo);
-        assert(address + size_meminfo <= aligned && NULL != meminfo);
-        meminfo->memory = memory;
-        meminfo->memptr = mapped;
-        *host_mem = (void*)aligned;
-        assert(meminfo == c_dbcsr_acc_opencl_info_hostptr(*host_mem));
+        const int memflags = (NULL != host_ptr ? CL_MEM_USE_HOST_PTR : CL_MEM_ALLOC_HOST_PTR);
+        memory = clCreateBuffer(
+          devinfo->context, (cl_mem_flags)(CL_MEM_READ_WRITE | memflags), nbytes, host_ptr, &result);
+      }
+      if (EXIT_SUCCESS == result) {
+        void* mapped = host_ptr;
+        if (NULL == host_ptr) {
+          const c_dbcsr_acc_opencl_stream_t* const str = (NULL != stream ? ACC_OPENCL_STREAM(stream)
+                                                                         : c_dbcsr_acc_opencl_stream_default());
+          mapped = clEnqueueMapBuffer(str->queue, memory, CL_TRUE /*always block*/,
+#  if defined(ACC_OPENCL_XHINTS) && (defined(CL_VERSION_1_2) || defined(CL_MAP_WRITE_INVALIDATE_REGION))
+            (4 & c_dbcsr_acc_opencl_config.xhints) ? CL_MAP_WRITE_INVALIDATE_REGION :
+#  endif
+                                                   (CL_MAP_READ | CL_MAP_WRITE),
+            0 /*offset*/, nbytes, 0, NULL, NULL, &result);
+        }
+        assert(EXIT_SUCCESS == result || NULL == mapped);
+        if (EXIT_SUCCESS == result) {
+          const uintptr_t address = (uintptr_t)mapped;
+          const uintptr_t aligned = LIBXSMM_UP2(address + size_meminfo, alignment);
+          c_dbcsr_acc_opencl_info_memptr_t* const meminfo = (c_dbcsr_acc_opencl_info_memptr_t*)(aligned - size_meminfo);
+          assert(address + size_meminfo <= aligned && NULL != meminfo);
+          meminfo->memory = memory;
+          meminfo->memptr = mapped;
+          *host_mem = (void*)aligned;
+          assert(meminfo == c_dbcsr_acc_opencl_info_hostptr(*host_mem));
+        }
       }
     }
     if (EXIT_SUCCESS != result) {
@@ -273,17 +282,7 @@ int c_dbcsr_acc_opencl_host_mem_allocate(void** host_mem, size_t nbytes, void* s
 }
 
 
-int c_dbcsr_acc_host_mem_allocate(void** host_mem, size_t nbytes, void* stream) {
-#  if (1 >= ACC_OPENCL_USM_LEVEL)
-  return c_dbcsr_acc_opencl_host_mem_allocate(host_mem, nbytes, stream);
-#  else
-  LIBXSMM_UNUSED(stream);
-  return c_dbcsr_acc_dev_mem_allocate(host_mem, nbytes);
-#  endif
-}
-
-
-int c_dbcsr_acc_opencl_host_mem_deallocate(void* host_mem, void* stream) {
+int c_dbcsr_acc_host_mem_deallocate(void* host_mem, void* stream) {
   int result = EXIT_SUCCESS;
 #  if defined(ACC_OPENCL_PROFILE_DBCSR)
   int routine_handle;
@@ -295,7 +294,7 @@ int c_dbcsr_acc_opencl_host_mem_deallocate(void* host_mem, void* stream) {
 #  endif
   if (NULL != host_mem) {
     const c_dbcsr_acc_opencl_info_memptr_t* const meminfo = c_dbcsr_acc_opencl_info_hostptr(host_mem);
-    if (NULL != meminfo->memory) {
+    if (NULL != meminfo && NULL != meminfo->memory) {
       const c_dbcsr_acc_opencl_info_memptr_t info = *meminfo; /* copy meminfo prior to unmap */
       int result_release = EXIT_SUCCESS;
       void* host_ptr = NULL;
@@ -322,16 +321,6 @@ int c_dbcsr_acc_opencl_host_mem_deallocate(void* host_mem, void* stream) {
   if (0 != c_dbcsr_acc_opencl_config.profile) c_dbcsr_timestop(&routine_handle);
 #  endif
   ACC_OPENCL_RETURN(result);
-}
-
-
-int c_dbcsr_acc_host_mem_deallocate(void* host_mem, void* stream) {
-#  if (1 >= ACC_OPENCL_USM_LEVEL)
-  return c_dbcsr_acc_opencl_host_mem_deallocate(host_mem, stream);
-#  else
-  LIBXSMM_UNUSED(stream);
-  return c_dbcsr_acc_dev_mem_deallocate(host_mem);
-#  endif
 }
 
 

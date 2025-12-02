@@ -172,12 +172,7 @@ int c_dbcsr_acc_opencl_host_mem_deallocate(void* host_ptr) {
   if (NULL != devinfo->clMemFreeINTEL) {
     result = devinfo->clMemFreeINTEL(devinfo->context, host_ptr);
   }
-  else
 #  endif
-  {
-    free(host_ptr);
-    result = EXIT_SUCCESS;
-  }
   ACC_OPENCL_RETURN(result);
 }
 
@@ -214,12 +209,7 @@ int c_dbcsr_acc_host_mem_allocate(void** host_mem, size_t nbytes, void* stream) 
       host_ptr = devinfo->clHostMemAllocINTEL(devinfo->context, NULL /*properties*/, nbytes, 0 /*alignment*/, &result);
       assert(NULL != host_ptr || EXIT_SUCCESS != result);
     }
-    else
 #  endif
-    {
-      host_ptr = malloc(nbytes);
-      if (NULL == host_ptr) result = EXIT_FAILURE;
-    }
     if (EXIT_SUCCESS == result) {
       const int memflags = (NULL != host_ptr ? CL_MEM_USE_HOST_PTR : CL_MEM_ALLOC_HOST_PTR);
       memory = clCreateBuffer(

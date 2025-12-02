@@ -221,8 +221,9 @@ int c_dbcsr_acc_host_mem_allocate(void** host_mem, size_t nbytes, void* stream) 
       if (NULL == host_ptr) result = EXIT_FAILURE;
     }
     if (EXIT_SUCCESS == result) {
+      const int memflags = (NULL != host_ptr ? CL_MEM_USE_HOST_PTR : CL_MEM_ALLOC_HOST_PTR);
       memory = clCreateBuffer(
-        devinfo->context, NULL == host_ptr ? CL_MEM_ALLOC_HOST_PTR : CL_MEM_USE_HOST_PTR, nbytes, host_ptr, &result);
+        devinfo->context, (cl_mem_flags)(CL_MEM_READ_WRITE | memflags), nbytes, host_ptr, &result);
     }
     if (EXIT_SUCCESS == result) {
       void* mapped = host_ptr;
@@ -378,10 +379,10 @@ int c_dbcsr_acc_dev_mem_allocate(void** dev_mem, size_t nbytes) {
 #  if (0 != ACC_OPENCL_USM_LEVEL)
       if (0 != devinfo->usm)
     {
-      const int svmmem_flags = (0 != ((CL_DEVICE_SVM_FINE_GRAIN_BUFFER | CL_DEVICE_SVM_FINE_GRAIN_SYSTEM) & devinfo->usm)
+      const int svmflags = (0 != ((CL_DEVICE_SVM_FINE_GRAIN_BUFFER | CL_DEVICE_SVM_FINE_GRAIN_SYSTEM) & devinfo->usm)
                                   ? CL_MEM_SVM_FINE_GRAIN_BUFFER
                                   : 0);
-      *dev_mem = memptr = clSVMAlloc(devinfo->context, CL_MEM_READ_WRITE | svmmem_flags, nbytes, 0 /*alignment*/);
+      *dev_mem = memptr = clSVMAlloc(devinfo->context, (cl_svm_mem_flags)(CL_MEM_READ_WRITE | svmflags), nbytes, 0 /*alignment*/);
     }
     else
 #  endif

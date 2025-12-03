@@ -1199,11 +1199,7 @@ int c_dbcsr_acc_opencl_set_active_device(ACC_OPENCL_LOCKTYPE* lock, int device_i
             if (EXIT_SUCCESS ==
                 clGetDeviceInfo(active_id, CL_DEVICE_SVM_CAPABILITIES, sizeof(cl_device_svm_capabilities), &svmcaps, NULL))
             {
-#    if (1 < ACC_OPENCL_USM_LEVEL) /* assume support even if not advertised */
-              devinfo->usm = (cl_int)svmcaps | CL_DEVICE_SVM_COARSE_GRAIN_BUFFER;
-#    else
               devinfo->usm = (cl_int)svmcaps;
-#    endif
             }
           }
 #  endif

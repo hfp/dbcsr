@@ -22,8 +22,11 @@
 #  if !defined(ACC_OPENCL_MEM_ALIGNSCALE)
 #    define ACC_OPENCL_MEM_ALIGNSCALE 8
 #  endif
-#  if !defined(ACC_OPENCL_MEM_SVMALLOC) && 1
-#    define ACC_OPENCL_MEM_SVMALLOC
+#  if !defined(ACC_OPENCL_MEM_SVM_HST) && 0
+#    define ACC_OPENCL_MEM_SVM_HST
+#  endif
+#  if !defined(ACC_OPENCL_MEM_SVM_USM) && 0
+#    define ACC_OPENCL_MEM_SVM_USM
 #  endif
 #  if !defined(ACC_OPENCL_MEM_DEBUG) && 0
 #    if && !defined(NDEBUG)
@@ -187,7 +190,7 @@ int c_dbcsr_acc_host_mem_deallocate_internal(void* host_ptr, cl_command_queue qu
     if (0 != devinfo->usm)
   {
 #  if (0 != ACC_OPENCL_USM_LEVEL)
-#    if (1 >= ACC_OPENCL_USM_LEVEL) || defined(ACC_OPENCL_MEM_SVMALLOC)
+#    if ((1 >= ACC_OPENCL_USM_LEVEL) || defined(ACC_OPENCL_MEM_SVM_USM)) && defined(ACC_OPENCL_MEM_SVM_HST)
     if (0 == ((CL_DEVICE_SVM_FINE_GRAIN_BUFFER | CL_DEVICE_SVM_FINE_GRAIN_SYSTEM) & devinfo->usm)) {
       result = clEnqueueSVMUnmap(queue, host_ptr, 0, NULL, NULL);
     }
@@ -241,7 +244,7 @@ int c_dbcsr_acc_host_mem_allocate(void** host_mem, size_t nbytes, void* stream) 
       if (0 != devinfo->usm)
     {
 #  if (0 != ACC_OPENCL_USM_LEVEL)
-#    if (1 >= ACC_OPENCL_USM_LEVEL) || defined(ACC_OPENCL_MEM_SVMALLOC)
+#    if ((1 >= ACC_OPENCL_USM_LEVEL) || defined(ACC_OPENCL_MEM_SVM_USM)) && defined(ACC_OPENCL_MEM_SVM_HST)
       const int svmmem_fine = (0 != ((CL_DEVICE_SVM_FINE_GRAIN_BUFFER | CL_DEVICE_SVM_FINE_GRAIN_SYSTEM) & devinfo->usm)
                                  ? CL_MEM_SVM_FINE_GRAIN_BUFFER
                                  : 0);
@@ -425,7 +428,7 @@ int c_dbcsr_acc_dev_mem_allocate(void** dev_mem, size_t nbytes) {
 #  if (0 != ACC_OPENCL_USM_LEVEL)
       if (0 != devinfo->usm)
     {
-#    if (1 >= ACC_OPENCL_USM_LEVEL) || defined(ACC_OPENCL_MEM_SVMALLOC)
+#    if (1 >= ACC_OPENCL_USM_LEVEL) || defined(ACC_OPENCL_MEM_SVM_USM)
       const int svmflags = (0 != ((CL_DEVICE_SVM_FINE_GRAIN_BUFFER | CL_DEVICE_SVM_FINE_GRAIN_SYSTEM) & devinfo->usm)
                               ? CL_MEM_SVM_FINE_GRAIN_BUFFER
                               : 0);
@@ -539,7 +542,7 @@ int c_dbcsr_acc_dev_mem_deallocate(void* dev_mem) {
 #  if (0 != ACC_OPENCL_USM_LEVEL)
       if (0 != c_dbcsr_acc_opencl_config.device.usm)
     {
-#    if (1 >= ACC_OPENCL_USM_LEVEL) || defined(ACC_OPENCL_MEM_SVMALLOC)
+#    if (1 >= ACC_OPENCL_USM_LEVEL) || defined(ACC_OPENCL_MEM_SVM_USM)
       clSVMFree(c_dbcsr_acc_opencl_config.device.context, dev_mem);
 #    else
       free(dev_mem);
@@ -641,7 +644,7 @@ int c_dbcsr_acc_memcpy_h2d(const void* host_mem, void* dev_mem, size_t nbytes, v
 #  if (0 != ACC_OPENCL_USM_LEVEL)
       if (0 != devinfo->usm)
     {
-#    if (1 >= ACC_OPENCL_USM_LEVEL) || defined(ACC_OPENCL_MEM_SVMALLOC)
+#    if (1 >= ACC_OPENCL_USM_LEVEL) || defined(ACC_OPENCL_MEM_SVM_USM)
       result = clEnqueueSVMMemcpy(
         str->queue, finish, dev_mem, host_mem, nbytes, 0, NULL, NULL == c_dbcsr_acc_opencl_config.hist_h2d ? NULL : &event);
 #    else
@@ -703,7 +706,7 @@ int c_dbcsr_acc_opencl_memcpy_d2h(c_dbcsr_acc_opencl_info_memptr_t* info, void* 
 #  if (0 != ACC_OPENCL_USM_LEVEL)
     if (0 != devinfo->usm)
   {
-#    if (1 >= ACC_OPENCL_USM_LEVEL) || defined(ACC_OPENCL_MEM_SVMALLOC)
+#    if (1 >= ACC_OPENCL_USM_LEVEL) || defined(ACC_OPENCL_MEM_SVM_USM)
     result = clEnqueueSVMMemcpy(queue, finish, host_mem, (const char*)info + offset, nbytes, 0, NULL, event);
 #    else
     memcpy(host_mem, (const char*)info + offset, nbytes);
@@ -725,7 +728,7 @@ int c_dbcsr_acc_opencl_memcpy_d2h(c_dbcsr_acc_opencl_info_memptr_t* info, void* 
 #  if (0 != ACC_OPENCL_USM_LEVEL)
       if (0 != devinfo->usm)
     {
-#    if (1 >= ACC_OPENCL_USM_LEVEL) || defined(ACC_OPENCL_MEM_SVMALLOC)
+#    if (1 >= ACC_OPENCL_USM_LEVEL) || defined(ACC_OPENCL_MEM_SVM_USM)
       result_sync = clEnqueueSVMMemcpy(queue, CL_TRUE, host_mem, (const char*)info + offset, nbytes, 0, NULL, event);
 #    else
       memcpy(host_mem, (const char*)info + offset, nbytes);
@@ -838,7 +841,7 @@ int c_dbcsr_acc_memcpy_d2d(const void* devmem_src, void* devmem_dst, size_t nbyt
 #  if (0 != ACC_OPENCL_USM_LEVEL)
       if (0 != devinfo->usm)
     {
-#    if (1 >= ACC_OPENCL_USM_LEVEL) || defined(ACC_OPENCL_MEM_SVMALLOC)
+#    if (1 >= ACC_OPENCL_USM_LEVEL) || defined(ACC_OPENCL_MEM_SVM_USM)
       result = clEnqueueSVMMemcpy(str->queue, CL_FALSE /*blocking*/, devmem_dst, devmem_src, nbytes, 0, NULL,
         NULL == c_dbcsr_acc_opencl_config.hist_d2d ? pevent : &event);
 #    else
@@ -926,7 +929,7 @@ int c_dbcsr_acc_opencl_memset(void* dev_mem, int value, size_t offset, size_t nb
 #  if (0 != ACC_OPENCL_USM_LEVEL)
       if (0 != devinfo->usm)
     {
-#    if (1 >= ACC_OPENCL_USM_LEVEL) || defined(ACC_OPENCL_MEM_SVMALLOC)
+#    if (1 >= ACC_OPENCL_USM_LEVEL) || defined(ACC_OPENCL_MEM_SVM_USM)
       result = clEnqueueSVMMemFill(str->queue, (char*)dev_mem + offset, &value, vsize, nbytes, 0, NULL, pevent);
 #    else
       memset((char*)dev_mem + offset, value, nbytes);

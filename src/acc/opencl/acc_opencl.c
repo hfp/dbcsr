@@ -1195,7 +1195,7 @@ int c_dbcsr_acc_opencl_set_active_device(ACC_OPENCL_LOCKTYPE* lock, int device_i
             cl_device_svm_capabilities svmcaps = 0;
             if (NULL == env_usm) {
               result = clGetDeviceInfo(active_id, CL_DEVICE_SVM_CAPABILITIES, sizeof(cl_device_svm_capabilities), &svmcaps, NULL);
-              assert (EXIT_SUCCESS == result || 0 == svmcaps);
+              assert(EXIT_SUCCESS == result || 0 == svmcaps);
             }
             else svmcaps = (cl_device_svm_capabilities)atoi(env_usm);
             devinfo->usm = (cl_int)svmcaps;

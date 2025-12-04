@@ -67,7 +67,7 @@ void c_dbcsr_acc_opencl_pfree(const void* pointer, void* pool[], size_t* i) {
 c_dbcsr_acc_opencl_info_memptr_t* c_dbcsr_acc_opencl_info_hostptr(const void* memory) {
   c_dbcsr_acc_opencl_info_memptr_t* result = NULL;
 #  if (0 != ACC_OPENCL_USM)
-  if (NULL != memory && 0 != c_dbcsr_acc_opencl_config.device.usm) {
+  if (NULL != memory && 0 == c_dbcsr_acc_opencl_config.device.usm) {
     assert(sizeof(c_dbcsr_acc_opencl_info_memptr_t) < (uintptr_t)memory);
     result = (c_dbcsr_acc_opencl_info_memptr_t*)((uintptr_t)memory - sizeof(c_dbcsr_acc_opencl_info_memptr_t));
   }

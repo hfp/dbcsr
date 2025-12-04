@@ -65,14 +65,16 @@ void c_dbcsr_acc_opencl_pfree(const void* pointer, void* pool[], size_t* i) {
 
 
 c_dbcsr_acc_opencl_info_memptr_t* c_dbcsr_acc_opencl_info_hostptr(const void* memory) {
-#  if (0 == ACC_OPENCL_USM)
-  assert(NULL == memory || sizeof(c_dbcsr_acc_opencl_info_memptr_t) <= (uintptr_t)memory);
-  return (NULL != memory ? (c_dbcsr_acc_opencl_info_memptr_t*)((uintptr_t)memory - sizeof(c_dbcsr_acc_opencl_info_memptr_t))
-                         : (c_dbcsr_acc_opencl_info_memptr_t*)NULL);
+  c_dbcsr_acc_opencl_info_memptr_t* result = NULL;
+#  if (0 != ACC_OPENCL_USM)
+  if (NULL != memory && 0 != c_dbcsr_acc_opencl_config.device.usm) {
+    assert(sizeof(c_dbcsr_acc_opencl_info_memptr_t) < (uintptr_t)memory);
+    result = (c_dbcsr_acc_opencl_info_memptr_t*)((uintptr_t)memory - sizeof(c_dbcsr_acc_opencl_info_memptr_t));
+  }
 #  else
   LIBXSMM_UNUSED(memory);
-  return NULL;
 #  endif
+  return result;
 }
 
 

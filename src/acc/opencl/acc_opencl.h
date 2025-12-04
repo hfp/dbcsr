@@ -107,16 +107,16 @@
 #    define ACC_OPENCL_STREAM_PRIORITIES
 #  endif
 #endif
-#if !defined(ACC_OPENCL_USM_LEVEL) && defined(CL_VERSION_2_0) && 1
+#if !defined(ACC_OPENCL_USM) && defined(CL_VERSION_2_0) && 1
 #  if defined(__OFFLOAD_UNIFIED_MEMORY)
 /* Do not rely on an Intel extension for pointer arithmetic */
-#    define ACC_OPENCL_USM_LEVEL 2
+#    define ACC_OPENCL_USM 2
 #  else
 /* Rely on OpenCL 2.0 (eventually mix-in an Intel ext.) */
-#    define ACC_OPENCL_USM_LEVEL 1
+#    define ACC_OPENCL_USM 1
 #  endif
 #else
-#  define ACC_OPENCL_USM_LEVEL 0
+#  define ACC_OPENCL_USM 0
 #endif
 /* Activate device by default */
 #if !defined(ACC_OPENCL_ACTIVATE) && 0

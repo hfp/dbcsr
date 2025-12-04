@@ -295,7 +295,7 @@ void c_dbcsr_acc_opencl_configure(void) {
       if ((1 & c_dbcsr_acc_opencl_config.wa) && NULL == getenv("ZE_FLAT_DEVICE_HIERARCHY")) {
         ACC_OPENCL_EXPECT(0 == LIBXSMM_PUTENV(apply[0]));
       }
-#  if (0 == ACC_OPENCL_USM_LEVEL)
+#  if (0 == ACC_OPENCL_USM)
       if ((2 & c_dbcsr_acc_opencl_config.wa) && NULL == getenv("EnableRecoverablePageFaults")) {
         ACC_OPENCL_EXPECT(0 == LIBXSMM_PUTENV(apply[1]));
       }
@@ -1150,7 +1150,7 @@ int c_dbcsr_acc_opencl_set_active_device(ACC_OPENCL_LOCKTYPE* lock, int device_i
             if (0 != devinfo->wgsize[2]) devinfo->wgsize[2] = sgmin;
           }
           else devinfo->wgsize[2] = 0;
-#  if defined(ACC_OPENCL_XHINTS) && (1 >= ACC_OPENCL_USM_LEVEL)
+#  if defined(ACC_OPENCL_XHINTS) && (1 >= ACC_OPENCL_USM)
           { /* cl_intel_unified_shared_memory extension */
             cl_platform_id platform = NULL;
             cl_bitfield bitfield = 0;
@@ -1189,14 +1189,16 @@ int c_dbcsr_acc_opencl_set_active_device(ACC_OPENCL_LOCKTYPE* lock, int device_i
             }
           }
 #  endif
-#  if (0 != ACC_OPENCL_USM_LEVEL)
+#  if (0 != ACC_OPENCL_USM)
           { /* OpenCL 2.0 based SVM capabilities */
+            const char* const env_usm = getenv("ACC_OPENCL_USM");
             cl_device_svm_capabilities svmcaps = 0;
-            if (EXIT_SUCCESS ==
-                clGetDeviceInfo(active_id, CL_DEVICE_SVM_CAPABILITIES, sizeof(cl_device_svm_capabilities), &svmcaps, NULL))
-            {
-              devinfo->usm = (cl_int)svmcaps;
+            if (NULL == env_usm) {
+              result = clGetDeviceInfo(active_id, CL_DEVICE_SVM_CAPABILITIES, sizeof(cl_device_svm_capabilities), &svmcaps, NULL);
+              assert (EXIT_SUCCESS == result || 0 == svmcaps);
             }
+            else svmcaps = (cl_device_svm_capabilities)atoi(env_usm);
+            devinfo->usm = (cl_int)svmcaps;
           }
 #  endif
 #  if defined(ACC_OPENCL_CMDAGR)
@@ -1210,7 +1212,9 @@ int c_dbcsr_acc_opencl_set_active_device(ACC_OPENCL_LOCKTYPE* lock, int device_i
           }
 #  endif
           properties[1] = 0;
-          devinfo->stream.queue = ACC_OPENCL_CREATE_COMMAND_QUEUE(context, active_id, properties, &result);
+          if (EXIT_SUCCESS == result) {
+            devinfo->stream.queue = ACC_OPENCL_CREATE_COMMAND_QUEUE(context, active_id, properties, &result);
+          }
         }
         if (EXIT_SUCCESS == result) {
           if (NULL == devinfo->context || device_id != c_dbcsr_acc_opencl_config.device_id) {
@@ -1781,13 +1785,13 @@ int c_dbcsr_acc_opencl_set_kernel_ptr(cl_kernel kernel, cl_uint arg_index, const
   c_dbcsr_acc_opencl_device_t* const devinfo = &c_dbcsr_acc_opencl_config.device;
   int result = EXIT_FAILURE;
   assert(NULL != devinfo->context);
-#  if (1 >= ACC_OPENCL_USM_LEVEL)
+#  if (1 >= ACC_OPENCL_USM)
   if (NULL != devinfo->clSetKernelArgMemPointerINTEL) {
     result = devinfo->clSetKernelArgMemPointerINTEL(kernel, arg_index, arg_value);
   }
   else
 #  endif
-#  if (0 != ACC_OPENCL_USM_LEVEL)
+#  if (0 != ACC_OPENCL_USM)
     if (0 != devinfo->usm)
   {
     result = clSetKernelArgSVMPointer(kernel, arg_index, arg_value);

@@ -22,9 +22,6 @@
 #  if !defined(ACC_OPENCL_MEM_ALIGNSCALE)
 #    define ACC_OPENCL_MEM_ALIGNSCALE 8
 #  endif
-#  if !defined(ACC_OPENCL_MEM_SVM_HST) && 0
-#    define ACC_OPENCL_MEM_SVM_HST
-#  endif
 #  if !defined(ACC_OPENCL_MEM_SVM_USM) && 0
 #    define ACC_OPENCL_MEM_SVM_USM
 #  endif
@@ -190,17 +187,21 @@ int c_dbcsr_acc_host_mem_deallocate_internal(void* host_ptr, cl_command_queue qu
     if (0 != devinfo->usm)
   {
 #  if (0 != ACC_OPENCL_USM_LEVEL)
-#    if ((1 >= ACC_OPENCL_USM_LEVEL) || defined(ACC_OPENCL_MEM_SVM_USM)) && defined(ACC_OPENCL_MEM_SVM_HST)
-    if (0 == ((CL_DEVICE_SVM_FINE_GRAIN_BUFFER | CL_DEVICE_SVM_FINE_GRAIN_SYSTEM) & devinfo->usm)) {
-      result = clEnqueueSVMUnmap(queue, host_ptr, 0, NULL, NULL);
+#    if ((1 >= ACC_OPENCL_USM_LEVEL) || defined(ACC_OPENCL_MEM_SVM_USM))
+    if (0 != devinfo->unified) {
+      if (0 == ((CL_DEVICE_SVM_FINE_GRAIN_BUFFER | CL_DEVICE_SVM_FINE_GRAIN_SYSTEM) & devinfo->usm)) {
+        result = clEnqueueSVMUnmap(queue, host_ptr, 0, NULL, NULL);
+      }
+      else result = EXIT_SUCCESS;
+      clSVMFree(devinfo->context, host_ptr);
     }
-    else result = EXIT_SUCCESS;
-    clSVMFree(devinfo->context, host_ptr);
-#    else
-    LIBXSMM_UNUSED(queue);
-    free(host_ptr);
-    result = EXIT_SUCCESS;
+    else
 #    endif
+    {
+      LIBXSMM_UNUSED(queue);
+      free(host_ptr);
+      result = EXIT_SUCCESS;
+    }
 #  else
     LIBXSMM_UNUSED(queue);
 #  endif
@@ -244,24 +245,28 @@ int c_dbcsr_acc_host_mem_allocate(void** host_mem, size_t nbytes, void* stream) 
       if (0 != devinfo->usm)
     {
 #  if (0 != ACC_OPENCL_USM_LEVEL)
-#    if ((1 >= ACC_OPENCL_USM_LEVEL) || defined(ACC_OPENCL_MEM_SVM_USM)) && defined(ACC_OPENCL_MEM_SVM_HST)
-      const int svmmem_fine = (0 != ((CL_DEVICE_SVM_FINE_GRAIN_BUFFER | CL_DEVICE_SVM_FINE_GRAIN_SYSTEM) & devinfo->usm)
-                                 ? CL_MEM_SVM_FINE_GRAIN_BUFFER
-                                 : 0);
-      host_ptr = clSVMAlloc(devinfo->context, CL_MEM_READ_WRITE | svmmem_fine, nbytes, 0 /*alignment*/);
-      if (NULL != host_ptr) {
-        if (0 == svmmem_fine) {
-          result = clEnqueueSVMMap(
-            str->queue, CL_TRUE /*always block*/, CL_MAP_READ | CL_MAP_WRITE, host_ptr, nbytes, 0, NULL, NULL);
+#    if ((1 >= ACC_OPENCL_USM_LEVEL) || defined(ACC_OPENCL_MEM_SVM_USM))
+      if (0 != devinfo->unified) {
+        const int svmmem_fine = (0 != ((CL_DEVICE_SVM_FINE_GRAIN_BUFFER | CL_DEVICE_SVM_FINE_GRAIN_SYSTEM) & devinfo->usm)
+                                   ? CL_MEM_SVM_FINE_GRAIN_BUFFER
+                                   : 0);
+        host_ptr = clSVMAlloc(devinfo->context, CL_MEM_READ_WRITE | svmmem_fine, nbytes, 0 /*alignment*/);
+        if (NULL != host_ptr) {
+          if (0 == svmmem_fine) {
+            result = clEnqueueSVMMap(
+              str->queue, CL_TRUE /*always block*/, CL_MAP_READ | CL_MAP_WRITE, host_ptr, nbytes, 0, NULL, NULL);
+          }
+          *host_mem = host_ptr;
         }
-        *host_mem = host_ptr;
+        else result = EXIT_FAILURE;
       }
-      else result = EXIT_FAILURE;
-#    else
-      host_ptr = malloc(nbytes);
-      if (NULL != host_ptr) *host_mem = host_ptr;
-      else result = EXIT_FAILURE;
+      else
 #    endif
+      {
+        host_ptr = malloc(nbytes);
+        if (NULL != host_ptr) *host_mem = host_ptr;
+        else result = EXIT_FAILURE;
+      }
 #  endif
     }
     else {

@@ -369,9 +369,12 @@ extern c_dbcsr_acc_opencl_config_t c_dbcsr_acc_opencl_config;
 
 /** If buffers are hinted for non-concurrent writes aka "OpenCL constant". */
 int c_dbcsr_acc_opencl_use_cmem(const c_dbcsr_acc_opencl_device_t* devinfo);
-/** Determines host-pointer registration for modification. */
+/** Determines host-pointer registration (for modification). Returns NULL if memory is SVM/USM. */
 c_dbcsr_acc_opencl_info_memptr_t* c_dbcsr_acc_opencl_info_hostptr(const void* memory);
-/** Determines device-pointer registration for modification (internal); offset is measured in elsize. */
+/**
+ * Determines device-pointer registration (for modification; internal). The offset is measured in elsize.
+ * Returns NULL if memory is SVM/USM (offset is zero in this case).
+ */
 c_dbcsr_acc_opencl_info_memptr_t* c_dbcsr_acc_opencl_info_devptr_modify(
   ACC_OPENCL_LOCKTYPE* lock, void* memory, size_t elsize, const size_t* amount, size_t* offset);
 /** Determines device-pointer registration for info/ro (lock-control); offset is measured in elsize. */

@@ -66,14 +66,15 @@ void c_dbcsr_acc_opencl_pfree(const void* pointer, void* pool[], size_t* i) {
 
 c_dbcsr_acc_opencl_info_memptr_t* c_dbcsr_acc_opencl_info_hostptr(const void* memory) {
   c_dbcsr_acc_opencl_info_memptr_t* result = NULL;
+  if (NULL == c_dbcsr_acc_opencl_config.device.clHostMemAllocINTEL &&
 #  if (0 != ACC_OPENCL_USM)
-  if (NULL != memory && 0 == c_dbcsr_acc_opencl_config.device.usm) {
+    0 == c_dbcsr_acc_opencl_config.device.usm &&
+#  endif
+    NULL != memory)
+  {
     assert(sizeof(c_dbcsr_acc_opencl_info_memptr_t) < (uintptr_t)memory);
     result = (c_dbcsr_acc_opencl_info_memptr_t*)((uintptr_t)memory - sizeof(c_dbcsr_acc_opencl_info_memptr_t));
   }
-#  else
-  LIBXSMM_UNUSED(memory);
-#  endif
   return result;
 }
 
@@ -87,10 +88,10 @@ c_dbcsr_acc_opencl_info_memptr_t* c_dbcsr_acc_opencl_info_devptr_modify(
   if (NULL != memory) {
     assert(NULL != c_dbcsr_acc_opencl_config.device.context);
     if (/* USM-pointer */
-#  if (0 == ACC_OPENCL_USM)
-      NULL != c_dbcsr_acc_opencl_config.device.clSetKernelArgMemPointerINTEL ||
+#  if (0 != ACC_OPENCL_USM)
+      0 != c_dbcsr_acc_opencl_config.device.usm ||
 #  endif
-      0 != c_dbcsr_acc_opencl_config.device.usm)
+      NULL != c_dbcsr_acc_opencl_config.device.clSetKernelArgMemPointerINTEL)
     { /* assume only first item of c_dbcsr_acc_opencl_info_memptr_t is accessed */
       result = (c_dbcsr_acc_opencl_info_memptr_t*)memory;
       if (NULL != offset) *offset = 0;
@@ -146,10 +147,10 @@ int c_dbcsr_acc_opencl_info_devptr_lock(c_dbcsr_acc_opencl_info_memptr_t* info, 
   if (NULL != devptr) { /* found memory info */
     assert(NULL != c_dbcsr_acc_opencl_config.device.context);
     if (
-#  if (0 == ACC_OPENCL_USM)
-      NULL != c_dbcsr_acc_opencl_config.device.clSetKernelArgMemPointerINTEL ||
+#  if (0 != ACC_OPENCL_USM)
+      0 != c_dbcsr_acc_opencl_config.device.usm ||
 #  endif
-      0 != c_dbcsr_acc_opencl_config.device.usm)
+      NULL != c_dbcsr_acc_opencl_config.device.clSetKernelArgMemPointerINTEL)
     { /* USM-pointer */
       LIBXSMM_ASSIGN127(&info->memory, &devptr);
       info->memptr /*= info->data*/ = NULL;
@@ -166,12 +167,12 @@ int c_dbcsr_acc_opencl_info_devptr_lock(c_dbcsr_acc_opencl_info_memptr_t* info, 
 int c_dbcsr_acc_opencl_info_devptr(
   c_dbcsr_acc_opencl_info_memptr_t* info, const void* memory, size_t elsize, const size_t* amount, size_t* offset) {
   ACC_OPENCL_LOCKTYPE* const lock_memory = ((
-#  if (0 == ACC_OPENCL_USM)
-                                              NULL == c_dbcsr_acc_opencl_config.device.clSetKernelArgMemPointerINTEL &&
+#  if (0 != ACC_OPENCL_USM)
+                                              0 != c_dbcsr_acc_opencl_config.device.usm ||
 #  endif
-                                              0 == c_dbcsr_acc_opencl_config.device.usm)
-                                              ? c_dbcsr_acc_opencl_config.lock_memory
-                                              : NULL);
+                                              NULL != c_dbcsr_acc_opencl_config.device.clSetKernelArgMemPointerINTEL)
+                                              ? NULL /* no lock required */
+                                              : c_dbcsr_acc_opencl_config.lock_memory);
   return c_dbcsr_acc_opencl_info_devptr_lock(info, lock_memory, memory, elsize, amount, offset);
 }
 

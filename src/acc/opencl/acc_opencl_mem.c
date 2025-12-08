@@ -25,6 +25,11 @@
 #  if !defined(ACC_OPENCL_MEM_SVM_USM) && 0
 #    define ACC_OPENCL_MEM_SVM_USM
 #  endif
+#  if !defined(ACC_OPENCL_MEM_DEBUG) && 0
+#    if && !defined(NDEBUG)
+#      define ACC_OPENCL_MEM_DEBUG
+#    endif
+#  endif
 
 
 #  if defined(__cplusplus)
@@ -111,17 +116,24 @@ c_dbcsr_acc_opencl_info_memptr_t* c_dbcsr_acc_opencl_info_devptr_modify(
           else if (memptr < pointer && NULL != offset) {
             size_t d = pointer - memptr, s = d;
             assert(0 < elsize && 0 != d);
-            if (d < hit &&
-#  if !defined(NDEBUG)
+            if (d < hit && (1 == elsize || 0 == (d % elsize)) &&
+#  if defined(ACC_OPENCL_MEM_DEBUG) /* TODO: verify enclosed conditions */
                 (EXIT_SUCCESS == clGetMemObjectInfo(info->memory, CL_MEM_SIZE, sizeof(size_t), &s, NULL)) &&
                 (NULL == amount || (*amount * elsize + d) <= s) &&
 #  endif
-                (1 == elsize || (0 == (d % elsize) && 0 == (s % elsize))) && d <= s)
+                (1 == elsize || 0 == (s % elsize)) && d <= s)
             {
               *offset = (1 == elsize ? d : (d / elsize));
               result = info;
               hit = d;
             }
+#  if defined(ACC_OPENCL_MEM_DEBUG)
+            else if (d < hit && 0 != c_dbcsr_acc_opencl_config.debug && 0 != c_dbcsr_acc_opencl_config.verbosity) {
+              fprintf(stderr, "ERROR ACC/OpenCL: memory=%p pointer=%p size=%llu offset=%llu info failed\n",
+                (const void*)info->memory, info->memptr, (unsigned long long)s,
+                (unsigned long long)(1 == elsize ? d : (d / elsize)));
+            }
+#  endif
           }
         }
         else break;

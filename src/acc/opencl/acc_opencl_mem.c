@@ -209,33 +209,22 @@ int c_dbcsr_acc_host_mem_deallocate_internal(void* host_ptr, cl_command_queue qu
   }
   else
 #  endif
-#  if (0 != ACC_OPENCL_USM)
-    if (0 != devinfo->usm)
+#  if (0 != ACC_OPENCL_USM) && ((1 >= ACC_OPENCL_USM) || defined(ACC_OPENCL_MEM_SVM_USM))
+    if (0 != devinfo->usm && 0 != devinfo->unified)
   {
-#    if ((1 >= ACC_OPENCL_USM) || defined(ACC_OPENCL_MEM_SVM_USM))
-    if (0 != devinfo->unified) {
-      if (0 == ((CL_DEVICE_SVM_FINE_GRAIN_BUFFER | CL_DEVICE_SVM_FINE_GRAIN_SYSTEM) & devinfo->usm)) {
-        result = clEnqueueSVMUnmap(queue, host_ptr, 0, NULL, NULL); /* clSVMFree below synchronizes */
-      }
-      else result = EXIT_SUCCESS;
-      clSVMFree(devinfo->context, host_ptr);
+    if (0 == ((CL_DEVICE_SVM_FINE_GRAIN_BUFFER | CL_DEVICE_SVM_FINE_GRAIN_SYSTEM) & devinfo->usm)) {
+      result = clEnqueueSVMUnmap(queue, host_ptr, 0, NULL, NULL); /* clSVMFree below synchronizes */
     }
-    else
-#    endif
-#  endif
-    {
-      LIBXSMM_UNUSED(queue);
-      ACC_OPENCL_MEM_FREE(host_ptr);
-      result = EXIT_SUCCESS;
-    }
-#  if (0 != ACC_OPENCL_USM)
+    else result = EXIT_SUCCESS;
+    clSVMFree(devinfo->context, host_ptr);
   }
-  else {
+  else
+#  endif
+  {
     LIBXSMM_UNUSED(queue);
     ACC_OPENCL_MEM_FREE(host_ptr);
     result = EXIT_SUCCESS;
   }
-#  endif
   ACC_OPENCL_RETURN(result);
 }
 

@@ -19,11 +19,23 @@
 #    include <unistd.h>
 #  endif
 
+#  if !defined(ACC_OPENCL_MEM_ALLOC)
+#    if 1
+#      define ACC_OPENCL_MEM_ALLOC(SIZE, ALIGNMENT) libxsmm_aligned_malloc(SIZE, ALIGNMENT)
+#      define ACC_OPENCL_MEM_FREE(PTR) libxsmm_free(PTR)
+#    else
+#      define ACC_OPENCL_MEM_ALLOC(SIZE, ALIGNMENT) aligned_alloc(ALIGNMENT, SIZE)
+#      define ACC_OPENCL_MEM_FREE(PTR) free(PTR)
+#    endif
+#  endif
 #  if !defined(ACC_OPENCL_MEM_ALIGNSCALE)
 #    define ACC_OPENCL_MEM_ALIGNSCALE 8
 #  endif
 #  if !defined(ACC_OPENCL_MEM_SVM_INTEL) && 0
 #    define ACC_OPENCL_MEM_SVM_INTEL
+#  endif
+#  if !defined(ACC_OPENCL_MEM_HST_INTEL) && 0
+#    define ACC_OPENCL_MEM_HST_INTEL
 #  endif
 #  if !defined(ACC_OPENCL_MEM_SVM_USM) && 0
 #    define ACC_OPENCL_MEM_SVM_USM
@@ -188,7 +200,12 @@ int c_dbcsr_acc_host_mem_deallocate_internal(void* host_ptr, cl_command_queue qu
   int result = EXIT_FAILURE;
 #  if (1 >= ACC_OPENCL_USM)
   if (NULL != devinfo->clMemFreeINTEL) {
+#    if defined(ACC_OPENCL_MEM_SVM_INTEL) || defined(ACC_OPENCL_MEM_HST_INTEL)
     result = devinfo->clMemFreeINTEL(devinfo->context, host_ptr);
+#    else
+    ACC_OPENCL_MEM_FREE(host_ptr);
+    result = EXIT_SUCCESS;
+#    endif
   }
   else
 #  endif
@@ -207,7 +224,7 @@ int c_dbcsr_acc_host_mem_deallocate_internal(void* host_ptr, cl_command_queue qu
 #    endif
     {
       LIBXSMM_UNUSED(queue);
-      free(host_ptr);
+      ACC_OPENCL_MEM_FREE(host_ptr);
       result = EXIT_SUCCESS;
     }
 #  else
@@ -233,9 +250,14 @@ int c_dbcsr_acc_host_mem_allocate(void** host_mem, size_t nbytes, void* stream) 
     const c_dbcsr_acc_opencl_device_t* const devinfo = &c_dbcsr_acc_opencl_config.device;
     const c_dbcsr_acc_opencl_stream_t* const str = (NULL != stream ? ACC_OPENCL_STREAM(stream)
                                                                    : c_dbcsr_acc_opencl_stream_default());
+    int alignment = LIBXSMM_MAX(0x10000, sizeof(void*));
     void* host_ptr = NULL;
     cl_mem memory = NULL;
     assert(NULL != str);
+    if ((ACC_OPENCL_MEM_ALIGNSCALE * ACC_OPENCL_CACHELINE) <= nbytes) {
+      const int a = ((ACC_OPENCL_MEM_ALIGNSCALE * ACC_OPENCL_MAXALIGN) <= nbytes ? ACC_OPENCL_MAXALIGN : ACC_OPENCL_CACHELINE);
+      if (alignment < a) alignment = a;
+    }
 #  if !defined(ACC_OPENCL_ACTIVATE)
     if (NULL == devinfo->context) {
       ACC_OPENCL_EXPECT(EXIT_SUCCESS == c_dbcsr_acc_opencl_set_active_device(
@@ -246,13 +268,14 @@ int c_dbcsr_acc_host_mem_allocate(void** host_mem, size_t nbytes, void* stream) 
     if (NULL != devinfo->clMemFreeINTEL) {
 #    if defined(ACC_OPENCL_MEM_SVM_INTEL)
       const cl_device_id device_id = c_dbcsr_acc_opencl_config.devices[c_dbcsr_acc_opencl_config.device_id];
-      const int props[] = {0x4195 /*CL_MEM_ALLOC_FLAGS_INTEL*/, 1 << 2, 0};
-      host_ptr = devinfo->clSharedMemAllocINTEL(devinfo->context, device_id, props, nbytes, 0 /*alignment*/, &result);
-#    else
+      host_ptr = devinfo->clSharedMemAllocINTEL(devinfo->context, device_id, NULL /*properties*/, nbytes, 0 /*alignment*/, &result);
+#    elif defined(ACC_OPENCL_MEM_HST_INTEL)
       host_ptr = devinfo->clHostMemAllocINTEL(devinfo->context, NULL /*properties*/, nbytes, 0 /*alignment*/, &result);
+#    else
+      host_ptr = ACC_OPENCL_MEM_ALLOC(nbytes, alignment);
 #    endif
       assert(NULL != host_ptr || EXIT_SUCCESS != result);
-      if (NULL != host_ptr) *host_mem = host_ptr;
+      /*if (NULL != host_ptr)*/ *host_mem = host_ptr;
     }
     else
 #  endif
@@ -277,7 +300,7 @@ int c_dbcsr_acc_host_mem_allocate(void** host_mem, size_t nbytes, void* stream) 
       else
 #    endif
       {
-        host_ptr = malloc(nbytes);
+        host_ptr = ACC_OPENCL_MEM_ALLOC(nbytes, alignment);
         if (NULL != host_ptr) *host_mem = host_ptr;
         else result = EXIT_FAILURE;
       }
@@ -285,10 +308,6 @@ int c_dbcsr_acc_host_mem_allocate(void** host_mem, size_t nbytes, void* stream) 
     }
     else {
       const size_t size_meminfo = sizeof(c_dbcsr_acc_opencl_info_memptr_t);
-      int alignment = sizeof(void*);
-      if ((ACC_OPENCL_MEM_ALIGNSCALE * ACC_OPENCL_CACHELINE) <= nbytes) {
-        alignment = ((ACC_OPENCL_MEM_ALIGNSCALE * ACC_OPENCL_MAXALIGN) <= nbytes ? ACC_OPENCL_MAXALIGN : ACC_OPENCL_CACHELINE);
-      }
       nbytes += alignment + size_meminfo - 1;
       if (EXIT_SUCCESS == result) {
         const int memflags = (NULL != host_ptr ? CL_MEM_USE_HOST_PTR : CL_MEM_ALLOC_HOST_PTR);
@@ -441,12 +460,11 @@ int c_dbcsr_acc_dev_mem_allocate(void** dev_mem, size_t nbytes) {
     if (NULL != devinfo->clMemFreeINTEL) {
       const cl_device_id device_id = c_dbcsr_acc_opencl_config.devices[c_dbcsr_acc_opencl_config.device_id];
 #    if defined(ACC_OPENCL_MEM_SVM_INTEL)
-      const int props[] = {0x4195 /*CL_MEM_ALLOC_FLAGS_INTEL*/, 1 << 1, 0};
-      *dev_mem = memptr = devinfo->clSharedMemAllocINTEL(devinfo->context, device_id, props, nbytes, 0 /*alignment*/, &result);
+      memptr = devinfo->clSharedMemAllocINTEL(devinfo->context, device_id, NULL /*properties*/, nbytes, 0 /*alignment*/, &result);
 #    else
-      *dev_mem = memptr = devinfo->clDeviceMemAllocINTEL(
-        devinfo->context, device_id, NULL /*properties*/, nbytes, 0 /*alignment*/, &result);
+      memptr = devinfo->clDeviceMemAllocINTEL(devinfo->context, device_id, NULL /*properties*/, nbytes, 0 /*alignment*/, &result);
 #    endif
+      *dev_mem = memptr;
     }
     else
 #  endif
@@ -457,10 +475,16 @@ int c_dbcsr_acc_dev_mem_allocate(void** dev_mem, size_t nbytes) {
       const int svmflags = (0 != ((CL_DEVICE_SVM_FINE_GRAIN_BUFFER | CL_DEVICE_SVM_FINE_GRAIN_SYSTEM) & devinfo->usm)
                               ? CL_MEM_SVM_FINE_GRAIN_BUFFER
                               : 0);
-      *dev_mem = memptr = clSVMAlloc(devinfo->context, (cl_svm_mem_flags)(CL_MEM_READ_WRITE | svmflags), nbytes, 0 /*alignment*/);
+      memptr = clSVMAlloc(devinfo->context, (cl_svm_mem_flags)(CL_MEM_READ_WRITE | svmflags), nbytes, 0 /*alignment*/);
 #    else
-      *dev_mem = memptr = malloc(nbytes);
+      int alignment = LIBXSMM_MAX(0x10000, sizeof(void*));
+      if ((ACC_OPENCL_MEM_ALIGNSCALE * ACC_OPENCL_CACHELINE) <= nbytes) {
+        const int a = ((ACC_OPENCL_MEM_ALIGNSCALE * ACC_OPENCL_MAXALIGN) <= nbytes ? ACC_OPENCL_MAXALIGN : ACC_OPENCL_CACHELINE);
+        if (alignment < a) alignment = a;
+      }
+      memptr = ACC_OPENCL_MEM_ALLOC(nbytes, alignment);
 #    endif
+      *dev_mem = memptr;
     }
     else
 #  endif
@@ -561,7 +585,7 @@ int c_dbcsr_acc_dev_mem_deallocate(void* dev_mem) {
 #    if (1 >= ACC_OPENCL_USM) || defined(ACC_OPENCL_MEM_SVM_USM)
       clSVMFree(c_dbcsr_acc_opencl_config.device.context, dev_mem);
 #    else
-      free(dev_mem);
+      ACC_OPENCL_MEM_FREE(dev_mem);
 #    endif
     }
     else

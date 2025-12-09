@@ -170,7 +170,7 @@ void c_dbcsr_acc_opencl_configure(void) {
 #  endif
 #  if defined(ACC_OPENCL_XHINTS)
   const char* const env_xhints = (ACC_OPENCL_XHINTS);
-  const int xhints_default = 1 + 2 + 4;
+  const int xhints_default = 1 + 2 + 4 + 8 + 16;
 #  else
   const char* const env_xhints = NULL;
   const int xhints_default = 0;
@@ -1087,11 +1087,9 @@ int c_dbcsr_acc_opencl_set_active_device(ACC_OPENCL_LOCKTYPE* lock, int device_i
           char devname[ACC_OPENCL_BUFFERSIZE] = "";
           const char* const sgexts[] = {"cl_intel_required_subgroup_size", "cl_intel_subgroups", "cl_khr_subgroups"};
           size_t sgsizes[16], nbytes = 0, sgmin = (size_t)-1, i;
-#  if defined(ACC_OPENCL_CMDAGR)
           ACC_OPENCL_STREAM_PROPERTIES_TYPE properties[4] = {
             CL_QUEUE_PROPERTIES, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE, 0 /* terminator */
           };
-#  endif
           devinfo->intel = (EXIT_SUCCESS == c_dbcsr_acc_opencl_device_vendor(active_id, "intel", 0 /*use_platform_name*/));
           devinfo->nv = (EXIT_SUCCESS == c_dbcsr_acc_opencl_device_vendor(active_id, "nvidia", 0 /*use_platform_name*/));
           if (EXIT_SUCCESS != c_dbcsr_acc_opencl_device_name(active_id, devname, ACC_OPENCL_BUFFERSIZE, NULL /*platform*/,
@@ -1194,8 +1192,10 @@ int c_dbcsr_acc_opencl_set_active_device(ACC_OPENCL_LOCKTYPE* lock, int device_i
             const char* const env_usm = getenv("ACC_OPENCL_USM");
             cl_device_svm_capabilities svmcaps = 0;
             if (NULL == env_usm) {
-              result = clGetDeviceInfo(active_id, CL_DEVICE_SVM_CAPABILITIES, sizeof(cl_device_svm_capabilities), &svmcaps, NULL);
-              assert(EXIT_SUCCESS == result || 0 == svmcaps);
+              if (0 == devinfo->nv) { /* vendor workaround (force with ACC_OPENCL_USM=1) */
+                result = clGetDeviceInfo(active_id, CL_DEVICE_SVM_CAPABILITIES, sizeof(cl_device_svm_capabilities), &svmcaps, NULL);
+                assert(EXIT_SUCCESS == result || 0 == svmcaps);
+              }
             }
             else svmcaps = (cl_device_svm_capabilities)atoi(env_usm);
             devinfo->usm = (cl_int)svmcaps;

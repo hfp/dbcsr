@@ -209,9 +209,9 @@ int c_dbcsr_acc_host_mem_deallocate_internal(void* host_ptr, cl_command_queue qu
   }
   else
 #  endif
+#  if (0 != ACC_OPENCL_USM)
     if (0 != devinfo->usm)
   {
-#  if (0 != ACC_OPENCL_USM)
 #    if ((1 >= ACC_OPENCL_USM) || defined(ACC_OPENCL_MEM_SVM_USM))
     if (0 != devinfo->unified) {
       if (0 == ((CL_DEVICE_SVM_FINE_GRAIN_BUFFER | CL_DEVICE_SVM_FINE_GRAIN_SYSTEM) & devinfo->usm)) {
@@ -222,15 +222,20 @@ int c_dbcsr_acc_host_mem_deallocate_internal(void* host_ptr, cl_command_queue qu
     }
     else
 #    endif
+#  endif
     {
       LIBXSMM_UNUSED(queue);
       ACC_OPENCL_MEM_FREE(host_ptr);
       result = EXIT_SUCCESS;
     }
-#  else
-    LIBXSMM_UNUSED(queue);
-#  endif
+#  if (0 != ACC_OPENCL_USM)
   }
+  else {
+    LIBXSMM_UNUSED(queue);
+    ACC_OPENCL_MEM_FREE(host_ptr);
+    result = EXIT_SUCCESS;
+  }
+#  endif
   ACC_OPENCL_RETURN(result);
 }
 
@@ -308,17 +313,21 @@ int c_dbcsr_acc_host_mem_allocate(void** host_mem, size_t nbytes, void* stream) 
     }
     else {
       const size_t size_meminfo = sizeof(c_dbcsr_acc_opencl_info_memptr_t);
+      int memflags = CL_MEM_ALLOC_HOST_PTR;
       nbytes += alignment + size_meminfo - 1;
-      if (EXIT_SUCCESS == result) {
-        const int memflags = (NULL != host_ptr ? CL_MEM_USE_HOST_PTR : CL_MEM_ALLOC_HOST_PTR);
-        memory = clCreateBuffer(devinfo->context, (cl_mem_flags)(CL_MEM_READ_WRITE | memflags), nbytes, host_ptr, &result);
+#  if defined(ACC_OPENCL_XHINTS)
+      if (0 != (4 & c_dbcsr_acc_opencl_config.xhints) && (0 != devinfo->nv || NULL != (ACC_OPENCL_XHINTS))) {
+        host_ptr = ACC_OPENCL_MEM_ALLOC(nbytes, alignment);
+        if (NULL != host_ptr) memflags = CL_MEM_USE_HOST_PTR;
       }
+#  endif
+      memory = clCreateBuffer(devinfo->context, (cl_mem_flags)(CL_MEM_READ_WRITE | memflags), nbytes, host_ptr, &result);
       if (EXIT_SUCCESS == result) {
         void* mapped = host_ptr;
         if (NULL == host_ptr) {
           mapped = clEnqueueMapBuffer(str->queue, memory, CL_TRUE /*always block*/,
 #  if defined(ACC_OPENCL_XHINTS) && (defined(CL_VERSION_1_2) || defined(CL_MAP_WRITE_INVALIDATE_REGION))
-            (4 & c_dbcsr_acc_opencl_config.xhints) ? CL_MAP_WRITE_INVALIDATE_REGION :
+            (8 & c_dbcsr_acc_opencl_config.xhints) ? CL_MAP_WRITE_INVALIDATE_REGION :
 #  endif
                                                    (CL_MAP_READ | CL_MAP_WRITE),
             0 /*offset*/, nbytes, 0, NULL, NULL, &result);
@@ -491,10 +500,11 @@ int c_dbcsr_acc_dev_mem_allocate(void** dev_mem, size_t nbytes) {
     {
 #  if defined(ACC_OPENCL_XHINTS)
       const int devuid = devinfo->uid;
-      const int try_flag = ((0 != (8 & c_dbcsr_acc_opencl_config.xhints) || 0 != devinfo->unified || 0 == devinfo->intel ||
-                              (0x4905 != devuid && 0x020a != devuid && (0x0bd0 > devuid || 0x0bdb < devuid)))
-                              ? 0
-                              : (1u << 22));
+      const int try_flag =
+        ((0 != (16 & c_dbcsr_acc_opencl_config.xhints) && 0 != devinfo->intel && 0 == devinfo->unified &&
+           ((0x4905 == devuid || 0x020a == devuid || (0x0bd0 <= devuid && 0x0bdb >= devuid)) || NULL != (ACC_OPENCL_XHINTS)))
+            ? (1u << 22)
+            : 0);
       memory = clCreateBuffer(devinfo->context, (cl_mem_flags)(CL_MEM_READ_WRITE | try_flag), nbytes, NULL /*host_ptr*/, &result);
       if (0 != try_flag && EXIT_SUCCESS != result) /* retry without try_flag */
 #  endif

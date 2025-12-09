@@ -22,6 +22,9 @@
 #  if !defined(ACC_OPENCL_MEM_ALIGNSCALE)
 #    define ACC_OPENCL_MEM_ALIGNSCALE 8
 #  endif
+#  if !defined(ACC_OPENCL_MEM_SVM_INTEL) && 0
+#    define ACC_OPENCL_MEM_SVM_INTEL
+#  endif
 #  if !defined(ACC_OPENCL_MEM_SVM_USM) && 0
 #    define ACC_OPENCL_MEM_SVM_USM
 #  endif
@@ -82,7 +85,7 @@ c_dbcsr_acc_opencl_info_memptr_t* c_dbcsr_acc_opencl_info_hostptr(const void* me
 c_dbcsr_acc_opencl_info_memptr_t* c_dbcsr_acc_opencl_info_devptr_modify(
   ACC_OPENCL_LOCKTYPE* lock, void* memory, size_t elsize, const size_t* amount, size_t* offset) {
   c_dbcsr_acc_opencl_info_memptr_t* result = NULL;
-#  if !defined(NDEBUG)
+#  if !defined(ACC_OPENCL_MEM_DEBUG)
   LIBXSMM_UNUSED(amount);
 #  endif
   if (NULL != memory) {
@@ -240,8 +243,15 @@ int c_dbcsr_acc_host_mem_allocate(void** host_mem, size_t nbytes, void* stream) 
     }
 #  endif
 #  if (1 >= ACC_OPENCL_USM)
+#    if defined(ACC_OPENCL_MEM_SVM_INTEL)
+    if (NULL != devinfo->clSharedMemAllocINTEL) {
+      const cl_device_id device_id = c_dbcsr_acc_opencl_config.devices[c_dbcsr_acc_opencl_config.device_id];
+      const int props = 1 << 2;
+      host_ptr = devinfo->clSharedMemAllocINTEL(devinfo->context, device_id, &props, nbytes, 0 /*alignment*/, &result);
+#    else
     if (NULL != devinfo->clHostMemAllocINTEL) {
       host_ptr = devinfo->clHostMemAllocINTEL(devinfo->context, NULL /*properties*/, nbytes, 0 /*alignment*/, &result);
+#    endif
       assert(NULL != host_ptr || EXIT_SUCCESS != result);
       if (NULL != host_ptr) *host_mem = host_ptr;
     }
@@ -429,10 +439,17 @@ int c_dbcsr_acc_dev_mem_allocate(void** dev_mem, size_t nbytes) {
   if (0 != nbytes) {
     cl_mem memory = NULL;
 #  if (1 >= ACC_OPENCL_USM)
+#    if defined(ACC_OPENCL_MEM_SVM_INTEL)
+    if (NULL != devinfo->clDeviceMemAllocINTEL) {
+      const cl_device_id device_id = c_dbcsr_acc_opencl_config.devices[c_dbcsr_acc_opencl_config.device_id];
+      const int props = 1 << 1;
+      *dev_mem = memptr = devinfo->clSharedMemAllocINTEL(devinfo->context, device_id, &props, nbytes, 0 /*alignment*/, &result);
+#    else
     if (NULL != devinfo->clDeviceMemAllocINTEL) {
       const cl_device_id device_id = c_dbcsr_acc_opencl_config.devices[c_dbcsr_acc_opencl_config.device_id];
       *dev_mem = memptr = devinfo->clDeviceMemAllocINTEL(
         devinfo->context, device_id, NULL /*properties*/, nbytes, 0 /*alignment*/, &result);
+#    endif
     }
     else
 #  endif

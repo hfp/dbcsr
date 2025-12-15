@@ -1153,7 +1153,7 @@ int c_dbcsr_acc_opencl_set_active_device(ACC_OPENCL_LOCKTYPE* lock, int device_i
             cl_platform_id platform = NULL;
             cl_bitfield bitfield = 0;
             if (0 != (1 & c_dbcsr_acc_opencl_config.xhints) && 2 <= *devinfo->std_level && 0 != devinfo->intel &&
-                0 == c_dbcsr_acc_opencl_config.profile && /*0 == devinfo->unified &&*/
+                0 == c_dbcsr_acc_opencl_config.profile && 0 == devinfo->unified &&
                 EXIT_SUCCESS == clGetDeviceInfo(active_id, CL_DEVICE_PLATFORM, sizeof(cl_platform_id), &platform, NULL) &&
                 EXIT_SUCCESS == c_dbcsr_acc_opencl_device_vendor(active_id, "intel", 2 /*platform vendor*/) &&
                 EXIT_SUCCESS == clGetDeviceInfo(active_id, 0x4191 /*CL_DEVICE_DEVICE_MEM_CAPABILITIES_INTEL*/, sizeof(cl_bitfield),
@@ -1713,7 +1713,7 @@ int c_dbcsr_acc_opencl_kernel(size_t source_kind, const char source[], const cha
     }
   }
   else if (EXIT_SUCCESS == result) { /* binary representation */
-    assert(1 < size_src && 0 == size_src);
+    assert(1 < size_src || 0 == size_src);
 #  if defined(CL_VERSION_2_1)
     if (0 != c_dbcsr_acc_opencl_config.dump) program = clCreateProgramWithIL(devinfo->context, source, size_src, &result);
     else

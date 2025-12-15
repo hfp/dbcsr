@@ -421,11 +421,11 @@ int c_dbcsr_acc_opencl_kernel_flags(const char build_params[], const char build_
  * Build kernel from source with given kernel_name, build_params and build_options.
  * The build_params are meant to instantiate the kernel (-D) whereas build_options
  * are are meant to be compiler-flags. The source_kind denotes source's content:
- * 0: OpenCL source code
- * 1: Filename (OpenCL or binary)
- * 2: Binary code
+ *  0: OpenCL source code
+ *  1: Filename (OpenCL or binary)
+ * >1: Binary code (source_kind denotes size)
  */
-int c_dbcsr_acc_opencl_kernel(int source_kind, const char source[], const char kernel_name[], const char build_params[],
+int c_dbcsr_acc_opencl_kernel(size_t source_kind, const char source[], const char kernel_name[], const char build_params[],
   const char build_options[], const char try_build_options[], int* try_ok, const char* const extnames[], size_t num_exts,
   cl_kernel* kernel);
 /** Per-thread variant of c_dbcsr_acc_device_synchronize. */

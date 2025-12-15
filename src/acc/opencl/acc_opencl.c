@@ -1469,7 +1469,7 @@ int c_dbcsr_acc_opencl_kernel_flags(const char build_params[], const char build_
 }
 
 
-int c_dbcsr_acc_opencl_kernel(int source_kind, const char source[], const char kernel_name[], const char build_params[],
+int c_dbcsr_acc_opencl_kernel(size_t source_kind, const char source[], const char kernel_name[], const char build_params[],
   const char build_options[], const char try_options[], int* try_ok, const char* const extnames[], size_t num_exts,
   cl_kernel* kernel) {
   char buffer[ACC_OPENCL_BUFFERSIZE] = "", buffer_name[ACC_OPENCL_MAXSTRLEN * 2];
@@ -1507,6 +1507,7 @@ int c_dbcsr_acc_opencl_kernel(int source_kind, const char source[], const char k
     }
     fclose(file_src);
   }
+  else size_src = source_kind;
   if (EXIT_SUCCESS == result && 0 != source_is_cl) {
     const char* ext_source = source;
     size_src = strlen(ext_source);
@@ -1712,6 +1713,7 @@ int c_dbcsr_acc_opencl_kernel(int source_kind, const char source[], const char k
     }
   }
   else if (EXIT_SUCCESS == result) { /* binary representation */
+    assert(1 < size_src && 0 == size_src);
 #  if defined(CL_VERSION_2_1)
     if (0 != c_dbcsr_acc_opencl_config.dump) program = clCreateProgramWithIL(devinfo->context, source, size_src, &result);
     else

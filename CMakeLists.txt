@@ -77,6 +77,7 @@ option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 option(USE_OPENMP "Build with OpenMP support" ON)
 option(USE_MPI "Build with MPI support" ON)
 option(USE_MPI_F08 "Build with the mpi_f08 module support" OFF)
+option(BUILD_TESTING "Build dbcsr unit tests" OFF)
 cmake_dependent_option(
   WITH_C_API "Build the C API (ISO_C_BINDINGS)" ON "USE_MPI" OFF
 )# the ISO_C_BINDINGS require MPI unconditionally
@@ -127,13 +128,21 @@ option(WITH_HIP_PROFILING "Enable profiling within HIP" OFF)
 # LANGUAGES AND TESTING
 enable_language(Fortran)
 
-if (WITH_C_API AND WITH_EXAMPLES)
+if ((WITH_C_API AND WITH_EXAMPLES) OR (NOT USE_ACCEL MATCHES "none"))
   enable_language(CXX)
   enable_language(C)
-endif ()
 
-# always use at least C++11
-set(CMAKE_CXX_STANDARD 11)
+  if (NOT DEFINED CMAKE_CXX_STANDARD)
+    set(CMAKE_CXX_STANDARD 14)
+    set(CMAKE_CXX_STANDARD_REQUIRED ON)
+  endif ()
+
+  if (NOT DEFINED CMAKE_C_STANDARD)
+    set(CMAKE_C_STANDARD 11)
+    set(CMAKE_C_STANDARD_REQUIRED ON)
+  endif ()
+
+endif ()
 
 # =================================== OpenMP
 if (USE_OPENMP)
@@ -243,7 +252,6 @@ endif ()
 
 if (USE_ACCEL MATCHES "opencl")
   find_package(OpenCL REQUIRED)
-  enable_language(C)
 
   set(DBCSR_OPENCL_SCRIPT ${DBCSR_SOURCE_DIR}/acc/opencl/acc_opencl.sh)
   set(DBCSR_OPENCL_COMMON acc/opencl/common/opencl_atomics.h
@@ -253,7 +261,6 @@ if (USE_ACCEL MATCHES "opencl")
 endif ()
 
 if (USE_ACCEL MATCHES "cuda|hip")
-  enable_language(CXX)
   set(GPU_ARCH_NUMBER_K20X 35)
   set(GPU_ARCH_NUMBER_K40 35)
   set(GPU_ARCH_NUMBER_K80 37)
@@ -270,6 +277,11 @@ endif ()
 if (USE_ACCEL MATCHES "cuda")
   enable_language(CUDA)
   find_package(CUDAToolkit REQUIRED)
+
+  if (NOT DEFINED CMAKE_CUDA_STANDARD)
+    set(CMAKE_CUDA_STANDARD 14)
+    set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+  endif ()
 
   if (CUDAToolkit_VERSION LESS 5.5)
     message(FATAL_ERROR "CUDA version >= 5.5 is required.")
@@ -297,6 +309,11 @@ if (USE_ACCEL MATCHES "hip")
     set(CMAKE_HIP_ARCHITECTURES OFF)
   endif ()
   enable_language(HIP)
+
+  if (NOT DEFINED CMAKE_HIP_STANDARD)
+    set(CMAKE_HIP_STANDARD 14)
+    set(CMAKE_HIP_STANDARD_REQUIRED ON)
+  endif ()
 
   # Make sure the GPU required is supported
   list(FIND SUPPORTED_HIP_ARCHITECTURES ${WITH_GPU} GPU_SUPPORTED)
@@ -368,8 +385,8 @@ include(CheckCompilerSupport)
 # subdirectories
 add_subdirectory(${DBCSR_SOURCE_DIR})
 
-include(CTest)
 if (BUILD_TESTING)
+  include(CTest)
   add_subdirectory(tests)
 endif ()
 

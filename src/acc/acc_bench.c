@@ -51,6 +51,9 @@
 #  define PRINTF(...) printf(__VA_ARGS__)
 #endif
 
+#if !defined(DEDUPLICATE) && 0
+#  define DEDUPLICATE
+#endif
 #if !defined(ELEM_TYPE)
 #  define ELEM_TYPE double
 #endif
@@ -212,7 +215,7 @@ int main(int argc, char* argv[]) {
   const char *ssm = NULL, *ssn = NULL, *ssk = NULL;
   const char *snc = NULL, *sna = NULL, *snb = NULL;
   FILE* file = NULL;
-#if !defined(__OFFLOAD_UNIFIED_MEMORY)
+#if !defined(__OFFLOAD_UNIFIED_MEMORY) || !defined(DEDUPLICATE)
   const char* const env_nrepeat_h2d = getenv("NREPEAT_H2D");
   const int nrepeat_h2d = (NULL == env_nrepeat_h2d ? 1 : MAX(atoi(env_nrepeat_h2d), 1));
 #endif
@@ -385,7 +388,7 @@ int main(int argc, char* argv[]) {
           }
         }
       }
-#if !defined(__OFFLOAD_UNIFIED_MEMORY)
+#if !defined(__OFFLOAD_UNIFIED_MEMORY) || !defined(DEDUPLICATE)
       CHECK(c_dbcsr_acc_dev_mem_allocate((void**)(void*)&amat_dev, sizeof(ELEM_TYPE) * mk * na), &result, check);
       CHECK(c_dbcsr_acc_dev_mem_allocate((void**)(void*)&bmat_dev, sizeof(ELEM_TYPE) * kn * nb), &result, check);
       CHECK(c_dbcsr_acc_dev_mem_allocate((void**)(void*)&cmat_dev, sizeof(ELEM_TYPE) * mn * nc), &result, check);
@@ -515,7 +518,7 @@ int main(int argc, char* argv[]) {
           PRINTF("host: %.2g ms %.1f GFLOPS/s\n", 1000.0 * duration / (nrepeat * nrepeat_smm), perf_hst);
           /* validate correctness in case of successful result code/status */
           if (EXIT_SUCCESS == result) {
-#    if !defined(__OFFLOAD_UNIFIED_MEMORY)
+#    if !defined(__OFFLOAD_UNIFIED_MEMORY) || !defined(DEDUPLICATE)
             /* transfer result from device to host for validation */
             CHECK(c_dbcsr_acc_memcpy_d2h(cmat_dev, cmat_hst, sizeof(ELEM_TYPE) * mn * nc, stream), &result, check);
             CHECK(c_dbcsr_acc_stream_sync(stream), &result, check);
@@ -560,7 +563,7 @@ int main(int argc, char* argv[]) {
       CHECK(c_dbcsr_acc_host_mem_deallocate(amat_hst, stream), NULL, check);
       CHECK(c_dbcsr_acc_host_mem_deallocate(bmat_hst, stream), NULL, check);
       CHECK(c_dbcsr_acc_host_mem_deallocate(cmat_hst, stream), NULL, check);
-#if !defined(__OFFLOAD_UNIFIED_MEMORY)
+#if !defined(__OFFLOAD_UNIFIED_MEMORY) || !defined(DEDUPLICATE)
       CHECK(c_dbcsr_acc_dev_mem_deallocate(stack_dev), NULL, check);
       CHECK(c_dbcsr_acc_dev_mem_deallocate(trans_dev), NULL, check);
       CHECK(c_dbcsr_acc_dev_mem_deallocate(amat_dev), NULL, check);

@@ -1469,7 +1469,7 @@ int c_dbcsr_acc_opencl_kernel_flags(const char build_params[], const char build_
 }
 
 
-int c_dbcsr_acc_opencl_kernel(int source_is_file, const char source[], const char kernel_name[], const char build_params[],
+int c_dbcsr_acc_opencl_kernel(int source_kind, const char source[], const char kernel_name[], const char build_params[],
   const char build_options[], const char try_options[], int* try_ok, const char* const extnames[], size_t num_exts,
   cl_kernel* kernel) {
   char buffer[ACC_OPENCL_BUFFERSIZE] = "", buffer_name[ACC_OPENCL_MAXSTRLEN * 2];
@@ -1483,7 +1483,7 @@ int c_dbcsr_acc_opencl_kernel(int source_is_file, const char source[], const cha
   assert(NULL != devinfo->context);
   assert(NULL != kernel);
   *kernel = NULL;
-  if (EXIT_SUCCESS == result && 0 != source_is_file) file_src = fopen(source, "rb");
+  if (EXIT_SUCCESS == result && (1 == source_kind)) file_src = fopen(source, "rb");
   if (NULL != file_src) {
     if (EXIT_SUCCESS == result) {
       const char* const file_ext = strrchr(source, '.');
@@ -1757,7 +1757,7 @@ int c_dbcsr_acc_opencl_kernel(int source_is_file, const char source[], const cha
   if (NULL != file_src) {
     void* p = NULL;
     LIBXSMM_ASSIGN127(&p, (const void**)&source);
-    assert(0 != source_is_file);
+    assert(1 == source_kind);
     libxsmm_free(p);
   }
   if (NULL != program) {

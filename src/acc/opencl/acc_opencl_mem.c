@@ -515,7 +515,7 @@ int c_dbcsr_acc_dev_mem_allocate(void** dev_mem, size_t nbytes) {
                                 "  ptr[i] = cast.u + i;\n"
                                 "}\n";
           assert(sizeof(size_t) == sizeof(cl_ulong));
-          result = c_dbcsr_acc_opencl_kernel(0 /*source_is_file*/, source, "memptr" /*kernel_name*/, NULL /*build_params*/,
+          result = c_dbcsr_acc_opencl_kernel(0 /*source_kind*/, source, "memptr" /*kernel_name*/, NULL /*build_params*/,
             NULL /*build_options*/, NULL /*try_build_options*/, NULL /*try_ok*/, NULL /*extnames*/, 0 /*num_exts*/, &kernel);
         }
         /* TODO: backup/restore memory */

@@ -1140,7 +1140,7 @@ int c_dbcsr_acc_opencl_set_active_device(ACC_OPENCL_LOCKTYPE* lock, int device_i
             for (i = 0; (i * sizeof(size_t)) < nbytes; ++i) {
               const size_t sgsize = sgsizes[i];
               if (sgsize < sgmin) sgmin = sgsize;
-              if (0 != devinfo->wgsize[1] && 0 == (sgsize % devinfo->wgsize[1]) && devinfo->wgsize[2] < sgsize) {
+              if (0 != devinfo->wgsize[1] && 0 == (devinfo->wgsize[1] % sgsize) && devinfo->wgsize[2] < sgsize) {
                 if (devinfo->wgsize[1] < sgsize) devinfo->wgsize[1] = sgsize;
                 devinfo->wgsize[2] = sgsize;
               }

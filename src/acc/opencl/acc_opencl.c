@@ -295,7 +295,7 @@ void c_dbcsr_acc_opencl_configure(void) {
       if ((1 & c_dbcsr_acc_opencl_config.wa) && NULL == getenv("ZE_FLAT_DEVICE_HIERARCHY")) {
         ACC_OPENCL_EXPECT(0 == LIBXSMM_PUTENV(apply[0]));
       }
-#  if (0 == ACC_OPENCL_USM)
+#  if (1 >= ACC_OPENCL_USM)
       if ((2 & c_dbcsr_acc_opencl_config.wa) && NULL == getenv("EnableRecoverablePageFaults")) {
         ACC_OPENCL_EXPECT(0 == LIBXSMM_PUTENV(apply[1]));
       }

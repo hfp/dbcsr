@@ -170,7 +170,7 @@ void c_dbcsr_acc_opencl_configure(void) {
 #  endif
 #  if defined(ACC_OPENCL_XHINTS)
   const char* const env_xhints = (ACC_OPENCL_XHINTS);
-  const int xhints_default = 1 + 2 + 4 + 8;
+  const int xhints_default = 1 + 2 + 4 + 8 + 16;
 #  else
   const char* const env_xhints = NULL;
   const int xhints_default = 0;

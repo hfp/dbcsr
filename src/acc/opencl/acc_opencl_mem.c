@@ -305,7 +305,7 @@ int c_dbcsr_acc_host_mem_allocate(void** host_mem, size_t nbytes, void* stream) 
       int memflags = CL_MEM_ALLOC_HOST_PTR;
       nbytes += alignment + size_meminfo - 1;
 #  if defined(ACC_OPENCL_XHINTS)
-      if (0 != (4 & c_dbcsr_acc_opencl_config.xhints) && (0 != devinfo->nv || NULL != (ACC_OPENCL_XHINTS))) {
+      if (0 != (8 & c_dbcsr_acc_opencl_config.xhints) && (0 != devinfo->nv || NULL != (ACC_OPENCL_XHINTS))) {
         host_ptr = ACC_OPENCL_MEM_ALLOC(nbytes, alignment);
         if (NULL != host_ptr) memflags = CL_MEM_USE_HOST_PTR;
       }
@@ -316,7 +316,7 @@ int c_dbcsr_acc_host_mem_allocate(void** host_mem, size_t nbytes, void* stream) 
         if (NULL == host_ptr) {
           mapped = clEnqueueMapBuffer(str->queue, memory, CL_TRUE /*always block*/,
 #  if defined(ACC_OPENCL_XHINTS) && (defined(CL_VERSION_1_2) || defined(CL_MAP_WRITE_INVALIDATE_REGION))
-            (16 & c_dbcsr_acc_opencl_config.xhints) ? CL_MAP_WRITE_INVALIDATE_REGION :
+            (32 & c_dbcsr_acc_opencl_config.xhints) ? CL_MAP_WRITE_INVALIDATE_REGION :
 #  endif
                                                     (CL_MAP_READ | CL_MAP_WRITE),
             0 /*offset*/, nbytes, 0, NULL, NULL, &result);
@@ -489,7 +489,7 @@ int c_dbcsr_acc_dev_mem_allocate(void** dev_mem, size_t nbytes) {
     {
 #  if defined(ACC_OPENCL_XHINTS)
       const int devuid = devinfo->uid, devuids = (0x4905 == devuid || 0x020a == devuid || (0x0bd0 <= devuid && 0x0bdb >= devuid));
-      const int try_flag = ((0 != (8 & c_dbcsr_acc_opencl_config.xhints) && 0 != devinfo->intel && 0 == devinfo->unified &&
+      const int try_flag = ((0 != (16 & c_dbcsr_acc_opencl_config.xhints) && 0 != devinfo->intel && 0 == devinfo->unified &&
                               (devuids || NULL != (ACC_OPENCL_XHINTS)))
                               ? (1u << 22)
                               : 0);

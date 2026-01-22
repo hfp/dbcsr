@@ -605,11 +605,14 @@ int c_dbcsr_acc_init(void) {
 #  endif
           0 > c_dbcsr_acc_opencl_config.profile)
         {
+          const char* const env_qsize = getenv("ACC_OPENCL_PROFILE_QSIZE");
+          const int psize = (NULL == env_qsize ? 0 : atoi(env_qsize));
+          const int qsize = (0 >= psize ? 1024 : LIBXSMM_MIN(psize, 65536));
           const int profile = LIBXSMM_MAX(LIBXSMM_ABS(c_dbcsr_acc_opencl_config.profile), 2);
           const c_dbcsr_acc_opencl_hist_update_fn update[] = {c_dbcsr_acc_opencl_hist_avg, c_dbcsr_acc_opencl_hist_add};
-          c_dbcsr_acc_opencl_hist_create(&c_dbcsr_acc_opencl_config.hist_h2d, profile + 1, profile * 4, 2, update);
-          c_dbcsr_acc_opencl_hist_create(&c_dbcsr_acc_opencl_config.hist_d2h, profile + 1, profile * 4, 2, update);
-          c_dbcsr_acc_opencl_hist_create(&c_dbcsr_acc_opencl_config.hist_d2d, profile + 1, profile * 4, 2, update);
+          c_dbcsr_acc_opencl_hist_create(&c_dbcsr_acc_opencl_config.hist_h2d, profile + 1, qsize, 2, update);
+          c_dbcsr_acc_opencl_hist_create(&c_dbcsr_acc_opencl_config.hist_d2h, profile + 1, qsize, 2, update);
+          c_dbcsr_acc_opencl_hist_create(&c_dbcsr_acc_opencl_config.hist_d2d, profile + 1, qsize, 2, update);
         }
         else {
           assert(NULL == c_dbcsr_acc_opencl_config.hist_h2d);
@@ -679,7 +682,8 @@ LIBXSMM_ATTRIBUTE_CTOR void c_dbcsr_acc_opencl_init(void) {
 LIBXSMM_ATTRIBUTE_DTOR void c_dbcsr_acc_opencl_finalize(void) {
   assert(c_dbcsr_acc_opencl_config.ndevices < ACC_OPENCL_MAXNDEVS);
   if (0 != c_dbcsr_acc_opencl_config.ndevices) {
-    int precision[] = {0, 1}, i;
+    const int precision[] = {0, 1};
+    int i;
     LIBXSMM_STDIO_ACQUIRE();
     c_dbcsr_acc_opencl_hist_print(stderr, c_dbcsr_acc_opencl_config.hist_h2d, "\nPROF ACC/OpenCL: H2D", precision, NULL /*adjust*/);
     c_dbcsr_acc_opencl_hist_print(stderr, c_dbcsr_acc_opencl_config.hist_d2h, "\nPROF ACC/OpenCL: D2H", precision, NULL /*adjust*/);

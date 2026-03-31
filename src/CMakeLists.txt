@@ -136,10 +136,7 @@ elseif (USE_ACCEL MATCHES "cuda")
                               PROPERTIES COMPILE_FLAGS "--x cu")
 endif ()
 
-set(DBCSR_OPENCL_SRCS
-    acc/opencl/smm/opencl_libsmm.c acc/opencl/acc_opencl.c
-    acc/opencl/acc_opencl_event.c acc/opencl/acc_opencl_mem.c
-    acc/opencl/acc_opencl_stream.c)
+# OpenCL backend is provided by LIBXSTREAM (no local sources)
 
 # set the __SHORT_FILE__ per file for dbcsr sources
 foreach (dbcsr_src ${DBCSR_FORTRAN_SRCS})
@@ -163,7 +160,7 @@ if (USE_ACCEL MATCHES "cuda")
 elseif (USE_ACCEL MATCHES "hip")
   set(DBCSR_SRCS ${DBCSR_SRCS} ${DBCSR_HIP_SRCS})
 elseif (USE_ACCEL MATCHES "opencl")
-  set(DBCSR_SRCS ${DBCSR_SRCS} ${DBCSR_OPENCL_SRCS})
+  # LIBXSTREAM provides all OpenCL sources; linked externally
 endif ()
 
 # =================================================================================================
@@ -264,9 +261,7 @@ if (USE_ACCEL MATCHES "cuda|hip")
   add_subdirectory(acc/libsmm_acc)
 endif ()
 
-if (USE_ACCEL MATCHES "opencl")
-  add_subdirectory(acc/opencl/smm)
-endif ()
+# OpenCL SMM is provided by LIBXSTREAM (no local subdirectory)
 
 if (USE_ACCEL)
   target_compile_definitions(
@@ -292,7 +287,9 @@ if (USE_ACCEL)
             $<$<STREQUAL:${USE_ACCEL},hip>:hip::host>
             $<$<BOOL:${WITH_HIP_PROFILING}>:roctx64>
             $<$<BOOL:${WITH_HIP_PROFILING}>:roctracer64>
-            $<$<STREQUAL:${USE_ACCEL},opencl>:OpenCL::OpenCL>)
+            $<$<STREQUAL:${USE_ACCEL},opencl>:OpenCL::OpenCL>
+            # LIBXSTREAM provides the OpenCL ACC backend
+            $<$<STREQUAL:${USE_ACCEL},opencl>:${LIBXSTREAM_LIBRARY}>)
 endif ()
 
 # =================================================================================================
@@ -361,12 +358,6 @@ endif ()
 
 if (USE_ACCEL MATCHES "opencl")
   foreach (FILE ${DBCSR_ACC_HEADER})
-    cmake_path(GET FILE PARENT_PATH SUBDIR)
-    install(FILES "${FILE}" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${SUBDIR}")
-  endforeach ()
-  install(PROGRAMS "${DBCSR_OPENCL_SCRIPT}"
-          DESTINATION "${CMAKE_INSTALL_DATADIR}/opencl")
-  foreach (FILE ${DBCSR_OPENCL_COMMON})
     cmake_path(GET FILE PARENT_PATH SUBDIR)
     install(FILES "${FILE}" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${SUBDIR}")
   endforeach ()

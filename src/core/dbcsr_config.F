@@ -55,7 +55,7 @@ MODULE dbcsr_config
    LOGICAL, PARAMETER :: has_smm_vec = .FALSE.
 #endif
 
-#if defined(__LIBXSMM)
+#if defined(__LIBXS)
    LOGICAL, PARAMETER :: has_xsmm = .TRUE.
 #else
    LOGICAL, PARAMETER :: has_xsmm = .FALSE.
@@ -89,7 +89,7 @@ MODULE dbcsr_config
    LOGICAL, PARAMETER :: mm_dense_default = mm_dense_default_cpu
 #endif
 
-#if defined(__LIBXSMM)
+#if defined(__LIBXS)
    INTEGER, PARAMETER :: mm_default_driver = mm_driver_xsmm
 #elif defined (__HAS_smm_dnn)
    INTEGER, PARAMETER :: mm_default_driver = mm_driver_smm

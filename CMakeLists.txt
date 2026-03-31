@@ -180,7 +180,7 @@ endif ()
 # =================================== SMM (Small Matrix-Matrix multiplication)
 if (USE_SMM MATCHES "blas" OR (USE_SMM MATCHES "auto" AND NOT LIBXSMM_FOUND))
   if (USE_ACCEL MATCHES "opencl")
-    message(FATAL_ERROR "OpenCL requires USE_SMM=libxsmm")
+    message(STATUS "OpenCL via LIBXSTREAM (SMM provided by LIBXSTREAM)")
   endif ()
   message(STATUS "Using BLAS for Small Matrix Multiplication")
 elseif (USE_SMM MATCHES "libxsmm" OR USE_SMM MATCHES "auto")
@@ -251,13 +251,8 @@ if (NOT USE_ACCEL MATCHES "none")
 endif ()
 
 if (USE_ACCEL MATCHES "opencl")
+  # LIBXSTREAM provides the OpenCL backend (replaces src/acc/opencl/)
   find_package(OpenCL REQUIRED)
-
-  set(DBCSR_OPENCL_SCRIPT ${DBCSR_SOURCE_DIR}/acc/opencl/acc_opencl.sh)
-  set(DBCSR_OPENCL_COMMON acc/opencl/common/opencl_atomics.h
-                          acc/opencl/common/opencl_common.h)
-  list(APPEND DBCSR_ACC_HEADER acc/opencl/smm/opencl_libsmm.h
-       acc/opencl/acc_opencl.h)
 endif ()
 
 if (USE_ACCEL MATCHES "cuda|hip")

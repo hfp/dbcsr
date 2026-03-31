@@ -295,7 +295,7 @@ CONTAINS
             IF (.NOT. has_smm) DBCSR_ABORT("Support for libsmm not compiled in.")
             this%val = mm_driver_smm
          ELSE IF (my_mm_driver .EQ. mm_name_xsmm) THEN
-            IF (.NOT. has_xsmm) DBCSR_ABORT("Support for libxsmm not compiled in.")
+            IF (.NOT. has_xsmm) DBCSR_ABORT("Support for LIBXS GEMM not compiled in.")
             this%val = mm_driver_xsmm
          ELSE
             DBCSR_ABORT("Unknown MM driver: "//TRIM(mm_driver))

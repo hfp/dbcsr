@@ -31,17 +31,9 @@ MODULE dbcsr_block_operations
 #include "base/dbcsr_base_uses.f90"
 
    IMPLICIT NONE
-#if defined(__LIBXSMM) && TO_VERSION(1, 10) < TO_VERSION(LIBXSMM_CONFIG_VERSION_MAJOR, LIBXSMM_CONFIG_VERSION_MINOR)
-#  define __LIBXSMM_BLOCKOPS
-#endif
-#if defined(__LIBXSMM) && TO_VERSION(1, 10) <= TO_VERSION(LIBXSMM_CONFIG_VERSION_MAJOR, LIBXSMM_CONFIG_VERSION_MINOR)
-#  define __LIBXSMM_TRANS
-#endif
-#if defined(__MKL) || defined(__LIBXSMM_TRANS) || defined(__LIBXSMM_BLOCKOPS) || !defined(NDEBUG)
-!  MKL: mkl_trans.fi header is obsolescent (use implicit "interface")
+#if defined(__MKL) || defined(__LIBXS) || !defined(NDEBUG)
 #  define PURE_BLOCKOPS
 #else
-!  MKL: routines are impure, LIBXSMM: C_LOC is impure (F-standard mistake)
 #  define PURE_BLOCKOPS PURE
 #endif
    PRIVATE
@@ -1455,8 +1447,8 @@ CONTAINS
      !! see block_partial_copy_a
      !! @endnote
 
-#if defined(__LIBXSMM_BLOCKOPS)
-         USE libxsmm, ONLY: libxsmm_matcopy, libxsmm_otrans, libxsmm_ptr0
+#if defined(__LIBXS)
+         USE LIBXS, ONLY: libxs_matcopy, libxs_otrans, C_LOC
 #endif
          ${type1}$, DIMENSION(:), &
             INTENT(INOUT)                         :: dst
@@ -1475,10 +1467,10 @@ CONTAINS
 !    Factors out the 4 combinations to remove branches from the inner loop.
 !    rs is the logical row size so it always remains the leading dimension.
          IF (.NOT. dst_tr .AND. .NOT. src_tr) THEN
-#if defined(__LIBXSMM_BLOCKOPS)
+#if defined(__LIBXS)
             IF ((0 .LT. ncol) .AND. (0 .LT. nrow)) THEN
-               CALL libxsmm_matcopy(libxsmm_ptr0(dst(dst_offset + dst_r_lb + (dst_c_lb - 1)*dst_rs)), &
-                                    libxsmm_ptr0(src(src_offset + src_r_lb + (src_c_lb - 1)*src_rs)), &
+               CALL libxs_matcopy(C_LOC(dst(dst_offset + dst_r_lb + (dst_c_lb - 1)*dst_rs)), &
+                                    C_LOC(src(src_offset + src_r_lb + (src_c_lb - 1)*src_rs)), &
                                     ${typesize1[n]}$, nrow, ncol, src_rs, dst_rs)
             END IF
 #else
@@ -1505,10 +1497,10 @@ CONTAINS
             END DO
          ELSE
             DBCSR_ASSERT(dst_tr .AND. src_tr)
-#if defined(__LIBXSMM_BLOCKOPS)
+#if defined(__LIBXS)
             IF ((0 .LT. ncol) .AND. (0 .LT. nrow)) THEN
-               CALL libxsmm_matcopy(libxsmm_ptr0(dst(dst_offset + dst_c_lb + (dst_r_lb - 1)*dst_cs)), &
-                                    libxsmm_ptr0(src(src_offset + src_c_lb + (src_r_lb - 1)*src_cs)), &
+               CALL libxs_matcopy(C_LOC(dst(dst_offset + dst_c_lb + (dst_r_lb - 1)*dst_cs)), &
+                                    C_LOC(src(src_offset + src_c_lb + (src_r_lb - 1)*src_cs)), &
                                     ${typesize1[n]}$, nrow, ncol, src_cs, dst_cs)
             END IF
 #else
@@ -1531,8 +1523,8 @@ CONTAINS
      !! see block_partial_copy_a
      !! @endnote
 
-#if defined(__LIBXSMM_BLOCKOPS)
-         USE libxsmm, ONLY: libxsmm_matcopy, libxsmm_otrans, libxsmm_ptr0
+#if defined(__LIBXS)
+         USE LIBXS, ONLY: libxs_matcopy, libxs_otrans, C_LOC
 #else
          INTEGER                                  :: col, row
 #endif
@@ -1551,10 +1543,10 @@ CONTAINS
 !    Factors out the 4 combinations to remove branches from the inner loop.
 !    rs is the logical row size so it always remains the leading dimension.
          IF (.NOT. dst_tr .AND. .NOT. src_tr) THEN
-#if defined(__LIBXSMM_BLOCKOPS)
+#if defined(__LIBXS)
             IF ((0 .LT. ncol) .AND. (0 .LT. nrow)) THEN
-               CALL libxsmm_matcopy(libxsmm_ptr0(dst(dst_offset + dst_r_lb + (dst_c_lb - 1)*dst_rs)), &
-                                    libxsmm_ptr0(src(src_r_lb, src_c_lb)), &
+               CALL libxs_matcopy(C_LOC(dst(dst_offset + dst_r_lb + (dst_c_lb - 1)*dst_rs)), &
+                                    C_LOC(src(src_r_lb, src_c_lb)), &
                                     ${typesize1[n]}$, nrow, ncol, SIZE(src, 1), dst_rs)
             END IF
 #else
@@ -1566,10 +1558,10 @@ CONTAINS
             END DO
 #endif
          ELSEIF (dst_tr .AND. .NOT. src_tr) THEN
-#if defined(__LIBXSMM_BLOCKOPS)
+#if defined(__LIBXS)
             IF ((0 .LT. ncol) .AND. (0 .LT. nrow)) THEN
-               CALL libxsmm_otrans(libxsmm_ptr0(dst(dst_offset + dst_c_lb + (dst_r_lb - 1)*dst_cs)), &
-                                   libxsmm_ptr0(src(src_r_lb, src_c_lb)), &
+               CALL libxs_otrans(C_LOC(dst(dst_offset + dst_c_lb + (dst_r_lb - 1)*dst_cs)), &
+                                   C_LOC(src(src_r_lb, src_c_lb)), &
                                    ${typesize1[n]}$, nrow, ncol, SIZE(src, 1), dst_cs)
             END IF
 #else
@@ -1581,10 +1573,10 @@ CONTAINS
             END DO
 #endif
          ELSEIF (.NOT. dst_tr .AND. src_tr) THEN
-#if defined(__LIBXSMM_BLOCKOPS)
+#if defined(__LIBXS)
             IF ((0 .LT. ncol) .AND. (0 .LT. nrow)) THEN
-               CALL libxsmm_otrans(libxsmm_ptr0(dst(dst_offset + dst_r_lb + (dst_c_lb - 1)*dst_rs)), &
-                                   libxsmm_ptr0(src(src_c_lb, src_r_lb)), &
+               CALL libxs_otrans(C_LOC(dst(dst_offset + dst_r_lb + (dst_c_lb - 1)*dst_rs)), &
+                                   C_LOC(src(src_c_lb, src_r_lb)), &
                                    ${typesize1[n]}$, nrow, ncol, SIZE(src, 2), dst_rs)
             END IF
 #else
@@ -1597,10 +1589,10 @@ CONTAINS
 #endif
          ELSE
             DBCSR_ASSERT(dst_tr .AND. src_tr)
-#if defined(__LIBXSMM_BLOCKOPS)
+#if defined(__LIBXS)
             IF ((0 .LT. ncol) .AND. (0 .LT. nrow)) THEN
-               CALL libxsmm_matcopy(libxsmm_ptr0(dst(dst_offset + dst_c_lb + (dst_r_lb - 1)*dst_cs)), &
-                                    libxsmm_ptr0(src(src_c_lb, src_r_lb)), &
+               CALL libxs_matcopy(C_LOC(dst(dst_offset + dst_c_lb + (dst_r_lb - 1)*dst_cs)), &
+                                    C_LOC(src(src_c_lb, src_r_lb)), &
                                     ${typesize1[n]}$, nrow, ncol, SIZE(src, 2), dst_cs)
             END IF
 #else
@@ -1623,8 +1615,8 @@ CONTAINS
      !! see block_partial_copy_a
      !! @endnote
 
-#if defined(__LIBXSMM_BLOCKOPS)
-         USE libxsmm, ONLY: libxsmm_matcopy, libxsmm_otrans, libxsmm_ptr0
+#if defined(__LIBXS)
+         USE LIBXS, ONLY: libxs_matcopy, libxs_otrans, C_LOC
 #endif
          ${type1}$, DIMENSION(:, :), &
             INTENT(INOUT)                         :: dst
@@ -1681,8 +1673,8 @@ CONTAINS
      !! see block_partial_copy_a
      !! @endnote
 
-#if defined(__LIBXSMM_BLOCKOPS)
-         USE libxsmm, ONLY: libxsmm_matcopy, libxsmm_otrans, libxsmm_ptr0
+#if defined(__LIBXS)
+         USE LIBXS, ONLY: libxs_matcopy, libxs_otrans, C_LOC
 #else
          INTEGER                                  :: col, row
 #endif
@@ -1699,10 +1691,10 @@ CONTAINS
 !    Factors out the 4 combinations to remove branches from the inner loop.
 !    rs is the logical row size so it always remains the leading dimension.
          IF (.NOT. dst_tr .AND. .NOT. src_tr) THEN
-#if defined(__LIBXSMM_BLOCKOPS)
+#if defined(__LIBXS)
             IF ((0 .LT. ncol) .AND. (0 .LT. nrow)) THEN
-               CALL libxsmm_matcopy(libxsmm_ptr0(dst(dst_r_lb, dst_c_lb)), &
-                                    libxsmm_ptr0(src(src_r_lb, src_c_lb)), &
+               CALL libxs_matcopy(C_LOC(dst(dst_r_lb, dst_c_lb)), &
+                                    C_LOC(src(src_r_lb, src_c_lb)), &
                                     ${typesize1[n]}$, nrow, ncol, &
                                     SIZE(src, 1), SIZE(dst, 1))
             END IF
@@ -1715,10 +1707,10 @@ CONTAINS
             END DO
 #endif
          ELSEIF (dst_tr .AND. .NOT. src_tr) THEN
-#if defined(__LIBXSMM_BLOCKOPS)
+#if defined(__LIBXS)
             IF ((0 .LT. ncol) .AND. (0 .LT. nrow)) THEN
-               CALL libxsmm_otrans(libxsmm_ptr0(dst(dst_c_lb, dst_r_lb)), &
-                                   libxsmm_ptr0(src(src_r_lb, src_c_lb)), &
+               CALL libxs_otrans(C_LOC(dst(dst_c_lb, dst_r_lb)), &
+                                   C_LOC(src(src_r_lb, src_c_lb)), &
                                    ${typesize1[n]}$, nrow, ncol, &
                                    SIZE(src, 1), SIZE(dst, 2))
             END IF
@@ -1731,10 +1723,10 @@ CONTAINS
             END DO
 #endif
          ELSEIF (.NOT. dst_tr .AND. src_tr) THEN
-#if defined(__LIBXSMM_BLOCKOPS)
+#if defined(__LIBXS)
             IF ((0 .LT. ncol) .AND. (0 .LT. nrow)) THEN
-               CALL libxsmm_otrans(libxsmm_ptr0(dst(dst_r_lb, dst_c_lb)), &
-                                   libxsmm_ptr0(src(src_c_lb, src_r_lb)), &
+               CALL libxs_otrans(C_LOC(dst(dst_r_lb, dst_c_lb)), &
+                                   C_LOC(src(src_c_lb, src_r_lb)), &
                                    ${typesize1[n]}$, nrow, ncol, &
                                    SIZE(src, 2), SIZE(dst, 1))
             END IF
@@ -1748,10 +1740,10 @@ CONTAINS
 #endif
          ELSE
             DBCSR_ASSERT(dst_tr .AND. src_tr)
-#if defined(__LIBXSMM_BLOCKOPS)
+#if defined(__LIBXS)
             IF ((0 .LT. ncol) .AND. (0 .LT. nrow)) THEN
-               CALL libxsmm_matcopy(libxsmm_ptr0(dst(dst_c_lb, dst_r_lb)), &
-                                    libxsmm_ptr0(src(src_c_lb, src_r_lb)), &
+               CALL libxs_matcopy(C_LOC(dst(dst_c_lb, dst_r_lb)), &
+                                    C_LOC(src(src_c_lb, src_r_lb)), &
                                     ${typesize1[n]}$, nrow, ncol, &
                                     SIZE(src, 2), SIZE(dst, 2))
             END IF
@@ -1786,8 +1778,8 @@ CONTAINS
                                                                    rows, columns)
      !! Copy and transpose block.
 
-#if defined(__LIBXSMM_TRANS)
-         USE libxsmm, ONLY: libxsmm_otrans, libxsmm_ptr1
+#if defined(__LIBXS)
+         USE LIBXS, ONLY: libxs_otrans, C_LOC
 #endif
          ${type1}$, DIMENSION(:), INTENT(OUT), TARGET :: extent_out
         !! output matrix in the form of a 1-d array
@@ -1798,8 +1790,8 @@ CONTAINS
         !! input matrix size
 
 !    ---------------------------------------------------------------------------
-#if defined(__LIBXSMM_TRANS)
-         CALL libxsmm_otrans(libxsmm_ptr1(extent_out), libxsmm_ptr1(extent_in), &
+#if defined(__LIBXS)
+         CALL libxs_otrans(C_LOC(extent_out), C_LOC(extent_in), &
                              ${typesize1[n]}$, rows, columns, rows, columns)
 #elif defined(__MKL)
          CALL mkl_${nametype1}$omatcopy('C', 'T', rows, columns, ${one1[n]}$, extent_in, rows, extent_out, columns)
@@ -1861,8 +1853,8 @@ CONTAINS
                                                                         rows, columns)
      !! Copy and transpose block.
 
-#if defined(__LIBXSMM_TRANS)
-         USE libxsmm, ONLY: libxsmm_otrans, libxsmm_ptr1, libxsmm_ptr2
+#if defined(__LIBXS)
+         USE LIBXS, ONLY: libxs_otrans, C_LOC
 #endif
          INTEGER, INTENT(IN) :: rows, columns
         !! input matrix size
@@ -1873,8 +1865,8 @@ CONTAINS
         !! input matrix in the form of a 1-d array
 
 !    ---------------------------------------------------------------------------
-#if defined(__LIBXSMM_TRANS)
-         CALL libxsmm_otrans(libxsmm_ptr2(extent_out), libxsmm_ptr1(extent_in), &
+#if defined(__LIBXS)
+         CALL libxs_otrans(C_LOC(extent_out), C_LOC(extent_in), &
                              ${typesize1[n]}$, rows, columns, rows, columns)
 #elif defined(__MKL)
          CALL mkl_${nametype1}$omatcopy('C', 'T', rows, columns, ${one1[n]}$, extent_in, rows, extent_out, columns)
@@ -1903,8 +1895,8 @@ CONTAINS
                                                                         rows, columns)
      !! Copy and transpose block.
 
-#if defined(__LIBXSMM_TRANS)
-         USE libxsmm, ONLY: libxsmm_otrans, libxsmm_ptr1, libxsmm_ptr2
+#if defined(__LIBXS)
+         USE LIBXS, ONLY: libxs_otrans, C_LOC
 #endif
          INTEGER, INTENT(IN) :: rows, columns
         !! input matrix size
@@ -1915,8 +1907,8 @@ CONTAINS
         !! input matrix in the form of a 2-d array
 
 !    ---------------------------------------------------------------------------
-#if defined(__LIBXSMM_TRANS)
-         CALL libxsmm_otrans(libxsmm_ptr1(extent_out), libxsmm_ptr2(extent_in), &
+#if defined(__LIBXS)
+         CALL libxs_otrans(C_LOC(extent_out), C_LOC(extent_in), &
                              ${typesize1[n]}$, rows, columns, rows, columns)
 #elif defined(__MKL)
          CALL mkl_${nametype1}$omatcopy('C', 'T', rows, columns, ${one1[n]}$, extent_in, rows, extent_out, columns)
@@ -1928,8 +1920,8 @@ CONTAINS
       PURE_BLOCKOPS SUBROUTINE block_transpose_inplace_${nametype1}$ (extent, rows, columns)
      !! In-place block transpose.
 
-#if defined(__LIBXSMM_TRANS) && 0
-         USE libxsmm, ONLY: libxsmm_itrans, libxsmm_ptr1
+#if defined(__LIBXS) && 0
+         USE LIBXS, ONLY: libxs_otrans, C_LOC
 #endif
          INTEGER, INTENT(IN) :: rows, columns
         !! input matrix size
@@ -1938,8 +1930,8 @@ CONTAINS
         !! Matrix in the form of a 1-d array
 
 !    ---------------------------------------------------------------------------
-#if defined(__LIBXSMM_TRANS) && 0
-         CALL libxsmm_itrans(libxsmm_ptr1(extent), ${typesize1[n]}$, rows, columns, rows)
+#if defined(__LIBXS) && 0
+         CALL libxs_otrans(C_LOC(extent), ${typesize1[n]}$, rows, columns, rows)
 #elif defined(__MKL)
          CALL mkl_${nametype1}$imatcopy('C', 'T', rows, columns, ${one1[n]}$, extent, rows, columns)
 #else

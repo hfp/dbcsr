@@ -370,46 +370,105 @@ CONTAINS
 #if defined(__LIBXS)
       SUBROUTINE libxs_process_mm_stack_${nametype1}$ (stack_descr, params, &
                                                        stack_size, a_data, b_data, c_data, used_smm)
-     !! Processes MM stack using LIBXS GEMM dispatch+call
-         USE LIBXS, ONLY: libxs_gemm_config_t, libxs_gemm_dispatch, &
-                          libxs_gemm_ready, libxs_gemm_call, &
-                          libxs_gemm_release, C_LOC, &
+     !! Processes MM stack using LIBXS indexed GEMM batch.
+     !! Per-shape configs with MKL JIT (when available) are cached in a registry.
+         USE LIBXS, ONLY: libxs_gemm_config_t, libxs_gemm_shape_t, &
+                          libxs_gemm_dispatch, libxs_gemm_index, &
+                          libxs_registry_create, libxs_registry_get, &
+                          libxs_registry_set, &
+                          C_LOC, C_SIZEOF, C_PTR, C_NULL_PTR, &
+                          C_F_POINTER, C_ASSOCIATED, C_DOUBLE, &
                           LIBXS_DATATYPE_F${bits1[n]}$
-         REAL(${kind1}$), PARAMETER :: one = 1.0_${kind1}$
+#if defined(__MKL)
+         USE, INTRINSIC :: ISO_C_BINDING, ONLY: C_INT, C_FUNPTR, &
+                                                C_${kind1}$
+#endif
+#if defined(__MKL)
+         INTEGER, PARAMETER :: MKL_JIT_SUCCESS = 0
+         INTERFACE
+           FUNCTION mkl_jit_create_${nametype1}$gemm(jitter, &
+             transa, transb, m, n, k, alpha, lda, ldb, beta, ldc) &
+             RESULT(status) BIND(C)
+             IMPORT :: C_PTR, C_INT, C_${kind1}$
+             INTEGER(C_INT) :: status
+             TYPE(C_PTR) :: jitter
+             CHARACTER :: transa, transb
+             INTEGER(C_INT) :: m, n, k, lda, ldb, ldc
+             REAL(C_${kind1}$) :: alpha, beta
+           END FUNCTION
+           FUNCTION mkl_jit_get_${nametype1}$gemm_ptr(jitter) &
+             RESULT(ptr) BIND(C)
+             IMPORT :: C_FUNPTR, C_PTR
+             TYPE(C_FUNPTR) :: ptr
+             TYPE(C_PTR), INTENT(IN), VALUE :: jitter
+           END FUNCTION
+         END INTERFACE
+#endif
          INTEGER, INTENT(IN)                            :: stack_size
          TYPE(stack_descriptor_type), INTENT(IN)        :: stack_descr
          INTEGER, DIMENSION(dbcsr_ps_width, 1:stack_size), &
-            INTENT(IN)                                  :: params
+            INTENT(IN), TARGET                          :: params
          ${type1}$, DIMENSION(*), TARGET, INTENT(IN)    :: a_data
          ${type1}$, DIMENSION(*), TARGET, INTENT(IN)    :: b_data
          ${type1}$, DIMENSION(*), TARGET, INTENT(INOUT) :: c_data
          LOGICAL, INTENT(OUT)                           :: used_smm
 
-         TYPE(libxs_gemm_config_t) :: config
-         INTEGER :: m, n, k, sp, fa, fb, fc, rc
+         TYPE(C_PTR), SAVE :: registry = C_NULL_PTR
+         TYPE(libxs_gemm_config_t), TARGET :: config
+         TYPE(libxs_gemm_config_t), POINTER :: cfg_ptr
+         TYPE(C_PTR) :: cfg_cptr
+         INTEGER :: m, n, k, rc
 
          used_smm = .FALSE.
          IF (stack_descr%defined_mnk) THEN
-            ! homogeneous stack: dispatch once, call for each entry
             m = stack_descr%m; n = stack_descr%n; k = stack_descr%k
-            rc = libxs_gemm_dispatch(config, &
-                   LIBXS_DATATYPE_F${bits1[n]}$, 'N', 'N', &
-                   m, n, k, m, k, m, one, one)
-            IF (0 /= libxs_gemm_ready(config)) THEN
-               DO sp = 1, stack_size
-                  fa = params(p_a_first, sp)
-                  fb = params(p_b_first, sp)
-                  fc = params(p_c_first, sp)
-                  rc = libxs_gemm_call(config, &
-                         C_LOC(a_data(fa)), C_LOC(b_data(fb)), C_LOC(c_data(fc)))
-               END DO
-               used_smm = .TRUE.
+            IF (.NOT. C_ASSOCIATED(registry)) THEN
+               registry = libxs_registry_create()
             END IF
-            CALL libxs_gemm_release(config)
+            ! populate config shape (used as registry key)
+            rc = libxs_gemm_dispatch(config, &
+                   datatype=LIBXS_DATATYPE_F${bits1[n]}$, &
+                   transa='N', transb='N', &
+                   m=m, n=n, k=k, lda=m, ldb=k, ldc=m, &
+                   alpha=1D0, beta=1D0)
+            ! lookup cached config by shape
+            cfg_cptr = libxs_registry_get(registry, &
+                         C_LOC(config%shape), &
+                         INT(C_SIZEOF(config%shape), KIND=8))
+            IF (.NOT. C_ASSOCIATED(cfg_cptr)) THEN
+               ! first time for this shape: optionally create MKL JIT
+#if defined(__MKL)
+               BLOCK
+                 REAL(${kind1}$), PARAMETER :: one = 1.0_${kind1}$
+                 TYPE(C_PTR) :: jitter = C_NULL_PTR
+                 IF (MKL_JIT_SUCCESS == &
+                     mkl_jit_create_${nametype1}$gemm(jitter, &
+                       'N', 'N', m, n, k, one, m, k, one, m)) THEN
+                   rc = libxs_gemm_dispatch(config, &
+                     ${nametype1}$gemm_jit= &
+                       mkl_jit_get_${nametype1}$gemm_ptr(jitter), &
+                     jitter=jitter)
+                 END IF
+               END BLOCK
+#endif
+               cfg_cptr = libxs_registry_set(registry, &
+                            C_LOC(config%shape), &
+                            INT(C_SIZEOF(config%shape), KIND=8), &
+                            C_LOC(config), &
+                            INT(C_SIZEOF(config), KIND=8))
+            END IF
+            CALL C_F_POINTER(cfg_cptr, cfg_ptr)
+            CALL libxs_gemm_index( &
+                   C_LOC(a_data), C_LOC(params(p_a_first, 1)), &
+                   C_LOC(b_data), C_LOC(params(p_b_first, 1)), &
+                   C_LOC(c_data), C_LOC(params(p_c_first, 1)), &
+                   INT(C_SIZEOF(params(1, 1)))*dbcsr_ps_width, 1, &
+                   stack_size, cfg_ptr)
+            used_smm = .TRUE.
          END IF
          IF (.NOT. used_smm) THEN
-            ! inhomogeneous or dispatch failed: fall back to BLAS
-            CALL blas_process_mm_stack_${nametype1}$ (params, stack_size, a_data, b_data, c_data)
+            CALL blas_process_mm_stack_${nametype1}$ (params, stack_size, &
+                                                     a_data, b_data, c_data)
          END IF
       END SUBROUTINE libxs_process_mm_stack_${nametype1}$
 #endif

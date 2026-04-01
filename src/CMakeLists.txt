@@ -136,7 +136,9 @@ elseif (USE_ACCEL MATCHES "cuda")
                               PROPERTIES COMPILE_FLAGS "--x cu")
 endif ()
 
-# OpenCL backend is provided by LIBXSTREAM (no local sources)
+# OpenCL backend: SMM from LIBXSTREAM samples, ACC from LIBXSTREAM library
+set(DBCSR_SMM_DIR "${LIBXSTREAMROOT}/samples/smm")
+set(DBCSR_OPENCL_SRCS "${DBCSR_SMM_DIR}/opencl_libsmm.c")
 
 # set the __SHORT_FILE__ per file for dbcsr sources
 foreach (dbcsr_src ${DBCSR_FORTRAN_SRCS})
@@ -160,7 +162,7 @@ if (USE_ACCEL MATCHES "cuda")
 elseif (USE_ACCEL MATCHES "hip")
   set(DBCSR_SRCS ${DBCSR_SRCS} ${DBCSR_HIP_SRCS})
 elseif (USE_ACCEL MATCHES "opencl")
-  # LIBXSTREAM provides all OpenCL sources; linked externally
+  set(DBCSR_SRCS ${DBCSR_SRCS} ${DBCSR_OPENCL_SRCS})
 endif ()
 
 # =================================================================================================
@@ -182,7 +184,12 @@ elseif (USE_ACCEL MATCHES "cuda")
                                          "${ACC_ARCH_NUMBER}")
 endif ()
 
-if (USE_SMM MATCHES "libxsmm" OR (USE_SMM MATCHES "auto" AND LIBXSMM_FOUND))
+if (USE_ACCEL MATCHES "opencl" AND LIBXSROOT)
+  # LIBXS replaces LIBXSMM for host-side SMM (GEMM, hash, diff, timer, etc.)
+  target_compile_definitions(dbcsr PRIVATE __LIBXS)
+  target_include_directories(dbcsr PRIVATE "${LIBXSROOT}/include")
+  target_link_libraries(dbcsr PRIVATE ${LIBXS_LIBRARY} ${BLAS_LIBRARIES})
+elseif (USE_SMM MATCHES "libxsmm" OR (USE_SMM MATCHES "auto" AND LIBXSMM_FOUND))
   target_compile_definitions(dbcsr PRIVATE __LIBXSMM)
   target_link_directories(dbcsr PUBLIC ${LIBXSMM_LIBRARY_DIRS})
   if (USE_OPENMP)
@@ -275,6 +282,43 @@ if (USE_ACCEL)
             $<$<BOOL:${WITH_CUDA_PROFILING}>:__CUDA_PROFILING>
             $<$<BOOL:${WITH_HIP_PROFILING}>:__HIP_PROFILING>)
 
+  if (USE_ACCEL MATCHES "opencl")
+    # LIBXSTREAM/LIBXS include paths and SMM sample directory
+    target_include_directories(dbcsr PRIVATE
+      "${LIBXSTREAMROOT}/include"
+      "${LIBXSROOT}/include"
+      "${DBCSR_SMM_DIR}")
+    # Locate LIBXSTREAM and LIBXS static libraries
+    find_library(LIBXSTREAM_LIBRARY xstream PATHS "${LIBXSTREAMROOT}/lib" NO_DEFAULT_PATH)
+    find_library(LIBXS_LIBRARY xs PATHS "${LIBXSROOT}/lib" NO_DEFAULT_PATH)
+    if (NOT LIBXSTREAM_LIBRARY)
+      message(FATAL_ERROR "libxstream library not found in ${LIBXSTREAMROOT}/lib")
+    endif ()
+    if (NOT LIBXS_LIBRARY)
+      message(FATAL_ERROR "libxs library not found in ${LIBXSROOT}/lib")
+    endif ()
+    # Generate opencl_kernels.h from .cl kernel sources
+    set(DBCSR_SMM_KERNELS
+      "${DBCSR_SMM_DIR}/kernels/multiply.cl"
+      "${DBCSR_SMM_DIR}/kernels/transpose.cl")
+    set(DBCSR_SMM_PARAMS "")
+    if (WITH_GPU)
+      set(_params "${DBCSR_SMM_DIR}/params/tune_multiply_${WITH_GPU}.csv")
+      if (EXISTS "${_params}")
+        set(DBCSR_SMM_PARAMS "${_params}")
+      endif ()
+    endif ()
+    set(DBCSR_SMM_GENHDR "${DBCSR_SMM_DIR}/opencl_kernels.h")
+    add_custom_command(
+      OUTPUT "${DBCSR_SMM_GENHDR}"
+      COMMAND "${DBCSR_OPENCL_SCRIPT}" -I "${LIBXSTREAMROOT}/include"
+              ${DBCSR_SMM_KERNELS} ${DBCSR_SMM_PARAMS} "${DBCSR_SMM_GENHDR}"
+      DEPENDS "${DBCSR_OPENCL_SCRIPT}" ${DBCSR_SMM_KERNELS} ${DBCSR_SMM_PARAMS}
+      COMMENT "Generating OpenCL SMM kernel header")
+    add_custom_target(dbcsr_smm_kernels DEPENDS "${DBCSR_SMM_GENHDR}")
+    add_dependencies(dbcsr dbcsr_smm_kernels)
+  endif ()
+
   target_link_libraries(
     dbcsr
     PRIVATE $<$<STREQUAL:${USE_ACCEL},cuda>:CUDA::cudart>
@@ -288,8 +332,8 @@ if (USE_ACCEL)
             $<$<BOOL:${WITH_HIP_PROFILING}>:roctx64>
             $<$<BOOL:${WITH_HIP_PROFILING}>:roctracer64>
             $<$<STREQUAL:${USE_ACCEL},opencl>:OpenCL::OpenCL>
-            # LIBXSTREAM provides the OpenCL ACC backend
-            $<$<STREQUAL:${USE_ACCEL},opencl>:${LIBXSTREAM_LIBRARY}>)
+            $<$<STREQUAL:${USE_ACCEL},opencl>:${LIBXSTREAM_LIBRARY}>
+            $<$<STREQUAL:${USE_ACCEL},opencl>:${LIBXS_LIBRARY}>)
 endif ()
 
 # =================================================================================================

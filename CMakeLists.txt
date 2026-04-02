@@ -220,6 +220,13 @@ if (NOT USE_ACCEL MATCHES "none")
 endif ()
 
 if (USE_ACCEL MATCHES "opencl")
+  # Hint additional OpenCL locations (Intel oneAPI, CUDA toolkit)
+  if (DEFINED ENV{CMPLR_ROOT})
+    list(APPEND CMAKE_PREFIX_PATH "$ENV{CMPLR_ROOT}")
+  endif ()
+  if (DEFINED ENV{CUDA_PATH})
+    list(APPEND CMAKE_PREFIX_PATH "$ENV{CUDA_PATH}")
+  endif ()
   find_package(OpenCL REQUIRED)
   find_package(PkgConfig QUIET)
   # Locate LIBXSTREAM: user override > pkg-config > path probing

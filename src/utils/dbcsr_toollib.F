@@ -166,11 +166,10 @@ CONTAINS
 
 #if defined(__LIBXS)
       USE LIBXS, ONLY: libxs_hash
-      INTEGER, PARAMETER                                 :: seed = 0
       INTEGER, DIMENSION(:), INTENT(IN)                  :: key
          !! a string of any length
       INTEGER                                            :: hash_index
-      hash_index = libxs_hash(key, seed)
+      hash_index = libxs_hash(key)
 #else
       INTEGER, DIMENSION(:), INTENT(IN)                  :: key
       INTEGER                                            :: hash_index

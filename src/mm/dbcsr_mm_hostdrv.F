@@ -379,32 +379,32 @@ CONTAINS
                           C_LOC, C_SIZEOF, C_PTR, C_NULL_PTR, &
                           C_F_POINTER, C_ASSOCIATED, &
                           LIBXS_DATATYPE_F${bits1[n]}$
-#:if base1 == 'r'
-#:set ckind1 = 'C_DOUBLE' if nametype1 == 'd' else 'C_FLOAT'
+         #:if base1 == 'r'
+            #:set ckind1 = 'C_DOUBLE' if nametype1 == 'd' else 'C_FLOAT'
 #if defined(__MKL)
-         USE, INTRINSIC :: ISO_C_BINDING, ONLY: C_INT, C_CHAR, &
-                                                C_FUNPTR, ${ckind1}$
-         INTEGER, PARAMETER :: MKL_JIT_SUCCESS = 0
-         INTERFACE
-           FUNCTION mkl_jit_create_${nametype1}$gemm(jitter, &
-             transa, transb, m, n, k, alpha, lda, ldb, beta, ldc) &
-             RESULT(status) BIND(C)
-             IMPORT :: C_PTR, C_INT, C_CHAR, ${ckind1}$
-             INTEGER(C_INT) :: status
-             TYPE(C_PTR) :: jitter
-             CHARACTER(1, C_CHAR) :: transa, transb
-             INTEGER(C_INT) :: m, n, k, lda, ldb, ldc
-             REAL(${ckind1}$) :: alpha, beta
-           END FUNCTION
-           FUNCTION mkl_jit_get_${nametype1}$gemm_ptr(jitter) &
-             RESULT(ptr) BIND(C)
-             IMPORT :: C_FUNPTR, C_PTR
-             TYPE(C_FUNPTR) :: ptr
-             TYPE(C_PTR), INTENT(IN), VALUE :: jitter
-           END FUNCTION
-         END INTERFACE
+            USE, INTRINSIC :: ISO_C_BINDING, ONLY: C_INT, C_CHAR, &
+                                                                                      C_FUNPTR, ${ckind1}$
+            INTEGER, PARAMETER :: MKL_JIT_SUCCESS = 0
+            INTERFACE
+               FUNCTION mkl_jit_create_${nametype1}$gemm(jitter, &
+                                                         transa, transb, m, n, k, alpha, lda, ldb, beta, ldc) &
+                  RESULT(status) BIND(C)
+                  IMPORT :: C_PTR, C_INT, C_CHAR, ${ckind1}$
+                  INTEGER(C_INT) :: status
+                  TYPE(C_PTR) :: jitter
+                  CHARACTER(1, C_CHAR) :: transa, transb
+                  INTEGER(C_INT) :: m, n, k, lda, ldb, ldc
+                  REAL(${ckind1}$) :: alpha, beta
+               END FUNCTION
+               FUNCTION mkl_jit_get_${nametype1}$gemm_ptr(jitter) &
+                  RESULT(ptr) BIND(C)
+                  IMPORT :: C_FUNPTR, C_PTR
+                  TYPE(C_FUNPTR) :: ptr
+                  TYPE(C_PTR), INTENT(IN), VALUE :: jitter
+               END FUNCTION
+            END INTERFACE
 #endif
-#:endif
+         #:endif
          INTEGER, INTENT(IN)                            :: stack_size
          TYPE(stack_descriptor_type), INTENT(IN)        :: stack_descr
          INTEGER, DIMENSION(dbcsr_ps_width, 1:stack_size), &
@@ -428,50 +428,50 @@ CONTAINS
             END IF
             ! populate config shape (used as registry key)
             rc = libxs_gemm_dispatch(config, &
-                   datatype=LIBXS_DATATYPE_F${bits1[n]}$, &
-                   transa='N', transb='N', &
-                   m=m, n=n, k=k, lda=m, ldb=k, ldc=m, &
-                   alpha=1D0, beta=1D0)
+                                     datatype=LIBXS_DATATYPE_F${bits1[n]}$, &
+                                     transa='N', transb='N', &
+                                     m=m, n=n, k=k, lda=m, ldb=k, ldc=m, &
+                                     alpha=1D0, beta=1D0)
             ! lookup cached config by shape
             cfg_cptr = libxs_registry_get(registry, &
-                         C_LOC(config%shape), &
-                         INT(C_SIZEOF(config%shape), KIND=8))
+                                          C_LOC(config%shape), &
+                                          INT(C_SIZEOF(config%shape), KIND=8))
             IF (.NOT. C_ASSOCIATED(cfg_cptr)) THEN
                ! first time for this shape: optionally create MKL JIT
-#:if base1 == 'r'
+               #:if base1 == 'r'
 #if defined(__MKL)
-               BLOCK
-                 REAL(${kind1}$), PARAMETER :: one = 1.0_${kind1}$
-                 TYPE(C_PTR) :: jitter = C_NULL_PTR
-                 IF (MKL_JIT_SUCCESS == &
-                     mkl_jit_create_${nametype1}$gemm(jitter, &
-                       'N', 'N', m, n, k, one, m, k, one, m)) THEN
-                   rc = libxs_gemm_dispatch(config, &
-                     ${nametype1}$gemm_jit= &
-                       mkl_jit_get_${nametype1}$gemm_ptr(jitter), &
-                     jitter=jitter)
-                 END IF
-               END BLOCK
+                  BLOCK
+                     REAL(${kind1}$), PARAMETER :: one = 1.0_${kind1}$
+                     TYPE(C_PTR) :: jitter = C_NULL_PTR
+                     IF (MKL_JIT_SUCCESS == &
+                         mkl_jit_create_${nametype1}$gemm(jitter, &
+                                                          'N', 'N', m, n, k, one, m, k, one, m)) THEN
+                        rc = libxs_gemm_dispatch(config, &
+                                                 ${nametype1}$gemm_jit= &
+                                                 mkl_jit_get_${nametype1}$gemm_ptr(jitter), &
+                                                 jitter=jitter)
+                     END IF
+                  END BLOCK
 #endif
-#:endif
+               #:endif
                cfg_cptr = libxs_registry_set(registry, &
-                            C_LOC(config%shape), &
-                            INT(C_SIZEOF(config%shape), KIND=8), &
-                            C_LOC(config), &
-                            INT(C_SIZEOF(config), KIND=8))
+                                             C_LOC(config%shape), &
+                                             INT(C_SIZEOF(config%shape), KIND=8), &
+                                             C_LOC(config), &
+                                             INT(C_SIZEOF(config), KIND=8))
             END IF
             CALL C_F_POINTER(cfg_cptr, cfg_ptr)
             CALL libxs_gemm_index( &
-                   C_LOC(a_data), C_LOC(params(p_a_first, 1)), &
-                   C_LOC(b_data), C_LOC(params(p_b_first, 1)), &
-                   C_LOC(c_data), C_LOC(params(p_c_first, 1)), &
-                   INT(C_SIZEOF(params(1, 1)))*dbcsr_ps_width, 1, &
-                   stack_size, cfg_ptr)
+               C_LOC(a_data), C_LOC(params(p_a_first, 1)), &
+               C_LOC(b_data), C_LOC(params(p_b_first, 1)), &
+               C_LOC(c_data), C_LOC(params(p_c_first, 1)), &
+               INT(C_SIZEOF(params(1, 1)))*dbcsr_ps_width, 1, &
+               stack_size, cfg_ptr)
             used_smm = .TRUE.
          END IF
          IF (.NOT. used_smm) THEN
             CALL blas_process_mm_stack_${nametype1}$ (params, stack_size, &
-                                                     a_data, b_data, c_data)
+                                                      a_data, b_data, c_data)
          END IF
       END SUBROUTINE libxs_process_mm_stack_${nametype1}$
 #endif

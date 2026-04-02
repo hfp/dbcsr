@@ -1470,8 +1470,8 @@ CONTAINS
 #if defined(__LIBXS)
             IF ((0 .LT. ncol) .AND. (0 .LT. nrow)) THEN
                CALL libxs_matcopy(C_LOC(dst(dst_offset + dst_r_lb + (dst_c_lb - 1)*dst_rs)), &
-                                    C_LOC(src(src_offset + src_r_lb + (src_c_lb - 1)*src_rs)), &
-                                    ${typesize1[n]}$, nrow, ncol, src_rs, dst_rs)
+                                  C_LOC(src(src_offset + src_r_lb + (src_c_lb - 1)*src_rs)), &
+                                  ${typesize1[n]}$, nrow, ncol, src_rs, dst_rs)
             END IF
 #else
             DO col = 0, ncol - 1
@@ -1500,8 +1500,8 @@ CONTAINS
 #if defined(__LIBXS)
             IF ((0 .LT. ncol) .AND. (0 .LT. nrow)) THEN
                CALL libxs_matcopy(C_LOC(dst(dst_offset + dst_c_lb + (dst_r_lb - 1)*dst_cs)), &
-                                    C_LOC(src(src_offset + src_c_lb + (src_r_lb - 1)*src_cs)), &
-                                    ${typesize1[n]}$, nrow, ncol, src_cs, dst_cs)
+                                  C_LOC(src(src_offset + src_c_lb + (src_r_lb - 1)*src_cs)), &
+                                  ${typesize1[n]}$, nrow, ncol, src_cs, dst_cs)
             END IF
 #else
             DO col = 0, ncol - 1
@@ -1546,8 +1546,8 @@ CONTAINS
 #if defined(__LIBXS)
             IF ((0 .LT. ncol) .AND. (0 .LT. nrow)) THEN
                CALL libxs_matcopy(C_LOC(dst(dst_offset + dst_r_lb + (dst_c_lb - 1)*dst_rs)), &
-                                    C_LOC(src(src_r_lb, src_c_lb)), &
-                                    ${typesize1[n]}$, nrow, ncol, SIZE(src, 1), dst_rs)
+                                  C_LOC(src(src_r_lb, src_c_lb)), &
+                                  ${typesize1[n]}$, nrow, ncol, SIZE(src, 1), dst_rs)
             END IF
 #else
             DO col = 0, ncol - 1
@@ -1561,8 +1561,8 @@ CONTAINS
 #if defined(__LIBXS)
             IF ((0 .LT. ncol) .AND. (0 .LT. nrow)) THEN
                CALL libxs_otrans(C_LOC(dst(dst_offset + dst_c_lb + (dst_r_lb - 1)*dst_cs)), &
-                                   C_LOC(src(src_r_lb, src_c_lb)), &
-                                   ${typesize1[n]}$, nrow, ncol, SIZE(src, 1), dst_cs)
+                                 C_LOC(src(src_r_lb, src_c_lb)), &
+                                 ${typesize1[n]}$, nrow, ncol, SIZE(src, 1), dst_cs)
             END IF
 #else
             DO col = 0, ncol - 1
@@ -1576,8 +1576,8 @@ CONTAINS
 #if defined(__LIBXS)
             IF ((0 .LT. ncol) .AND. (0 .LT. nrow)) THEN
                CALL libxs_otrans(C_LOC(dst(dst_offset + dst_r_lb + (dst_c_lb - 1)*dst_rs)), &
-                                   C_LOC(src(src_c_lb, src_r_lb)), &
-                                   ${typesize1[n]}$, nrow, ncol, SIZE(src, 2), dst_rs)
+                                 C_LOC(src(src_c_lb, src_r_lb)), &
+                                 ${typesize1[n]}$, nrow, ncol, SIZE(src, 2), dst_rs)
             END IF
 #else
             DO col = 0, ncol - 1
@@ -1592,8 +1592,8 @@ CONTAINS
 #if defined(__LIBXS)
             IF ((0 .LT. ncol) .AND. (0 .LT. nrow)) THEN
                CALL libxs_matcopy(C_LOC(dst(dst_offset + dst_c_lb + (dst_r_lb - 1)*dst_cs)), &
-                                    C_LOC(src(src_c_lb, src_r_lb)), &
-                                    ${typesize1[n]}$, nrow, ncol, SIZE(src, 2), dst_cs)
+                                  C_LOC(src(src_c_lb, src_r_lb)), &
+                                  ${typesize1[n]}$, nrow, ncol, SIZE(src, 2), dst_cs)
             END IF
 #else
             DO col = 0, ncol - 1
@@ -1694,9 +1694,9 @@ CONTAINS
 #if defined(__LIBXS)
             IF ((0 .LT. ncol) .AND. (0 .LT. nrow)) THEN
                CALL libxs_matcopy(C_LOC(dst(dst_r_lb, dst_c_lb)), &
-                                    C_LOC(src(src_r_lb, src_c_lb)), &
-                                    ${typesize1[n]}$, nrow, ncol, &
-                                    SIZE(src, 1), SIZE(dst, 1))
+                                  C_LOC(src(src_r_lb, src_c_lb)), &
+                                  ${typesize1[n]}$, nrow, ncol, &
+                                  SIZE(src, 1), SIZE(dst, 1))
             END IF
 #else
             DO col = 0, ncol - 1
@@ -1710,9 +1710,9 @@ CONTAINS
 #if defined(__LIBXS)
             IF ((0 .LT. ncol) .AND. (0 .LT. nrow)) THEN
                CALL libxs_otrans(C_LOC(dst(dst_c_lb, dst_r_lb)), &
-                                   C_LOC(src(src_r_lb, src_c_lb)), &
-                                   ${typesize1[n]}$, nrow, ncol, &
-                                   SIZE(src, 1), SIZE(dst, 2))
+                                 C_LOC(src(src_r_lb, src_c_lb)), &
+                                 ${typesize1[n]}$, nrow, ncol, &
+                                 SIZE(src, 1), SIZE(dst, 2))
             END IF
 #else
             DO col = 0, ncol - 1
@@ -1726,9 +1726,9 @@ CONTAINS
 #if defined(__LIBXS)
             IF ((0 .LT. ncol) .AND. (0 .LT. nrow)) THEN
                CALL libxs_otrans(C_LOC(dst(dst_r_lb, dst_c_lb)), &
-                                   C_LOC(src(src_c_lb, src_r_lb)), &
-                                   ${typesize1[n]}$, nrow, ncol, &
-                                   SIZE(src, 2), SIZE(dst, 1))
+                                 C_LOC(src(src_c_lb, src_r_lb)), &
+                                 ${typesize1[n]}$, nrow, ncol, &
+                                 SIZE(src, 2), SIZE(dst, 1))
             END IF
 #else
             DO col = 0, ncol - 1
@@ -1743,9 +1743,9 @@ CONTAINS
 #if defined(__LIBXS)
             IF ((0 .LT. ncol) .AND. (0 .LT. nrow)) THEN
                CALL libxs_matcopy(C_LOC(dst(dst_c_lb, dst_r_lb)), &
-                                    C_LOC(src(src_c_lb, src_r_lb)), &
-                                    ${typesize1[n]}$, nrow, ncol, &
-                                    SIZE(src, 2), SIZE(dst, 2))
+                                  C_LOC(src(src_c_lb, src_r_lb)), &
+                                  ${typesize1[n]}$, nrow, ncol, &
+                                  SIZE(src, 2), SIZE(dst, 2))
             END IF
 #else
             DO col = 0, ncol - 1
@@ -1792,7 +1792,7 @@ CONTAINS
 !    ---------------------------------------------------------------------------
 #if defined(__LIBXS)
          CALL libxs_otrans(C_LOC(extent_out), C_LOC(extent_in), &
-                             ${typesize1[n]}$, rows, columns, rows, columns)
+                           ${typesize1[n]}$, rows, columns, rows, columns)
 #elif defined(__MKL)
          CALL mkl_${nametype1}$omatcopy('C', 'T', rows, columns, ${one1[n]}$, extent_in, rows, extent_out, columns)
 #else
@@ -1867,7 +1867,7 @@ CONTAINS
 !    ---------------------------------------------------------------------------
 #if defined(__LIBXS)
          CALL libxs_otrans(C_LOC(extent_out), C_LOC(extent_in), &
-                             ${typesize1[n]}$, rows, columns, rows, columns)
+                           ${typesize1[n]}$, rows, columns, rows, columns)
 #elif defined(__MKL)
          CALL mkl_${nametype1}$omatcopy('C', 'T', rows, columns, ${one1[n]}$, extent_in, rows, extent_out, columns)
 #else
@@ -1909,7 +1909,7 @@ CONTAINS
 !    ---------------------------------------------------------------------------
 #if defined(__LIBXS)
          CALL libxs_otrans(C_LOC(extent_out), C_LOC(extent_in), &
-                             ${typesize1[n]}$, rows, columns, rows, columns)
+                           ${typesize1[n]}$, rows, columns, rows, columns)
 #elif defined(__MKL)
          CALL mkl_${nametype1}$omatcopy('C', 'T', rows, columns, ${one1[n]}$, extent_in, rows, extent_out, columns)
 #else

@@ -58,7 +58,6 @@
 #endif
 !&>
 
-
 ! Aliasing __MPI_F08 macro of CP2K to __USE_MPI_F08 macro in DBCSR
 #if defined(__parallel) && defined(__MPI_F08)
 #define __USE_MPI_F08 1

@@ -276,23 +276,28 @@ if (USE_ACCEL)
 
   if (USE_ACCEL MATCHES "opencl")
     # LIBXSTREAM/LIBXS include paths and SMM sample directory
-    target_include_directories(dbcsr PRIVATE
-      "${LIBXSTREAMROOT}/include"
-      "${LIBXSROOT}/include"
-      "${DBCSR_SMM_DIR}")
+    target_include_directories(
+      dbcsr PRIVATE "${LIBXSTREAMROOT}/include" "${LIBXSROOT}/include"
+                    "${DBCSR_SMM_DIR}")
     # Locate LIBXSTREAM and LIBXS static libraries
-    find_library(LIBXSTREAM_LIBRARY xstream PATHS "${LIBXSTREAMROOT}/lib" NO_DEFAULT_PATH)
-    find_library(LIBXS_LIBRARY xs PATHS "${LIBXSROOT}/lib" NO_DEFAULT_PATH)
+    find_library(
+      LIBXSTREAM_LIBRARY xstream
+      PATHS "${LIBXSTREAMROOT}/lib"
+      NO_DEFAULT_PATH)
+    find_library(
+      LIBXS_LIBRARY xs
+      PATHS "${LIBXSROOT}/lib"
+      NO_DEFAULT_PATH)
     if (NOT LIBXSTREAM_LIBRARY)
-      message(FATAL_ERROR "libxstream library not found in ${LIBXSTREAMROOT}/lib")
+      message(
+        FATAL_ERROR "libxstream library not found in ${LIBXSTREAMROOT}/lib")
     endif ()
     if (NOT LIBXS_LIBRARY)
       message(FATAL_ERROR "libxs library not found in ${LIBXSROOT}/lib")
     endif ()
     # Generate opencl_kernels.h from .cl kernel sources
-    set(DBCSR_SMM_KERNELS
-      "${DBCSR_SMM_DIR}/kernels/multiply.cl"
-      "${DBCSR_SMM_DIR}/kernels/transpose.cl")
+    set(DBCSR_SMM_KERNELS "${DBCSR_SMM_DIR}/kernels/multiply.cl"
+                          "${DBCSR_SMM_DIR}/kernels/transpose.cl")
     set(DBCSR_SMM_PARAMS "")
     if (WITH_GPU)
       set(_params "${DBCSR_SMM_DIR}/params/tune_multiply_${WITH_GPU}.csv")

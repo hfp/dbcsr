@@ -230,7 +230,9 @@ if (USE_ACCEL MATCHES "opencl")
   find_package(OpenCL REQUIRED)
   find_package(PkgConfig QUIET)
   # Locate LIBXSTREAM: user override > pkg-config > path probing
-  set(LIBXSTREAMROOT "" CACHE PATH "Root directory of LIBXSTREAM")
+  set(LIBXSTREAMROOT
+      ""
+      CACHE PATH "Root directory of LIBXSTREAM")
   if (NOT LIBXSTREAMROOT AND PkgConfig_FOUND)
     pkg_check_modules(_LIBXSTREAM QUIET libxstream)
     if (_LIBXSTREAM_FOUND)
@@ -246,11 +248,15 @@ if (USE_ACCEL MATCHES "opencl")
     endforeach ()
   endif ()
   if (NOT LIBXSTREAMROOT OR NOT EXISTS "${LIBXSTREAMROOT}/include/libxstream.h")
-    message(FATAL_ERROR "LIBXSTREAMROOT not found. Set -DLIBXSTREAMROOT=/path/to/libxstream")
+    message(
+      FATAL_ERROR
+        "LIBXSTREAMROOT not found. Set -DLIBXSTREAMROOT=/path/to/libxstream")
   endif ()
   message(STATUS "Using LIBXSTREAM from ${LIBXSTREAMROOT}")
   # Locate LIBXS: user override > pkg-config > path probing
-  set(LIBXSROOT "" CACHE PATH "Root directory of LIBXS")
+  set(LIBXSROOT
+      ""
+      CACHE PATH "Root directory of LIBXS")
   if (NOT LIBXSROOT AND PkgConfig_FOUND)
     pkg_check_modules(_LIBXS QUIET libxs)
     if (_LIBXS_FOUND)

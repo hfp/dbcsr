@@ -377,24 +377,24 @@ CONTAINS
                           libxs_registry_create, libxs_registry_get, &
                           libxs_registry_set, &
                           C_LOC, C_SIZEOF, C_PTR, C_NULL_PTR, &
-                          C_F_POINTER, C_ASSOCIATED, C_DOUBLE, &
+                          C_F_POINTER, C_ASSOCIATED, &
                           LIBXS_DATATYPE_F${bits1[n]}$
+#:if base1 == 'r'
+#:set ckind1 = 'C_DOUBLE' if nametype1 == 'd' else 'C_FLOAT'
 #if defined(__MKL)
-         USE, INTRINSIC :: ISO_C_BINDING, ONLY: C_INT, C_FUNPTR, &
-                                                C_${kind1}$
-#endif
-#if defined(__MKL)
+         USE, INTRINSIC :: ISO_C_BINDING, ONLY: C_INT, C_CHAR, &
+                                                C_FUNPTR, ${ckind1}$
          INTEGER, PARAMETER :: MKL_JIT_SUCCESS = 0
          INTERFACE
            FUNCTION mkl_jit_create_${nametype1}$gemm(jitter, &
              transa, transb, m, n, k, alpha, lda, ldb, beta, ldc) &
              RESULT(status) BIND(C)
-             IMPORT :: C_PTR, C_INT, C_${kind1}$
+             IMPORT :: C_PTR, C_INT, C_CHAR, ${ckind1}$
              INTEGER(C_INT) :: status
              TYPE(C_PTR) :: jitter
-             CHARACTER :: transa, transb
+             CHARACTER(1, C_CHAR) :: transa, transb
              INTEGER(C_INT) :: m, n, k, lda, ldb, ldc
-             REAL(C_${kind1}$) :: alpha, beta
+             REAL(${ckind1}$) :: alpha, beta
            END FUNCTION
            FUNCTION mkl_jit_get_${nametype1}$gemm_ptr(jitter) &
              RESULT(ptr) BIND(C)
@@ -404,6 +404,7 @@ CONTAINS
            END FUNCTION
          END INTERFACE
 #endif
+#:endif
          INTEGER, INTENT(IN)                            :: stack_size
          TYPE(stack_descriptor_type), INTENT(IN)        :: stack_descr
          INTEGER, DIMENSION(dbcsr_ps_width, 1:stack_size), &
@@ -437,6 +438,7 @@ CONTAINS
                          INT(C_SIZEOF(config%shape), KIND=8))
             IF (.NOT. C_ASSOCIATED(cfg_cptr)) THEN
                ! first time for this shape: optionally create MKL JIT
+#:if base1 == 'r'
 #if defined(__MKL)
                BLOCK
                  REAL(${kind1}$), PARAMETER :: one = 1.0_${kind1}$
@@ -451,6 +453,7 @@ CONTAINS
                  END IF
                END BLOCK
 #endif
+#:endif
                cfg_cptr = libxs_registry_set(registry, &
                             C_LOC(config%shape), &
                             INT(C_SIZEOF(config%shape), KIND=8), &

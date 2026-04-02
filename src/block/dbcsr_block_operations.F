@@ -1450,12 +1450,12 @@ CONTAINS
 #if defined(__LIBXS)
          USE LIBXS, ONLY: libxs_matcopy, libxs_otrans, C_LOC
 #endif
-         ${type1}$, DIMENSION(:), &
+         ${type1}$, DIMENSION(:), TARGET, &
             INTENT(INOUT)                         :: dst
          INTEGER, INTENT(IN)                      :: dst_rs, dst_cs
          INTEGER, INTENT(IN)                      :: src_offset, dst_offset
          LOGICAL, INTENT(IN)                      :: dst_tr
-         ${type1}$, DIMENSION(:), &
+         ${type1}$, DIMENSION(:), TARGET, &
             INTENT(IN)                            :: src
          INTEGER, INTENT(IN)                      :: src_rs, src_cs
          LOGICAL, INTENT(IN)                      :: src_tr
@@ -1528,12 +1528,12 @@ CONTAINS
 #else
          INTEGER                                  :: col, row
 #endif
-         ${type1}$, DIMENSION(:), &
+         ${type1}$, DIMENSION(:), TARGET, &
             INTENT(INOUT)                         :: dst
          INTEGER, INTENT(IN)                      :: dst_rs, dst_cs
          INTEGER, INTENT(IN)                      :: dst_offset
          LOGICAL, INTENT(IN)                      :: dst_tr
-         ${type1}$, DIMENSION(:, :), &
+         ${type1}$, DIMENSION(:, :), TARGET, &
             INTENT(IN)                            :: src
          LOGICAL, INTENT(IN)                      :: src_tr
          INTEGER, INTENT(IN)                      :: dst_r_lb, dst_c_lb, src_r_lb, &
@@ -1678,10 +1678,10 @@ CONTAINS
 #else
          INTEGER                                  :: col, row
 #endif
-         ${type1}$, DIMENSION(:, :), &
+         ${type1}$, DIMENSION(:, :), TARGET, &
             INTENT(INOUT)                         :: dst
          LOGICAL, INTENT(IN)                      :: dst_tr
-         ${type1}$, DIMENSION(:, :), &
+         ${type1}$, DIMENSION(:, :), TARGET, &
             INTENT(IN)                            :: src
          LOGICAL, INTENT(IN)                      :: src_tr
          INTEGER, INTENT(IN)                      :: dst_r_lb, dst_c_lb, src_r_lb, &
@@ -1783,7 +1783,7 @@ CONTAINS
 #endif
          ${type1}$, DIMENSION(:), INTENT(OUT), TARGET :: extent_out
         !! output matrix in the form of a 1-d array
-         ${type1}$, DIMENSION(:), INTENT(IN)          :: extent_in
+         ${type1}$, DIMENSION(:), INTENT(IN), TARGET  :: extent_in
         !! input matrix in the form of a 1-d array
          INTEGER, INTENT(IN) :: rows, columns
         !! input matrix size
@@ -1861,7 +1861,7 @@ CONTAINS
         !! input matrix size
          ${type1}$, DIMENSION(columns, rows), INTENT(OUT), TARGET :: extent_out
         !! output matrix in the form of a 2-d array
-         ${type1}$, DIMENSION(:), INTENT(IN)                      :: extent_in
+         ${type1}$, DIMENSION(:), INTENT(IN), TARGET              :: extent_in
         !! input matrix in the form of a 1-d array
 
 !    ---------------------------------------------------------------------------
@@ -1901,9 +1901,9 @@ CONTAINS
          INTEGER, INTENT(IN) :: rows, columns
         !! input matrix size
         !! input matrix size
-         ${type1}$, DIMENSION(:), INTENT(OUT), TARGET    :: extent_out
+         ${type1}$, DIMENSION(:), INTENT(OUT), TARGET            :: extent_out
         !! output matrix in the form of a 1-d array
-         ${type1}$, DIMENSION(rows, columns), INTENT(IN) :: extent_in
+         ${type1}$, DIMENSION(rows, columns), INTENT(IN), TARGET :: extent_in
         !! input matrix in the form of a 2-d array
 
 !    ---------------------------------------------------------------------------

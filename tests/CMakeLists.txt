@@ -185,6 +185,14 @@ if (NOT USE_MPI)
     add_executable(${dbcsr_test_backend} ${${dbcsr_test_backend}_SRCS})
     # tests may not need to link dbcsr but there is no separate dbcsr_acc
     target_link_libraries(${dbcsr_test_backend} PRIVATE dbcsr)
+    if (BLAS_LIBRARIES MATCHES "mkl_")
+      target_compile_definitions(${dbcsr_test_backend} PRIVATE __MKL)
+    endif ()
+    if (LIBXSMM_LIBRARY)
+      target_compile_definitions(${dbcsr_test_backend} PRIVATE __LIBXSMM)
+      target_include_directories(${dbcsr_test_backend}
+                                 PRIVATE "${LIBXSMMROOT}/include")
+    endif ()
     # register unittest executable with CMake
     add_test(NAME ${dbcsr_test_backend} COMMAND ./${dbcsr_test_backend})
     set_tests_properties(

@@ -53,7 +53,7 @@ RUN set -ex ; \
     ln -s libxsmm-${libxsmm_version} /opt/libxsmm ; \
     make -j -C /opt/libxsmm WRAP=0
 
-ENV PKG_CONFIG_PATH="/opt/libxsmm/lib:${PKG_CONFIG_PATH}"
+ENV PKG_CONFIG_PATH="/opt/libxsmm/lib:/opt/libxstream/lib/pkgconfig:/opt/libxs/lib/pkgconfig:${PKG_CONFIG_PATH}"
 
 RUN set -ex ; \
     apt-get update ; \

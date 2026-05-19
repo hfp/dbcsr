@@ -29,7 +29,6 @@ if ("@USE_ACCEL@" MATCHES "hip")
 endif ()
 
 if ("@USE_ACCEL@" MATCHES "opencl")
-  set(DBCSR_USE_SMM @USE_SMM@)
   find_dependency(OpenCL)
 endif ()
 

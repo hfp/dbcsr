@@ -91,11 +91,6 @@ set(TEST_OMP_THREADS
     2
     CACHE STRING "Number of OpenMP threads for testing")
 
-set(USE_SMM
-    "auto"
-    CACHE STRING
-          "Small Matrix Multiplication implementation to use (default: auto)")
-set_property(CACHE USE_SMM PROPERTY STRINGS auto blas)
 
 set(USE_ACCEL
     ""
@@ -150,12 +145,67 @@ if (USE_OPENMP)
 endif ()
 
 # =================================== SMM (Small Matrix-Matrix multiplication)
-if (USE_ACCEL MATCHES "opencl")
-  message(STATUS "Using LIBXSTREAM for Small Matrix Multiplication (OpenCL)")
-elseif (USE_SMM MATCHES "blas|auto")
-  message(STATUS "Using BLAS for Small Matrix Multiplication")
-else ()
-  message(FATAL_ERROR "Unknown SMM library specified")
+# LIBXS provides host-side batched GEMM for all backends (optional).
+# LIBXSMM provides JIT kernels within LIBXS (optional, auto-detected).
+# Set LIBXSROOT to help CMake find LIBXS, or set USE_LIBXS=OFF to disable.
+option(USE_LIBXS "Use LIBXS for host-side Small Matrix Multiplication" ON)
+find_package(PkgConfig QUIET)
+set(LIBXSROOT
+    ""
+    CACHE PATH "Root directory of LIBXS")
+if (USE_LIBXS)
+  if (NOT LIBXSROOT AND PkgConfig_FOUND)
+    pkg_check_modules(_LIBXS QUIET libxs)
+    if (_LIBXS_FOUND)
+      pkg_get_variable(LIBXSROOT libxs prefix)
+    endif ()
+  endif ()
+  if (NOT LIBXSROOT)
+    foreach (_dir "${CMAKE_SOURCE_DIR}/../libxs" "$ENV{HOME}/libxs"
+                  "/opt/libxs")
+      if (EXISTS "${_dir}/include/libxs.f")
+        set(LIBXSROOT "${_dir}")
+        break()
+      endif ()
+    endforeach ()
+  endif ()
+  if (LIBXSROOT AND EXISTS "${LIBXSROOT}/include/libxs.f")
+    message(STATUS "Using LIBXS from ${LIBXSROOT}")
+    find_library(
+      LIBXS_LIBRARY
+      NAMES xs
+      PATHS "${LIBXSROOT}/lib"
+      NO_DEFAULT_PATH)
+    # Optional LIBXSMM for JIT-compiled GEMM kernels
+    set(LIBXSMMROOT
+        ""
+        CACHE PATH "Root directory of LIBXSMM (optional)")
+    if (NOT LIBXSMMROOT AND PkgConfig_FOUND)
+      pkg_check_modules(_LIBXSMM QUIET libxsmm)
+      if (_LIBXSMM_FOUND)
+        pkg_get_variable(LIBXSMMROOT libxsmm prefix)
+      endif ()
+    endif ()
+    if (NOT LIBXSMMROOT)
+      foreach (_dir "${LIBXSROOT}/../libxsmm" "$ENV{HOME}/libxsmm"
+                    "/opt/libxsmm")
+        if (EXISTS "${_dir}/include/libxsmm.h")
+          set(LIBXSMMROOT "${_dir}")
+          break()
+        endif ()
+      endforeach ()
+    endif ()
+    if (LIBXSMMROOT AND EXISTS "${LIBXSMMROOT}/include/libxsmm.h")
+      message(STATUS "Using LIBXSMM from ${LIBXSMMROOT}")
+      find_library(
+        LIBXSMM_LIBRARY
+        NAMES xsmm
+        PATHS "${LIBXSMMROOT}/lib"
+        NO_DEFAULT_PATH)
+    endif ()
+  else ()
+    message(STATUS "LIBXS not found -- using BLAS for Small Matrix Multiplication")
+  endif ()
 endif ()
 
 # =================================== BLAS & LAPACK, PkgConfig
@@ -228,7 +278,10 @@ if (USE_ACCEL MATCHES "opencl")
     list(APPEND CMAKE_PREFIX_PATH "$ENV{CUDA_PATH}")
   endif ()
   find_package(OpenCL REQUIRED)
-  find_package(PkgConfig QUIET)
+  # LIBXS is required for the OpenCL backend
+  if (NOT LIBXS_LIBRARY)
+    message(FATAL_ERROR "LIBXS not found. OpenCL backend requires LIBXS (USE_LIBXS=ON).")
+  endif ()
   # Locate LIBXSTREAM: user override > pkg-config > path probing
   set(LIBXSTREAMROOT
       ""
@@ -254,56 +307,6 @@ if (USE_ACCEL MATCHES "opencl")
         "LIBXSTREAMROOT not found. Set -DLIBXSTREAMROOT=/path/to/libxstream")
   endif ()
   message(STATUS "Using LIBXSTREAM from ${LIBXSTREAMROOT}")
-  # Locate LIBXS: user override > pkg-config > path probing
-  set(LIBXSROOT
-      ""
-      CACHE PATH "Root directory of LIBXS")
-  if (NOT LIBXSROOT AND PkgConfig_FOUND)
-    pkg_check_modules(_LIBXS QUIET libxs)
-    if (_LIBXS_FOUND)
-      pkg_get_variable(LIBXSROOT libxs prefix)
-    endif ()
-  endif ()
-  if (NOT LIBXSROOT)
-    foreach (_dir "${LIBXSTREAMROOT}/../libxs" "$ENV{HOME}/libxs"
-                  "/opt/libxs")
-      if (EXISTS "${_dir}/include/libxs.f")
-        set(LIBXSROOT "${_dir}")
-        break()
-      endif ()
-    endforeach ()
-  endif ()
-  if (NOT LIBXSROOT OR NOT EXISTS "${LIBXSROOT}/include/libxs.f")
-    message(FATAL_ERROR "LIBXSROOT not found. Set -DLIBXSROOT=/path/to/libxs")
-  endif ()
-  message(STATUS "Using LIBXS from ${LIBXSROOT}")
-  # Optional LIBXSMM for JIT-compiled host-side GEMM kernels
-  set(LIBXSMMROOT
-      ""
-      CACHE PATH "Root directory of LIBXSMM (optional)")
-  if (NOT LIBXSMMROOT AND PkgConfig_FOUND)
-    pkg_check_modules(_LIBXSMM QUIET libxsmm)
-    if (_LIBXSMM_FOUND)
-      pkg_get_variable(LIBXSMMROOT libxsmm prefix)
-    endif ()
-  endif ()
-  if (NOT LIBXSMMROOT)
-    foreach (_dir "${LIBXSROOT}/../libxsmm" "$ENV{HOME}/libxsmm"
-                  "/opt/libxsmm")
-      if (EXISTS "${_dir}/include/libxsmm.h")
-        set(LIBXSMMROOT "${_dir}")
-        break()
-      endif ()
-    endforeach ()
-  endif ()
-  if (LIBXSMMROOT AND EXISTS "${LIBXSMMROOT}/include/libxsmm.h")
-    message(STATUS "Using LIBXSMM from ${LIBXSMMROOT}")
-    find_library(
-      LIBXSMM_LIBRARY
-      NAMES xsmm
-      PATHS "${LIBXSMMROOT}/lib"
-      NO_DEFAULT_PATH)
-  endif ()
   # Kernel build script and common OpenCL headers
   set(DBCSR_OPENCL_SCRIPT "${LIBXSTREAMROOT}/scripts/tool_opencl.sh")
 endif ()

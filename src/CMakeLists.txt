@@ -184,7 +184,7 @@ elseif (USE_ACCEL MATCHES "cuda")
                                          "${ACC_ARCH_NUMBER}")
 endif ()
 
-if (USE_ACCEL MATCHES "opencl" AND LIBXSROOT)
+if (LIBXS_LIBRARY)
   # LIBXS provides host-side SMM (GEMM, hash, diff, timer, etc.)
   target_compile_definitions(dbcsr PRIVATE __LIBXS)
   target_include_directories(dbcsr PRIVATE "${LIBXSROOT}/include")

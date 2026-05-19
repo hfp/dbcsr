@@ -31,7 +31,7 @@ MODULE dbcsr_block_operations
 #include "base/dbcsr_base_uses.f90"
 
    IMPLICIT NONE
-#if defined(__MKL) || defined(__LIBXS) || !defined(NDEBUG)
+#if defined(__MKL) || !defined(NDEBUG)
 #  define PURE_BLOCKOPS
 #else
 #  define PURE_BLOCKOPS PURE
@@ -1448,14 +1448,14 @@ CONTAINS
      !! @endnote
 
 #if defined(__LIBXS)
-         USE LIBXS, ONLY: libxs_matcopy, libxs_otrans, C_LOC
+         USE LIBXS, ONLY: libxs_matcopy, libxs_otrans
 #endif
-         ${type1}$, DIMENSION(:), TARGET, &
+         ${type1}$, DIMENSION(:), &
             INTENT(INOUT)                         :: dst
          INTEGER, INTENT(IN)                      :: dst_rs, dst_cs
          INTEGER, INTENT(IN)                      :: src_offset, dst_offset
          LOGICAL, INTENT(IN)                      :: dst_tr
-         ${type1}$, DIMENSION(:), TARGET, &
+         ${type1}$, DIMENSION(:), &
             INTENT(IN)                            :: src
          INTEGER, INTENT(IN)                      :: src_rs, src_cs
          LOGICAL, INTENT(IN)                      :: src_tr
@@ -1468,11 +1468,9 @@ CONTAINS
 !    rs is the logical row size so it always remains the leading dimension.
          IF (.NOT. dst_tr .AND. .NOT. src_tr) THEN
 #if defined(__LIBXS)
-            IF ((0 .LT. ncol) .AND. (0 .LT. nrow)) THEN
-               CALL libxs_matcopy(C_LOC(dst(dst_offset + dst_r_lb + (dst_c_lb - 1)*dst_rs)), &
-                                  C_LOC(src(src_offset + src_r_lb + (src_c_lb - 1)*src_rs)), &
-                                  ${typesize1[n]}$, nrow, ncol, src_rs, dst_rs)
-            END IF
+            CALL libxs_matcopy(dst(dst_offset + dst_r_lb + (dst_c_lb - 1)*dst_rs), &
+                               src(src_offset + src_r_lb + (src_c_lb - 1)*src_rs), &
+                               ${typesize1[n]}$, nrow, ncol, src_rs, dst_rs)
 #else
             DO col = 0, ncol - 1
                DO row = 0, nrow - 1
@@ -1498,11 +1496,9 @@ CONTAINS
          ELSE
             DBCSR_ASSERT(dst_tr .AND. src_tr)
 #if defined(__LIBXS)
-            IF ((0 .LT. ncol) .AND. (0 .LT. nrow)) THEN
-               CALL libxs_matcopy(C_LOC(dst(dst_offset + dst_c_lb + (dst_r_lb - 1)*dst_cs)), &
-                                  C_LOC(src(src_offset + src_c_lb + (src_r_lb - 1)*src_cs)), &
-                                  ${typesize1[n]}$, nrow, ncol, src_cs, dst_cs)
-            END IF
+            CALL libxs_matcopy(dst(dst_offset + dst_c_lb + (dst_r_lb - 1)*dst_cs), &
+                               src(src_offset + src_c_lb + (src_r_lb - 1)*src_cs), &
+                               ${typesize1[n]}$, nrow, ncol, src_cs, dst_cs)
 #else
             DO col = 0, ncol - 1
                DO row = 0, nrow - 1
@@ -1524,16 +1520,16 @@ CONTAINS
      !! @endnote
 
 #if defined(__LIBXS)
-         USE LIBXS, ONLY: libxs_matcopy, libxs_otrans, C_LOC
+         USE LIBXS, ONLY: libxs_matcopy, libxs_otrans
 #else
          INTEGER                                  :: col, row
 #endif
-         ${type1}$, DIMENSION(:), TARGET, &
+         ${type1}$, DIMENSION(:), &
             INTENT(INOUT)                         :: dst
          INTEGER, INTENT(IN)                      :: dst_rs, dst_cs
          INTEGER, INTENT(IN)                      :: dst_offset
          LOGICAL, INTENT(IN)                      :: dst_tr
-         ${type1}$, DIMENSION(:, :), TARGET, &
+         ${type1}$, DIMENSION(:, :), &
             INTENT(IN)                            :: src
          LOGICAL, INTENT(IN)                      :: src_tr
          INTEGER, INTENT(IN)                      :: dst_r_lb, dst_c_lb, src_r_lb, &
@@ -1544,11 +1540,9 @@ CONTAINS
 !    rs is the logical row size so it always remains the leading dimension.
          IF (.NOT. dst_tr .AND. .NOT. src_tr) THEN
 #if defined(__LIBXS)
-            IF ((0 .LT. ncol) .AND. (0 .LT. nrow)) THEN
-               CALL libxs_matcopy(C_LOC(dst(dst_offset + dst_r_lb + (dst_c_lb - 1)*dst_rs)), &
-                                  C_LOC(src(src_r_lb, src_c_lb)), &
-                                  ${typesize1[n]}$, nrow, ncol, SIZE(src, 1), dst_rs)
-            END IF
+            CALL libxs_matcopy(dst(dst_offset + dst_r_lb + (dst_c_lb - 1)*dst_rs), &
+                               src(src_r_lb, src_c_lb), &
+                               ${typesize1[n]}$, nrow, ncol, SIZE(src, 1), dst_rs)
 #else
             DO col = 0, ncol - 1
                DO row = 0, nrow - 1
@@ -1559,11 +1553,9 @@ CONTAINS
 #endif
          ELSEIF (dst_tr .AND. .NOT. src_tr) THEN
 #if defined(__LIBXS)
-            IF ((0 .LT. ncol) .AND. (0 .LT. nrow)) THEN
-               CALL libxs_otrans(C_LOC(dst(dst_offset + dst_c_lb + (dst_r_lb - 1)*dst_cs)), &
-                                 C_LOC(src(src_r_lb, src_c_lb)), &
-                                 ${typesize1[n]}$, nrow, ncol, SIZE(src, 1), dst_cs)
-            END IF
+            CALL libxs_otrans(dst(dst_offset + dst_c_lb + (dst_r_lb - 1)*dst_cs), &
+                              src(src_r_lb, src_c_lb), &
+                              ${typesize1[n]}$, nrow, ncol, SIZE(src, 1), dst_cs)
 #else
             DO col = 0, ncol - 1
                DO row = 0, nrow - 1
@@ -1574,11 +1566,9 @@ CONTAINS
 #endif
          ELSEIF (.NOT. dst_tr .AND. src_tr) THEN
 #if defined(__LIBXS)
-            IF ((0 .LT. ncol) .AND. (0 .LT. nrow)) THEN
-               CALL libxs_otrans(C_LOC(dst(dst_offset + dst_r_lb + (dst_c_lb - 1)*dst_rs)), &
-                                 C_LOC(src(src_c_lb, src_r_lb)), &
-                                 ${typesize1[n]}$, nrow, ncol, SIZE(src, 2), dst_rs)
-            END IF
+            CALL libxs_otrans(dst(dst_offset + dst_r_lb + (dst_c_lb - 1)*dst_rs), &
+                              src(src_c_lb, src_r_lb), &
+                              ${typesize1[n]}$, nrow, ncol, SIZE(src, 2), dst_rs)
 #else
             DO col = 0, ncol - 1
                DO row = 0, nrow - 1
@@ -1590,11 +1580,9 @@ CONTAINS
          ELSE
             DBCSR_ASSERT(dst_tr .AND. src_tr)
 #if defined(__LIBXS)
-            IF ((0 .LT. ncol) .AND. (0 .LT. nrow)) THEN
-               CALL libxs_matcopy(C_LOC(dst(dst_offset + dst_c_lb + (dst_r_lb - 1)*dst_cs)), &
-                                  C_LOC(src(src_c_lb, src_r_lb)), &
-                                  ${typesize1[n]}$, nrow, ncol, SIZE(src, 2), dst_cs)
-            END IF
+            CALL libxs_matcopy(dst(dst_offset + dst_c_lb + (dst_r_lb - 1)*dst_cs), &
+                               src(src_c_lb, src_r_lb), &
+                               ${typesize1[n]}$, nrow, ncol, SIZE(src, 2), dst_cs)
 #else
             DO col = 0, ncol - 1
                DO row = 0, nrow - 1
@@ -1616,7 +1604,7 @@ CONTAINS
      !! @endnote
 
 #if defined(__LIBXS)
-         USE LIBXS, ONLY: libxs_matcopy, libxs_otrans, C_LOC
+         USE LIBXS, ONLY: libxs_matcopy, libxs_otrans
 #endif
          ${type1}$, DIMENSION(:, :), &
             INTENT(INOUT)                         :: dst
@@ -1674,14 +1662,14 @@ CONTAINS
      !! @endnote
 
 #if defined(__LIBXS)
-         USE LIBXS, ONLY: libxs_matcopy, libxs_otrans, C_LOC
+         USE LIBXS, ONLY: libxs_matcopy, libxs_otrans
 #else
          INTEGER                                  :: col, row
 #endif
-         ${type1}$, DIMENSION(:, :), TARGET, &
+         ${type1}$, DIMENSION(:, :), &
             INTENT(INOUT)                         :: dst
          LOGICAL, INTENT(IN)                      :: dst_tr
-         ${type1}$, DIMENSION(:, :), TARGET, &
+         ${type1}$, DIMENSION(:, :), &
             INTENT(IN)                            :: src
          LOGICAL, INTENT(IN)                      :: src_tr
          INTEGER, INTENT(IN)                      :: dst_r_lb, dst_c_lb, src_r_lb, &
@@ -1692,12 +1680,10 @@ CONTAINS
 !    rs is the logical row size so it always remains the leading dimension.
          IF (.NOT. dst_tr .AND. .NOT. src_tr) THEN
 #if defined(__LIBXS)
-            IF ((0 .LT. ncol) .AND. (0 .LT. nrow)) THEN
-               CALL libxs_matcopy(C_LOC(dst(dst_r_lb, dst_c_lb)), &
-                                  C_LOC(src(src_r_lb, src_c_lb)), &
-                                  ${typesize1[n]}$, nrow, ncol, &
-                                  SIZE(src, 1), SIZE(dst, 1))
-            END IF
+            CALL libxs_matcopy(dst(dst_r_lb, dst_c_lb), &
+                               src(src_r_lb, src_c_lb), &
+                               ${typesize1[n]}$, nrow, ncol, &
+                               SIZE(src, 1), SIZE(dst, 1))
 #else
             DO col = 0, ncol - 1
                DO row = 0, nrow - 1
@@ -1708,12 +1694,10 @@ CONTAINS
 #endif
          ELSEIF (dst_tr .AND. .NOT. src_tr) THEN
 #if defined(__LIBXS)
-            IF ((0 .LT. ncol) .AND. (0 .LT. nrow)) THEN
-               CALL libxs_otrans(C_LOC(dst(dst_c_lb, dst_r_lb)), &
-                                 C_LOC(src(src_r_lb, src_c_lb)), &
-                                 ${typesize1[n]}$, nrow, ncol, &
-                                 SIZE(src, 1), SIZE(dst, 2))
-            END IF
+            CALL libxs_otrans(dst(dst_c_lb, dst_r_lb), &
+                              src(src_r_lb, src_c_lb), &
+                              ${typesize1[n]}$, nrow, ncol, &
+                              SIZE(src, 1), SIZE(dst, 2))
 #else
             DO col = 0, ncol - 1
                DO row = 0, nrow - 1
@@ -1724,12 +1708,10 @@ CONTAINS
 #endif
          ELSEIF (.NOT. dst_tr .AND. src_tr) THEN
 #if defined(__LIBXS)
-            IF ((0 .LT. ncol) .AND. (0 .LT. nrow)) THEN
-               CALL libxs_otrans(C_LOC(dst(dst_r_lb, dst_c_lb)), &
-                                 C_LOC(src(src_c_lb, src_r_lb)), &
-                                 ${typesize1[n]}$, nrow, ncol, &
-                                 SIZE(src, 2), SIZE(dst, 1))
-            END IF
+            CALL libxs_otrans(dst(dst_r_lb, dst_c_lb), &
+                              src(src_c_lb, src_r_lb), &
+                              ${typesize1[n]}$, nrow, ncol, &
+                              SIZE(src, 2), SIZE(dst, 1))
 #else
             DO col = 0, ncol - 1
                DO row = 0, nrow - 1
@@ -1741,12 +1723,10 @@ CONTAINS
          ELSE
             DBCSR_ASSERT(dst_tr .AND. src_tr)
 #if defined(__LIBXS)
-            IF ((0 .LT. ncol) .AND. (0 .LT. nrow)) THEN
-               CALL libxs_matcopy(C_LOC(dst(dst_c_lb, dst_r_lb)), &
-                                  C_LOC(src(src_c_lb, src_r_lb)), &
-                                  ${typesize1[n]}$, nrow, ncol, &
-                                  SIZE(src, 2), SIZE(dst, 2))
-            END IF
+            CALL libxs_matcopy(dst(dst_c_lb, dst_r_lb), &
+                               src(src_c_lb, src_r_lb), &
+                               ${typesize1[n]}$, nrow, ncol, &
+                               SIZE(src, 2), SIZE(dst, 2))
 #else
             DO col = 0, ncol - 1
                DO row = 0, nrow - 1
@@ -1779,11 +1759,11 @@ CONTAINS
      !! Copy and transpose block.
 
 #if defined(__LIBXS)
-         USE LIBXS, ONLY: libxs_otrans, C_LOC
+         USE LIBXS, ONLY: libxs_otrans
 #endif
-         ${type1}$, DIMENSION(:), INTENT(OUT), TARGET :: extent_out
+         ${type1}$, DIMENSION(:), INTENT(OUT) :: extent_out
         !! output matrix in the form of a 1-d array
-         ${type1}$, DIMENSION(:), INTENT(IN), TARGET  :: extent_in
+         ${type1}$, DIMENSION(:), INTENT(IN) :: extent_in
         !! input matrix in the form of a 1-d array
          INTEGER, INTENT(IN) :: rows, columns
         !! input matrix size
@@ -1791,7 +1771,7 @@ CONTAINS
 
 !    ---------------------------------------------------------------------------
 #if defined(__LIBXS)
-         CALL libxs_otrans(C_LOC(extent_out), C_LOC(extent_in), &
+         CALL libxs_otrans(extent_out, extent_in, &
                            ${typesize1[n]}$, rows, columns, rows, columns)
 #elif defined(__MKL)
          CALL mkl_${nametype1}$omatcopy('C', 'T', rows, columns, ${one1[n]}$, extent_in, rows, extent_out, columns)
@@ -1854,19 +1834,19 @@ CONTAINS
      !! Copy and transpose block.
 
 #if defined(__LIBXS)
-         USE LIBXS, ONLY: libxs_otrans, C_LOC
+         USE LIBXS, ONLY: libxs_otrans
 #endif
          INTEGER, INTENT(IN) :: rows, columns
         !! input matrix size
         !! input matrix size
-         ${type1}$, DIMENSION(columns, rows), INTENT(OUT), TARGET :: extent_out
+         ${type1}$, DIMENSION(columns, rows), INTENT(OUT) :: extent_out
         !! output matrix in the form of a 2-d array
-         ${type1}$, DIMENSION(:), INTENT(IN), TARGET              :: extent_in
+         ${type1}$, DIMENSION(:), INTENT(IN)              :: extent_in
         !! input matrix in the form of a 1-d array
 
 !    ---------------------------------------------------------------------------
 #if defined(__LIBXS)
-         CALL libxs_otrans(C_LOC(extent_out), C_LOC(extent_in), &
+         CALL libxs_otrans(extent_out, extent_in, &
                            ${typesize1[n]}$, rows, columns, rows, columns)
 #elif defined(__MKL)
          CALL mkl_${nametype1}$omatcopy('C', 'T', rows, columns, ${one1[n]}$, extent_in, rows, extent_out, columns)
@@ -1896,19 +1876,19 @@ CONTAINS
      !! Copy and transpose block.
 
 #if defined(__LIBXS)
-         USE LIBXS, ONLY: libxs_otrans, C_LOC
+         USE LIBXS, ONLY: libxs_otrans
 #endif
          INTEGER, INTENT(IN) :: rows, columns
         !! input matrix size
         !! input matrix size
-         ${type1}$, DIMENSION(:), INTENT(OUT), TARGET            :: extent_out
+         ${type1}$, DIMENSION(:), INTENT(OUT)            :: extent_out
         !! output matrix in the form of a 1-d array
-         ${type1}$, DIMENSION(rows, columns), INTENT(IN), TARGET :: extent_in
+         ${type1}$, DIMENSION(rows, columns), INTENT(IN) :: extent_in
         !! input matrix in the form of a 2-d array
 
 !    ---------------------------------------------------------------------------
 #if defined(__LIBXS)
-         CALL libxs_otrans(C_LOC(extent_out), C_LOC(extent_in), &
+         CALL libxs_otrans(extent_out, extent_in, &
                            ${typesize1[n]}$, rows, columns, rows, columns)
 #elif defined(__MKL)
          CALL mkl_${nametype1}$omatcopy('C', 'T', rows, columns, ${one1[n]}$, extent_in, rows, extent_out, columns)
@@ -1921,7 +1901,7 @@ CONTAINS
      !! In-place block transpose.
 
 #if defined(__LIBXS) && 0
-         USE LIBXS, ONLY: libxs_otrans, C_LOC
+         USE LIBXS, ONLY: libxs_otrans
 #endif
          INTEGER, INTENT(IN) :: rows, columns
         !! input matrix size
@@ -1931,7 +1911,7 @@ CONTAINS
 
 !    ---------------------------------------------------------------------------
 #if defined(__LIBXS) && 0
-         CALL libxs_otrans(C_LOC(extent), ${typesize1[n]}$, rows, columns, rows)
+         CALL libxs_otrans(extent, ${typesize1[n]}$, rows, columns, rows)
 #elif defined(__MKL)
          CALL mkl_${nametype1}$imatcopy('C', 'T', rows, columns, ${one1[n]}$, extent, rows, columns)
 #else

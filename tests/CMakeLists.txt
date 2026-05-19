@@ -191,6 +191,12 @@ if (NOT USE_MPI)
     if (BLAS_LIBRARIES MATCHES "mkl_")
       target_compile_definitions(${dbcsr_test_backend} PRIVATE __MKL)
     endif ()
+    if (LIBXS_FETCHED)
+      target_link_libraries(${dbcsr_test_backend} PRIVATE libxs::libxs)
+    elseif (LIBXS_LIBRARY)
+      target_include_directories(${dbcsr_test_backend}
+                                 PRIVATE "${LIBXSROOT}/include")
+    endif ()
     if (LIBXSMM_LIBRARY)
       target_compile_definitions(${dbcsr_test_backend} PRIVATE __LIBXSMM)
       target_include_directories(${dbcsr_test_backend}

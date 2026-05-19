@@ -283,14 +283,14 @@ if (USE_ACCEL)
             $<$<BOOL:${WITH_HIP_PROFILING}>:__HIP_PROFILING>)
 
   if (USE_ACCEL MATCHES "opencl")
-    # LIBXSTREAM/LIBXS: use CMake targets if FetchContent, else find libraries
-    if (TARGET libxstream::libxstream)
-      target_include_directories(dbcsr PRIVATE "${DBCSR_SMM_DIR}")
+    target_include_directories(dbcsr PRIVATE "${LIBXSTREAMROOT}/include"
+                                             "${DBCSR_SMM_DIR}")
+    if (NOT LIBXS_FETCHED)
+      target_include_directories(dbcsr PRIVATE "${LIBXSROOT}/include")
+    endif ()
+    if (LIBXSTREAM_FETCHED)
       set(LIBXSTREAM_LINK libxstream::libxstream)
     else ()
-      target_include_directories(
-        dbcsr PRIVATE "${LIBXSTREAMROOT}/include" "${LIBXSROOT}/include"
-                      "${DBCSR_SMM_DIR}")
       find_library(
         LIBXSTREAM_LIBRARY xstream
         PATHS "${LIBXSTREAMROOT}/lib"

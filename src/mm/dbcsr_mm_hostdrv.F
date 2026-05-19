@@ -387,7 +387,7 @@ CONTAINS
                                                                layout, transa, transb, m, n, k, &
                                                                alpha, lda, ldb, beta, ldc) &
                   RESULT(status) BIND(C)
-                  IMPORT :: C_PTR, C_INT, ${ckind1}$
+                  USE, INTRINSIC :: ISO_C_BINDING, ONLY: C_PTR, C_INT, ${ckind1}$
                   INTEGER(C_INT) :: status
                   TYPE(C_PTR) :: jitter
                   INTEGER(C_INT), VALUE :: layout, transa, transb
@@ -396,7 +396,7 @@ CONTAINS
                END FUNCTION
                FUNCTION mkl_jit_get_${nametype1}$gemm_ptr(jitter) &
                   RESULT(ptr) BIND(C)
-                  IMPORT :: C_FUNPTR, C_PTR
+                  USE, INTRINSIC :: ISO_C_BINDING, ONLY: C_FUNPTR, C_PTR
                   TYPE(C_FUNPTR) :: ptr
                   TYPE(C_PTR), INTENT(IN), VALUE :: jitter
                END FUNCTION
@@ -418,7 +418,7 @@ CONTAINS
                SUBROUTINE ${nametype1}$gemm_blas(transa, transb, &
                                                  m, n, k, alpha, a, lda, b, ldb, beta, c, ldc) &
                   BIND(C, NAME="${nametype1}$gemm_")
-                  IMPORT :: C_INT, C_CHAR, ${ckind1}$
+                  USE, INTRINSIC :: ISO_C_BINDING, ONLY: C_INT, C_CHAR, ${ckind1}$
                   CHARACTER(1, C_CHAR), INTENT(IN) :: transa, transb
                   INTEGER(C_INT), INTENT(IN) :: m, n, k, lda, ldb, ldc
                   REAL(${ckind1}$), INTENT(IN) :: alpha, beta, a(*), b(*)

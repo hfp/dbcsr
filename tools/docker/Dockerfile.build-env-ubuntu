@@ -55,6 +55,7 @@ RUN set -ex ; \
         git-archive-all \
         ;
 
+# Version pins: keep in sync with cmake/dependencies.cmake
 ARG libxsmm_version=c14cbc6f8bc7964f8c5190a3a16b8cace03e5889
 
 RUN set -ex ; \

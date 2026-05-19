@@ -145,15 +145,19 @@ if (USE_OPENMP)
 endif ()
 
 # =================================== SMM (Small Matrix-Matrix multiplication)
-# LIBXS provides host-side batched GEMM for all backends (optional).
+# LIBXS provides host-side batched GEMM for all backends.
 # LIBXSMM provides JIT kernels within LIBXS (optional, auto-detected).
-# Set LIBXSROOT to help CMake find LIBXS, or set USE_LIBXS=OFF to disable.
+# Set LIBXSROOT to use a prebuilt installation, or let FetchContent download it.
+# Set USE_LIBXS=OFF to disable entirely.
+include(FetchContent)
+include(cmake/dependencies.cmake)
 option(USE_LIBXS "Use LIBXS for host-side Small Matrix Multiplication" ON)
 find_package(PkgConfig QUIET)
 set(LIBXSROOT
     ""
-    CACHE PATH "Root directory of LIBXS")
+    CACHE PATH "Root directory of a prebuilt LIBXS (skips FetchContent)")
 if (USE_LIBXS)
+  # Try prebuilt: pkg-config > explicit root > path probing
   if (NOT LIBXSROOT AND PkgConfig_FOUND)
     pkg_check_modules(_LIBXS QUIET libxs)
     if (_LIBXS_FOUND)
@@ -170,41 +174,49 @@ if (USE_LIBXS)
     endforeach ()
   endif ()
   if (LIBXSROOT AND EXISTS "${LIBXSROOT}/include/libxs.f")
-    message(STATUS "Using LIBXS from ${LIBXSROOT}")
+    message(STATUS "Using prebuilt LIBXS from ${LIBXSROOT}")
     find_library(
       LIBXS_LIBRARY
       NAMES xs
       PATHS "${LIBXSROOT}/lib"
       NO_DEFAULT_PATH)
-    # Optional LIBXSMM for JIT-compiled GEMM kernels
-    set(LIBXSMMROOT
-        ""
-        CACHE PATH "Root directory of LIBXSMM (optional)")
-    if (NOT LIBXSMMROOT AND PkgConfig_FOUND)
-      pkg_check_modules(_LIBXSMM QUIET libxsmm)
-      if (_LIBXSMM_FOUND)
-        pkg_get_variable(LIBXSMMROOT libxsmm prefix)
-      endif ()
-    endif ()
-    if (NOT LIBXSMMROOT)
-      foreach (_dir "${LIBXSROOT}/../libxsmm" "$ENV{HOME}/libxsmm"
-                    "/opt/libxsmm")
-        if (EXISTS "${_dir}/include/libxsmm.h")
-          set(LIBXSMMROOT "${_dir}")
-          break()
-        endif ()
-      endforeach ()
-    endif ()
-    if (LIBXSMMROOT AND EXISTS "${LIBXSMMROOT}/include/libxsmm.h")
-      message(STATUS "Using LIBXSMM from ${LIBXSMMROOT}")
-      find_library(
-        LIBXSMM_LIBRARY
-        NAMES xsmm
-        PATHS "${LIBXSMMROOT}/lib"
-        NO_DEFAULT_PATH)
-    endif ()
   else ()
-    message(STATUS "LIBXS not found -- using BLAS for Small Matrix Multiplication")
+    # FetchContent: download and build as part of this project
+    message(STATUS "LIBXS not found locally -- downloading via FetchContent")
+    FetchContent_Declare(libxs
+      GIT_REPOSITORY ${LIBXS_GIT_REPOSITORY}
+      GIT_TAG        ${LIBXS_GIT_TAG})
+    set(LIBXS_FORTRAN ON CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(libxs)
+    set(LIBXS_FETCHED TRUE)
+    set(LIBXSROOT "${libxs_SOURCE_DIR}")
+  endif ()
+  # Optional LIBXSMM for JIT-compiled GEMM kernels
+  set(LIBXSMMROOT
+      ""
+      CACHE PATH "Root directory of LIBXSMM (optional)")
+  if (NOT LIBXSMMROOT AND PkgConfig_FOUND)
+    pkg_check_modules(_LIBXSMM QUIET libxsmm)
+    if (_LIBXSMM_FOUND)
+      pkg_get_variable(LIBXSMMROOT libxsmm prefix)
+    endif ()
+  endif ()
+  if (NOT LIBXSMMROOT)
+    foreach (_dir "${LIBXSROOT}/../libxsmm" "$ENV{HOME}/libxsmm"
+                  "/opt/libxsmm")
+      if (EXISTS "${_dir}/include/libxsmm.h")
+        set(LIBXSMMROOT "${_dir}")
+        break()
+      endif ()
+    endforeach ()
+  endif ()
+  if (LIBXSMMROOT AND EXISTS "${LIBXSMMROOT}/include/libxsmm.h")
+    message(STATUS "Using LIBXSMM from ${LIBXSMMROOT}")
+    find_library(
+      LIBXSMM_LIBRARY
+      NAMES xsmm
+      PATHS "${LIBXSMMROOT}/lib"
+      NO_DEFAULT_PATH)
   endif ()
 endif ()
 
@@ -279,13 +291,13 @@ if (USE_ACCEL MATCHES "opencl")
   endif ()
   find_package(OpenCL REQUIRED)
   # LIBXS is required for the OpenCL backend
-  if (NOT LIBXS_LIBRARY)
+  if (NOT LIBXS_LIBRARY AND NOT LIBXS_FETCHED)
     message(FATAL_ERROR "LIBXS not found. OpenCL backend requires LIBXS (USE_LIBXS=ON).")
   endif ()
-  # Locate LIBXSTREAM: user override > pkg-config > path probing
+  # Locate LIBXSTREAM: prebuilt > pkg-config > path probing > FetchContent
   set(LIBXSTREAMROOT
       ""
-      CACHE PATH "Root directory of LIBXSTREAM")
+      CACHE PATH "Root directory of a prebuilt LIBXSTREAM (skips FetchContent)")
   if (NOT LIBXSTREAMROOT AND PkgConfig_FOUND)
     pkg_check_modules(_LIBXSTREAM QUIET libxstream)
     if (_LIBXSTREAM_FOUND)
@@ -301,12 +313,18 @@ if (USE_ACCEL MATCHES "opencl")
       endif ()
     endforeach ()
   endif ()
-  if (NOT LIBXSTREAMROOT OR NOT EXISTS "${LIBXSTREAMROOT}/include/libxstream.h")
-    message(
-      FATAL_ERROR
-        "LIBXSTREAMROOT not found. Set -DLIBXSTREAMROOT=/path/to/libxstream")
+  if (LIBXSTREAMROOT AND EXISTS "${LIBXSTREAMROOT}/include/libxstream.h")
+    message(STATUS "Using prebuilt LIBXSTREAM from ${LIBXSTREAMROOT}")
+  else ()
+    message(STATUS "LIBXSTREAM not found locally -- downloading via FetchContent")
+    FetchContent_Declare(libxstream
+      GIT_REPOSITORY ${LIBXSTREAM_GIT_REPOSITORY}
+      GIT_TAG        ${LIBXSTREAM_GIT_TAG})
+    set(LIBXSROOT "${LIBXSROOT}" CACHE PATH "" FORCE)
+    FetchContent_MakeAvailable(libxstream)
+    set(LIBXSTREAMROOT "${libxstream_SOURCE_DIR}")
   endif ()
-  message(STATUS "Using LIBXSTREAM from ${LIBXSTREAMROOT}")
+  message(STATUS "LIBXSTREAM root: ${LIBXSTREAMROOT}")
   # Kernel build script and common OpenCL headers
   set(DBCSR_OPENCL_SCRIPT "${LIBXSTREAMROOT}/scripts/tool_opencl.sh")
 endif ()

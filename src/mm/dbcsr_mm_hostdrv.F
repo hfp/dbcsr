@@ -384,8 +384,8 @@ CONTAINS
 #if defined(__MKL)
             INTERFACE
                FUNCTION mkl_cblas_jit_create_${nametype1}$gemm(jitter, &
-                  layout, transa, transb, m, n, k, &
-                  alpha, lda, ldb, beta, ldc) &
+                                                               layout, transa, transb, m, n, k, &
+                                                               alpha, lda, ldb, beta, ldc) &
                   RESULT(status) BIND(C)
                   IMPORT :: C_PTR, C_INT, ${ckind1}$
                   INTEGER(C_INT) :: status
@@ -416,7 +416,7 @@ CONTAINS
 #if defined(__BLAS) || defined(__MKL)
             INTERFACE
                SUBROUTINE ${nametype1}$gemm_blas(transa, transb, &
-                  m, n, k, alpha, a, lda, b, ldb, beta, c, ldc) &
+                                                 m, n, k, alpha, a, lda, b, ldb, beta, c, ldc) &
                   BIND(C, NAME="${nametype1}$gemm_")
                   IMPORT :: C_INT, C_CHAR, ${ckind1}$
                   CHARACTER(1, C_CHAR), INTENT(IN) :: transa, transb
@@ -447,27 +447,27 @@ CONTAINS
                registry = libxs_registry_create()
             END IF
             rc = libxs_gemm_dispatch(config, &
-               datatype=LIBXS_DATATYPE_F${bits1[n]}$, &
-               transa='N', transb='N', &
-               m=m, n=n, k=k, lda=m, ldb=k, ldc=m, &
-               alpha=1D0, beta=1D0 &
+                                     datatype=LIBXS_DATATYPE_F${bits1[n]}$, &
+                                     transa='N', transb='N', &
+                                     m=m, n=n, k=k, lda=m, ldb=k, ldc=m, &
+                                     alpha=1D0, beta=1D0 &
          #:if base1 == 'r'
 #if defined(__MKL)
-               , jit_create_${nametype1}$gemm= &
-                  C_FUNLOC(mkl_cblas_jit_create_${nametype1}$gemm) &
-               , jit_get_${nametype1}$gemm= &
-                  C_FUNLOC(mkl_jit_get_${nametype1}$gemm_ptr) &
+                                     , jit_create_${nametype1}$gemm= &
+                                     C_FUNLOC(mkl_cblas_jit_create_${nametype1}$gemm) &
+                                     , jit_get_${nametype1}$gemm= &
+                                     C_FUNLOC(mkl_jit_get_${nametype1}$gemm_ptr) &
 #endif
 #if defined(__LIBXSMM)
-               , xgemm_dispatch= &
-                  C_FUNLOC(libxsmm_dispatch_gemm) &
+                                     , xgemm_dispatch= &
+                                     C_FUNLOC(libxsmm_dispatch_gemm) &
 #endif
 #if defined(__BLAS) || defined(__MKL)
-               , ${nametype1}$gemm_blas= &
-                  C_FUNLOC(${nametype1}$gemm_blas) &
+                                     , ${nametype1}$gemm_blas= &
+                                     C_FUNLOC(${nametype1}$gemm_blas) &
 #endif
          #:endif
-               , registry=registry)
+                                     , registry=registry)
             CALL libxs_gemm_index( &
                C_LOC(a_data), C_LOC(params(p_a_first, 1)), &
                C_LOC(b_data), C_LOC(params(p_b_first, 1)), &

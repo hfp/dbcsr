@@ -35,7 +35,29 @@ if [ ! -d "${HOME}/libxsmm" ]; then
 fi
 cd "${HOME}/libxsmm"
 git fetch
-git checkout 488aa88f2a9825e9f92a0cfc773c1aedf019f88a
+git checkout c14cbc6f8bc7964f8c5190a3a16b8cace03e5889
+make -j
+cd ..
+
+# Checkout and build LIBXS
+if [ ! -d "${HOME}/libxs" ]; then
+  cd "${HOME}"
+  git clone https://github.com/hfp/libxs.git
+fi
+cd "${HOME}/libxs"
+git fetch
+git checkout main
+make -j
+cd ..
+
+# Checkout and build LIBXSTREAM
+if [ ! -d "${HOME}/libxstream" ]; then
+  cd "${HOME}"
+  git clone https://github.com/hfp/libxstream.git
+fi
+cd "${HOME}/libxstream"
+git fetch
+git checkout main
 make -j
 cd ..
 
@@ -47,21 +69,15 @@ mkdir -p "${SCRATCH}/${BUILD_TAG}.ocl"
 chmod 0775 "${SCRATCH}/${BUILD_TAG}.ocl"
 cd "${SCRATCH}/${BUILD_TAG}.ocl"
 
-# CMake (older): find OpenCL implementation
-#export NVSDKCOMPUTE_ROOT=${CUDATOOLKIT_HOME}
-# CMake: find LIBXSMM (pkg-config)
-export PKG_CONFIG_PATH=${HOME}/libxsmm/lib:${PKG_CONFIG_PATH}
+# pkg-config paths for LIBXSMM, LIBXS, LIBXSTREAM
+export PKG_CONFIG_PATH=${HOME}/libxsmm/lib:${HOME}/libxs/lib/pkgconfig:${HOME}/libxstream/lib/pkgconfig:${PKG_CONFIG_PATH}
 
-#BLAS="-DBLAS_FOUND=ON -DBLAS_LIBRARIES='-lsci_gnu_mpi_mp' -DLAPACK_FOUND=ON -DLAPACK_LIBRARIES='-lsci_gnu_mpi_mp'"
 BLAS="-DBLA_VENDOR=Intel10_64lp"
-#LIBXSMM=libxsmm-shared
-LIBXSMM=libxsmm
 
-cmake \
+cmake ${BLAS} \
     -DCMAKE_SYSTEM_NAME=CrayLinuxEnvironment \
     -DCMAKE_CROSSCOMPILING_EMULATOR="" \
     -DUSE_ACCEL=opencl -DWITH_GPU=P100 \
-    -DUSE_SMM=${LIBXSMM} ${BLAS} \
     -DOpenCL_LIBRARY="${CUDATOOLKIT_HOME}/lib64/libOpenCL.so" \
     -DMPIEXEC_EXECUTABLE="$(command -v srun)" \
     -DTEST_MPI_RANKS="${SLURM_NTASKS}" \

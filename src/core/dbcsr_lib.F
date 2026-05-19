@@ -175,8 +175,8 @@ CONTAINS
       !! Initialize the DBCSR library
       !! Prepares the DBCSR library for use.
 
-#if defined(__LIBXSMM)
-      USE libxsmm, ONLY: libxsmm_init
+#if defined(__LIBXS)
+      USE LIBXS, ONLY: libxs_init
 #endif
       TYPE(mp_comm_type), INTENT(IN)  :: mp_comm
       INTEGER, INTENT(IN), OPTIONAL :: io_unit, accdrv_active_device_id
@@ -206,8 +206,8 @@ CONTAINS
       END IF
       CALL dbcsr_mp_make_env(mp_env, default_group, mp_comm)
 
-#if defined(__LIBXSMM)
-      CALL libxsmm_init()
+#if defined(__LIBXS)
+      CALL libxs_init()
 #endif
 
       ! Initialize Acc and set active device
@@ -277,8 +277,8 @@ CONTAINS
       !! Finalize the DBCSR library
       !! Cleans up after the DBCSR library.  Used to deallocate persistent objects.
 
-#if defined(__LIBXSMM)
-      USE libxsmm, ONLY: libxsmm_finalize
+#if defined(__LIBXS)
+      USE LIBXS, ONLY: libxs_finalize
 #endif
       CHARACTER(len=*), PARAMETER :: routineN = 'dbcsr_finalize_lib'
 
@@ -306,8 +306,8 @@ CONTAINS
       NULLIFY (dbcsr_warn_hook)
       CALL dbcsr_mp_release(mp_env)
       CALL mp_comm_free(default_group)
-#if defined(__LIBXSMM)
-      CALL libxsmm_finalize()
+#if defined(__LIBXS)
+      CALL libxs_finalize()
 #endif
       ! Reset Acc ID
       CALL reset_accdrv_active_device_id()

@@ -406,7 +406,7 @@ CONTAINS
             INTERFACE
                FUNCTION libxsmm_dispatch_gemm(shape, flags, prefetch) &
                   RESULT(fn) BIND(C)
-                  IMPORT :: C_FUNPTR, C_INT
+                  USE, INTRINSIC :: ISO_C_BINDING, ONLY: C_FUNPTR, C_INT
                   INTEGER(C_INT), INTENT(IN) :: shape(10)
                   INTEGER(C_INT), INTENT(IN), VALUE :: flags, prefetch
                   TYPE(C_FUNPTR) :: fn

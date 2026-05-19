@@ -245,7 +245,7 @@ int main(int argc, char* argv[]) {
       CHECK(c_dbcsr_acc_host_mem_allocate((void**)(void*)&trans_hst, sizeof(int) * nb, stream), &result, check);
       CHECK(c_dbcsr_acc_stream_sync(stream), &result, check); /* ensure host-data is allocated */
       if (NULL != amat_hst && NULL != bmat_hst && NULL != trans_hst && NULL != stack_hst) {
-        init_stack(stack_hst, stack_size, NRAND, rnd, mn, mk, kn, nc, na, nb);
+        INIT_STACK(stack_hst, stack_size, NRAND, rnd, mn, mk, kn, nc, na, nb);
 #if defined(_OPENMP)
 #  pragma omp parallel
 #endif

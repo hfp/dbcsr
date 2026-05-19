@@ -9,8 +9,6 @@
 #ifndef DBCSR_ACC_H
 #define DBCSR_ACC_H
 
-#include <stddef.h>
-
 #define DBCSR_STRINGIFY_AUX(SYMBOL) #SYMBOL
 #define DBCSR_STRINGIFY(SYMBOL) DBCSR_STRINGIFY_AUX(SYMBOL)
 #define DBCSR_CONCATENATE2(A, B) A##B
@@ -18,6 +16,12 @@
 
 /** used to mark variables used */
 #define DBCSR_MARK_USED(x) (void)(x)
+
+#if defined(__OPENCL)
+/* ACC interface provided by LIBXSTREAM */
+#  include <libxstream_dbcsr.h>
+#else
+#include <stddef.h>
 
 #if defined(__cplusplus)
 extern "C" {
@@ -29,6 +33,8 @@ typedef int c_dbcsr_acc_bool_t;
 /** initialization and finalization */
 int c_dbcsr_acc_init(void);
 int c_dbcsr_acc_finalize(void);
+
+/** error handling */
 void c_dbcsr_acc_clear_errors(void);
 
 /** devices */
@@ -71,4 +77,5 @@ void c_dbcsr_timestop(const int* handle);
 }
 #endif
 
+#endif /*defined(__OPENCL)*/
 #endif /*DBCSR_ACC_H*/

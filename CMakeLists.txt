@@ -275,6 +275,32 @@ if (USE_ACCEL MATCHES "opencl")
     message(FATAL_ERROR "LIBXSROOT not found. Set -DLIBXSROOT=/path/to/libxs")
   endif ()
   message(STATUS "Using LIBXS from ${LIBXSROOT}")
+  # Optional LIBXSMM for JIT-compiled host-side GEMM kernels
+  set(LIBXSMMROOT
+      ""
+      CACHE PATH "Root directory of LIBXSMM (optional)")
+  if (NOT LIBXSMMROOT AND PkgConfig_FOUND)
+    pkg_check_modules(_LIBXSMM QUIET libxsmm)
+    if (_LIBXSMM_FOUND)
+      pkg_get_variable(LIBXSMMROOT libxsmm prefix)
+    endif ()
+  endif ()
+  if (NOT LIBXSMMROOT)
+    foreach (_dir "${LIBXSROOT}/../libxsmm" "$ENV{HOME}/libxsmm")
+      if (EXISTS "${_dir}/include/libxsmm.h")
+        set(LIBXSMMROOT "${_dir}")
+        break()
+      endif ()
+    endforeach ()
+  endif ()
+  if (LIBXSMMROOT AND EXISTS "${LIBXSMMROOT}/include/libxsmm.h")
+    message(STATUS "Using LIBXSMM from ${LIBXSMMROOT}")
+    find_library(
+      LIBXSMM_LIBRARY
+      NAMES xsmm
+      PATHS "${LIBXSMMROOT}/lib"
+      NO_DEFAULT_PATH)
+  endif ()
   # Kernel build script and common OpenCL headers
   set(DBCSR_OPENCL_SCRIPT "${LIBXSTREAMROOT}/scripts/tool_opencl.sh")
 endif ()

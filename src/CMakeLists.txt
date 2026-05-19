@@ -195,6 +195,12 @@ if (BLAS_LIBRARIES MATCHES "mkl_")
   target_compile_definitions(dbcsr PRIVATE __MKL)
 endif ()
 
+if (LIBXSMM_LIBRARY)
+  target_compile_definitions(dbcsr PRIVATE __LIBXSMM)
+  target_include_directories(dbcsr PRIVATE "${LIBXSMMROOT}/include")
+  target_link_libraries(dbcsr PRIVATE ${LIBXSMM_LIBRARY})
+endif ()
+
 if (APPLE)
   # fix /proc/self/statm can not be opened on macOS
   target_compile_definitions(dbcsr PRIVATE __NO_STATM_ACCESS)

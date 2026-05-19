@@ -402,6 +402,17 @@ CONTAINS
                END FUNCTION
             END INTERFACE
 #endif
+#if defined(__LIBXSMM)
+            INTERFACE
+               FUNCTION libxsmm_dispatch_gemm(shape, flags, prefetch) &
+                  RESULT(fn) BIND(C)
+                  IMPORT :: C_FUNPTR, C_INT
+                  INTEGER(C_INT), INTENT(IN) :: shape(10)
+                  INTEGER(C_INT), INTENT(IN), VALUE :: flags, prefetch
+                  TYPE(C_FUNPTR) :: fn
+               END FUNCTION
+            END INTERFACE
+#endif
 #if defined(__BLAS) || defined(__MKL)
             INTERFACE
                SUBROUTINE ${nametype1}$gemm_blas(transa, transb, &
@@ -446,6 +457,10 @@ CONTAINS
                   C_FUNLOC(mkl_cblas_jit_create_${nametype1}$gemm) &
                , jit_get_${nametype1}$gemm= &
                   C_FUNLOC(mkl_jit_get_${nametype1}$gemm_ptr) &
+#endif
+#if defined(__LIBXSMM)
+               , xgemm_dispatch= &
+                  C_FUNLOC(libxsmm_dispatch_gemm) &
 #endif
 #if defined(__BLAS) || defined(__MKL)
                , ${nametype1}$gemm_blas= &

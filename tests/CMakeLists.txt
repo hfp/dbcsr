@@ -188,6 +188,10 @@ if (NOT USE_MPI)
     if (BLAS_LIBRARIES MATCHES "mkl_")
       target_compile_definitions(${dbcsr_test_backend} PRIVATE __MKL)
     endif ()
+    if (LIBXSMM_LIBRARY)
+      target_compile_definitions(${dbcsr_test_backend} PRIVATE __LIBXSMM)
+      target_include_directories(${dbcsr_test_backend} PRIVATE "${LIBXSMMROOT}/include")
+    endif ()
     # register unittest executable with CMake
     add_test(NAME ${dbcsr_test_backend} COMMAND ./${dbcsr_test_backend})
     set_tests_properties(

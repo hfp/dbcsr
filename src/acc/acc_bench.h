@@ -47,21 +47,24 @@
  */
 #define INIT_STACK(STACK, STACK_SIZE, RND_SIZE, RND, MN, MK, KN, NC, NA, NB) \
   do { \
+    const int* init_stack_rnd_ = (const int*)(RND); \
+    const int init_stack_rnd_size_ = MAX(1, (RND_SIZE)); \
     const int init_stack_navg_ = (STACK_SIZE) / (NC); \
     const int init_stack_nimb_ = MAX(1, init_stack_navg_ - 4); \
     int init_stack_i_ = 0, init_stack_c_ = 0, init_stack_ntop_ = 0; \
     int* init_stack_p_ = (STACK); \
     assert(0 < (NC) && (NC) <= (STACK_SIZE)); \
     while (init_stack_i_ < (STACK_SIZE)) { \
-      const int init_stack_r_ = ((NULL == (RND) || 0 >= (RND_SIZE)) ? rand() : (RND)[init_stack_i_ % (RND_SIZE)]); \
+      const int init_stack_r_ = \
+        ((NULL == init_stack_rnd_ || 0 >= (RND_SIZE)) ? rand() : init_stack_rnd_[init_stack_i_ % init_stack_rnd_size_]); \
       const int init_stack_next_ = init_stack_c_ + 1; \
       init_stack_ntop_ += init_stack_navg_ + (init_stack_r_ % (2 * init_stack_nimb_) - init_stack_nimb_); \
       if ((STACK_SIZE) < init_stack_ntop_) init_stack_ntop_ = (STACK_SIZE); \
       for (; init_stack_i_ < init_stack_ntop_; ++init_stack_i_) { \
         int init_stack_a_, init_stack_b_; \
-        if (NULL != (RND) && 0 < (RND_SIZE)) { \
-          init_stack_a_ = (RND)[(2 * init_stack_i_ + 0) % (RND_SIZE)] % (NA); \
-          init_stack_b_ = (RND)[(2 * init_stack_i_ + 1) % (RND_SIZE)] % (NB); \
+        if (NULL != init_stack_rnd_ && 0 < (RND_SIZE)) { \
+          init_stack_a_ = init_stack_rnd_[(2 * init_stack_i_ + 0) % init_stack_rnd_size_] % (NA); \
+          init_stack_b_ = init_stack_rnd_[(2 * init_stack_i_ + 1) % init_stack_rnd_size_] % (NB); \
         } \
         else { \
           init_stack_a_ = rand() % (NA); \

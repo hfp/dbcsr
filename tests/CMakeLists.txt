@@ -74,7 +74,10 @@ set(DBCSR_TESTS_FTN
     dbcsr_test_csr_conversions)
 
 if (USE_ACCEL)
-  set(DBCSR_TESTS_BACKEND dbcsr_acc_test acc_bench)
+  set(DBCSR_TESTS_BACKEND dbcsr_acc_test)
+  if (LIBXS_LIBRARY OR LIBXS_FETCHED)
+    list(APPEND DBCSR_TESTS_BACKEND acc_bench)
+  endif ()
 endif ()
 
 if (NOT (CMAKE_Fortran_COMPILER_ID STREQUAL "Cray"))

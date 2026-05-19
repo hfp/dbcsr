@@ -283,25 +283,23 @@ if (USE_ACCEL)
             $<$<BOOL:${WITH_HIP_PROFILING}>:__HIP_PROFILING>)
 
   if (USE_ACCEL MATCHES "opencl")
-    # LIBXSTREAM/LIBXS include paths and SMM sample directory
-    target_include_directories(
-      dbcsr PRIVATE "${LIBXSTREAMROOT}/include" "${LIBXSROOT}/include"
-                    "${DBCSR_SMM_DIR}")
-    # Locate LIBXSTREAM and LIBXS static libraries
-    find_library(
-      LIBXSTREAM_LIBRARY xstream
-      PATHS "${LIBXSTREAMROOT}/lib"
-      NO_DEFAULT_PATH)
-    find_library(
-      LIBXS_LIBRARY xs
-      PATHS "${LIBXSROOT}/lib"
-      NO_DEFAULT_PATH)
-    if (NOT LIBXSTREAM_LIBRARY)
-      message(
-        FATAL_ERROR "libxstream library not found in ${LIBXSTREAMROOT}/lib")
-    endif ()
-    if (NOT LIBXS_LIBRARY)
-      message(FATAL_ERROR "libxs library not found in ${LIBXSROOT}/lib")
+    # LIBXSTREAM/LIBXS: use CMake targets if FetchContent, else find libraries
+    if (TARGET libxstream::libxstream)
+      target_include_directories(dbcsr PRIVATE "${DBCSR_SMM_DIR}")
+      set(LIBXSTREAM_LINK libxstream::libxstream)
+    else ()
+      target_include_directories(
+        dbcsr PRIVATE "${LIBXSTREAMROOT}/include" "${LIBXSROOT}/include"
+                      "${DBCSR_SMM_DIR}")
+      find_library(
+        LIBXSTREAM_LIBRARY xstream
+        PATHS "${LIBXSTREAMROOT}/lib"
+        NO_DEFAULT_PATH)
+      if (NOT LIBXSTREAM_LIBRARY)
+        message(
+          FATAL_ERROR "libxstream library not found in ${LIBXSTREAMROOT}/lib")
+      endif ()
+      set(LIBXSTREAM_LINK ${LIBXSTREAM_LIBRARY})
     endif ()
     # Generate opencl_kernels.h from .cl kernel sources
     set(DBCSR_SMM_KERNELS "${DBCSR_SMM_DIR}/kernels/multiply.cl"
@@ -337,8 +335,7 @@ if (USE_ACCEL)
             $<$<BOOL:${WITH_HIP_PROFILING}>:roctx64>
             $<$<BOOL:${WITH_HIP_PROFILING}>:roctracer64>
             $<$<STREQUAL:${USE_ACCEL},opencl>:OpenCL::OpenCL>
-            $<$<STREQUAL:${USE_ACCEL},opencl>:${LIBXSTREAM_LIBRARY}>
-            $<$<STREQUAL:${USE_ACCEL},opencl>:${LIBXS_LIBRARY}>)
+            $<$<STREQUAL:${USE_ACCEL},opencl>:${LIBXSTREAM_LINK}>)
 endif ()
 
 # =================================================================================================

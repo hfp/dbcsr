@@ -55,14 +55,34 @@ RUN set -ex ; \
         git-archive-all \
         ;
 
-ARG libxsmm_version=488aa88f2a9825e9f92a0cfc773c1aedf019f88a
+# Version pins: keep in sync with cmake/dependencies.cmake
+ARG libxsmm_version=c14cbc6f8bc7964f8c5190a3a16b8cace03e5889
 
 RUN set -ex ; \
     curl -LsS https://github.com/libxsmm/libxsmm/archive/${libxsmm_version}.tar.gz | tar -xz -C /opt ; \
     ln -s libxsmm-${libxsmm_version} /opt/libxsmm ; \
     make -j -C /opt/libxsmm WRAP=0
 
-ENV PKG_CONFIG_PATH="/opt/libxsmm/lib:${PKG_CONFIG_PATH}"
+ENV PKG_CONFIG_PATH="/opt/libxsmm/lib:/opt/libxstream/lib/pkgconfig:/opt/libxs/lib/pkgconfig:${PKG_CONFIG_PATH}"
+
+RUN set -ex ; \
+    apt-get update ; \
+    apt-get install -y --no-install-recommends opencl-c-headers ocl-icd-libopencl1 ; \
+    rm -rf /var/lib/apt/lists/*
+
+ARG libxstream_version=45c369b5d91bc2819a5b97e8edc8325a8c699f67
+
+RUN set -ex ; \
+    curl -LsS https://github.com/hfp/libxstream/archive/${libxstream_version}.tar.gz | tar -xz -C /opt ; \
+    ln -s libxstream-${libxstream_version} /opt/libxstream ; \
+    make -j -C /opt/libxstream
+
+ARG libxs_version=3225963402e1c806df622c5f4bbfd5929919dc68
+
+RUN set -ex ; \
+    curl -LsS https://github.com/hfp/libxs/archive/${libxs_version}.tar.gz | tar -xz -C /opt ; \
+    ln -s libxs-${libxs_version} /opt/libxs ; \
+    make -j -C /opt/libxs
 
 # Remove LTO for MPICH (default now in Ubuntu >=22)
 RUN set -ex ; \

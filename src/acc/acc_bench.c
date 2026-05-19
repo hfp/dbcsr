@@ -347,7 +347,7 @@ int main(int argc, char* argv[]) {
           const ELEM_TYPE alpha = 1, beta = 1;
           const char transa = 'N', transb = 'N';
           libxs_registry_t* host_registry = libxs_registry_create();
-          const libxs_gemm_config_t *const host_config = libxs_gemm_dispatch(
+          const libxs_gemm_config_t* const host_config = libxs_gemm_dispatch(
             LIBXS_DATATYPE(ELEM_TYPE), transa, transb, m, n, k, m, k, m, &alpha, &beta, host_registry);
           memset(gold_hst, 0, sizeof(ELEM_TYPE) * mn * nc);
           for (r = 0; r < warmup; ++r) {

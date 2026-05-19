@@ -190,7 +190,8 @@ if (NOT USE_MPI)
     endif ()
     if (LIBXSMM_LIBRARY)
       target_compile_definitions(${dbcsr_test_backend} PRIVATE __LIBXSMM)
-      target_include_directories(${dbcsr_test_backend} PRIVATE "${LIBXSMMROOT}/include")
+      target_include_directories(${dbcsr_test_backend}
+                                 PRIVATE "${LIBXSMMROOT}/include")
     endif ()
     # register unittest executable with CMake
     add_test(NAME ${dbcsr_test_backend} COMMAND ./${dbcsr_test_backend})

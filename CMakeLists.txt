@@ -91,7 +91,6 @@ set(TEST_OMP_THREADS
     2
     CACHE STRING "Number of OpenMP threads for testing")
 
-
 set(USE_ACCEL
     ""
     CACHE STRING "Build with acceleration support (default: none)")
@@ -145,10 +144,10 @@ if (USE_OPENMP)
 endif ()
 
 # =================================== SMM (Small Matrix-Matrix multiplication)
-# LIBXS provides host-side batched GEMM for all backends.
-# LIBXSMM provides JIT kernels within LIBXS (optional, auto-detected).
-# Set LIBXSROOT to use a prebuilt installation, or let FetchContent download it.
-# Set USE_LIBXS=OFF to disable entirely.
+# LIBXS provides host-side batched GEMM for all backends. LIBXSMM provides JIT
+# kernels within LIBXS (optional, auto-detected). Set LIBXSROOT to use a
+# prebuilt installation, or let FetchContent download it. Set USE_LIBXS=OFF to
+# disable entirely.
 include(FetchContent)
 include(cmake/dependencies.cmake)
 option(USE_LIBXS "Use LIBXS for host-side Small Matrix Multiplication" ON)
@@ -183,10 +182,13 @@ if (USE_LIBXS)
   else ()
     # FetchContent: download and build as part of this project
     message(STATUS "LIBXS not found locally -- downloading via FetchContent")
-    FetchContent_Declare(libxs
+    FetchContent_Declare(
+      libxs
       GIT_REPOSITORY ${LIBXS_GIT_REPOSITORY}
-      GIT_TAG        ${LIBXS_GIT_TAG})
-    set(LIBXS_FORTRAN ON CACHE BOOL "" FORCE)
+      GIT_TAG ${LIBXS_GIT_TAG})
+    set(LIBXS_FORTRAN
+        ON
+        CACHE BOOL "" FORCE)
     FetchContent_MakeAvailable(libxs)
     set(LIBXS_FETCHED TRUE)
     set(LIBXSROOT "${libxs_SOURCE_DIR}")
@@ -202,8 +204,7 @@ if (USE_LIBXS)
     endif ()
   endif ()
   if (NOT LIBXSMMROOT)
-    foreach (_dir "${LIBXSROOT}/../libxsmm" "$ENV{HOME}/libxsmm"
-                  "/opt/libxsmm")
+    foreach (_dir "${LIBXSROOT}/../libxsmm" "$ENV{HOME}/libxsmm" "/opt/libxsmm")
       if (EXISTS "${_dir}/include/libxsmm.h")
         set(LIBXSMMROOT "${_dir}")
         break()
@@ -292,7 +293,9 @@ if (USE_ACCEL MATCHES "opencl")
   find_package(OpenCL REQUIRED)
   # LIBXS is required for the OpenCL backend
   if (NOT LIBXS_LIBRARY AND NOT LIBXS_FETCHED)
-    message(FATAL_ERROR "LIBXS not found. OpenCL backend requires LIBXS (USE_LIBXS=ON).")
+    message(
+      FATAL_ERROR
+        "LIBXS not found. OpenCL backend requires LIBXS (USE_LIBXS=ON).")
   endif ()
   # Locate LIBXSTREAM: prebuilt > pkg-config > path probing > FetchContent
   set(LIBXSTREAMROOT
@@ -316,11 +319,15 @@ if (USE_ACCEL MATCHES "opencl")
   if (LIBXSTREAMROOT AND EXISTS "${LIBXSTREAMROOT}/include/libxstream.h")
     message(STATUS "Using prebuilt LIBXSTREAM from ${LIBXSTREAMROOT}")
   else ()
-    message(STATUS "LIBXSTREAM not found locally -- downloading via FetchContent")
-    FetchContent_Declare(libxstream
+    message(
+      STATUS "LIBXSTREAM not found locally -- downloading via FetchContent")
+    FetchContent_Declare(
+      libxstream
       GIT_REPOSITORY ${LIBXSTREAM_GIT_REPOSITORY}
-      GIT_TAG        ${LIBXSTREAM_GIT_TAG})
-    set(LIBXSROOT "${LIBXSROOT}" CACHE PATH "" FORCE)
+      GIT_TAG ${LIBXSTREAM_GIT_TAG})
+    set(LIBXSROOT
+        "${LIBXSROOT}"
+        CACHE PATH "" FORCE)
     FetchContent_MakeAvailable(libxstream)
     set(LIBXSTREAMROOT "${libxstream_SOURCE_DIR}")
   endif ()

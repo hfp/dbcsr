@@ -6,5 +6,7 @@
 /* For further information please visit https://dbcsr.cp2k.org                                    */
 /* SPDX-License-Identifier: BSD-3-Clause                                                          */
 /*------------------------------------------------------------------------------------------------*/
+#if defined(__OPENCL)
 /* ACC interface provided by LIBXSTREAM */
 #include <libxstream_dbcsr.h>
+#endif

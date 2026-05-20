@@ -173,14 +173,26 @@ if (USE_LIBXS)
     endforeach ()
   endif ()
   if (LIBXSROOT AND EXISTS "${LIBXSROOT}/include/libxs.f")
-    message(STATUS "Using prebuilt LIBXS from ${LIBXSROOT}")
     find_library(
       LIBXS_LIBRARY
       NAMES xs
       PATHS "${LIBXSROOT}/lib"
       NO_DEFAULT_PATH)
+    if (LIBXS_LIBRARY)
+      message(STATUS "Using prebuilt LIBXS from ${LIBXSROOT}")
+    else ()
+      message(
+        STATUS "LIBXS source found at ${LIBXSROOT} -- building as subdirectory")
+      set(LIBXS_FORTRAN
+          ON
+          CACHE BOOL "" FORCE)
+      set(LIBXS_SHARED
+          ${BUILD_SHARED_LIBS}
+          CACHE BOOL "" FORCE)
+      add_subdirectory("${LIBXSROOT}" "${CMAKE_BINARY_DIR}/_deps/libxs-build")
+      set(LIBXS_FETCHED TRUE)
+    endif ()
   else ()
-    # FetchContent: download and build as part of this project
     message(STATUS "LIBXS not found locally -- downloading via FetchContent")
     FetchContent_Declare(
       libxs
@@ -188,6 +200,9 @@ if (USE_LIBXS)
       GIT_TAG ${LIBXS_GIT_TAG})
     set(LIBXS_FORTRAN
         ON
+        CACHE BOOL "" FORCE)
+    set(LIBXS_SHARED
+        ${BUILD_SHARED_LIBS}
         CACHE BOOL "" FORCE)
     FetchContent_MakeAvailable(libxs)
     set(LIBXS_FETCHED TRUE)
@@ -317,7 +332,27 @@ if (USE_ACCEL MATCHES "opencl")
     endforeach ()
   endif ()
   if (LIBXSTREAMROOT AND EXISTS "${LIBXSTREAMROOT}/include/libxstream.h")
-    message(STATUS "Using prebuilt LIBXSTREAM from ${LIBXSTREAMROOT}")
+    find_library(
+      LIBXSTREAM_LIBRARY xstream
+      PATHS "${LIBXSTREAMROOT}/lib"
+      NO_DEFAULT_PATH)
+    if (LIBXSTREAM_LIBRARY)
+      message(STATUS "Using prebuilt LIBXSTREAM from ${LIBXSTREAMROOT}")
+    else ()
+      message(
+        STATUS
+          "LIBXSTREAM source found at ${LIBXSTREAMROOT} -- building as subdirectory"
+      )
+      set(LIBXSROOT
+          "${LIBXSROOT}"
+          CACHE PATH "" FORCE)
+      set(LIBXSTREAM_SHARED
+          ${BUILD_SHARED_LIBS}
+          CACHE BOOL "" FORCE)
+      add_subdirectory("${LIBXSTREAMROOT}"
+                       "${CMAKE_BINARY_DIR}/_deps/libxstream-build")
+      set(LIBXSTREAM_FETCHED TRUE)
+    endif ()
   else ()
     message(
       STATUS "LIBXSTREAM not found locally -- downloading via FetchContent")
@@ -328,6 +363,9 @@ if (USE_ACCEL MATCHES "opencl")
     set(LIBXSROOT
         "${LIBXSROOT}"
         CACHE PATH "" FORCE)
+    set(LIBXSTREAM_SHARED
+        ${BUILD_SHARED_LIBS}
+        CACHE BOOL "" FORCE)
     FetchContent_MakeAvailable(libxstream)
     set(LIBXSTREAMROOT "${libxstream_SOURCE_DIR}")
     set(LIBXSTREAM_FETCHED TRUE)

@@ -1,5 +1,5 @@
 set(LIBXS_GIT_REPOSITORY "https://github.com/hfp/libxs.git")
-set(LIBXS_GIT_TAG "57dfd23b349aa703c49d59cca615b3dd2c558a52")
+set(LIBXS_GIT_TAG "bd18251045523f7ffe6d3216abbe7d6aa0d03fee")
 
 set(LIBXSTREAM_GIT_REPOSITORY "https://github.com/hfp/libxstream.git")
 set(LIBXSTREAM_GIT_TAG "ae7fe2e87494ff865c5d03a9402ebf0044555b5a")

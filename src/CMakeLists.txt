@@ -285,6 +285,7 @@ if (USE_ACCEL)
             $<$<BOOL:${WITH_HIP_PROFILING}>:__HIP_PROFILING>)
 
   if (USE_ACCEL MATCHES "opencl")
+    target_compile_definitions(dbcsr PRIVATE __LIBXSTREAM)
     target_include_directories(dbcsr PRIVATE "${LIBXSTREAMROOT}/include"
                                              "${DBCSR_SMM_DIR}")
     if (NOT LIBXS_FETCHED)

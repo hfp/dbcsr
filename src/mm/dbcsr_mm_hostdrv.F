@@ -441,41 +441,41 @@ CONTAINS
          INTEGER :: m, n, k, rc
 
          used_smm = .FALSE.
-         IF (stack_descr%defined_mnk) THEN
-            m = stack_descr%m; n = stack_descr%n; k = stack_descr%k
-            IF (.NOT. C_ASSOCIATED(registry)) THEN
-               registry = libxs_registry_create()
-            END IF
-            rc = libxs_gemm_dispatch(config, &
-                                     datatype=LIBXS_DATATYPE_F${bits1[n]}$, &
-                                     transa='N', transb='N', &
-                                     m=m, n=n, k=k, lda=m, ldb=k, ldc=m, &
-                                     alpha=1D0, beta=1D0 &
          #:if base1 == 'r'
+            IF (stack_descr%defined_mnk) THEN
+               m = stack_descr%m; n = stack_descr%n; k = stack_descr%k
+               IF (.NOT. C_ASSOCIATED(registry)) THEN
+                  registry = libxs_registry_create()
+               END IF
+               rc = libxs_gemm_dispatch(config, &
+                                        datatype=LIBXS_DATATYPE_F${bits1[n]}$, &
+                                        transa='N', transb='N', &
+                                        m=m, n=n, k=k, lda=m, ldb=k, ldc=m, &
+                                        alpha=1D0, beta=1D0 &
 #if defined(__MKL)
-                                     , jit_create_${nametype1}$gemm= &
-                                     C_FUNLOC(mkl_cblas_jit_create_${nametype1}$gemm) &
-                                     , jit_get_${nametype1}$gemm= &
-                                     C_FUNLOC(mkl_jit_get_${nametype1}$gemm_ptr) &
+                                        , jit_create_${nametype1}$gemm= &
+                                        C_FUNLOC(mkl_cblas_jit_create_${nametype1}$gemm) &
+                                        , jit_get_${nametype1}$gemm= &
+                                        C_FUNLOC(mkl_jit_get_${nametype1}$gemm_ptr) &
 #endif
 #if defined(__LIBXSMM)
-                                     , xgemm_dispatch= &
-                                     C_FUNLOC(libxsmm_dispatch_gemm) &
+                                        , xgemm_dispatch= &
+                                        C_FUNLOC(libxsmm_dispatch_gemm) &
 #endif
 #if defined(__BLAS) || defined(__MKL)
-                                     , ${nametype1}$gemm_blas= &
-                                     C_FUNLOC(${nametype1}$gemm_blas) &
+                                        , ${nametype1}$gemm_blas= &
+                                        C_FUNLOC(${nametype1}$gemm_blas) &
 #endif
+                                        , registry=registry)
+               CALL libxs_gemm_index( &
+                  C_LOC(a_data), C_LOC(params(p_a_first, 1)), &
+                  C_LOC(b_data), C_LOC(params(p_b_first, 1)), &
+                  C_LOC(c_data), C_LOC(params(p_c_first, 1)), &
+                  INT(C_SIZEOF(params(1, 1)))*dbcsr_ps_width, 1, &
+                  stack_size, config)
+               used_smm = .TRUE.
+            END IF
          #:endif
-                                     , registry=registry)
-            CALL libxs_gemm_index( &
-               C_LOC(a_data), C_LOC(params(p_a_first, 1)), &
-               C_LOC(b_data), C_LOC(params(p_b_first, 1)), &
-               C_LOC(c_data), C_LOC(params(p_c_first, 1)), &
-               INT(C_SIZEOF(params(1, 1)))*dbcsr_ps_width, 1, &
-               stack_size, config)
-            used_smm = .TRUE.
-         END IF
          IF (.NOT. used_smm) THEN
             CALL blas_process_mm_stack_${nametype1}$ (params, stack_size, &
                                                       a_data, b_data, c_data)

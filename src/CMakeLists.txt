@@ -303,7 +303,7 @@ if (USE_ACCEL)
       endif ()
       set(LIBXSTREAM_LINK ${LIBXSTREAM_LIBRARY})
     endif ()
-    # Generate opencl_kernels.h from .cl kernel sources
+    # Generate smm_kernels.h from .cl kernel sources
     set(DBCSR_SMM_KERNELS "${DBCSR_SMM_DIR}/kernels/multiply.cl"
                           "${DBCSR_SMM_DIR}/kernels/transpose.cl")
     set(DBCSR_SMM_PARAMS "")
@@ -313,7 +313,7 @@ if (USE_ACCEL)
         set(DBCSR_SMM_PARAMS "${_params}")
       endif ()
     endif ()
-    set(DBCSR_SMM_GENHDR "${DBCSR_SMM_DIR}/opencl_kernels.h")
+    set(DBCSR_SMM_GENHDR "${DBCSR_SMM_DIR}/smm_kernels.h")
     add_custom_command(
       OUTPUT "${DBCSR_SMM_GENHDR}"
       COMMAND "${DBCSR_OPENCL_SCRIPT}" -I "${LIBXSTREAMROOT}/include"

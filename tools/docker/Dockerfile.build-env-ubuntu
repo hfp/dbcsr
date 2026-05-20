@@ -70,14 +70,14 @@ RUN set -ex ; \
     apt-get install -y --no-install-recommends opencl-c-headers ocl-icd-libopencl1 ; \
     rm -rf /var/lib/apt/lists/*
 
-ARG libxstream_version=b774ab99cddd23442a31fbabc6776a3b7fabb957
+ARG libxstream_version=45c369b5d91bc2819a5b97e8edc8325a8c699f67
 
 RUN set -ex ; \
     curl -LsS https://github.com/hfp/libxstream/archive/${libxstream_version}.tar.gz | tar -xz -C /opt ; \
     ln -s libxstream-${libxstream_version} /opt/libxstream ; \
     make -j -C /opt/libxstream
 
-ARG libxs_version=f4feb3c402ce24514baea5092997e661c5db1926
+ARG libxs_version=3225963402e1c806df622c5f4bbfd5929919dc68
 
 RUN set -ex ; \
     curl -LsS https://github.com/hfp/libxs/archive/${libxs_version}.tar.gz | tar -xz -C /opt ; \

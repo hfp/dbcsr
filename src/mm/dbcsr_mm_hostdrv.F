@@ -371,15 +371,15 @@ CONTAINS
       SUBROUTINE libxs_process_mm_stack_${nametype1}$ (stack_descr, params, &
                                                        stack_size, a_data, b_data, c_data, used_smm)
      !! Processes MM stack using LIBXS indexed GEMM batch.
-     !! Per-shape configs with MKL JIT (when available) are cached in a registry.
-         USE LIBXS, ONLY: libxs_gemm_config_t, &
-                          libxs_gemm_dispatch, libxs_gemm_index, &
-                          libxs_registry_create, &
-                          C_LOC, C_SIZEOF, C_PTR, C_NULL_PTR, &
-                          C_ASSOCIATED, &
-                          LIBXS_DATATYPE_F${bits1[n]}$
-         USE, INTRINSIC :: ISO_C_BINDING, ONLY: C_FUNLOC
+     !! Real types use LIBXS dispatch; complex types fall through to BLAS.
          #:if base1 == 'r'
+            USE LIBXS, ONLY: libxs_gemm_config_t, &
+                             libxs_gemm_dispatch, libxs_gemm_index, &
+                             libxs_registry_create, &
+                             C_LOC, C_SIZEOF, C_PTR, C_NULL_PTR, &
+                             C_ASSOCIATED, &
+                             LIBXS_DATATYPE_F${bits1[n]}$
+            USE, INTRINSIC :: ISO_C_BINDING, ONLY: C_FUNLOC
             #:set ckind1 = 'C_DOUBLE' if nametype1 == 'd' else 'C_FLOAT'
 #if defined(__MKL)
             INTERFACE
@@ -436,11 +436,16 @@ CONTAINS
          ${type1}$, DIMENSION(*), TARGET, INTENT(INOUT) :: c_data
          LOGICAL, INTENT(OUT)                           :: used_smm
 
-         TYPE(C_PTR), SAVE :: registry = C_NULL_PTR
-         TYPE(libxs_gemm_config_t) :: config
-         INTEGER :: m, n, k, rc
+         #:if base1 == 'r'
+            TYPE(C_PTR), SAVE :: registry = C_NULL_PTR
+            TYPE(libxs_gemm_config_t) :: config
+            INTEGER :: m, n, k, rc
+         #:endif
 
          used_smm = .FALSE.
+         #:if base1 != 'r'
+            MARK_USED(stack_descr)
+         #:endif
          #:if base1 == 'r'
             IF (stack_descr%defined_mnk) THEN
                m = stack_descr%m; n = stack_descr%n; k = stack_descr%k

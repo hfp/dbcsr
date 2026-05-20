@@ -306,13 +306,7 @@ if (USE_ACCEL)
     # Generate smm_kernels.h from .cl kernel sources
     set(DBCSR_SMM_KERNELS "${DBCSR_SMM_DIR}/kernels/multiply.cl"
                           "${DBCSR_SMM_DIR}/kernels/transpose.cl")
-    set(DBCSR_SMM_PARAMS "")
-    if (WITH_GPU)
-      set(_params "${DBCSR_SMM_DIR}/params/tune_multiply_${WITH_GPU}.csv")
-      if (EXISTS "${_params}")
-        set(DBCSR_SMM_PARAMS "${_params}")
-      endif ()
-    endif ()
+    file(GLOB DBCSR_SMM_PARAMS "${DBCSR_SMM_DIR}/params/tune_multiply_*.csv")
     set(DBCSR_SMM_GENHDR "${DBCSR_SMM_DIR}/smm_kernels.h")
     add_custom_command(
       OUTPUT "${DBCSR_SMM_GENHDR}"

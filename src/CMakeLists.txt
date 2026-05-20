@@ -138,7 +138,11 @@ endif ()
 
 # OpenCL backend: SMM from LIBXSTREAM samples, ACC from LIBXSTREAM library
 set(DBCSR_SMM_DIR "${LIBXSTREAMROOT}/samples/smm")
-set(DBCSR_OPENCL_SRCS "${DBCSR_SMM_DIR}/opencl_libsmm.c")
+set(DBCSR_OPENCL_SRCS
+    "${DBCSR_SMM_DIR}/smm_acc.c"
+    "${DBCSR_SMM_DIR}/smm_trans.c"
+    "${DBCSR_SMM_DIR}/smm_params.c"
+    "${DBCSR_SMM_DIR}/smm_kernel.c")
 
 # set the __SHORT_FILE__ per file for dbcsr sources
 foreach (dbcsr_src ${DBCSR_FORTRAN_SRCS})

@@ -68,7 +68,7 @@ RUN set -ex ; \
     ln -s libxstream-${libxstream_version} /opt/libxstream ; \
     make -j -C /opt/libxstream
 
-ARG libxs_version=2d203931a662186c58d734caa1499150301bb35a
+ARG libxs_version=051ad3eac78fcf8b2126843a9bfbfbe1815a92c2
 
 RUN set -ex ; \
     curl -LsS https://github.com/hfp/libxs/archive/${libxs_version}.tar.gz | tar -xz -C /opt ; \

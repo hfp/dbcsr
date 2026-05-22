@@ -375,9 +375,7 @@ CONTAINS
          #:if base1 == 'r'
             USE LIBXS, ONLY: libxs_gemm_config_t, &
                              libxs_gemm_dispatch, libxs_gemm_index, &
-                             libxs_registry_create, &
-                             C_LOC, C_SIZEOF, C_PTR, C_NULL_PTR, &
-                             C_ASSOCIATED, &
+                             C_LOC, C_SIZEOF, &
                              LIBXS_DATATYPE_F${bits1[n]}$
             USE, INTRINSIC :: ISO_C_BINDING, ONLY: C_FUNLOC
             #:set ckind1 = 'C_DOUBLE' if nametype1 == 'd' else 'C_FLOAT'
@@ -437,7 +435,6 @@ CONTAINS
          LOGICAL, INTENT(OUT)                           :: used_smm
 
          #:if base1 == 'r'
-            TYPE(C_PTR), SAVE :: registry = C_NULL_PTR
             TYPE(libxs_gemm_config_t) :: config
             INTEGER :: m, n, k, rc
          #:endif
@@ -449,9 +446,6 @@ CONTAINS
          #:if base1 == 'r'
             IF (stack_descr%defined_mnk) THEN
                m = stack_descr%m; n = stack_descr%n; k = stack_descr%k
-               IF (.NOT. C_ASSOCIATED(registry)) THEN
-                  registry = libxs_registry_create()
-               END IF
                rc = libxs_gemm_dispatch(config, &
                                         datatype=LIBXS_DATATYPE_F${bits1[n]}$, &
                                         transa='N', transb='N', &
@@ -471,7 +465,7 @@ CONTAINS
                                         , ${nametype1}$gemm_blas= &
                                         C_FUNLOC(${nametype1}$gemm_blas) &
 #endif
-                                        , registry=registry)
+                                        )
                CALL libxs_gemm_index( &
                   C_LOC(a_data), C_LOC(params(p_a_first, 1)), &
                   C_LOC(b_data), C_LOC(params(p_b_first, 1)), &

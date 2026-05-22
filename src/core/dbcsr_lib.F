@@ -237,8 +237,10 @@ CONTAINS
             DBCSR_ABORT("dbcsr_init_lib: No recognized GPU devices")
          END IF
          CALL acc_init()
+#if defined(__DBCSR_ACC)
          IF (libsmm_acc_init() /= 0) &
             DBCSR_ABORT("dbcsr_init_lib: libsmm_acc_init failed")
+#endif
       END IF
 
 #if defined(__DBCSR_ACC)
@@ -330,8 +332,10 @@ CONTAINS
       ! Reset Acc ID
       CALL reset_accdrv_active_device_id()
       IF (use_acc()) THEN
+#if defined(__DBCSR_ACC)
          IF (libsmm_acc_finalize() /= 0) &
             DBCSR_ABORT("dbcsr_finalize_lib: libsmm_acc_finalize failed")
+#endif
          CALL acc_finalize()
       END IF
 

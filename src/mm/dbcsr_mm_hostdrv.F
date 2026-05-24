@@ -466,13 +466,15 @@ CONTAINS
                                         C_FUNLOC(${nametype1}$gemm_blas) &
 #endif
                                         )
-               CALL libxs_gemm_index( &
-                  C_LOC(a_data), C_LOC(params(p_a_first, 1)), &
-                  C_LOC(b_data), C_LOC(params(p_b_first, 1)), &
-                  C_LOC(c_data), C_LOC(params(p_c_first, 1)), &
-                  INT(C_SIZEOF(params(1, 1)))*dbcsr_ps_width, 1, &
-                  stack_size, config)
-               used_smm = .TRUE.
+               IF (0 /= rc) THEN
+                  CALL libxs_gemm_index( &
+                     C_LOC(a_data), C_LOC(params(p_a_first, 1)), &
+                     C_LOC(b_data), C_LOC(params(p_b_first, 1)), &
+                     C_LOC(c_data), C_LOC(params(p_c_first, 1)), &
+                     INT(C_SIZEOF(params(1, 1)))*dbcsr_ps_width, 1, &
+                     stack_size, config)
+                  used_smm = .TRUE.
+               END IF
             END IF
          #:endif
          IF (.NOT. used_smm) THEN

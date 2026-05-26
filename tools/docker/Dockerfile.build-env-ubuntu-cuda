@@ -47,7 +47,7 @@ RUN set -ex ; \
         ;
 
 # Version pins: keep in sync with cmake/dependencies.cmake
-ARG libxsmm_version=c14cbc6f8bc7964f8c5190a3a16b8cace03e5889
+ARG libxsmm_version=0cea22fdc34ec54bc59ffb47a43cb3e28b26d3e0
 
 RUN set -ex ; \
     curl -LsS https://github.com/libxsmm/libxsmm/archive/${libxsmm_version}.tar.gz | tar -xz -C /opt ; \

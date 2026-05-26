@@ -202,8 +202,14 @@ endif ()
 if (LIBXSMM_FETCHED)
   target_compile_definitions(dbcsr PRIVATE __LIBXSMM)
   target_include_directories(dbcsr PRIVATE "${LIBXSMMROOT}/include")
-  target_link_libraries(dbcsr PRIVATE $<TARGET_OBJECTS:xsmm> ${CMAKE_DL_LIBS}
-                                      Threads::Threads)
+  set_target_properties(
+    xsmm PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
+                    "$<BUILD_INTERFACE:${LIBXSMMROOT}/include>")
+  install(
+    TARGETS xsmm
+    EXPORT DBCSRTargets
+    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}")
+  target_link_libraries(dbcsr PRIVATE xsmm)
 elseif (LIBXSMM_LIBRARY)
   target_compile_definitions(dbcsr PRIVATE __LIBXSMM)
   target_include_directories(dbcsr PRIVATE "${LIBXSMMROOT}/include")

@@ -201,7 +201,9 @@ endif ()
 
 if (LIBXSMM_FETCHED)
   target_compile_definitions(dbcsr PRIVATE __LIBXSMM)
-  target_link_libraries(dbcsr PRIVATE xsmm)
+  target_include_directories(dbcsr PRIVATE "${LIBXSMMROOT}/include")
+  target_link_libraries(dbcsr PRIVATE $<TARGET_OBJECTS:xsmm> ${CMAKE_DL_LIBS}
+                                      Threads::Threads)
 elseif (LIBXSMM_LIBRARY)
   target_compile_definitions(dbcsr PRIVATE __LIBXSMM)
   target_include_directories(dbcsr PRIVATE "${LIBXSMMROOT}/include")

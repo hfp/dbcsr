@@ -209,54 +209,53 @@ if (USE_LIBXS)
     set(LIBXSROOT "${libxs_SOURCE_DIR}")
   endif ()
   # Optional LIBXSMM for JIT-compiled GEMM kernels
-  set(LIBXSMMROOT
-      ""
-      CACHE PATH "Root directory of LIBXSMM (optional)")
-  if (NOT LIBXSMMROOT AND PkgConfig_FOUND)
-    pkg_check_modules(_LIBXSMM QUIET libxsmm)
-    if (_LIBXSMM_FOUND)
-      pkg_get_variable(LIBXSMMROOT libxsmm prefix)
+  option(USE_LIBXSMM "Use LIBXSMM for JIT-compiled GEMM kernels" ON)
+  if (USE_LIBXSMM)
+    set(LIBXSMMROOT
+        ""
+        CACHE PATH "Root directory of LIBXSMM (optional)")
+    if (NOT LIBXSMMROOT)
+      foreach (_dir "${LIBXSROOT}/../libxsmm" "$ENV{HOME}/libxsmm")
+        if (EXISTS "${_dir}/include/libxsmm.h")
+          set(LIBXSMMROOT "${_dir}")
+          break()
+        endif ()
+      endforeach ()
     endif ()
-  endif ()
-  if (NOT LIBXSMMROOT)
-    foreach (_dir "${LIBXSROOT}/../libxsmm" "$ENV{HOME}/libxsmm")
-      if (EXISTS "${_dir}/include/libxsmm.h")
-        set(LIBXSMMROOT "${_dir}")
-        break()
+    if (LIBXSMMROOT AND EXISTS "${LIBXSMMROOT}/include/libxsmm.h")
+      find_library(
+        LIBXSMM_LIBRARY
+        NAMES xsmm
+        PATHS "${LIBXSMMROOT}/lib"
+        NO_DEFAULT_PATH)
+      if (LIBXSMM_LIBRARY)
+        message(STATUS "Using prebuilt LIBXSMM from ${LIBXSMMROOT}")
+      else ()
+        message(
+          STATUS
+            "LIBXSMM source found at ${LIBXSMMROOT} -- building as subdirectory"
+        )
+        set(XSMM_STATIC
+            ON
+            CACHE BOOL "" FORCE)
+        add_subdirectory("${LIBXSMMROOT}"
+                         "${CMAKE_BINARY_DIR}/_deps/libxsmm-build")
+        set(LIBXSMM_FETCHED TRUE)
       endif ()
-    endforeach ()
-  endif ()
-  if (LIBXSMMROOT AND EXISTS "${LIBXSMMROOT}/include/libxsmm.h")
-    find_library(
-      LIBXSMM_LIBRARY
-      NAMES xsmm
-      PATHS "${LIBXSMMROOT}/lib"
-      NO_DEFAULT_PATH)
-    if (LIBXSMM_LIBRARY)
-      message(STATUS "Using prebuilt LIBXSMM from ${LIBXSMMROOT}")
     else ()
       message(
-        STATUS
-          "LIBXSMM source found at ${LIBXSMMROOT} -- building as subdirectory")
+        STATUS "LIBXSMM not found locally -- downloading via FetchContent")
+      FetchContent_Declare(
+        libxsmm
+        GIT_REPOSITORY "https://github.com/libxsmm/libxsmm.git"
+        GIT_TAG ${LIBXSMM_GIT_TAG})
       set(XSMM_STATIC
           ON
           CACHE BOOL "" FORCE)
-      add_subdirectory("${LIBXSMMROOT}"
-                       "${CMAKE_BINARY_DIR}/_deps/libxsmm-build")
+      FetchContent_MakeAvailable(libxsmm)
+      set(LIBXSMMROOT "${libxsmm_SOURCE_DIR}")
       set(LIBXSMM_FETCHED TRUE)
     endif ()
-  else ()
-    message(STATUS "LIBXSMM not found locally -- downloading via FetchContent")
-    FetchContent_Declare(
-      libxsmm
-      GIT_REPOSITORY "https://github.com/libxsmm/libxsmm.git"
-      GIT_TAG ${LIBXSMM_GIT_TAG})
-    set(XSMM_STATIC
-        ON
-        CACHE BOOL "" FORCE)
-    FetchContent_MakeAvailable(libxsmm)
-    set(LIBXSMMROOT "${libxsmm_SOURCE_DIR}")
-    set(LIBXSMM_FETCHED TRUE)
   endif ()
 endif ()
 

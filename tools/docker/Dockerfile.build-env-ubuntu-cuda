@@ -46,15 +46,7 @@ RUN set -ex ; \
         git-archive-all \
         ;
 
-# Version pins: keep in sync with cmake/dependencies.cmake
-ARG libxsmm_version=0cea22fdc34ec54bc59ffb47a43cb3e28b26d3e0
-
-RUN set -ex ; \
-    curl -LsS https://github.com/libxsmm/libxsmm/archive/${libxsmm_version}.tar.gz | tar -xz -C /opt ; \
-    ln -s libxsmm-${libxsmm_version} /opt/libxsmm ; \
-    make -j -C /opt/libxsmm WRAP=0
-
-ENV PKG_CONFIG_PATH="/opt/libxsmm/lib:/opt/libxstream/lib/pkgconfig:/opt/libxs/lib/pkgconfig:${PKG_CONFIG_PATH}"
+ENV PKG_CONFIG_PATH="/opt/libxstream/lib/pkgconfig:/opt/libxs/lib/pkgconfig:${PKG_CONFIG_PATH}"
 
 RUN set -ex ; \
     apt-get update ; \

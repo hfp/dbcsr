@@ -145,8 +145,8 @@ if (USE_OPENMP)
 endif ()
 
 # =================================== SMM (Small Matrix-Matrix multiplication)
-# Ensure all targets (including fetched dependencies) are built with -fPIC
-# so they can be linked into shared libraries.
+# Ensure all targets (including fetched dependencies) are built with -fPIC so
+# they can be linked into shared libraries.
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # LIBXS provides host-side batched GEMM for all backends. LIBXSMM provides JIT

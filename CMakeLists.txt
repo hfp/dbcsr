@@ -95,6 +95,7 @@ set(USE_ACCEL
     ""
     CACHE STRING "Build with acceleration support (default: none)")
 set_property(CACHE USE_ACCEL PROPERTY STRINGS "" opencl cuda hip)
+string(TOLOWER "${USE_ACCEL}" USE_ACCEL)
 
 set(SUPPORTED_CUDA_ARCHITECTURES
     K20X

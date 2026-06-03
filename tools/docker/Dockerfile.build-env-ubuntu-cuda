@@ -52,7 +52,7 @@ RUN set -ex ; \
     rm -rf /var/lib/apt/lists/*
 
 ARG libxs_version=db4bbb98754f467b4c3f7134ef6f8f65ea63af2e
-ARG libxstream_version=afb97132fffe84c2dc1c050d3e0fb98ba6fad869
+ARG libxstream_version=0c62224a33ae6290f709d5851eafc1707d1faa5d
 
 RUN set -ex ; \
     curl -LsS https://github.com/hfp/libxs/archive/${libxs_version}.tar.gz | tar -xz -C /opt ; \

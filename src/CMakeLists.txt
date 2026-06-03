@@ -305,10 +305,24 @@ if (USE_ACCEL)
     if (LIBXSTREAM_FETCHED)
       set(LIBXSTREAM_LINK libxstream::libxstream)
     else ()
+      set(_dbcsr_suffixes_save ${CMAKE_FIND_LIBRARY_SUFFIXES})
+      if (BUILD_SHARED_LIBS)
+        set(CMAKE_FIND_LIBRARY_SUFFIXES .so .dylib)
+      else ()
+        set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
+      endif ()
       find_library(
         LIBXSTREAM_LIBRARY xstream
         PATHS "${LIBXSTREAMROOT}/lib"
         NO_DEFAULT_PATH)
+      if (NOT LIBXSTREAM_LIBRARY)
+        set(CMAKE_FIND_LIBRARY_SUFFIXES ${_dbcsr_suffixes_save})
+        find_library(
+          LIBXSTREAM_LIBRARY xstream
+          PATHS "${LIBXSTREAMROOT}/lib"
+          NO_DEFAULT_PATH)
+      endif ()
+      set(CMAKE_FIND_LIBRARY_SUFFIXES ${_dbcsr_suffixes_save})
       if (NOT LIBXSTREAM_LIBRARY)
         message(
           FATAL_ERROR "libxstream library not found in ${LIBXSTREAMROOT}/lib")

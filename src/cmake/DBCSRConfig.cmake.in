@@ -2,6 +2,11 @@
 
 include(CMakeFindDependencyMacro)
 
+# Hints for locating DBCSR's dependencies (override with your own -D flags)
+set(DBCSR_LIBXSROOT "@LIBXSROOT@")
+set(DBCSR_LIBXSTREAMROOT "@LIBXSTREAMROOT@")
+set(DBCSR_LIBXSMMROOT "@LIBXSMMROOT@")
+
 # the following should only be needed when building statically
 
 if (@USE_MPI@)

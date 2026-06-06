@@ -434,6 +434,16 @@ if (USE_ACCEL MATCHES "opencl")
   endforeach ()
 endif ()
 
+# Point consumers at the installed prefix (not the build/source tree)
+if (LIBXS_FETCHED)
+  set(LIBXSROOT "${CMAKE_INSTALL_PREFIX}")
+endif ()
+if (LIBXSTREAM_FETCHED)
+  set(LIBXSTREAMROOT "${CMAKE_INSTALL_PREFIX}")
+endif ()
+if (LIBXSMM_FETCHED)
+  set(LIBXSMMROOT "${CMAKE_INSTALL_PREFIX}")
+endif ()
 configure_package_config_file(
   cmake/DBCSRConfig.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/DBCSRConfig.cmake"
   INSTALL_DESTINATION "${config_install_dir}")

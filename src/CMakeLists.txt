@@ -191,7 +191,7 @@ if (LIBXS_FETCHED)
   target_link_libraries(dbcsr PRIVATE libxs::libxs ${BLAS_LIBRARIES})
 elseif (LIBXS_LIBRARY)
   target_compile_definitions(dbcsr PRIVATE __LIBXS __BLAS)
-  target_include_directories(dbcsr PRIVATE "${LIBXSROOT}/include")
+  target_include_directories(dbcsr PRIVATE "${LIBXSROOT}")
   target_link_libraries(dbcsr PRIVATE ${LIBXS_LIBRARY} ${BLAS_LIBRARIES})
 endif ()
 
@@ -297,10 +297,10 @@ if (USE_ACCEL)
 
   if (USE_ACCEL MATCHES "opencl")
     target_compile_definitions(dbcsr PRIVATE __LIBXSTREAM)
-    target_include_directories(dbcsr PRIVATE "${LIBXSTREAMROOT}/include"
+    target_include_directories(dbcsr PRIVATE "${LIBXSTREAMROOT}"
                                              "${DBCSR_SMM_DIR}")
     if (NOT LIBXS_FETCHED)
-      target_include_directories(dbcsr PRIVATE "${LIBXSROOT}/include")
+      target_include_directories(dbcsr PRIVATE "${LIBXSROOT}")
     endif ()
     if (LIBXSTREAM_FETCHED)
       set(LIBXSTREAM_LINK libxstream::libxstream)
@@ -336,7 +336,7 @@ if (USE_ACCEL)
     set(DBCSR_SMM_GENHDR "${DBCSR_SMM_DIR}/smm_kernels.h")
     add_custom_command(
       OUTPUT "${DBCSR_SMM_GENHDR}"
-      COMMAND "${DBCSR_OPENCL_SCRIPT}" -I "${LIBXSTREAMROOT}/include"
+      COMMAND "${DBCSR_OPENCL_SCRIPT}" -I "${LIBXSTREAMROOT}/libxstream"
               ${DBCSR_SMM_KERNELS} ${DBCSR_SMM_PARAMS} "${DBCSR_SMM_GENHDR}"
       DEPENDS "${DBCSR_OPENCL_SCRIPT}" ${DBCSR_SMM_KERNELS} ${DBCSR_SMM_PARAMS}
       COMMENT "Generating OpenCL SMM kernel header")

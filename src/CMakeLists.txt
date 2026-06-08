@@ -186,30 +186,18 @@ elseif (USE_ACCEL MATCHES "cuda")
                                          "${ACC_ARCH_NUMBER}")
 endif ()
 
-if (USE_LIBXS AND TARGET DBCSR::LIBXS)
-  target_compile_definitions(dbcsr PRIVATE __LIBXS __BLAS)
-  target_link_libraries(dbcsr PRIVATE DBCSR::LIBXS ${BLAS_LIBRARIES})
+if (USE_LIBXS AND TARGET libxs::libxs)
+  target_compile_definitions(dbcsr PRIVATE __LIBXS)
+  target_sources(dbcsr PRIVATE "${LIBXS_JIT_SOURCE}")
+  target_link_libraries(dbcsr PRIVATE libxs::libxs ${BLAS_LIBRARIES})
 endif ()
 
 if (BLAS_LIBRARIES MATCHES "mkl_")
   target_compile_definitions(dbcsr PRIVATE __MKL)
 endif ()
 
-if (LIBXSMM_FETCHED)
-  target_compile_definitions(dbcsr PRIVATE __LIBXSMM
-                                           ${LIBXSMM_COMPILE_DEFINITIONS})
-  target_include_directories(dbcsr PRIVATE "${LIBXSMM_INCLUDE_DIRS}")
-  set_target_properties(
-    xsmm PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
-                    "$<BUILD_INTERFACE:${LIBXSMM_INCLUDE_DIRS}>")
-  install(
-    TARGETS xsmm
-    EXPORT DBCSRTargets
-    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}")
-  target_link_libraries(dbcsr PRIVATE xsmm)
-elseif (LIBXSMM_FOUND)
-  target_compile_definitions(dbcsr PRIVATE __LIBXSMM
-                                           ${LIBXSMM_COMPILE_DEFINITIONS})
+if (USE_LIBXSMM AND LIBXSMM_FOUND)
+  target_compile_definitions(dbcsr PRIVATE __LIBXSMM)
   target_include_directories(dbcsr PRIVATE "${LIBXSMM_INCLUDE_DIRS}")
   target_link_libraries(dbcsr PRIVATE ${LIBXSMM_LINK_LIBRARIES})
 endif ()
@@ -296,7 +284,6 @@ if (USE_ACCEL)
   if (USE_ACCEL MATCHES "opencl")
     target_compile_definitions(dbcsr PRIVATE __LIBXSTREAM)
     target_include_directories(dbcsr PRIVATE "${DBCSR_SMM_DIR}")
-    # Generate smm_kernels.h from .cl kernel sources
     set(DBCSR_SMM_KERNELS "${DBCSR_SMM_DIR}/kernels/multiply.cl"
                           "${DBCSR_SMM_DIR}/kernels/transpose.cl")
     file(GLOB DBCSR_SMM_PARAMS "${DBCSR_SMM_DIR}/params/tune_multiply_*.csv")
@@ -313,18 +300,19 @@ if (USE_ACCEL)
 
   target_link_libraries(
     dbcsr
-    PRIVATE $<$<STREQUAL:${USE_ACCEL},cuda>:CUDA::cudart>
-            $<$<STREQUAL:${USE_ACCEL},cuda>:CUDA::cuda_driver>
-            $<$<STREQUAL:${USE_ACCEL},cuda>:CUDA::cublas>
-            $<$<STREQUAL:${USE_ACCEL},cuda>:CUDA::nvrtc>
-            $<$<BOOL:${WITH_CUDA_PROFILING}>:CUDA::nvToolsExt>
-            $<$<STREQUAL:${USE_ACCEL},hip>:roc::hipblas>
-            $<$<STREQUAL:${USE_ACCEL},hip>:hiprtc::hiprtc>
-            $<$<STREQUAL:${USE_ACCEL},hip>:hip::host>
-            $<$<BOOL:${WITH_HIP_PROFILING}>:roctx64>
-            $<$<BOOL:${WITH_HIP_PROFILING}>:roctracer64>
-            $<$<STREQUAL:${USE_ACCEL},opencl>:OpenCL::OpenCL>
-            $<$<STREQUAL:${USE_ACCEL},opencl>:DBCSR::LIBXSTREAM>)
+    PRIVATE
+      $<$<STREQUAL:${USE_ACCEL},cuda>:CUDA::cudart>
+      $<$<STREQUAL:${USE_ACCEL},cuda>:CUDA::cuda_driver>
+      $<$<STREQUAL:${USE_ACCEL},cuda>:CUDA::cublas>
+      $<$<STREQUAL:${USE_ACCEL},cuda>:CUDA::nvrtc>
+      $<$<BOOL:${WITH_CUDA_PROFILING}>:CUDA::nvToolsExt>
+      $<$<STREQUAL:${USE_ACCEL},hip>:roc::hipblas>
+      $<$<STREQUAL:${USE_ACCEL},hip>:hiprtc::hiprtc>
+      $<$<STREQUAL:${USE_ACCEL},hip>:hip::host>
+      $<$<BOOL:${WITH_HIP_PROFILING}>:roctx64>
+      $<$<BOOL:${WITH_HIP_PROFILING}>:roctracer64>
+      $<$<STREQUAL:${USE_ACCEL},opencl>:OpenCL::OpenCL>
+      $<$<STREQUAL:${USE_ACCEL},opencl>:libxstream::libxstream>)
 endif ()
 
 # =================================================================================================
@@ -398,6 +386,16 @@ if (USE_ACCEL MATCHES "opencl")
   endforeach ()
 endif ()
 
+# Point consumers at the installed prefix (not the build/source tree)
+if (LIBXS_FETCHED)
+  set(LIBXSROOT "${CMAKE_INSTALL_PREFIX}")
+endif ()
+if (LIBXSTREAM_FETCHED)
+  set(LIBXSTREAMROOT "${CMAKE_INSTALL_PREFIX}")
+endif ()
+if (LIBXSMM_FETCHED)
+  set(LIBXSMMROOT "${CMAKE_INSTALL_PREFIX}")
+endif ()
 configure_package_config_file(
   cmake/DBCSRConfig.cmake.in "${CMAKE_CURRENT_BINARY_DIR}/DBCSRConfig.cmake"
   INSTALL_DESTINATION "${config_install_dir}")
@@ -409,11 +407,6 @@ install(
   EXPORT DBCSRTargets
   NAMESPACE "${config_namespace}"
   DESTINATION "${config_install_dir}")
-install(
-  FILES ${CMAKE_CURRENT_BINARY_DIR}/DBCSRConfig.cmake
-        ${CMAKE_CURRENT_BINARY_DIR}/DBCSRConfigVersion.cmake
-        ${PROJECT_SOURCE_DIR}/cmake/FindLIBXS.cmake
-        ${PROJECT_SOURCE_DIR}/cmake/FindLIBXSMM.cmake
-        ${PROJECT_SOURCE_DIR}/cmake/FindLIBXSTREAM.cmake
-        ${PROJECT_SOURCE_DIR}/cmake/dependencies.cmake
-  DESTINATION ${config_install_dir})
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/DBCSRConfig.cmake
+              ${CMAKE_CURRENT_BINARY_DIR}/DBCSRConfigVersion.cmake
+        DESTINATION ${config_install_dir})

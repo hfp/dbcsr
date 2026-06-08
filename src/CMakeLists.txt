@@ -137,7 +137,7 @@ elseif (USE_ACCEL MATCHES "cuda")
 endif ()
 
 # OpenCL backend: SMM from LIBXSTREAM samples, ACC from LIBXSTREAM library
-set(DBCSR_SMM_DIR "${LIBXSTREAMROOT}/samples/smm")
+set(DBCSR_SMM_DIR "${DBCSR_LIBXSTREAM_SMM_DIR}")
 set(DBCSR_OPENCL_SRCS
     "${DBCSR_SMM_DIR}/smm_acc.c" "${DBCSR_SMM_DIR}/smm_trans.c"
     "${DBCSR_SMM_DIR}/smm_params.c" "${DBCSR_SMM_DIR}/smm_kernel.c")
@@ -186,36 +186,20 @@ elseif (USE_ACCEL MATCHES "cuda")
                                          "${ACC_ARCH_NUMBER}")
 endif ()
 
-if (LIBXS_FETCHED)
+if (USE_LIBXS AND TARGET libxs::libxs)
   target_compile_definitions(dbcsr PRIVATE __LIBXS)
-  target_sources(dbcsr PRIVATE "${LIBXSROOT}/libxs/libxs_jit.F")
+  target_sources(dbcsr PRIVATE "${LIBXS_JIT_SOURCE}")
   target_link_libraries(dbcsr PRIVATE libxs::libxs ${BLAS_LIBRARIES})
-elseif (LIBXS_LIBRARY)
-  target_compile_definitions(dbcsr PRIVATE __LIBXS)
-  target_sources(dbcsr PRIVATE "${LIBXSROOT}/libxs/libxs_jit.F")
-  target_include_directories(dbcsr PRIVATE "${LIBXSROOT}")
-  target_link_libraries(dbcsr PRIVATE ${LIBXS_LIBRARY} ${BLAS_LIBRARIES})
 endif ()
 
 if (BLAS_LIBRARIES MATCHES "mkl_")
   target_compile_definitions(dbcsr PRIVATE __MKL)
 endif ()
 
-if (LIBXSMM_FETCHED)
+if (USE_LIBXSMM AND LIBXSMM_FOUND)
   target_compile_definitions(dbcsr PRIVATE __LIBXSMM)
-  target_include_directories(dbcsr PRIVATE "${LIBXSMMROOT}/include")
-  set_target_properties(
-    xsmm PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
-                    "$<BUILD_INTERFACE:${LIBXSMMROOT}/include>")
-  install(
-    TARGETS xsmm
-    EXPORT DBCSRTargets
-    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}")
-  target_link_libraries(dbcsr PRIVATE xsmm)
-elseif (LIBXSMM_LIBRARY)
-  target_compile_definitions(dbcsr PRIVATE __LIBXSMM)
-  target_include_directories(dbcsr PRIVATE "${LIBXSMMROOT}/include")
-  target_link_libraries(dbcsr PRIVATE ${LIBXSMM_LIBRARY})
+  target_include_directories(dbcsr PRIVATE "${LIBXSMM_INCLUDE_DIRS}")
+  target_link_libraries(dbcsr PRIVATE ${LIBXSMM_LINK_LIBRARIES})
 endif ()
 
 if (APPLE)
@@ -299,46 +283,14 @@ if (USE_ACCEL)
 
   if (USE_ACCEL MATCHES "opencl")
     target_compile_definitions(dbcsr PRIVATE __LIBXSTREAM)
-    target_include_directories(dbcsr PRIVATE "${LIBXSTREAMROOT}"
-                                             "${DBCSR_SMM_DIR}")
-    if (NOT LIBXS_FETCHED)
-      target_include_directories(dbcsr PRIVATE "${LIBXSROOT}")
-    endif ()
-    if (LIBXSTREAM_FETCHED)
-      set(LIBXSTREAM_LINK libxstream::libxstream)
-    else ()
-      set(_dbcsr_suffixes_save ${CMAKE_FIND_LIBRARY_SUFFIXES})
-      if (BUILD_SHARED_LIBS)
-        set(CMAKE_FIND_LIBRARY_SUFFIXES .so .dylib)
-      else ()
-        set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
-      endif ()
-      find_library(
-        LIBXSTREAM_LIBRARY xstream
-        PATHS "${LIBXSTREAMROOT}/lib"
-        NO_DEFAULT_PATH)
-      if (NOT LIBXSTREAM_LIBRARY)
-        set(CMAKE_FIND_LIBRARY_SUFFIXES ${_dbcsr_suffixes_save})
-        find_library(
-          LIBXSTREAM_LIBRARY xstream
-          PATHS "${LIBXSTREAMROOT}/lib"
-          NO_DEFAULT_PATH)
-      endif ()
-      set(CMAKE_FIND_LIBRARY_SUFFIXES ${_dbcsr_suffixes_save})
-      if (NOT LIBXSTREAM_LIBRARY)
-        message(
-          FATAL_ERROR "libxstream library not found in ${LIBXSTREAMROOT}/lib")
-      endif ()
-      set(LIBXSTREAM_LINK ${LIBXSTREAM_LIBRARY})
-    endif ()
-    # Generate smm_kernels.h from .cl kernel sources
+    target_include_directories(dbcsr PRIVATE "${DBCSR_SMM_DIR}")
     set(DBCSR_SMM_KERNELS "${DBCSR_SMM_DIR}/kernels/multiply.cl"
                           "${DBCSR_SMM_DIR}/kernels/transpose.cl")
     file(GLOB DBCSR_SMM_PARAMS "${DBCSR_SMM_DIR}/params/tune_multiply_*.csv")
     set(DBCSR_SMM_GENHDR "${DBCSR_SMM_DIR}/smm_kernels.h")
     add_custom_command(
       OUTPUT "${DBCSR_SMM_GENHDR}"
-      COMMAND "${DBCSR_OPENCL_SCRIPT}" -I "${LIBXSTREAMROOT}/libxstream"
+      COMMAND "${DBCSR_OPENCL_SCRIPT}" -I "${DBCSR_LIBXSTREAM_INCLUDE_DIR}"
               ${DBCSR_SMM_KERNELS} ${DBCSR_SMM_PARAMS} "${DBCSR_SMM_GENHDR}"
       DEPENDS "${DBCSR_OPENCL_SCRIPT}" ${DBCSR_SMM_KERNELS} ${DBCSR_SMM_PARAMS}
       COMMENT "Generating OpenCL SMM kernel header")
@@ -360,9 +312,7 @@ if (USE_ACCEL)
       $<$<BOOL:${WITH_HIP_PROFILING}>:roctx64>
       $<$<BOOL:${WITH_HIP_PROFILING}>:roctracer64>
       $<$<STREQUAL:${USE_ACCEL},opencl>:OpenCL::OpenCL>
-      $<$<STREQUAL:${USE_ACCEL},opencl>:${LIBXSTREAM_LINK}>
-      $<$<STREQUAL:${USE_ACCEL},opencl>:$<IF:$<BOOL:${LIBXS_FETCHED}>,libxs::libxs,${LIBXS_LIBRARY}>>
-  )
+      $<$<STREQUAL:${USE_ACCEL},opencl>:libxstream::libxstream>)
 endif ()
 
 # =================================================================================================

@@ -374,9 +374,9 @@ CONTAINS
      !! Real types use LIBXS dispatch; complex types fall through to BLAS.
          #:if base1 == 'r'
             USE LIBXS_JIT, ONLY: libxs_gemm_config_t, &
-                             libxs_gemm_dispatch, libxs_gemm_index, &
-                             C_LOC, C_SIZEOF, &
-                             LIBXS_DATATYPE_F${bits1[n]}$
+                                 libxs_gemm_dispatch, libxs_gemm_index, &
+                                 C_LOC, C_SIZEOF, &
+                                 LIBXS_DATATYPE_F${bits1[n]}$
          #:endif
          INTEGER, INTENT(IN)                            :: stack_size
          TYPE(stack_descriptor_type), INTENT(IN)        :: stack_descr

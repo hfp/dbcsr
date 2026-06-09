@@ -73,7 +73,7 @@ set(DBCSR_TESTS_FTN
     dbcsr_tas_unittest
     dbcsr_test_csr_conversions)
 
-if (USE_ACCEL)
+if (DBCSR_WITH_ACCEL)
   set(DBCSR_TESTS_BACKEND dbcsr_acc_test)
   if (TARGET DBCSR::LIBXS)
     list(APPEND DBCSR_TESTS_BACKEND acc_bench)
@@ -193,12 +193,12 @@ if (NOT USE_MPI)
     endif ()
     if (TARGET DBCSR::LIBXS)
       target_link_libraries(${dbcsr_test_backend} PRIVATE DBCSR::LIBXS)
+      target_compile_definitions(${dbcsr_test_backend} PRIVATE __LIBXS)
     endif ()
-    if (LIBXSMM_FOUND OR LIBXSMM_FETCHED)
-      target_compile_definitions(
-        ${dbcsr_test_backend} PRIVATE __LIBXSMM ${LIBXSMM_COMPILE_DEFINITIONS})
-      target_include_directories(${dbcsr_test_backend}
-                                 PRIVATE "${LIBXSMM_INCLUDE_DIRS}")
+    if (USE_LIBXSMM)
+      target_compile_definitions(${dbcsr_test_backend} PRIVATE __LIBXSMM)
+      target_link_libraries(${dbcsr_test_backend}
+                            PRIVATE ${DBCSR_LIBXSMM_TARGET})
     endif ()
     # register unittest executable with CMake
     add_test(NAME ${dbcsr_test_backend} COMMAND ./${dbcsr_test_backend})
@@ -242,7 +242,7 @@ add_custom_target(
   BYPRODUCTS libsmm_acc_timer_multiply.cpp
   COMMENT "Generate tests/generate_libsmm_acc_timer_multiply.cpp")
 
-if (USE_ACCEL MATCHES "cuda|hip")
+if (USE_ACCEL STREQUAL "cuda" OR USE_ACCEL STREQUAL "hip")
 
   # All libsmm_acc tests
   set(LIBSMM_ACC_TESTS_SRCS

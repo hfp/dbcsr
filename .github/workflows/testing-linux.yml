@@ -8,11 +8,11 @@ on:
 
 env:
   LIBXS_GIT_REPOSITORY: https://github.com/hfp/libxs.git
-  LIBXS_GIT_TAG: 11348a69c6b8622f9192ec725b291f42384a5ce7
+  LIBXS_GIT_TAG: 0a157189979edfd94057c59724ae6eb69862996b
   LIBXSTREAM_GIT_REPOSITORY: https://github.com/hfp/libxstream.git
-  LIBXSTREAM_GIT_TAG: 8375c018d0619bfd9261f67b9ed8b609d8e4ff66
+  LIBXSTREAM_GIT_TAG: 16bb6799310d78da4b6698d2227b52270310ba56
   LIBXSMM_GIT_REPOSITORY: https://github.com/Growl1234/libxsmm.git
-  LIBXSMM_GIT_TAG: 47548ddea6e5b63c3602b51100660c14c8b2d54c
+  LIBXSMM_GIT_TAG: b35d767abffc7bca845a81f7e408fec68300821c
 
 jobs:
   ##################################################################################
@@ -315,7 +315,15 @@ jobs:
         run: |
           mkdir -p build/src
           mv dbcsr.h tensors build/src/
-          echo *.info | xargs printf -- '-a %s\n' | xargs lcov -o merged.info
+          echo *.info | xargs printf -- '-a %s\n' | xargs lcov -o merged.raw.info
+
+          lcov --remove merged.raw.info \
+            '*/libxs_procs.fi' \
+            '*/libxs_jit.F' \
+            '*/deps/install/*' \
+            '*/_deps/*' \
+            -o merged.info
+
           genhtml merged.info -o htmlcov
           lcov --summary merged.info
 

@@ -61,10 +61,6 @@ endif ()
 
 if ("@USE_ACCEL@" MATCHES "opencl")
   find_dependency(OpenCL)
-endif ()
-
-set(DBCSR_USE_LIBXSTREAM @USE_LIBXSTREAM@)
-if (@USE_LIBXSTREAM@)
   find_dependency(libxstream CONFIG QUIET)
   if (NOT libxstream_FOUND)
     find_dependency(PkgConfig)

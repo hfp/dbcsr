@@ -393,8 +393,8 @@ if (USE_ACCEL STREQUAL "opencl")
   endforeach ()
 endif ()
 
-# Record dependency prefixes for the installed config.
-# Derive from <pkg>_DIR (points to lib/cmake/<pkg>/) -> three levels up.
+# Record dependency prefixes for the installed config. Derive from <pkg>_DIR
+# (points to lib/cmake/<pkg>/) -> three levels up.
 if (libxs_DIR)
   cmake_path(GET libxs_DIR PARENT_PATH _tmp)
   cmake_path(GET _tmp PARENT_PATH _tmp)

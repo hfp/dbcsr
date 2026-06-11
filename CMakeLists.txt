@@ -86,6 +86,9 @@ option(WITH_HIP_PROFILING "Enable profiling within HIP" OFF)
 
 cmake_dependent_option(USE_LIBXSMM "Use LIBXSMM for JIT-compiled GEMM kernels"
                        OFF "USE_LIBXS" OFF)
+if(USE_LIBXSMM AND NOT USE_LIBXS)
+  set(USE_LIBXS ON CACHE BOOL "" FORCE)
+endif()
 cmake_dependent_option(USE_MPI_F08 "Build with the mpi_f08 module support" OFF
                        "USE_MPI" OFF) # MPI_F08 is a module included in MPI
 cmake_dependent_option(
@@ -275,11 +278,8 @@ if (USE_ACCEL STREQUAL "opencl")
     list(APPEND CMAKE_PREFIX_PATH "$ENV{CUDA_PATH}")
   endif ()
 
-  # libxs is a hard dependency when libxs is on amd opencl on as well.
   if (NOT USE_LIBXS)
-    message(
-      FATAL_ERROR
-        "LIBXS not found. OpenCL backend requires LIBXS (USE_LIBXS=ON).")
+    set(USE_LIBXS ON CACHE BOOL "" FORCE)
   endif ()
 
   find_package(OpenCL REQUIRED)

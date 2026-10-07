@@ -51,8 +51,8 @@ RUN set -ex ; \
     apt-get install -y --no-install-recommends opencl-c-headers ocl-icd-libopencl1 ; \
     rm -rf /var/lib/apt/lists/*
 
-ARG libxs_version=8b316fb7d1e6b0cd35b17eefad9b15c4571faab3
-ARG libxstream_version=e6040ed37dd5a20372da3dabf002ca636029c68b
+ARG libxs_version=83e86c3784330ee7566d9448c39f51ee8ab81dc0
+ARG libxstream_version=2f72838b34de9bf3826ba82259ffec6dbf755837
 
 RUN set -ex ; \
     curl -LsS https://github.com/hfp/libxs/archive/${libxs_version}.tar.gz | tar -xz -C /opt ; \

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION FALSE FORCE)
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION FALSE)
 
 # include our cmake snippets
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake
@@ -239,14 +239,17 @@ if (USE_MPI)
     REQUIRED)
 
   # The compiler wrappers may carry the build flags of the MPI package itself,
-  # e.g., -flto (Ubuntu), which would undo disabling LTO for DBCSR.
+  # e.g., -flto (Ubuntu), which would undo disabling LTO for DBCSR. FindMPI
+  # keeps the link flags in a single "SHELL:" entry, hence tokens are removed.
   if (NOT CMAKE_INTERPROCEDURAL_OPTIMIZATION)
     foreach (lang IN LISTS DBCSR_REQUIRED_MPI_COMPONENTS)
       if (TARGET MPI::MPI_${lang})
         foreach (prop INTERFACE_COMPILE_OPTIONS INTERFACE_LINK_OPTIONS)
           get_target_property(mpi_options MPI::MPI_${lang} ${prop})
           if (mpi_options)
-            list(FILTER mpi_options EXCLUDE REGEX "^-f(no-)?(fat-)?lto")
+            string(REGEX REPLACE "(^|[ ;:])-f(no-)?(fat-)?lto[^ ;>]*" "\\1"
+                                 mpi_options "${mpi_options}")
+            list(REMOVE_ITEM mpi_options "")
             set_target_properties(MPI::MPI_${lang} PROPERTIES ${prop}
                                                               "${mpi_options}")
           endif ()
@@ -454,4 +457,4 @@ add_subdirectory(docs)
 include(CustomTargets)
 
 # Disable LTO
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION FALSE FORCE)
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION FALSE)

@@ -8,7 +8,7 @@ on:
 
 env:
   LIBXS_GIT_REPOSITORY: https://github.com/hfp/libxs.git
-  LIBXS_GIT_TAG: 83e86c3784330ee7566d9448c39f51ee8ab81dc0
+  LIBXS_GIT_TAG: b55e964c65c84c18cf97d76baaea8469da9214b9
   LIBXSTREAM_GIT_REPOSITORY: https://github.com/hfp/libxstream.git
   LIBXSTREAM_GIT_TAG: 2f72838b34de9bf3826ba82259ffec6dbf755837
   LIBXSMM_GIT_REPOSITORY: https://github.com/libxsmm/libxsmm.git

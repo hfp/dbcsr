@@ -182,12 +182,16 @@ endif ()
 # Must be compiled by the consumer so preprocessor defines (__MKL, __LIBXSMM)
 # match the consumer's configuration.
 if (USE_LIBXS)
-  message(STATUS "Adding libxs_jit.F from dependency libxs for compilation")
   get_target_property(_libxs_incdirs libxs::libxs INTERFACE_INCLUDE_DIRECTORIES)
-  find_path(DBCSR_LIBXS_JIT_DIR "libxs_jit.F" HINTS ${_libxs_incdirs})
-  if (DBCSR_LIBXS_JIT_DIR)
-    target_sources(dbcsr PRIVATE "${DBCSR_LIBXS_JIT_DIR}/libxs_jit.F")
+  # only the package found, as another LIBXS may be installed as well
+  find_path(DBCSR_LIBXS_JIT_DIR "libxs_jit.F" PATHS ${_libxs_incdirs}
+            PATH_SUFFIXES libxs NO_DEFAULT_PATH)
+  if (NOT DBCSR_LIBXS_JIT_DIR)
+    message(FATAL_ERROR "libxs_jit.F not found (libxs: ${libxs_DIR})")
   endif ()
+  message(STATUS "Using libxs: ${libxs_DIR}")
+  message(STATUS "Compiling ${DBCSR_LIBXS_JIT_DIR}/libxs_jit.F")
+  target_sources(dbcsr PRIVATE "${DBCSR_LIBXS_JIT_DIR}/libxs_jit.F")
   unset(_libxs_incdirs)
 endif ()
 

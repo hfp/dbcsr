@@ -238,6 +238,23 @@ if (USE_MPI)
     COMPONENTS ${DBCSR_REQUIRED_MPI_COMPONENTS}
     REQUIRED)
 
+  # The compiler wrappers may carry the build flags of the MPI package itself,
+  # e.g., -flto (Ubuntu), which would undo disabling LTO for DBCSR.
+  if (NOT CMAKE_INTERPROCEDURAL_OPTIMIZATION)
+    foreach (lang IN LISTS DBCSR_REQUIRED_MPI_COMPONENTS)
+      if (TARGET MPI::MPI_${lang})
+        foreach (prop INTERFACE_COMPILE_OPTIONS INTERFACE_LINK_OPTIONS)
+          get_target_property(mpi_options MPI::MPI_${lang} ${prop})
+          if (mpi_options)
+            list(FILTER mpi_options EXCLUDE REGEX "^-f(no-)?(fat-)?lto")
+            set_target_properties(MPI::MPI_${lang} PROPERTIES ${prop}
+                                                              "${mpi_options}")
+          endif ()
+        endforeach ()
+      endif ()
+    endforeach ()
+  endif ()
+
   if (NOT MPI_Fortran_HAVE_F90_MODULE)
     message(
       FATAL_ERROR
@@ -291,9 +308,10 @@ if (USE_ACCEL STREQUAL "opencl")
   find_package(libxstream CONFIG REQUIRED)
 
   message(STATUS "Using LIBXSTREAM")
-  set(DBCSR_OPENCL_SCRIPT "${LIBXSTREAM_OPENCL_SCRIPT}")
-  set(DBCSR_LIBXSTREAM_SMM_DIR "${LIBXSTREAM_SMM_DIR}")
-  list(GET LIBXSTREAM_INCLUDE_DIRS 0 DBCSR_LIBXSTREAM_INCLUDE_DIR)
+  if (NOT COMMAND libxstream_add_smm)
+    message(
+      FATAL_ERROR "LIBXSTREAM does not provide LIBSMM (libxstream_add_smm)")
+  endif ()
 endif ()
 
 if (USE_ACCEL STREQUAL "cuda" OR USE_ACCEL STREQUAL "hip")

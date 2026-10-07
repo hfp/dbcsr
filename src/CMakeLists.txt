@@ -184,8 +184,11 @@ endif ()
 if (USE_LIBXS)
   get_target_property(_libxs_incdirs libxs::libxs INTERFACE_INCLUDE_DIRECTORIES)
   # only the package found, as another LIBXS may be installed as well
-  find_path(DBCSR_LIBXS_JIT_DIR "libxs_jit.F" PATHS ${_libxs_incdirs}
-            PATH_SUFFIXES libxs NO_DEFAULT_PATH)
+  find_path(
+    DBCSR_LIBXS_JIT_DIR "libxs_jit.F"
+    PATHS ${_libxs_incdirs}
+    PATH_SUFFIXES libxs
+    NO_DEFAULT_PATH)
   if (NOT DBCSR_LIBXS_JIT_DIR)
     message(FATAL_ERROR "libxs_jit.F not found (libxs: ${libxs_DIR})")
   endif ()

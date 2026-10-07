@@ -291,9 +291,10 @@ if (USE_ACCEL STREQUAL "opencl")
   find_package(libxstream CONFIG REQUIRED)
 
   message(STATUS "Using LIBXSTREAM")
-  set(DBCSR_OPENCL_SCRIPT "${LIBXSTREAM_OPENCL_SCRIPT}")
-  set(DBCSR_LIBXSTREAM_SMM_DIR "${LIBXSTREAM_SMM_DIR}")
-  list(GET LIBXSTREAM_INCLUDE_DIRS 0 DBCSR_LIBXSTREAM_INCLUDE_DIR)
+  if (NOT COMMAND libxstream_add_smm)
+    message(
+      FATAL_ERROR "LIBXSTREAM does not provide LIBSMM (libxstream_add_smm)")
+  endif ()
 endif ()
 
 if (USE_ACCEL STREQUAL "cuda" OR USE_ACCEL STREQUAL "hip")

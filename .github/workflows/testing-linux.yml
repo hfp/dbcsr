@@ -8,7 +8,7 @@ on:
 
 env:
   LIBXS_GIT_REPOSITORY: https://github.com/hfp/libxs.git
-  LIBXS_GIT_TAG: b55e964c65c84c18cf97d76baaea8469da9214b9
+  LIBXS_GIT_TAG: ab53b24a04af05b3c104b7bda454cf2944f7d23c
   LIBXSTREAM_GIT_REPOSITORY: https://github.com/hfp/libxstream.git
   LIBXSTREAM_GIT_TAG: 2f72838b34de9bf3826ba82259ffec6dbf755837
   LIBXSMM_GIT_REPOSITORY: https://github.com/libxsmm/libxsmm.git
@@ -122,8 +122,14 @@ jobs:
     - name: Build
       run: cmake --build build -- --verbose
 
+    # Runners differ in their CPU, and OpenBLAS selects its kernels accordingly:
+    # double-precision tests failed on Xeon 6 runners, where Ubuntu 22.04's
+    # OpenBLAS uses Cooperlake kernels. AVX2 kernels run on any runner.
     - name: Test
+      env:
+        OPENBLAS_CORETYPE: Haswell
       run: |
+        grep -m1 "model name" /proc/cpuinfo
         cd build
         ctest --output-on-failure
 

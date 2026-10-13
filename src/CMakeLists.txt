@@ -399,6 +399,11 @@ if (libxsmm_DIR)
   cmake_path(GET _tmp PARENT_PATH _tmp)
   cmake_path(GET _tmp PARENT_PATH LIBXSMMROOT)
 endif ()
+# OpenCL may have been found via hints (CMPLR_ROOT, CUDA_PATH) a consumer lacks
+if (OpenCL_INCLUDE_DIR AND OpenCL_LIBRARY)
+  set(OPENCL_INCDIR "${OpenCL_INCLUDE_DIR}")
+  cmake_path(GET OpenCL_LIBRARY PARENT_PATH OPENCL_LIBDIR)
+endif ()
 unset(_tmp)
 
 configure_package_config_file(

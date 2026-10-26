@@ -27,7 +27,8 @@ MODULE dbcsr_lib
                             mp_environ, mp_cart_rank, &
                             rm_mp_perf_env, &
                             mp_comm_free, &
-                            mp_get_comm_count, mp_comm_type, mp_comm_null
+                            mp_get_comm_count, mp_comm_type, mp_comm_null, &
+                            mp_mem_pool_release
    USE dbcsr_mm, ONLY: dbcsr_multiply_clear_mempools, &
                        dbcsr_multiply_lib_finalize, &
                        dbcsr_multiply_lib_init, &
@@ -326,6 +327,7 @@ CONTAINS
       NULLIFY (dbcsr_warn_hook)
       CALL dbcsr_mp_release(mp_env)
       CALL mp_comm_free(default_group)
+      CALL mp_mem_pool_release()
 #if defined(__LIBXS)
       CALL libxs_finalize()
 #endif

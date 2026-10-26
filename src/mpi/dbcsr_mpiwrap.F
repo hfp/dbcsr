@@ -5644,7 +5644,9 @@ CONTAINS
                                                      mp_res
          INTEGER(KIND=MPI_ADDRESS_KIND)           :: mp_size
          TYPE(C_PTR)                              :: mp_baseptr
+#if !defined(__LIBXS)
          MPI_INFO_TYPE                            :: mp_info
+#endif
 
          length = MAX(len, 1)
          CALL MPI_TYPE_SIZE(${mpi_type1}$, size, ierr)
@@ -5653,7 +5655,6 @@ CONTAINS
             DBCSR_ABORT("MPI cannot allocate more than 2 GiByte")
          END IF
 #if defined(__LIBXS)
-         MARK_USED(mp_info)
 !$OMP CRITICAL(dbcsr_mp_mem_pool)
          IF (.NOT. C_ASSOCIATED(mp_mem_pool)) mp_mem_pool = libxs_malloc_pool(C_FUNLOC(mp_mem_alloc), C_FUNLOC(mp_mem_free))
 !$OMP END CRITICAL(dbcsr_mp_mem_pool)

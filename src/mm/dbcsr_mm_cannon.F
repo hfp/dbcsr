@@ -120,6 +120,12 @@ MODULE dbcsr_mm_cannon
                             mp_request_type
 
    USE ISO_C_BINDING, ONLY: C_F_POINTER
+#if defined(__LIBXS)
+   USE ISO_C_BINDING, ONLY: C_INT8_T ! TEMPORARY (not for committing)
+   USE dbcsr_toollib, ONLY: sort ! TEMPORARY (not for committing)
+   USE libxs, ONLY: libxs_mhd_write ! TEMPORARY (not for committing)
+   USE dbcsr_mpiwrap, ONLY: mp_comm_world ! TEMPORARY (not for committing)
+#endif
 
 #include "base/dbcsr_base_uses.f90"
 
@@ -1630,6 +1636,9 @@ CONTAINS
                            array_size(right_buffer_calc%mats(v_ki_right, 1)%local_rows), &
                            array_data(right_buffer_calc%mats(v_ki_right, 1)%local_rows), &
                            k_sizes)
+         ! TEMPORARY (not for committing): the panels as they are multiplied (and shifted)
+         CALL dump_panel("L", left_buffer_calc%mats(1, v_ki_left), m_sizes, k_sizes, filter_eps)
+         CALL dump_panel("R", right_buffer_calc%mats(v_ki_right, 1), k_sizes, n_sizes, filter_eps)
          !
          IF (use_acc()) THEN
             CALL dbcsr_data_host2dev(left_buffer_calc%mats(1, v_ki_left)%data_area)
@@ -1781,6 +1790,102 @@ CONTAINS
       !
       CALL timestop(handle)
    END SUBROUTINE multiply_cannon
+
+   SUBROUTINE dump_panel(side, matrix, row_sizes, col_sizes, filter_eps)
+      !! TEMPORARY (not for committing): writes a panel (image) of multiply_cannon, i.e., data that
+      !! is multiplied and shifted. DBCSR_DUMP=prefix enables it (requires LIBXS), DBCSR_DUMP_MB
+      !! limits the size per rank (default 64), DBCSR_DUMP_RANK selects the rank (default 0,
+      !! negative: all), and DBCSR_DUMP_EVERY writes every N-th panel of a side (default 1).
+      !! Every panel written is prefix.RANK.COUNT.SIDE.mhd (SIDE: L or R, COUNT: panel of the side): the
+      !! blocks in storage order as REAL(8) values, and as MHD extension REAL(8) eps (filter_eps,
+      !! else zero), INT32 number of blocks, and per block INT32 shape(3). Only real_8 is written.
+      CHARACTER, INTENT(IN)                              :: side
+      TYPE(dbcsr_type), INTENT(IN)                       :: matrix
+      INTEGER, DIMENSION(:), INTENT(IN)                  :: row_sizes, col_sizes
+      REAL(kind=real_8), INTENT(IN), OPTIONAL            :: filter_eps
+
+#if defined(__LIBXS)
+      CHARACTER(LEN=256), SAVE                           :: prefix = ""
+      INTEGER, SAVE                                      :: every = 1, rank = 0, state = -2
+      INTEGER, DIMENSION(2), SAVE                        :: npanels = 0
+      INTEGER(KIND=int_8), SAVE                          :: nbytes = 0, limit = 0
+      CHARACTER(LEN=512)                                 :: fname
+      CHARACTER(LEN=32)                                  :: value
+      INTEGER                                            :: i, iside, istat, j, n, nblk, nproc, &
+                                                            ntotal, offset, rank_dump
+      INTEGER(C_INT8_T), ALLOCATABLE, DIMENSION(:)       :: ext
+      INTEGER(C_INT8_T), DIMENSION(1)                    :: byte
+      INTEGER, ALLOCATABLE, DIMENSION(:)                 :: offsets, order
+      INTEGER, ALLOCATABLE, DIMENSION(:, :)              :: shapes
+      REAL(kind=real_8)                                  :: eps
+      REAL(kind=real_8), ALLOCATABLE, DIMENSION(:)       :: values
+
+      IF (-2 == state) THEN ! first call: decide whether to dump
+         state = -1
+         CALL GET_ENVIRONMENT_VARIABLE("DBCSR_DUMP", prefix, STATUS=istat)
+         IF (0 == istat .AND. 0 < LEN_TRIM(prefix)) THEN
+            CALL mp_environ(nproc, rank, mp_comm_world)
+            rank_dump = 0
+            CALL GET_ENVIRONMENT_VARIABLE("DBCSR_DUMP_RANK", value, STATUS=istat)
+            IF (0 == istat .AND. 0 < LEN_TRIM(value)) READ (value, *) rank_dump
+            limit = 64
+            CALL GET_ENVIRONMENT_VARIABLE("DBCSR_DUMP_MB", value, STATUS=istat)
+            IF (0 == istat .AND. 0 < LEN_TRIM(value)) READ (value, *) limit
+            limit = limit*1024_int_8*1024_int_8
+            CALL GET_ENVIRONMENT_VARIABLE("DBCSR_DUMP_EVERY", value, STATUS=istat)
+            IF (0 == istat .AND. 0 < LEN_TRIM(value)) READ (value, *) every
+            every = MAX(every, 1)
+            IF (0 > rank_dump .OR. rank == rank_dump) state = 1
+         END IF
+      END IF
+      nblk = 0
+      IF (ASSOCIATED(matrix%coo_l)) nblk = SIZE(matrix%coo_l)/3
+      iside = MERGE(1, 2, "L" == side)
+      IF (1 == state .AND. 0 < nblk .AND. dbcsr_type_real_8 == matrix%data_area%d%data_type) THEN
+         npanels(iside) = npanels(iside) + 1 ! panels of the side (real_8 with blocks)
+      END IF
+      IF (1 == state .AND. nbytes < limit .AND. 0 < nblk .AND. 0 == MOD(npanels(iside) - 1, every) .AND. &
+          dbcsr_type_real_8 == matrix%data_area%d%data_type) THEN
+         ! coo_l holds (row, col, blk_p) per block, blk_p is negative for a transposed block
+         ALLOCATE (offsets(nblk), order(nblk), shapes(3, nblk))
+         DO i = 1, nblk
+            offsets(i) = ABS(matrix%coo_l(3*i))
+         END DO
+         CALL sort(offsets, nblk, order)
+         ntotal = 0
+         DO j = 1, nblk
+            i = order(j)
+            IF (0 < matrix%coo_l(3*i)) THEN
+               shapes(:, j) = [row_sizes(matrix%coo_l(3*i - 2)), col_sizes(matrix%coo_l(3*i - 1)), 1]
+            ELSE
+               shapes(:, j) = [col_sizes(matrix%coo_l(3*i - 1)), row_sizes(matrix%coo_l(3*i - 2)), 1]
+            END IF
+            ntotal = ntotal + shapes(1, j)*shapes(2, j)
+         END DO
+         ALLOCATE (values(ntotal))
+         offset = 0
+         DO j = 1, nblk
+            n = shapes(1, j)*shapes(2, j)
+            values(offset + 1:offset + n) = matrix%data_area%d%r_dp(offsets(j):offsets(j) + n - 1)
+            offset = offset + n
+         END DO
+         eps = 0.0_real_8
+         IF (PRESENT(filter_eps)) eps = filter_eps
+         ext = [TRANSFER(eps, byte), TRANSFER(nblk, byte), TRANSFER(shapes, byte)]
+         WRITE (fname, '(A,".",I0,".",I0,".",A,".mhd")') TRIM(prefix), rank, npanels(iside), side
+         IF (0 /= libxs_mhd_write(TRIM(fname), values, [ntotal], ext)) THEN
+            DBCSR_WARN("cannot write "//TRIM(fname))
+         END IF
+         nbytes = nbytes + 8_int_8*ntotal + SIZE(ext)
+      END IF
+#else
+      MARK_USED(side)
+      MARK_USED(matrix)
+      MARK_USED(row_sizes)
+      MARK_USED(col_sizes)
+      MARK_USED(filter_eps)
+#endif
+   END SUBROUTINE dump_panel
 
    SUBROUTINE multiply_cannon_g2g(left_set, right_set, product_matrix, &
                                   retain_sparsity, &
